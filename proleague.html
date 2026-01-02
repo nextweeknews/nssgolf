@@ -203,7 +203,7 @@
     .team-cell:hover{ filter: brightness(1.04); }
     .team-cell .name-text{
       font-size: 20px;
-      font-weight: 950; /* increased weight for main-row names */
+      font-weight: 950;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -244,7 +244,7 @@
     }
 
     /* ================
-       Weekly Rankings
+       Weekly Top 5
        ================ */
     .weekly-header-row, .weekly-entry{
       display:grid;
@@ -476,7 +476,7 @@
       <div class="tabs" role="tablist" aria-label="Standings tabs">
         <button class="tabbtn active" data-tab="teams" role="tab" aria-selected="true">Team Rankings</button>
         <button class="tabbtn" data-tab="players" role="tab" aria-selected="false">Player Rankings</button>
-        <button class="tabbtn" data-tab="weekly" role="tab" aria-selected="false">Weekly Rankings</button>
+        <button class="tabbtn" data-tab="weekly" role="tab" aria-selected="false">Weekly Top 5</button>
       </div>
     </div>
   </div>
@@ -521,7 +521,7 @@
         <div id="playersList" class="resultsList"></div>
       </div>
 
-      <!-- Weekly Rankings -->
+      <!-- Weekly Top 5 -->
       <div id="weeklyView" class="hidden" style="margin-top:16px;">
         <div id="weeklyCards"></div>
       </div>
@@ -548,9 +548,6 @@
 
     const REFRESH_MS = 15000;
 
-    // Roster range columns (0-indexed):
-    // A=0 overall rank, C=2 name, D=3 stage score, E-G=4..6 best 3,
-    // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
     const COL = {
       overallRank: 0,
       name: 2,
@@ -560,7 +557,6 @@
       roundsStart: 11
     };
 
-    // Team colors
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#cd7f32", fg: "#ffffff" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000", iconPos: "0 47%" },
@@ -642,11 +638,6 @@
       return Number.isFinite(n) ? n : null;
     }
 
-    // Golf-style display:
-    //  - positive: +N
-    //  - zero: E
-    //  - negative: -N
-    //  - null/blank: —
     function fmtScore(v){
       if (v === null || v === undefined || v === "") return "—";
       const n = (typeof v === "number") ? v : Number(String(v).trim());
@@ -663,9 +654,6 @@
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
-    // ==============================
-    // Normalize standings
-    // ==============================
     function normalizeTeamStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -675,12 +663,7 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          return {
-            rank: Number(rank),
-            name: String(name).trim(),
-            slug: slugify(name),
-            score: (score !== "" && score != null) ? Number(score) : null
-          };
+          return { rank:Number(rank), name:String(name).trim(), slug:slugify(name), score:(score!==""&&score!=null)?Number(score):null };
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
@@ -695,18 +678,12 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          return {
-            rank: Number(rank),
-            name: String(name).trim(),
-            slug: slugify(name),
-            score: (score !== "" && score != null) ? Number(score) : null
-          };
+          return { rank:Number(rank), name:String(name).trim(), slug:slugify(name), score:(score!==""&&score!=null)?Number(score):null };
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // Weekly rows: [rank, ?, playerName, weeklyScore] in Z:AC
     function normalizeWeekly(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -716,22 +693,12 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          return {
-            rank: Number(rank),
-            name: String(name).trim(),
-            slug: slugify(name),
-            score: (score !== "" && score != null) ? Number(score) : null
-          };
+          return { rank:Number(rank), name:String(name).trim(), slug:slugify(name), score:(score!==""&&score!=null)?Number(score):null };
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // ==============================
-    // Parse roster range
-    // - Team collapsible needs per-team 4 players
-    // - Player collapsible needs per-player stats map
-    // ==============================
     function parseRostersAndPlayerStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
@@ -739,7 +706,7 @@
 
       if(!cleaned.length) return { byTeam, byPlayer };
 
-      const rows = cleaned.slice(1); // ignore header row in formatting
+      const rows = cleaned.slice(1);
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -756,21 +723,12 @@
             overallRank: toNum(r[COL.overallRank]),
             name: pName,
             stageScore: toNum(r[COL.stage]),
-            best: [
-              toNum(r[COL.bestStart + 0]),
-              toNum(r[COL.bestStart + 1]),
-              toNum(r[COL.bestStart + 2]),
-            ],
-            weekTotals: [
-              toNum(r[COL.weekStart + 0]),
-              toNum(r[COL.weekStart + 1]),
-              toNum(r[COL.weekStart + 2]),
-              toNum(r[COL.weekStart + 3]),
-            ],
-            rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
+            best: [toNum(r[COL.bestStart+0]), toNum(r[COL.bestStart+1]), toNum(r[COL.bestStart+2])],
+            weekTotals: [toNum(r[COL.weekStart+0]), toNum(r[COL.weekStart+1]), toNum(r[COL.weekStart+2]), toNum(r[COL.weekStart+3])],
+            rounds: Array.from({length:8}, (_,k)=> toNum(r[COL.roundsStart + k]))
           };
 
-          if (pName) byPlayer.set(pName, stat);
+          if(pName) byPlayer.set(pName, stat);
           return stat;
         });
 
@@ -797,7 +755,7 @@
 
     let teamStandings = [];
     let playerStandings = [];
-    let weeklyByWeek = new Map(); // weekNumber -> array entries
+    let weeklyByWeek = new Map();
 
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
@@ -818,6 +776,59 @@
     document.querySelectorAll(".tabbtn").forEach(btn=>{
       btn.addEventListener("click", ()=> setTab(btn.dataset.tab));
     });
+
+    // ==============================
+    // Render: Teams list
+    // ==============================
+    function renderTeams(){
+      teamsList.innerHTML = "";
+      if(!teamStandings.length){
+        teamsList.innerHTML = `<div class="error">No teams found.</div>`;
+        return;
+      }
+
+      teamStandings.forEach(team=>{
+        const row = document.createElement("div");
+        row.className = "entry";
+
+        const style = getTeamStyle(team.name) || {};
+        const bg = style.bg || "rgba(255,255,255,0.08)";
+        const fg = style.fg || "#ffffff";
+
+        const isOpen = expandedTeams.has(team.name);
+        const chev = isOpen ? "▾" : "▸";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "team-cell";
+        btn.setAttribute("data-team", team.name);
+        btn.style.background = bg;
+        btn.style.color = fg;
+
+        btn.style.setProperty("--icon", "none");
+        if(style.iconPos) btn.style.setProperty("--icon-pos", style.iconPos);
+        if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
+        if(style.iconOpacity != null) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
+
+        btn.innerHTML =
+          `<span class="chev" aria-hidden="true">${chev}</span>` +
+          `<span class="name-text">${escapeHtml(team.name)}</span>`;
+
+        row.innerHTML = `
+          <div class="place ${rankClass(team.rank)}">${team.rank}</div>
+          <div id="teamHost-${team.slug}"></div>
+          <div class="score-col">${escapeHtml(fmtScore(team.score))}</div>
+        `;
+        row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
+        teamsList.appendChild(row);
+
+        if(isOpen){
+          teamsList.appendChild(renderTeamRosterTable(rosterByTeam.get(team.name)));
+        } else {
+          teamsList.appendChild(Object.assign(document.createElement("div"), { className: "roster-wrap hidden" }));
+        }
+      });
+    }
 
     // ==============================
     // Render: Team roster (full)
@@ -922,8 +933,59 @@
     }
 
     // ==============================
-    // Render: Player stats (abbreviated)
+    // Render: Players list (+ collapsible stats)
     // ==============================
+    function renderPlayers(){
+      const q = playerSearch.value.trim().toLowerCase();
+      playersList.innerHTML = "";
+
+      const view = playerStandings.filter(p=>{
+        if(!q) return true;
+        return (p.name + " " + (p.score ?? "") + " " + p.rank).toLowerCase().includes(q);
+      });
+
+      if(!view.length){
+        playersList.innerHTML = `<div class="error">No players found.</div>`;
+        return;
+      }
+
+      view.forEach(p=>{
+        const row = document.createElement("div");
+        row.className = "entry";
+
+        const isOpen = expandedPlayers.has(p.name);
+        const chev = isOpen ? "▾" : "▸";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "team-cell";
+        btn.setAttribute("data-player", p.name);
+        btn.style.background = "rgba(255,255,255,0.08)";
+        btn.style.color = "#ffffff";
+        btn.style.setProperty("--icon", "none");
+        btn.innerHTML =
+          `<span class="chev" aria-hidden="true">${chev}</span>` +
+          `<span class="name-text">${escapeHtml(p.name)}</span>`;
+
+        const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
+
+        row.innerHTML = `
+          <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
+          <div id="playerHost-${p.slug}"></div>
+          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+        `;
+        row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
+        playersList.appendChild(row);
+
+        if(isOpen){
+          const stat = playerStatsByName.get(p.name);
+          playersList.appendChild(renderPlayerStatsTable(stat));
+        } else {
+          playersList.appendChild(Object.assign(document.createElement("div"), { className: "roster-wrap hidden" }));
+        }
+      });
+    }
+
     function renderPlayerStatsTable(stat){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -1010,122 +1072,14 @@
     }
 
     // ==============================
-    // Render: Teams list
-    // ==============================
-    function renderTeams(){
-      teamsList.innerHTML = "";
-
-      if(!teamStandings.length){
-        teamsList.innerHTML = `<div class="error">No teams found.</div>`;
-        return;
-      }
-
-      teamStandings.forEach(team=>{
-        const row = document.createElement("div");
-        row.className = "entry";
-
-        const style = getTeamStyle(team.name) || {};
-        const bg = style.bg || "rgba(255,255,255,0.08)";
-        const fg = style.fg || "#ffffff";
-
-        const isOpen = expandedTeams.has(team.name);
-        const chev = isOpen ? "▾" : "▸";
-
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "team-cell";
-        btn.setAttribute("data-team", team.name);
-        btn.style.background = bg;
-        btn.style.color = fg;
-
-        btn.style.setProperty("--icon", "none");
-        if(style.iconPos) btn.style.setProperty("--icon-pos", style.iconPos);
-        if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
-        if(style.iconOpacity != null) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
-
-        btn.innerHTML =
-          `<span class="chev" aria-hidden="true">${chev}</span>` +
-          `<span class="name-text">${escapeHtml(team.name)}</span>`;
-
-        row.innerHTML = `
-          <div class="place ${rankClass(team.rank)}">${team.rank}</div>
-          <div id="teamHost-${team.slug}"></div>
-          <div class="score-col">${escapeHtml(fmtScore(team.score))}</div>
-        `;
-        row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
-        teamsList.appendChild(row);
-
-        if(isOpen){
-          teamsList.appendChild(renderTeamRosterTable(rosterByTeam.get(team.name)));
-        } else {
-          teamsList.appendChild(Object.assign(document.createElement("div"), { className: "roster-wrap hidden" }));
-        }
-      });
-    }
-
-    // ==============================
-    // Render: Players list (+ collapsible stats)
-    // ==============================
-    function renderPlayers(){
-      const q = playerSearch.value.trim().toLowerCase();
-      playersList.innerHTML = "";
-
-      const view = playerStandings.filter(p=>{
-        if(!q) return true;
-        return (p.name + " " + (p.score ?? "") + " " + p.rank).toLowerCase().includes(q);
-      });
-
-      if(!view.length){
-        playersList.innerHTML = `<div class="error">No players found.</div>`;
-        return;
-      }
-
-      view.forEach(p=>{
-        const row = document.createElement("div");
-        row.className = "entry";
-
-        const isOpen = expandedPlayers.has(p.name);
-        const chev = isOpen ? "▾" : "▸";
-
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "team-cell";
-        btn.setAttribute("data-player", p.name);
-        btn.style.background = "rgba(255,255,255,0.08)";
-        btn.style.color = "#ffffff";
-        btn.style.setProperty("--icon", "none");
-        btn.innerHTML =
-          `<span class="chev" aria-hidden="true">${chev}</span>` +
-          `<span class="name-text">${escapeHtml(p.name)}</span>`;
-
-        const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
-
-        row.innerHTML = `
-          <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
-          <div id="playerHost-${p.slug}"></div>
-          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
-        `;
-        row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
-        playersList.appendChild(row);
-
-        if(isOpen){
-          const stat = playerStatsByName.get(p.name);
-          playersList.appendChild(renderPlayerStatsTable(stat));
-        } else {
-          playersList.appendChild(Object.assign(document.createElement("div"), { className: "roster-wrap hidden" }));
-        }
-      });
-    }
-
-    // ==============================
-    // Render: Weekly cards (most recent week first)
+    // Render: Weekly Top 5 cards (most recent week first)
     // ==============================
     function renderWeekly(){
       weeklyCards.innerHTML = "";
 
       const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
       if(!weeks.length){
-        weeklyCards.innerHTML = `<div class="card"><div class="status">Weekly rankings have not been posted yet.</div></div>`;
+        weeklyCards.innerHTML = `<div class="card"><div class="status">Weekly Top 5 has not been posted yet.</div></div>`;
         return;
       }
 
@@ -1141,7 +1095,7 @@
 
         card.innerHTML = `
           <div class="card-head">
-            <h2 class="h2">Week ${weekNum} Rankings</h2>
+            <h2 class="h2">Week ${weekNum} Top 5</h2>
           </div>
 
           <div class="weekly-header-row">
@@ -1166,7 +1120,6 @@
           const round1 = stat?.rounds?.[idx1] ?? null;
           const round2 = stat?.rounds?.[idx2] ?? null;
 
-          // non-collapsible: use a non-button name cell that looks identical
           const nameCell = document.createElement("div");
           nameCell.className = "team-cell";
           nameCell.style.cursor = "default";
@@ -1198,26 +1151,22 @@
     teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-team]");
       if(!btn) return;
-
       const teamName = btn.getAttribute("data-team");
       if(!teamName) return;
 
       if(expandedTeams.has(teamName)) expandedTeams.delete(teamName);
       else expandedTeams.add(teamName);
-
       renderTeams();
     });
 
     playersList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-player]");
       if(!btn) return;
-
       const playerName = btn.getAttribute("data-player");
       if(!playerName) return;
 
       if(expandedPlayers.has(playerName)) expandedPlayers.delete(playerName);
       else expandedPlayers.add(playerName);
-
       renderPlayers();
     });
 
@@ -1248,7 +1197,6 @@
         rosterByTeam = parsed.byTeam;
         playerStatsByName = parsed.byPlayer;
 
-        // Weekly: omit weeks that are fully blank
         weeklyByWeek = new Map();
         const w1 = normalizeWeekly(wk1);
         const w2 = normalizeWeekly(wk2);
