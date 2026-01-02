@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Standings</title>
+    <title>Shotgun Pro League - Season 6</title>
     <style>
       :root{
         --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
@@ -46,7 +46,7 @@
         font-size:18px;
       }
       .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: var(--muted2);}
-      .title{font-weight:700;}
+      .title{font-weight:800;}
       .tabs{display:flex; gap:10px; flex-wrap:wrap;}
       .tabbtn{
         border:1px solid var(--border2);
@@ -54,7 +54,7 @@
         color: rgba(255,255,255,.85);
         padding:10px 14px;
         border-radius: 12px;
-        font-weight:700;
+        font-weight:800;
         cursor:pointer;
         transition: .15s ease;
       }
@@ -72,12 +72,9 @@
         padding: 18px;
         box-shadow: 0 6px 24px rgba(0,0,0,.18);
       }
-      .hero{
-        border-radius: 26px;
-        padding: 18px;
-      }
+      .hero{border-radius: 26px; padding: 18px;}
       .row{display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;}
-      .pillgrid{display:flex; gap:10px;}
+      .pillgrid{display:flex; gap:10px; flex-wrap:wrap;}
       .metric{
         border:1px solid var(--border);
         background: var(--panel2);
@@ -86,7 +83,7 @@
         min-width: 120px;
       }
       .metric .label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color: var(--muted2);}
-      .metric .value{font-size:18px; font-weight:800; margin-top:2px;}
+      .metric .value{font-size:18px; font-weight:900; margin-top:2px;}
       .muted{color: var(--muted);}
       .muted2{color: var(--muted2);}
       .muted3{color: var(--muted3);}
@@ -99,7 +96,7 @@
         border-bottom:1px solid var(--border);
         display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap;
       }
-      .h2{font-size:18px; font-weight:800; margin:2px 0 0;}
+      .h2{font-size:18px; font-weight:900; margin:2px 0 0;}
       .search{
         display:flex; align-items:center; gap:10px;
         border:1px solid var(--border);
@@ -137,16 +134,16 @@
       }
       tbody tr:hover{background: var(--hover);}
       tbody tr.top3{background: rgba(255,255,255,.03);}
-      td.highlight{font-weight:800; color:#fff;}
+      td.highlight{font-weight:900; color:#fff;}
 
       /* Rosters */
       .section-kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: var(--muted2);}
-      .section-title{font-size:18px; font-weight:800; margin:6px 0 0;}
+      .section-title{font-size:18px; font-weight:900; margin:6px 0 0;}
       .grid{display:grid; gap:14px;}
       @media (min-width: 980px){ .grid-2{grid-template-columns: 1fr 1fr;} }
       .team-card h3{margin: 6px 0 0; font-size:20px;}
       .team-top{display:flex; justify-content:space-between; gap:14px; align-items:flex-start;}
-      .live{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color: rgba(255,255,255,.80);}
+      .live{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color: rgba(255,255,255,.80);}
       .dot{width:8px; height:8px; border-radius:999px; background:#fff; display:inline-block;}
       .statgrid{display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin-top:14px;}
       @media (min-width: 640px){ .statgrid{grid-template-columns: repeat(4, minmax(0,1fr));} }
@@ -157,7 +154,7 @@
         padding: 10px 12px;
       }
       .statpill .l{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color: var(--muted2);}
-      .statpill .v{font-size:14px; font-weight:800; margin-top:2px;}
+      .statpill .v{font-size:14px; font-weight:900; margin-top:2px;}
       .rostergrid{display:grid; gap:10px; margin-top:12px;}
       @media (min-width: 640px){ .rostergrid{grid-template-columns: 1fr 1fr;} }
       .player-card{
@@ -166,7 +163,7 @@
         border-radius: 18px;
         padding: 12px 12px;
       }
-      .player-name{font-weight:800; font-size:14px;}
+      .player-name{font-weight:900; font-size:14px;}
       .player-stats{
         display:grid; grid-template-columns: 1fr 1fr;
         gap: 6px 10px;
@@ -189,8 +186,8 @@
         <div class="brand">
           <div class="logo">⚡</div>
           <div>
-            <div class="kicker">Season Hub</div>
-            <div class="title">Standings</div>
+            <div class="kicker">Shotgun Pro League</div>
+            <div class="title">Season 6</div>
           </div>
         </div>
 
@@ -206,16 +203,13 @@
       <div id="status" class="card status">Loading standings…</div>
 
       <div id="content" class="hidden">
-        <!-- Hero -->
+        <!-- Hero (public-safe) -->
         <div class="card hero" style="margin-bottom:16px;">
           <div class="row">
             <div>
-              <div class="kicker">Data source</div>
-              <div class="muted" style="margin-top:10px;">
-                Worker: <span id="workerUrl" style="font-weight:800; color:#fff;"></span>
-              </div>
-              <div class="muted" style="margin-top:4px;">
-                Sheet: <span id="sheetId" style="font-weight:800; color:#fff;"></span>
+              <div class="kicker">Live Standings</div>
+              <div class="muted small" style="margin-top:10px;">
+                Updated from official league scoring.
               </div>
             </div>
             <div class="pillgrid">
@@ -275,24 +269,24 @@
         <div id="view-rosters" class="hidden">
           <div style="margin: 0 0 12px;">
             <div class="section-kicker">Teams</div>
-            <div class="section-title">Rosters & Score Rows</div>
+            <div class="section-title">Rosters</div>
             <div class="muted small" style="margin-top:8px;">
-              Groups the team range into blocks of 5 rows (team row + 4 player rows). First non-empty cell is treated as the name;
-              remaining filled cells show up as stats.
+              The roster range has a header row (used to label stats). Teams are grouped into blocks of 5 rows:
+              one team row + four player rows.
             </div>
           </div>
           <div id="rosterGrid" class="grid grid-2"></div>
         </div>
 
         <div class="footer">
-          Built for a dark-blue esports aesthetic • White accents • Data from Google Sheets via Cloudflare Worker
+          Shotgun Pro League • Season 6
         </div>
       </div>
     </div>
 
     <script>
       // ==============================
-      // Config
+      // Config (not displayed publicly)
       // ==============================
       const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
       const SHEET_ID   = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
@@ -303,7 +297,7 @@
         playerStandings: "'Season 6, Stage 1'!AE4:AH101",
       };
 
-      // If your ranges include header rows, set true
+      // If your standings ranges include header rows, set true
       const USE_FIRST_ROW_AS_HEADER = false;
 
       const TEAM_STANDINGS_HEADERS   = ["Rank","Team","Points","Notes"];
@@ -372,35 +366,54 @@
         return { headers: fallbackHeaders, rows: cleaned };
       }
 
-      function chunkTeams(teamInfoValues){
+      // Header-aware team chunking:
+      // - First row of roster range is a header (labels)
+      // - Remaining rows are grouped: team row + 4 player rows
+      function chunkTeams(teamInfoValues, headerRow){
         const values = (teamInfoValues || []).filter(rowHasAnyValue);
-        const teams = [];
+        const headers = Array.isArray(headerRow) ? headerRow.map(h => String(h ?? "").trim()) : [];
 
+        // Assumption: names are in column A (index 0)
+        const nameCol = 0;
+
+        function labelForCol(j){
+          const h = headers[j];
+          return (h && h.trim()) ? h.trim() : `Col ${j+1}`;
+        }
+
+        // OPTIONAL CHANGE APPLIED: no "Team:" / "Player:" prefixes — just header labels
+        function extractStats(row){
+          const stats = [];
+          const r = row || [];
+          for(let j=0; j<r.length; j++){
+            if(j === nameCol) continue;
+            const v = String(r[j] ?? "").trim();
+            if(!v) continue;
+            stats.push({ key: labelForCol(j), value: v });
+          }
+          return stats;
+        }
+
+        const teams = [];
         for(let i=0; i<values.length; i+=5){
           const teamRow = values[i] || [];
           const playerRows = [values[i+1], values[i+2], values[i+3], values[i+4]].filter(Boolean);
 
-          const teamName = firstNonEmptyCell(teamRow) || `Team ${Math.floor(i/5)+1}`;
+          const teamName =
+            String(teamRow[nameCol] ?? "").trim() ||
+            firstNonEmptyCell(teamRow) ||
+            `Team ${Math.floor(i/5)+1}`;
 
-          const teamFirstIdx = Array.isArray(teamRow)
-            ? teamRow.findIndex(c => String(c ?? "").trim() !== "")
-            : 0;
-
-          const teamStats = (teamRow || [])
-            .map((v,j)=>({j, v:String(v ?? "").trim()}))
-            .filter(x => x.v !== "" && x.j !== teamFirstIdx)
-            .map(x => ({ key:`Team Stat ${x.j+1}`, value:x.v }));
+          const teamStats = extractStats(teamRow);
 
           const players = playerRows.map((row, idx)=>{
-            const name = firstNonEmptyCell(row) || `Player ${idx+1}`;
-            const firstIdx = Array.isArray(row)
-              ? row.findIndex(c => String(c ?? "").trim() !== "")
-              : 0;
-            const stats = (row || [])
-              .map((v,j)=>({j, v:String(v ?? "").trim()}))
-              .filter(x => x.v !== "" && x.j !== firstIdx)
-              .map(x => ({ key:`Stat ${x.j+1}`, value:x.v }));
-            return { name, stats };
+            const playerName =
+              String((row||[])[nameCol] ?? "").trim() ||
+              firstNonEmptyCell(row) ||
+              `Player ${idx+1}`;
+
+            const stats = extractStats(row);
+            return { name: playerName, stats };
           });
 
           teams.push({ teamName, teamStats, players });
@@ -525,8 +538,6 @@
       const statusEl  = document.getElementById("status");
       const contentEl = document.getElementById("content");
 
-      const workerEl = document.getElementById("workerUrl");
-      const sheetEl  = document.getElementById("sheetId");
       const teamCountEl = document.getElementById("teamCount");
       const playerCountEl = document.getElementById("playerCount");
 
@@ -567,9 +578,6 @@
 
       // boot
       (async function init(){
-        workerEl.textContent = WORKER_URL;
-        sheetEl.textContent  = SHEET_ID;
-
         try{
           statusEl.textContent = "Loading standings…";
 
@@ -580,10 +588,15 @@
           ]);
 
           const teamInfoValues = normalizeValues(teamInfoResp);
+
+          // Roster range has a header row:
+          const rosterHeader = teamInfoValues?.length ? teamInfoValues[0] : [];
+          const rosterData   = teamInfoValues?.length > 1 ? teamInfoValues.slice(1) : [];
+
           rawTeamStandings = normalizeValues(teamStResp);
           rawPlayerStandings = normalizeValues(playerStResp);
 
-          teams = chunkTeams(teamInfoValues);
+          teams = chunkTeams(rosterData, rosterHeader);
 
           teamCountEl.textContent = String(teams.length);
           playerCountEl.textContent = String(teams.length * 4);
@@ -607,6 +620,10 @@
           console.error(err);
         }
       })();
+    </script>
+  </body>
+</html>
+
     </script>
   </body>
 </html>
