@@ -14,6 +14,7 @@
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
       --header-bg: rgba(148,163,184,0.12);
       --row-bg: rgba(255,255,255,0.06);
+      --row-bg-2: rgba(255,255,255,0.045);
       --text: #e9eef8;
       --title: #c7d7ff;
       --muted: #9ca3c7;
@@ -30,7 +31,7 @@
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
     }
 
-    /* Topbar (full webpage design) */
+    /* Topbar */
     .topbar{
       position: sticky; top:0; z-index:10;
       border-bottom: 1px solid rgba(255,255,255,.10);
@@ -78,14 +79,12 @@
       border-color:#fff;
     }
 
-    /* Page container */
     .container{
       max-width:1100px;
       margin:0 auto;
       padding: 18px 18px 48px;
     }
 
-    /* Overlay-style card INSIDE the webpage layout */
     .card{
       background: var(--card-bg);
       border-radius: 20px;
@@ -110,7 +109,7 @@
       margin: 0;
     }
 
-    /* Header row + entries (Season 5 overlay style) */
+    /* Standings header row + entries */
     .header-row, .entry{
       display:grid;
       grid-template-columns: 100px 1fr 120px; /* Rank, Name, Score */
@@ -174,7 +173,7 @@
     .silver{color:#c0c0c0;}
     .bronze{color:#cd7f32;}
 
-    /* Clickable team cell (uses overlay team-cell visual) */
+    /* Clickable team cell (team rows only) */
     .team-cell{
       position:relative;
       height: 100%;
@@ -182,7 +181,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      padding: 0 10px 0 92px; /* tighter room */
+      padding: 0 10px 0 92px; /* room for chev + logo */
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
@@ -204,7 +203,6 @@
       .team-cell{ padding-left: 82px; }
       .team-cell .name-text{ font-size: 16px; }
     }
-
     .team-cell .chev{
       position:absolute;
       left: 14px;
@@ -212,8 +210,6 @@
       font-weight: 900;
       opacity: .85;
     }
-
-    /* Logo overlay via CSS variables */
     .team-cell::before{
       content:"";
       position:absolute;
@@ -238,10 +234,12 @@
       padding: 0 10px;
     }
 
-    /* Roster (collapsible section under each team row) */
+    /* =========================
+       Roster (table design)
+       ========================= */
     .roster-wrap{
       margin-top: 4px;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       padding-top: 2px;
     }
     .roster-title{
@@ -252,59 +250,113 @@
       color: var(--muted);
       padding: 0 10px 6px 10px;
     }
-    .roster-list{
-      display:flex;
-      flex-direction:column;
-      gap: 6px;
+
+    /* Constrain roster height so the page doesn’t force-scroll on desktop */
+    .roster-scroll{
+      max-height: 280px;
+      overflow: auto;
+      padding-right: 4px;
     }
-    .roster-entry{
-      height: 46px;
+    .roster-scroll::-webkit-scrollbar { width: 10px; }
+    .roster-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,0.22);
+      border-radius: 999px;
+    }
+    .roster-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    table.roster-table{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px; /* row "gaps" like the overlay list */
+      table-layout: fixed;
+    }
+
+    .roster-table thead th{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(15,23,42,0.92);
+      backdrop-filter: blur(6px);
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      white-space: nowrap;
+    }
+
+    .roster-table tbody tr{
       background: var(--row-bg);
-      border-radius: 10px;
-      display:grid;
-      grid-template-columns: 240px 1fr;
-      align-items:center;
-      overflow:hidden;
-      padding: 0 10px;
-      gap: 12px;
     }
-    @media (max-width: 720px){
-      .roster-entry{ grid-template-columns: 1fr; height: auto; padding: 10px; }
+    .roster-table tbody tr:nth-child(even){
+      background: var(--row-bg-2);
     }
-    .roster-entry .pname{
-      font-size: 15px;
+
+    .roster-table td{
+      padding: 10px 10px;
+      font-size: 12px;
+      color: rgba(233,238,248,0.92);
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-top: 1px solid rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .roster-table tbody tr td:first-child{
+      border-radius: 10px 0 0 10px;
+    }
+    .roster-table tbody tr td:last-child{
+      border-radius: 0 10px 10px 0;
+    }
+
+    .cell-player{
       font-weight: 900;
       text-transform: uppercase;
       color: var(--title);
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
     }
-    .pstats{
-      display:flex;
-      flex-wrap:wrap;
-      gap: 6px 8px;
-      align-items:center;
-      font-size: 11px;
-      color: rgba(233,238,248,0.90);
-      overflow:hidden;
-    }
-    .pill{
-      display:inline-flex;
-      gap: 6px;
-      align-items:center;
-      padding: 5px 8px;
-      border-radius: 999px;
-      background: rgba(148,163,184,0.12);
-      white-space: nowrap;
-    }
-    .pill span{
-      color: rgba(156,163,199,0.95);
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .06em;
+    .player-rank{
+      display:inline-block;
+      min-width: 22px;
+      margin-right: 8px;
       font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      color: rgba(156,163,199,0.95);
+      opacity: 0.95;
+      text-align: right;
     }
+
+    .num{
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Important cells */
+    .stageScore{
+      background: rgba(217,217,217,0.16);
+      color: #ffffff;
+      font-weight: 900;
+      border-left: 1px solid rgba(217,217,217,0.22);
+      border-right: 1px solid rgba(217,217,217,0.22);
+    }
+    .counted{
+      background: rgba(52,211,153,0.18); /* counted best-of */
+      color: #ffffff;
+      font-weight: 900;
+    }
+    .counted::after{
+      content:"•";
+      margin-left: 6px;
+      opacity: 0.8;
+    }
+
+    /* subtle sign hint for golf scoring */
+    .goodScore{ color: rgba(52,211,153,0.95); font-weight: 800; }   /* negative */
+    .badScore{ color: rgba(248,113,113,0.95); font-weight: 800; }    /* positive */
 
     .status{
       color: rgba(233,238,248,0.92);
@@ -321,6 +373,25 @@
     }
 
     .hidden{ display:none !important; }
+
+    .search{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border-lite);
+      background: rgba(148,163,184,0.10);
+      padding: 10px 12px;
+      border-radius: 10px;
+      min-width: 260px;
+    }
+    .search span{color: var(--muted); font-weight:900;}
+    .search input{
+      width:100%;
+      background:transparent;
+      border:none;
+      outline:none;
+      color: var(--text);
+      font-size:14px;
+    }
+    .search input::placeholder{color: rgba(156,163,199,.70);}
 
     .footer{
       margin-top: 18px;
@@ -415,15 +486,23 @@
     // Put team logos here (relative to this HTML file): ./logos/<filename>
     const LOGO_DIR = "logos";
 
-    // In the roster range: TEAM + PLAYER names are in Column C (index 2)
-    const NAME_COL = 2;
+    // Roster range columns (0-indexed):
+    // A=0 overall rank, C=2 name, D=3 stage score, E-G=4..6 best 3,
+    // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
+    const COL = {
+      overallRank: 0,
+      name: 2,
+      stage: 3,
+      bestStart: 4,      // E
+      weekStart: 7,      // H
+      roundsStart: 11    // L
+    };
 
     // ==============================
     // Team colors + logos (EDIT THIS for Season 6)
     // Keys MUST match the team names exactly as they appear in standings.
     // ==============================
     const TEAM_STYLES = {
-      // Example entries (replace/update for Season 6 teams):
       "ANIMALS":         { bg: "#cd7f32", fg: "#ffffff", logo: "animals.png" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000", logo: "terrific-tigers.png", iconPos: "0 47%" },
       "BREAKERS":        { bg: "#f1c232", fg: "#1c4487", logo: "breakers.png" },
@@ -535,43 +614,54 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // Roster parsing:
-    // header row + repeating blocks: team row (team name in col C) + 4 player rows (player name col C)
+    function toNum(v){
+      const s = String(v ?? "").trim();
+      if(!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // Roster parsing using your breakdown:
+    // header row + repeating blocks: team row + 4 player rows
+    // In player rows:
+    // A overall rank, C name, D stage, E-G best3, H-K week totals, L-S round scores
     function parseRosters(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       if(!cleaned.length) return new Map();
 
-      const header = cleaned[0] || [];
-      const rows = cleaned.slice(1);
-      const headerLabels = header.map(h => String(h ?? "").trim());
-
-      function labelForCol(j){
-        return headerLabels[j] || `Col ${j+1}`;
-      }
-
-      function extractPlayerStats(row){
-        const stats = [];
-        const r = row || [];
-        for(let j=0; j<r.length; j++){
-          if(j === NAME_COL) continue;
-          const v = String(r[j] ?? "").trim();
-          if(!v) continue;
-          stats.push({ key: labelForCol(j), value: v });
-        }
-        return stats;
-      }
+      const rows = cleaned.slice(1); // ignore header for now (we're using our own labels)
 
       const byTeam = new Map();
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
-        const teamName = String(teamRow[NAME_COL] ?? "").trim();
+        const teamName = String(teamRow[COL.name] ?? "").trim();
         if(!teamName) continue;
 
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
-        const players = playerRows.map((pr, idx)=>{
-          const playerName = String((pr||[])[NAME_COL] ?? "").trim() || `Player ${idx+1}`;
-          const stats = extractPlayerStats(pr);
-          return { name: playerName, stats };
+
+        const players = playerRows.map(pr=>{
+          const r = pr || [];
+          const overallRank = toNum(r[COL.overallRank]);
+          const name = String(r[COL.name] ?? "").trim();
+
+          const stageScore = toNum(r[COL.stage]);
+
+          const best = [
+            toNum(r[COL.bestStart + 0]),
+            toNum(r[COL.bestStart + 1]),
+            toNum(r[COL.bestStart + 2]),
+          ];
+
+          const weekTotals = [
+            toNum(r[COL.weekStart + 0]),
+            toNum(r[COL.weekStart + 1]),
+            toNum(r[COL.weekStart + 2]),
+            toNum(r[COL.weekStart + 3]),
+          ];
+
+          const rounds = Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]));
+
+          return { overallRank, name, stageScore, best, weekTotals, rounds };
         });
 
         byTeam.set(teamName, { teamName, players });
@@ -621,8 +711,102 @@
         .replace(/'/g,"&#39;");
     }
 
-    function pillHTML(key, value){
-      return `<div class="pill"><span>${escapeHtml(key)}</span>${escapeHtml(value)}</div>`;
+    function fmt(v){
+      return (v === null || v === undefined || v === "") ? "—" : String(v);
+    }
+
+    function scoreClass(n){
+      if(n == null) return "";
+      return n < 0 ? "goodScore" : (n > 0 ? "badScore" : "");
+    }
+
+    function renderRosterTable(teamName, roster){
+      const wrap = document.createElement("div");
+      wrap.className = "roster-wrap";
+      wrap.innerHTML = `<div class="roster-title">Roster</div>`;
+
+      const scroll = document.createElement("div");
+      scroll.className = "roster-scroll";
+
+      if(!roster || !roster.players || !roster.players.length){
+        const empty = document.createElement("div");
+        empty.className = "error";
+        empty.style.padding = "10px 10px 4px";
+        empty.textContent = "Roster not found.";
+        wrap.appendChild(empty);
+        return wrap;
+      }
+
+      // Table:
+      // Player | Stage | Best 1-3 | Wk1-4 | R1-8
+      const table = document.createElement("table");
+      table.className = "roster-table";
+
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th style="width:220px;text-align:left;">Player</th>
+            <th style="width:80px;">Stage</th>
+            <th style="width:64px;">Best 1</th>
+            <th style="width:64px;">Best 2</th>
+            <th style="width:64px;">Best 3</th>
+            <th style="width:62px;">Wk1</th>
+            <th style="width:62px;">Wk2</th>
+            <th style="width:62px;">Wk3</th>
+            <th style="width:62px;">Wk4</th>
+            <th style="width:54px;">R1</th>
+            <th style="width:54px;">R2</th>
+            <th style="width:54px;">R3</th>
+            <th style="width:54px;">R4</th>
+            <th style="width:54px;">R5</th>
+            <th style="width:54px;">R6</th>
+            <th style="width:54px;">R7</th>
+            <th style="width:54px;">R8</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+
+      roster.players.forEach(p=>{
+        const bestSet = new Set((p.best || []).filter(v=>v!=null).map(v=>String(v)));
+        const tr = document.createElement("tr");
+
+        const playerCell = `
+          <td class="cell-player" style="text-align:left;">
+            <span class="player-rank">${p.overallRank != null ? p.overallRank : ""}</span>
+            ${escapeHtml(p.name || "")}
+          </td>
+        `;
+
+        const stageCell = `
+          <td class="num stageScore ${scoreClass(p.stageScore)}">${fmt(p.stageScore)}</td>
+        `;
+
+        const bestCells = (p.best || [null,null,null]).map(v=>{
+          const cls = `num counted ${scoreClass(v)}`;
+          return `<td class="${cls}">${fmt(v)}</td>`;
+        }).join("");
+
+        const weekCells = (p.weekTotals || [null,null,null,null]).map(v=>{
+          return `<td class="num ${scoreClass(v)}">${fmt(v)}</td>`;
+        }).join("");
+
+        // Highlight any round that matches one of the best 3 values (bestSet)
+        const roundCells = (p.rounds || Array(8).fill(null)).map(v=>{
+          const isCounted = (v != null) && bestSet.has(String(v));
+          const cls = `num ${scoreClass(v)} ${isCounted ? "counted" : ""}`;
+          return `<td class="${cls}">${fmt(v)}</td>`;
+        }).join("");
+
+        tr.innerHTML = playerCell + stageCell + bestCells + weekCells + roundCells;
+        tbody.appendChild(tr);
+      });
+
+      scroll.appendChild(table);
+      wrap.appendChild(scroll);
+      return wrap;
     }
 
     function renderTeams(){
@@ -634,6 +818,7 @@
       }
 
       teamStandings.forEach(team=>{
+        // standings entry
         const row = document.createElement("div");
         row.className = "entry";
 
@@ -672,38 +857,27 @@
         row.querySelector(`#teamHost-${team.slug}`).replaceWith(teamBtn);
         teamsList.appendChild(row);
 
-        const rosterWrap = document.createElement("div");
-        rosterWrap.className = "roster-wrap";
-        rosterWrap.classList.toggle("hidden", !isOpen);
+        // roster section (table)
+        const rosterContainer = document.createElement("div");
+        rosterContainer.className = "roster-wrap";
+        rosterContainer.classList.toggle("hidden", !isOpen);
 
-        const roster = rosterByTeam.get(team.name);
-        rosterWrap.innerHTML = `<div class="roster-title">Roster</div>`;
-        const rosterList = document.createElement("div");
-        rosterList.className = "roster-list";
-
-        if(!roster || !roster.players || !roster.players.length){
-          const empty = document.createElement("div");
-          empty.className = "error";
-          empty.style.padding = "10px 10px 4px";
-          empty.textContent = "Roster not found.";
-          rosterList.appendChild(empty);
+        if(isOpen){
+          const roster = rosterByTeam.get(team.name);
+          rosterContainer.replaceWith(renderRosterTable(team.name, roster));
+          // Note: replaceWith swaps the node, so we must re-add it:
+          teamsList.appendChild(teamsList.lastChild); // no-op safeguard
         } else {
-          roster.players.forEach(p=>{
-            const r = document.createElement("div");
-            r.className = "roster-entry";
-
-            const statsHTML = (p.stats || []).map(s => pillHTML(s.key, s.value)).join("");
-
-            r.innerHTML = `
-              <div class="pname">${escapeHtml(p.name)}</div>
-              <div class="pstats">${statsHTML || `<span style="color:rgba(156,163,199,.85);font-weight:800;">No stats</span>`}</div>
-            `;
-            rosterList.appendChild(r);
-          });
+          teamsList.appendChild(rosterContainer);
         }
 
-        rosterWrap.appendChild(rosterList);
-        teamsList.appendChild(rosterWrap);
+        // If open, we already injected a full roster table; if closed we inserted an empty hidden wrap.
+        if(isOpen){
+          // The renderRosterTable call created its own wrap; ensure it's in the list after the row:
+          // (We can’t rely on replaceWith above because we created a different node.)
+          teamsList.removeChild(teamsList.lastChild); // remove no-op safeguard node
+          teamsList.appendChild(renderRosterTable(team.name, rosterByTeam.get(team.name)));
+        }
       });
     }
 
@@ -745,7 +919,7 @@
       });
     }
 
-    // Click handling (toggle rosters)
+    // Toggle rosters
     teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell");
       if(!btn) return;
