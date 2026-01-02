@@ -95,6 +95,8 @@
       box-shadow: var(--card-shadow);
     }
 
+    .card + .card{ margin-top: 16px; }
+
     .card-head{
       display:flex;
       gap:14px;
@@ -112,10 +114,10 @@
       margin: 0;
     }
 
-    /* Standings header row + entries */
+    /* Standard header row + entries (Rank, Name, Score) */
     .header-row, .entry{
       display:grid;
-      grid-template-columns: 100px 1fr 120px; /* Rank, Name, Score */
+      grid-template-columns: 100px 1fr 120px;
       align-items:center;
     }
     @media (max-width: 640px){
@@ -173,10 +175,7 @@
       height: 100%;
       background: transparent;
     }
-    /* Player rankings: top 10 (and ties) rank cell background */
-    .place.top10bg{
-      background: var(--top10-bg);
-    }
+    .place.top10bg{ background: var(--top10-bg); }
 
     .gold{color:#ffd700;}
     .silver{color:#c0c0c0;}
@@ -195,7 +194,7 @@
       background: rgba(255,255,255,0.08);
       color:#fff;
       cursor:pointer;
-      font-weight: 900; /* base weight */
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .02em;
       overflow:hidden;
@@ -204,7 +203,7 @@
     .team-cell:hover{ filter: brightness(1.04); }
     .team-cell .name-text{
       font-size: 20px;
-      font-weight: 950; /* ↑ increased weight for main-row names */
+      font-weight: 950; /* increased weight for main-row names */
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -244,9 +243,64 @@
       padding: 0 10px;
     }
 
-    /* =========================
-       Collapsible roster / stats
-       ========================= */
+    /* ================
+       Weekly Rankings
+       ================ */
+    .weekly-header-row, .weekly-entry{
+      display:grid;
+      grid-template-columns: 100px 1fr 88px 88px 120px; /* Rank, Player, R1, R2, Total */
+      align-items:center;
+    }
+    @media (max-width: 640px){
+      .weekly-header-row, .weekly-entry{
+        grid-template-columns: 78px 1fr 70px 70px 102px;
+      }
+    }
+
+    .weekly-header-row{
+      height: 40px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .weekly-header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 18px;
+      white-space: nowrap;
+    }
+    .weekly-header-row span:nth-child(2){
+      justify-content:flex-start;
+      padding-left: 18px;
+    }
+
+    .weekly-entry{
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .weekly-round{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,0.06);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    /* Collapsible roster / stats */
     .roster-wrap{
       margin-top: 4px;
       margin-bottom: 10px;
@@ -277,11 +331,10 @@
     table.roster-table{
       width: 100%;
       border-collapse: separate;
-      border-spacing: 0 6px;   /* row gaps */
+      border-spacing: 0 6px;
       table-layout: fixed;
     }
 
-    /* Column widths (reused by both team roster and player stats tables) */
     col.c-rank{  width: 54px; }
     col.c-name{  width: 156px; }
     col.c-stage{ width: 62px; }
@@ -306,12 +359,10 @@
       text-align: center;
     }
 
-    /* Prevent trapezoid artifacts: do not paint TR, paint TD */
     .roster-table tbody tr{ background: transparent !important; }
     .roster-table tbody td{ background: var(--row-bg); }
     .roster-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
 
-    /* Hard-disable rounding/clipping so cells are rectangles */
     .roster-table,
     .roster-table thead th,
     .roster-table tbody tr,
@@ -336,15 +387,12 @@
       background-clip: padding-box;
     }
 
-    /* Rank column styling (team roster only) */
     .cell-rank{
       color: rgba(156,163,199,0.95);
       font-weight: 900;
       letter-spacing: .10em;
       text-transform: uppercase;
     }
-
-    /* Player name cells (team roster only) */
     .cell-name{
       font-weight: 900;
       text-transform: uppercase;
@@ -352,11 +400,8 @@
       text-align: center;
       padding-left: 0;
     }
-
-    /* Separators */
     .sep-right{ border-right: 2px solid var(--sep) !important; }
 
-    /* Highlighted cells */
     .stageScore{
       background: rgba(217,217,217,0.14) !important;
       color: #ffffff;
@@ -431,6 +476,7 @@
       <div class="tabs" role="tablist" aria-label="Standings tabs">
         <button class="tabbtn active" data-tab="teams" role="tab" aria-selected="true">Team Rankings</button>
         <button class="tabbtn" data-tab="players" role="tab" aria-selected="false">Player Rankings</button>
+        <button class="tabbtn" data-tab="weekly" role="tab" aria-selected="false">Weekly Rankings</button>
       </div>
     </div>
   </div>
@@ -475,6 +521,11 @@
         <div id="playersList" class="resultsList"></div>
       </div>
 
+      <!-- Weekly Rankings -->
+      <div id="weeklyView" class="hidden" style="margin-top:16px;">
+        <div id="weeklyCards"></div>
+      </div>
+
       <div class="footer">Shotgun Pro League • Season 6</div>
     </div>
   </div>
@@ -489,6 +540,11 @@
     const RANGE_TEAM_STANDINGS   = "'Season 6, Stage 1'!U4:X15";
     const RANGE_PLAYER_STANDINGS = "'Season 6, Stage 1'!AE4:AH101";
     const RANGE_TEAM_ROSTERS     = "'Season 6, Stage 1'!A3:S63";
+
+    const RANGE_WEEK_1 = "'Season 6, Stage 1'!Z4:AC13";
+    const RANGE_WEEK_2 = "'Season 6, Stage 1'!Z16:AC25";
+    const RANGE_WEEK_3 = "'Season 6, Stage 1'!Z28:AC37";
+    const RANGE_WEEK_4 = "'Season 6, Stage 1'!Z40:AC49";
 
     const REFRESH_MS = 15000;
 
@@ -599,7 +655,7 @@
       const isZero = (n === 0) || Object.is(n, -0);
       if (isZero) return "E";
 
-      const s = Number.isInteger(n) ? String(n) : String(n);
+      const s = String(n);
       return n > 0 ? `+${s}` : s;
     }
 
@@ -631,6 +687,27 @@
     }
 
     function normalizePlayerStandings(rows){
+      return (rows || [])
+        .filter(rowHasAnyValue)
+        .map(r=>{
+          const arr = Array.isArray(r) ? r : [];
+          const rank = arr[0];
+          const name = arr.length >= 2 ? arr[arr.length - 2] : "";
+          const score = arr.length >= 1 ? arr[arr.length - 1] : "";
+          if(!rank || !name) return null;
+          return {
+            rank: Number(rank),
+            name: String(name).trim(),
+            slug: slugify(name),
+            score: (score !== "" && score != null) ? Number(score) : null
+          };
+        })
+        .filter(Boolean)
+        .sort((a,b)=>a.rank-b.rank);
+    }
+
+    // Weekly rows: [rank, ?, playerName, weeklyScore] in Z:AC
+    function normalizeWeekly(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
         .map(r=>{
@@ -711,19 +788,22 @@
 
     const teamsView  = document.getElementById("teamsView");
     const playersView= document.getElementById("playersView");
+    const weeklyView = document.getElementById("weeklyView");
 
     const teamsList  = document.getElementById("teamsList");
     const playersList= document.getElementById("playersList");
+    const weeklyCards= document.getElementById("weeklyCards");
     const playerSearch = document.getElementById("playerSearch");
 
     let teamStandings = [];
     let playerStandings = [];
+    let weeklyByWeek = new Map(); // weekNumber -> array entries
 
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
 
-    const expandedTeams = new Set();    // team name
-    const expandedPlayers = new Set();  // player name
+    const expandedTeams = new Set();
+    const expandedPlayers = new Set();
 
     function setTab(tab){
       document.querySelectorAll(".tabbtn").forEach(b=>{
@@ -733,6 +813,7 @@
       });
       teamsView.classList.toggle("hidden", tab !== "teams");
       playersView.classList.toggle("hidden", tab !== "players");
+      weeklyView.classList.toggle("hidden", tab !== "weekly");
     }
     document.querySelectorAll(".tabbtn").forEach(btn=>{
       btn.addEventListener("click", ()=> setTab(btn.dataset.tab));
@@ -1037,6 +1118,81 @@
     }
 
     // ==============================
+    // Render: Weekly cards (most recent week first)
+    // ==============================
+    function renderWeekly(){
+      weeklyCards.innerHTML = "";
+
+      const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
+      if(!weeks.length){
+        weeklyCards.innerHTML = `<div class="card"><div class="status">Weekly rankings have not been posted yet.</div></div>`;
+        return;
+      }
+
+      weeks.forEach(weekNum=>{
+        const list = weeklyByWeek.get(weekNum) || [];
+        if(!list.length) return;
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const r1Label = `${weekNum}-1`;
+        const r2Label = `${weekNum}-2`;
+
+        card.innerHTML = `
+          <div class="card-head">
+            <h2 class="h2">Week ${weekNum} Rankings</h2>
+          </div>
+
+          <div class="weekly-header-row">
+            <span>Rank</span>
+            <span>Player</span>
+            <span>${r1Label}</span>
+            <span>${r2Label}</span>
+            <span>Score</span>
+          </div>
+
+          <div class="resultsList" id="weekList-${weekNum}"></div>
+        `;
+
+        const holder = card.querySelector(`#weekList-${weekNum}`);
+        list.forEach(p=>{
+          const row = document.createElement("div");
+          row.className = "weekly-entry";
+
+          const stat = playerStatsByName.get(p.name);
+          const idx1 = (weekNum - 1) * 2;
+          const idx2 = idx1 + 1;
+          const round1 = stat?.rounds?.[idx1] ?? null;
+          const round2 = stat?.rounds?.[idx2] ?? null;
+
+          // non-collapsible: use a non-button name cell that looks identical
+          const nameCell = document.createElement("div");
+          nameCell.className = "team-cell";
+          nameCell.style.cursor = "default";
+          nameCell.style.background = "rgba(255,255,255,0.08)";
+          nameCell.style.color = "#ffffff";
+          nameCell.style.setProperty("--icon", "none");
+          nameCell.innerHTML =
+            `<span class="chev" aria-hidden="true"></span>` +
+            `<span class="name-text">${escapeHtml(p.name)}</span>`;
+
+          row.innerHTML = `
+            <div class="place">${p.rank}</div>
+            <div id="wkName-${weekNum}-${p.slug}"></div>
+            <div class="weekly-round">${escapeHtml(fmtScore(round1))}</div>
+            <div class="weekly-round">${escapeHtml(fmtScore(round2))}</div>
+            <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+          `;
+          row.querySelector(`#wkName-${weekNum}-${p.slug}`).replaceWith(nameCell);
+          holder.appendChild(row);
+        });
+
+        weeklyCards.appendChild(card);
+      });
+    }
+
+    // ==============================
     // Events
     // ==============================
     teamsList.addEventListener("click", (e)=>{
@@ -1072,10 +1228,17 @@
     // ==============================
     async function update(){
       try{
-        const [teamRows, playerRows, rosterRows] = await Promise.all([
+        const [
+          teamRows, playerRows, rosterRows,
+          wk1, wk2, wk3, wk4
+        ] = await Promise.all([
           fetchRange(RANGE_TEAM_STANDINGS),
           fetchRange(RANGE_PLAYER_STANDINGS),
           fetchRange(RANGE_TEAM_ROSTERS),
+          fetchRange(RANGE_WEEK_1),
+          fetchRange(RANGE_WEEK_2),
+          fetchRange(RANGE_WEEK_3),
+          fetchRange(RANGE_WEEK_4),
         ]);
 
         teamStandings = normalizeTeamStandings(teamRows);
@@ -1085,8 +1248,21 @@
         rosterByTeam = parsed.byTeam;
         playerStatsByName = parsed.byPlayer;
 
+        // Weekly: omit weeks that are fully blank
+        weeklyByWeek = new Map();
+        const w1 = normalizeWeekly(wk1);
+        const w2 = normalizeWeekly(wk2);
+        const w3 = normalizeWeekly(wk3);
+        const w4 = normalizeWeekly(wk4);
+
+        if (w1.length) weeklyByWeek.set(1, w1);
+        if (w2.length) weeklyByWeek.set(2, w2);
+        if (w3.length) weeklyByWeek.set(3, w3);
+        if (w4.length) weeklyByWeek.set(4, w4);
+
         renderTeams();
         renderPlayers();
+        renderWeekly();
 
         statusCard.classList.add("hidden");
         contentEl.classList.remove("hidden");
