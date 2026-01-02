@@ -82,14 +82,14 @@
     .container{
       max-width:1100px;
       margin:0 auto;
-      padding: 18px 18px 60px;
+      padding: 18px 18px 48px;
     }
 
     /* Overlay-style card INSIDE the webpage layout */
     .card{
       background: var(--card-bg);
       border-radius: 20px;
-      padding: 22px 22px;
+      padding: 18px 18px;
       box-shadow: var(--card-shadow);
     }
 
@@ -99,7 +99,7 @@
       align-items:flex-end;
       justify-content:space-between;
       flex-wrap:wrap;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
     .card-head .h2{
       font-size: 22px;
@@ -109,83 +109,65 @@
       text-transform: uppercase;
       margin: 0;
     }
-    .search{
-      display:flex; align-items:center; gap:10px;
-      border:1px solid var(--border-lite);
-      background: rgba(148,163,184,0.10);
-      padding: 10px 12px;
-      border-radius: 10px;
-      min-width: 260px;
-    }
-    .search span{color: var(--muted); font-weight:900;}
-    .search input{
-      width:100%;
-      background:transparent;
-      border:none;
-      outline:none;
-      color: var(--text);
-      font-size:14px;
-    }
-    .search input::placeholder{color: rgba(156,163,199,.70);}
 
     /* Header row + entries (Season 5 overlay style) */
     .header-row, .entry{
       display:grid;
-      grid-template-columns: 120px 1fr 130px; /* Rank, Name, Score */
+      grid-template-columns: 100px 1fr 120px; /* Rank, Name, Score */
       align-items:center;
     }
     @media (max-width: 640px){
-      .header-row, .entry{ grid-template-columns: 84px 1fr 110px; }
+      .header-row, .entry{ grid-template-columns: 78px 1fr 102px; }
     }
 
     .header-row{
-      height:46px;
+      height: 40px;
       background: var(--header-bg);
       border-radius: 10px;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 800;
       text-transform: uppercase;
       color: var(--muted);
       letter-spacing: .08em;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .header-row span{
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 0 12px;
-      height: 20px;
+      padding: 0 10px;
+      height: 18px;
     }
     .header-row span:nth-child(2){
       justify-content:flex-start;
-      padding-left: 24px;
+      padding-left: 18px;
     }
 
     .resultsList{
       display:flex;
       flex-direction:column;
-      gap: 8px;
+      gap: 6px; /* tighter */
     }
 
     .entry{
-      height:60px;
+      height: 48px; /* shorter row */
       background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       transition: background .25s ease;
     }
 
     .place{
-      font-size: 28px;
+      font-size: 22px;
       font-weight: 900;
       text-align:center;
       color: var(--title);
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 0 12px;
+      padding: 0 10px;
       height: 100%;
     }
     .gold{color:#ffd700;}
@@ -200,7 +182,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      padding: 0 12px 0 112px; /* room for chev + logo */
+      padding: 0 10px 0 92px; /* tighter room */
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
@@ -213,20 +195,20 @@
     }
     .team-cell:hover{ filter: brightness(1.04); }
     .team-cell .name-text{
-      font-size: 26px;
+      font-size: 20px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
     @media (max-width: 640px){
-      .team-cell{ padding-left: 96px; }
-      .team-cell .name-text{ font-size: 20px; }
+      .team-cell{ padding-left: 82px; }
+      .team-cell .name-text{ font-size: 16px; }
     }
 
     .team-cell .chev{
       position:absolute;
-      left: 18px;
-      font-size: 20px;
+      left: 14px;
+      font-size: 18px;
       font-weight: 900;
       opacity: .85;
     }
@@ -251,46 +233,46 @@
       justify-content:center;
       background:#d9d9d9;
       color:#000;
-      font-size: 26px;
+      font-size: 20px;
       font-weight: 900;
-      padding: 0 12px;
+      padding: 0 10px;
     }
 
     /* Roster (collapsible section under each team row) */
     .roster-wrap{
-      margin-top: 6px;
-      margin-bottom: 12px;
+      margin-top: 4px;
+      margin-bottom: 8px;
       padding-top: 2px;
     }
     .roster-title{
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .12em;
       color: var(--muted);
-      padding: 0 12px 8px 12px;
+      padding: 0 10px 6px 10px;
     }
     .roster-list{
       display:flex;
       flex-direction:column;
-      gap: 8px;
+      gap: 6px;
     }
     .roster-entry{
-      height: 56px;
+      height: 46px;
       background: var(--row-bg);
       border-radius: 10px;
       display:grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 240px 1fr;
       align-items:center;
       overflow:hidden;
-      padding: 0 12px;
-      gap: 14px;
+      padding: 0 10px;
+      gap: 12px;
     }
     @media (max-width: 720px){
-      .roster-entry{ grid-template-columns: 1fr; height: auto; padding: 12px; }
+      .roster-entry{ grid-template-columns: 1fr; height: auto; padding: 10px; }
     }
     .roster-entry .pname{
-      font-size: 18px;
+      font-size: 15px;
       font-weight: 900;
       text-transform: uppercase;
       color: var(--title);
@@ -301,9 +283,9 @@
     .pstats{
       display:flex;
       flex-wrap:wrap;
-      gap: 8px 10px;
+      gap: 6px 8px;
       align-items:center;
-      font-size: 12px;
+      font-size: 11px;
       color: rgba(233,238,248,0.90);
       overflow:hidden;
     }
@@ -311,7 +293,7 @@
       display:inline-flex;
       gap: 6px;
       align-items:center;
-      padding: 6px 10px;
+      padding: 5px 8px;
       border-radius: 999px;
       background: rgba(148,163,184,0.12);
       white-space: nowrap;
@@ -329,22 +311,28 @@
       font-size: 18px;
       font-weight: 800;
       text-align:center;
-      padding: 28px 0;
+      padding: 24px 0;
     }
     .error{
       color: rgba(233,238,248,0.92);
       font-size: 16px;
       text-align:center;
-      padding: 28px 12px;
+      padding: 24px 12px;
     }
 
     .hidden{ display:none !important; }
 
     .footer{
-      margin-top: 20px;
+      margin-top: 18px;
       text-align:center;
       font-size:12px;
       color: rgba(233,238,248,0.55);
+    }
+
+    /* Avoid desktop scroll by default (still scroll on small screens) */
+    @media (min-width: 900px){
+      body{ overflow:hidden; }
+      .container{ padding-bottom: 18px; }
     }
   </style>
 </head>
@@ -373,14 +361,10 @@
     </div>
 
     <div id="content" class="hidden">
-      <!-- Team Rankings -->
+      <!-- Team Rankings (NO SEARCH) -->
       <div id="teamsView" class="card">
         <div class="card-head">
           <h2 class="h2">Team Rankings</h2>
-          <div class="search">
-            <span>⌕</span>
-            <input id="teamSearch" type="text" placeholder="Search…" />
-          </div>
         </div>
 
         <div class="header-row">
@@ -392,7 +376,7 @@
         <div id="teamsList" class="resultsList"></div>
       </div>
 
-      <!-- Player Rankings -->
+      <!-- Player Rankings (keeps search) -->
       <div id="playersView" class="card hidden" style="margin-top:16px;">
         <div class="card-head">
           <h2 class="h2">Player Rankings</h2>
@@ -424,12 +408,11 @@
 
     const RANGE_TEAM_STANDINGS   = "'Season 6, Stage 1'!U4:X15";
     const RANGE_PLAYER_STANDINGS = "'Season 6, Stage 1'!AE4:AH101";
-    const RANGE_TEAM_ROSTERS     = "'Season 6, Stage 1'!A3:S63"; // header + repeating: team row + 4 player rows
+    const RANGE_TEAM_ROSTERS     = "'Season 6, Stage 1'!A3:S63";
 
     const REFRESH_MS = 15000;
 
-    // Put team logos here (relative to this HTML file):
-    //   ./logos/<filename>.png (or .webp/.svg)
+    // Put team logos here (relative to this HTML file): ./logos/<filename>
     const LOGO_DIR = "logos";
 
     // In the roster range: TEAM + PLAYER names are in Column C (index 2)
@@ -511,7 +494,6 @@
     }
 
     // Team standings: [rank, ?, teamName(in points), score(in notes)]
-    // Robust: rank = [0], team = second-to-last cell, score = last cell
     function normalizeTeamStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -606,8 +588,6 @@
     const playersView = document.getElementById("playersView");
     const teamsList = document.getElementById("teamsList");
     const playersList = document.getElementById("playersList");
-
-    const teamSearch = document.getElementById("teamSearch");
     const playerSearch = document.getElementById("playerSearch");
 
     let teamStandings = [];
@@ -632,10 +612,6 @@
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
-    function pillHTML(key, value){
-      return `<div class="pill"><span>${escapeHtml(key)}</span>${escapeHtml(value)}</div>`;
-    }
-
     function escapeHtml(s){
       return String(s ?? "")
         .replace(/&/g,"&amp;")
@@ -645,22 +621,19 @@
         .replace(/'/g,"&#39;");
     }
 
+    function pillHTML(key, value){
+      return `<div class="pill"><span>${escapeHtml(key)}</span>${escapeHtml(value)}</div>`;
+    }
+
     function renderTeams(){
-      const q = teamSearch.value.trim().toLowerCase();
       teamsList.innerHTML = "";
 
-      const view = teamStandings.filter(t=>{
-        if(!q) return true;
-        return (t.name + " " + (t.score ?? "") + " " + t.rank).toLowerCase().includes(q);
-      });
-
-      if(!view.length){
+      if(!teamStandings.length){
         teamsList.innerHTML = `<div class="error">No teams found.</div>`;
         return;
       }
 
-      view.forEach(team=>{
-        // Entry row
+      teamStandings.forEach(team=>{
         const row = document.createElement("div");
         row.className = "entry";
 
@@ -678,7 +651,6 @@
         teamBtn.style.background = bg;
         teamBtn.style.color = fg;
 
-        // Logo variables (optional)
         if(style.logo){
           teamBtn.style.setProperty("--icon", `url('${LOGO_DIR}/${style.logo}')`);
         } else {
@@ -688,7 +660,9 @@
         if(style.iconSize) teamBtn.style.setProperty("--icon-size", style.iconSize);
         if(style.iconOpacity != null) teamBtn.style.setProperty("--icon-opacity", String(style.iconOpacity));
 
-        teamBtn.innerHTML = `<span class="chev" aria-hidden="true">${chev}</span><span class="name-text">${escapeHtml(team.name)}</span>`;
+        teamBtn.innerHTML =
+          `<span class="chev" aria-hidden="true">${chev}</span>` +
+          `<span class="name-text">${escapeHtml(team.name)}</span>`;
 
         row.innerHTML = `
           <div class="place ${rankClass(team.rank)}">${team.rank}</div>
@@ -698,7 +672,6 @@
         row.querySelector(`#teamHost-${team.slug}`).replaceWith(teamBtn);
         teamsList.appendChild(row);
 
-        // Roster (collapsible)
         const rosterWrap = document.createElement("div");
         rosterWrap.className = "roster-wrap";
         rosterWrap.classList.toggle("hidden", !isOpen);
@@ -711,7 +684,7 @@
         if(!roster || !roster.players || !roster.players.length){
           const empty = document.createElement("div");
           empty.className = "error";
-          empty.style.padding = "12px 12px 6px";
+          empty.style.padding = "10px 10px 4px";
           empty.textContent = "Roster not found.";
           rosterList.appendChild(empty);
         } else {
@@ -719,9 +692,7 @@
             const r = document.createElement("div");
             r.className = "roster-entry";
 
-            const statsHTML = (p.stats || [])
-              .map(s => pillHTML(s.key, s.value))
-              .join("");
+            const statsHTML = (p.stats || []).map(s => pillHTML(s.key, s.value)).join("");
 
             r.innerHTML = `
               <div class="pname">${escapeHtml(p.name)}</div>
@@ -760,7 +731,9 @@
         nameCell.style.background = "rgba(255,255,255,0.08)";
         nameCell.style.color = "#ffffff";
         nameCell.style.setProperty("--icon", "none");
-        nameCell.innerHTML = `<span class="chev" aria-hidden="true"></span><span class="name-text">${escapeHtml(p.name)}</span>`;
+        nameCell.innerHTML =
+          `<span class="chev" aria-hidden="true"></span>` +
+          `<span class="name-text">${escapeHtml(p.name)}</span>`;
 
         row.innerHTML = `
           <div class="place ${rankClass(p.rank)}">${p.rank}</div>
@@ -785,11 +758,6 @@
       renderTeams();
     });
 
-    teamSearch.addEventListener("input", ()=>{
-      // collapse all on search change to avoid confusion
-      expandedTeams.clear();
-      renderTeams();
-    });
     playerSearch.addEventListener("input", renderPlayers);
 
     async function update(){
@@ -804,7 +772,6 @@
         playerStandings = normalizePlayerStandings(playerRows);
         rosterByTeam = parseRosters(rosterRows);
 
-        // If a team disappears, un-expand it
         const names = new Set(teamStandings.map(t=>t.name));
         [...expandedTeams].forEach(n => { if(!names.has(n)) expandedTeams.delete(n); });
 
@@ -816,7 +783,9 @@
       }catch(err){
         statusCard.classList.remove("hidden");
         contentEl.classList.add("hidden");
-        statusCard.innerHTML = `<div class="error"><b>Couldn’t load data</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load standings.")}</div></div>`;
+        statusCard.innerHTML =
+          `<div class="error"><b>Couldn’t load data</b>` +
+          `<div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load standings.")}</div></div>`;
         console.error(err);
       }
     }
