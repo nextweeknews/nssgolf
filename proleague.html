@@ -174,8 +174,8 @@
     .silver{color:#c0c0c0;}
     .bronze{color:#cd7f32;}
 
-    /* Team cell (clickable) */
-    .team-cell{
+    /* Clickable name cell (team + player) */
+    .name-cell{
       position:relative;
       height: 100%;
       width: 100%;
@@ -193,25 +193,25 @@
       overflow:hidden;
       border-radius: 0;
     }
-    .team-cell:hover{ filter: brightness(1.04); }
-    .team-cell .name-text{
+    .name-cell:hover{ filter: brightness(1.04); }
+    .name-cell .name-text{
       font-size: 20px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
     @media (max-width: 640px){
-      .team-cell{ padding-left: 82px; }
-      .team-cell .name-text{ font-size: 16px; }
+      .name-cell{ padding-left: 82px; }
+      .name-cell .name-text{ font-size: 16px; }
     }
-    .team-cell .chev{
+    .name-cell .chev{
       position:absolute;
       left: 14px;
       font-size: 18px;
       font-weight: 900;
       opacity: .85;
     }
-    .team-cell::before{
+    .name-cell::before{
       content:"";
       position:absolute;
       inset:0;
@@ -236,14 +236,14 @@
     }
 
     /* =========================
-       Roster (table design)
+       Collapsible tables
        ========================= */
-    .roster-wrap{
+    .collapse-wrap{
       margin-top: 4px;
       margin-bottom: 10px;
       padding-top: 2px;
     }
-    .roster-title{
+    .collapse-title{
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
@@ -252,20 +252,20 @@
       padding: 0 10px 6px 10px;
     }
 
-    .roster-scroll{
+    .collapse-scroll{
       max-height: 280px;
       overflow-y: auto;
       overflow-x: hidden;
       padding-right: 4px;
     }
-    .roster-scroll::-webkit-scrollbar { width: 10px; }
-    .roster-scroll::-webkit-scrollbar-thumb {
+    .collapse-scroll::-webkit-scrollbar { width: 10px; }
+    .collapse-scroll::-webkit-scrollbar-thumb {
       background: rgba(148,163,184,0.22);
       border-radius: 999px;
     }
-    .roster-scroll::-webkit-scrollbar-track { background: transparent; }
+    .collapse-scroll::-webkit-scrollbar-track { background: transparent; }
 
-    table.roster-table{
+    table.stats-table{
       width: 100%;
       border-collapse: separate;
       border-spacing: 0 6px;
@@ -279,7 +279,7 @@
     col.c-week{  width: 52px; }
     col.c-round{ width: 44px; }
 
-    .roster-table thead th{
+    .stats-table thead th{
       position: sticky;
       top: 0;
       z-index: 3;
@@ -296,22 +296,22 @@
       text-align: center;
     }
 
-    /* Prevent trapezoid artifacts: do not paint TR, paint TD */
-    .roster-table tbody tr{ background: transparent !important; }
-    .roster-table tbody td{ background: var(--row-bg); }
-    .roster-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
+    /* Prevent trapezoid artifacts */
+    .stats-table tbody tr{ background: transparent !important; }
+    .stats-table tbody td{ background: var(--row-bg); }
+    .stats-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
 
-    /* Hard-disable rounding/clipping so cells are rectangles */
-    .roster-table,
-    .roster-table thead th,
-    .roster-table tbody tr,
-    .roster-table tbody td{
+    /* Hard rectangles */
+    .stats-table,
+    .stats-table thead th,
+    .stats-table tbody tr,
+    .stats-table tbody td{
       border-radius: 0 !important;
       clip-path: none !important;
       mask: none !important;
     }
 
-    .roster-table td{
+    .stats-table td{
       padding: 8px 6px;
       font-size: 11px;
       color: rgba(233,238,248,0.92);
@@ -326,13 +326,12 @@
       background-clip: padding-box;
     }
 
-    /* Player name centered to match header */
     .cell-name{
       font-weight: 900;
       text-transform: uppercase;
       color: var(--title);
-      text-align: center;   /* CHANGED */
-      padding-left: 0;      /* CHANGED */
+      text-align: center;
+      padding-left: 0;
     }
 
     .cell-rank{
@@ -340,6 +339,7 @@
       font-weight: 900;
       letter-spacing: .10em;
       text-transform: uppercase;
+      text-align: center;
     }
 
     .sep-right{ border-right: 2px solid var(--sep) !important; }
@@ -428,6 +428,7 @@
     </div>
 
     <div id="content" class="hidden">
+      <!-- Team Rankings -->
       <div id="teamsView" class="card">
         <div class="card-head">
           <h2 class="h2">Team Rankings</h2>
@@ -442,6 +443,7 @@
         <div id="teamsList" class="resultsList"></div>
       </div>
 
+      <!-- Player Rankings -->
       <div id="playersView" class="card hidden" style="margin-top:16px;">
         <div class="card-head">
           <h2 class="h2">Player Rankings</h2>
@@ -474,6 +476,9 @@
 
     const REFRESH_MS = 15000;
 
+    // Roster range columns (0-indexed):
+    // A=0 overall rank, C=2 name, D=3 stage score, E-G=4..6 best 3,
+    // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
     const COL = {
       overallRank: 0,
       name: 2,
@@ -483,6 +488,7 @@
       roundsStart: 11
     };
 
+    // Team colors
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#cd7f32", fg: "#ffffff" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000", iconPos: "0 47%" },
@@ -602,25 +608,25 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    function parseRosters(values){
+    // Build player stats map from the roster range (players are in Column C)
+    function parsePlayersFromRosters(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       if(!cleaned.length) return new Map();
 
-      const rows = cleaned.slice(1);
-      const byTeam = new Map();
+      const rows = cleaned.slice(1); // skip header row
+      const byPlayer = new Map();
 
       for(let i=0; i<rows.length; i+=5){
-        const teamRow = rows[i] || [];
-        const teamName = String(teamRow[COL.name] ?? "").trim();
-        if(!teamName) continue;
-
+        // rows[i] is team row; next 4 are players
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
 
-        const players = playerRows.map(pr=>{
+        for(const pr of playerRows){
           const r = pr || [];
-          return {
-            overallRank: toNum(r[COL.overallRank]),
-            name: String(r[COL.name] ?? "").trim(),
+          const name = String(r[COL.name] ?? "").trim();
+          if(!name) continue;
+
+          byPlayer.set(name, {
+            name,
             stageScore: toNum(r[COL.stage]),
             best: [
               toNum(r[COL.bestStart + 0]),
@@ -634,13 +640,11 @@
               toNum(r[COL.weekStart + 3]),
             ],
             rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
-          };
-        });
-
-        byTeam.set(teamName, { teamName, players });
+          });
+        }
       }
 
-      return byTeam;
+      return byPlayer;
     }
 
     const statusCard = document.getElementById("statusCard");
@@ -654,7 +658,10 @@
     let teamStandings = [];
     let playerStandings = [];
     let rosterByTeam = new Map();
+    let playerStatsByName = new Map();
+
     const expandedTeams = new Set();
+    const expandedPlayers = new Set(); // by exact player name
 
     function setTab(tab){
       document.querySelectorAll(".tabbtn").forEach(b=>{
@@ -673,10 +680,11 @@
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
-    function renderRosterTable(roster){
+    // TEAM collapse table (full)
+    function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
-      wrap.className = "roster-wrap";
-      wrap.innerHTML = `<div class="roster-title">Roster</div>`;
+      wrap.className = "collapse-wrap";
+      wrap.innerHTML = `<div class="collapse-title">Roster</div>`;
 
       if(!roster || !roster.players || !roster.players.length){
         const empty = document.createElement("div");
@@ -688,10 +696,10 @@
       }
 
       const scroll = document.createElement("div");
-      scroll.className = "roster-scroll";
+      scroll.className = "collapse-scroll";
 
       const table = document.createElement("table");
-      table.className = "roster-table";
+      table.className = "stats-table";
 
       table.innerHTML = `
         <colgroup>
@@ -707,7 +715,7 @@
         <thead>
           <tr>
             <th>Rank</th>
-            <th>Player</th> <!-- CHANGED: centered -->
+            <th>Player</th>
             <th>Stage</th>
 
             <th>1st</th>
@@ -747,7 +755,6 @@
         const best = (p.best || [null,null,null]);
 
         const cells = [];
-
         cells.push(`<td class="cell-rank">${escapeHtml(fmt(p.overallRank))}</td>`);
         cells.push(`<td class="cell-name">${escapeHtml(p.name || "")}</td>`);
         cells.push(`<td class="stageScore">${escapeHtml(fmt(p.stageScore))}</td>`);
@@ -778,6 +785,101 @@
       return wrap;
     }
 
+    // PLAYER collapse table (abbreviated: best3 + week totals + rounds)
+    function renderPlayerStatsTable(stat){
+      const wrap = document.createElement("div");
+      wrap.className = "collapse-wrap";
+      wrap.innerHTML = `<div class="collapse-title">Stats</div>`;
+
+      if(!stat){
+        const empty = document.createElement("div");
+        empty className = "error";
+        empty.style.padding = "10px 10px 4px";
+        empty.textContent = "Stats not found.";
+        wrap.appendChild(empty);
+        return wrap;
+      }
+
+      const scroll = document.createElement("div");
+      scroll.className = "collapse-scroll";
+
+      const table = document.createElement("table");
+      table.className = "stats-table";
+
+      table.innerHTML = `
+        <colgroup>
+          <col class="c-best"><col class="c-best"><col class="c-best">
+          <col class="c-week"><col class="c-week"><col class="c-week"><col class="c-week">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+        </colgroup>
+
+        <thead>
+          <tr>
+            <th>1st</th>
+            <th>2nd</th>
+            <th>3rd</th>
+
+            <th>WK1</th>
+            <th>WK2</th>
+            <th>WK3</th>
+            <th class="sep-right">WK4</th>
+
+            <th>1-1</th>
+            <th class="sep-right">1-2</th>
+
+            <th>2-1</th>
+            <th class="sep-right">2-2</th>
+
+            <th>3-1</th>
+            <th class="sep-right">3-2</th>
+
+            <th>4-1</th>
+            <th>4-2</th>
+          </tr>
+        </thead>
+
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+      const best = stat.best || [null,null,null];
+      const weekTotals = stat.weekTotals || [null,null,null,null];
+      const rounds = stat.rounds || Array(8).fill(null);
+
+      const bestSet = new Set(best.filter(v=>v!=null).map(v=>String(v)));
+
+      const cells = [];
+
+      // best 3
+      for(let i=0;i<3;i++){
+        cells.push(`<td class="counted">${escapeHtml(fmt(best[i]))}</td>`);
+      }
+
+      // weekly totals
+      for(let i=0;i<4;i++){
+        const cls = (i===3) ? "sep-right" : "";
+        cells.push(`<td class="${cls}">${escapeHtml(fmt(weekTotals[i]))}</td>`);
+      }
+
+      // rounds (highlight if equals best-set)
+      for(let i=0;i<8;i++){
+        const v = rounds[i];
+        const isCounted = (v != null) && bestSet.has(String(v));
+        const isWeekEnd = (i===1 || i===3 || i===5);
+        const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+        cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = cells.join("");
+      tbody.appendChild(tr);
+
+      scroll.appendChild(table);
+      wrap.appendChild(scroll);
+      return wrap;
+    }
+
     function renderTeams(){
       teamsList.innerHTML = "";
 
@@ -797,19 +899,19 @@
         const isOpen = expandedTeams.has(team.name);
         const chev = isOpen ? "▾" : "▸";
 
-        const teamBtn = document.createElement("button");
-        teamBtn.type = "button";
-        teamBtn.className = "team-cell";
-        teamBtn.setAttribute("data-team", team.name);
-        teamBtn.style.background = bg;
-        teamBtn.style.color = fg;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "name-cell";
+        btn.setAttribute("data-team", team.name);
+        btn.style.background = bg;
+        btn.style.color = fg;
 
-        teamBtn.style.setProperty("--icon", "none");
-        if(style.iconPos) teamBtn.style.setProperty("--icon-pos", style.iconPos);
-        if(style.iconSize) teamBtn.style.setProperty("--icon-size", style.iconSize);
-        if(style.iconOpacity != null) teamBtn.style.setProperty("--icon-opacity", String(style.iconOpacity));
+        btn.style.setProperty("--icon", "none");
+        if(style.iconPos) btn.style.setProperty("--icon-pos", style.iconPos);
+        if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
+        if(style.iconOpacity != null) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
 
-        teamBtn.innerHTML =
+        btn.innerHTML =
           `<span class="chev" aria-hidden="true">${chev}</span>` +
           `<span class="name-text">${escapeHtml(team.name)}</span>`;
 
@@ -818,14 +920,14 @@
           <div id="teamHost-${team.slug}"></div>
           <div class="score-col">${team.score != null ? team.score : "—"}</div>
         `;
-        row.querySelector(`#teamHost-${team.slug}`).replaceWith(teamBtn);
+        row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
         teamsList.appendChild(row);
 
         if(isOpen){
-          teamsList.appendChild(renderRosterTable(rosterByTeam.get(team.name)));
+          teamsList.appendChild(renderTeamRosterTable(rosterByTeam.get(team.name)));
         } else {
           const placeholder = document.createElement("div");
-          placeholder.className = "roster-wrap hidden";
+          placeholder.className = "collapse-wrap hidden";
           teamsList.appendChild(placeholder);
         }
       });
@@ -849,14 +951,19 @@
         const row = document.createElement("div");
         row.className = "entry";
 
-        const nameCell = document.createElement("div");
-        nameCell.className = "team-cell";
-        nameCell.style.cursor = "default";
-        nameCell.style.background = "rgba(255,255,255,0.08)";
-        nameCell.style.color = "#ffffff";
-        nameCell.style.setProperty("--icon", "none");
-        nameCell.innerHTML =
-          `<span class="chev" aria-hidden="true"></span>` +
+        const isOpen = expandedPlayers.has(p.name);
+        const chev = isOpen ? "▾" : "▸";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "name-cell";
+        btn.setAttribute("data-player", p.name);
+        btn.style.cursor = "pointer";
+        btn.style.background = "rgba(255,255,255,0.08)";
+        btn.style.color = "#ffffff";
+        btn.style.setProperty("--icon", "none");
+        btn.innerHTML =
+          `<span class="chev" aria-hidden="true">${chev}</span>` +
           `<span class="name-text">${escapeHtml(p.name)}</span>`;
 
         row.innerHTML = `
@@ -864,15 +971,23 @@
           <div id="playerHost-${p.slug}"></div>
           <div class="score-col">${p.score != null ? p.score : "—"}</div>
         `;
-        row.querySelector(`#playerHost-${p.slug}`).replaceWith(nameCell);
+        row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
         playersList.appendChild(row);
+
+        if(isOpen){
+          const stat = playerStatsByName.get(p.name) || null;
+          playersList.appendChild(renderPlayerStatsTable(stat));
+        } else {
+          const placeholder = document.createElement("div");
+          placeholder.className = "collapse-wrap hidden";
+          playersList.appendChild(placeholder);
+        }
       });
     }
 
     teamsList.addEventListener("click", (e)=>{
-      const btn = e.target.closest("button.team-cell");
+      const btn = e.target.closest("button.name-cell[data-team]");
       if(!btn) return;
-
       const teamName = btn.getAttribute("data-team");
       if(!teamName) return;
 
@@ -880,6 +995,18 @@
       else expandedTeams.add(teamName);
 
       renderTeams();
+    });
+
+    playersList.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.name-cell[data-player]");
+      if(!btn) return;
+      const playerName = btn.getAttribute("data-player");
+      if(!playerName) return;
+
+      if(expandedPlayers.has(playerName)) expandedPlayers.delete(playerName);
+      else expandedPlayers.add(playerName);
+
+      renderPlayers();
     });
 
     playerSearch.addEventListener("input", renderPlayers);
@@ -894,10 +1021,56 @@
 
         teamStandings = normalizeTeamStandings(teamRows);
         playerStandings = normalizePlayerStandings(playerRows);
-        rosterByTeam = parseRosters(rosterRows);
 
-        const names = new Set(teamStandings.map(t=>t.name));
-        [...expandedTeams].forEach(n => { if(!names.has(n)) expandedTeams.delete(n); });
+        // Team rosters (for team collapses)
+        rosterByTeam = (function parseTeams(values){
+          const cleaned = (values || []).filter(rowHasAnyValue);
+          if(!cleaned.length) return new Map();
+          const rows = cleaned.slice(1);
+          const byTeam = new Map();
+
+          for(let i=0; i<rows.length; i+=5){
+            const teamRow = rows[i] || [];
+            const teamName = String(teamRow[COL.name] ?? "").trim();
+            if(!teamName) continue;
+
+            const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
+            const players = playerRows.map(pr=>{
+              const r = pr || [];
+              return {
+                overallRank: toNum(r[COL.overallRank]),
+                name: String(r[COL.name] ?? "").trim(),
+                stageScore: toNum(r[COL.stage]),
+                best: [
+                  toNum(r[COL.bestStart + 0]),
+                  toNum(r[COL.bestStart + 1]),
+                  toNum(r[COL.bestStart + 2]),
+                ],
+                weekTotals: [
+                  toNum(r[COL.weekStart + 0]),
+                  toNum(r[COL.weekStart + 1]),
+                  toNum(r[COL.weekStart + 2]),
+                  toNum(r[COL.weekStart + 3]),
+                ],
+                rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
+              };
+            });
+
+            byTeam.set(teamName, { teamName, players });
+          }
+
+          return byTeam;
+        })(rosterRows);
+
+        // Player stats map (for player collapses)
+        playerStatsByName = parsePlayersFromRosters(rosterRows);
+
+        // Clean expanded sets if names disappeared
+        const teamNames = new Set(teamStandings.map(t=>t.name));
+        [...expandedTeams].forEach(n => { if(!teamNames.has(n)) expandedTeams.delete(n); });
+
+        const playerNames = new Set(playerStandings.map(p=>p.name));
+        [...expandedPlayers].forEach(n => { if(!playerNames.has(n)) expandedPlayers.delete(n); });
 
         renderTeams();
         renderPlayers();
