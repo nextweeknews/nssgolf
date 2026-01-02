@@ -269,7 +269,7 @@
     table.roster-table{
       width: 100%;
       border-collapse: separate;
-      border-spacing: 0 6px; /* keep row gaps like overlay */
+      border-spacing: 0 6px;   /* row gaps */
       table-layout: fixed;
     }
 
@@ -299,11 +299,27 @@
     }
     .roster-table thead th.left{ text-align:left; padding-left:10px; }
 
+    /* IMPORTANT: don't paint TR backgrounds (causes trapezoid artifacts in some browsers) */
     .roster-table tbody tr{
+      background: transparent !important;
+    }
+
+    /* Paint TD backgrounds instead (each cell becomes a true rectangle) */
+    .roster-table tbody td{
       background: var(--row-bg);
     }
-    .roster-table tbody tr:nth-child(even){
+    .roster-table tbody tr:nth-child(even) td{
       background: var(--row-bg-2);
+    }
+
+    /* Hard-disable rounding/clipping so cells are rectangles */
+    .roster-table,
+    .roster-table thead th,
+    .roster-table tbody tr,
+    .roster-table tbody td{
+      border-radius: 0 !important;
+      clip-path: none !important;
+      mask: none !important;
     }
 
     .roster-table td{
@@ -318,16 +334,11 @@
       border-bottom: 1px solid rgba(255,255,255,0.02);
       text-align: center;
       font-variant-numeric: tabular-nums;
+      background-clip: padding-box;
     }
     .roster-table td.left{
       text-align:left;
       padding-left:10px;
-    }
-
-    /* Remove inner rounding inside the table (square edges) */
-    .roster-table tbody tr td:first-child,
-    .roster-table tbody tr td:last-child{
-      border-radius: 0 !important;
     }
 
     .cell-name{
@@ -346,18 +357,18 @@
       text-transform: uppercase;
     }
 
-    /* Separators requested */
+    /* Separators */
     .sep-right{ border-right: 2px solid var(--sep) !important; }
     .sep-left{ border-left: 2px solid var(--sep) !important; }
 
-    /* Important cells (no red/green conditional text now) */
+    /* Important cells (no red/green conditional text) */
     .stageScore{
-      background: rgba(217,217,217,0.14);
+      background: rgba(217,217,217,0.14) !important;
       color: #ffffff;
       font-weight: 900;
     }
     .counted{
-      background: rgba(52,211,153,0.16);
+      background: rgba(52,211,153,0.16) !important;
       color: #ffffff;
       font-weight: 900;
     }
@@ -733,7 +744,7 @@
       const table = document.createElement("table");
       table.className = "roster-table";
 
-      // Single-row header with separate "Rank" + "Player" headers
+      // Single-row header with separate Rank + Player
       table.innerHTML = `
         <colgroup>
           <col class="c-rank">
@@ -789,20 +800,14 @@
 
         const cells = [];
 
-        // Rank column (Column A)
-        cells.push(
-          `<td class="cell-rank">${escapeHtml(fmt(p.overallRank))}</td>`
-        );
+        // Rank (Column A)
+        cells.push(`<td class="cell-rank">${escapeHtml(fmt(p.overallRank))}</td>`);
 
-        // Player name column
-        cells.push(
-          `<td class="cell-name">${escapeHtml(p.name || "")}</td>`
-        );
+        // Player name
+        cells.push(`<td class="cell-name">${escapeHtml(p.name || "")}</td>`);
 
         // Stage
-        cells.push(
-          `<td class="stageScore">${escapeHtml(fmt(p.stageScore))}</td>`
-        );
+        cells.push(`<td class="stageScore">${escapeHtml(fmt(p.stageScore))}</td>`);
 
         // 1st/2nd/3rd (highlighted)
         for(let i=0;i<3;i++){
@@ -845,7 +850,6 @@
       }
 
       teamStandings.forEach(team=>{
-        // standings entry
         const row = document.createElement("div");
         row.className = "entry";
 
@@ -884,7 +888,6 @@
         row.querySelector(`#teamHost-${team.slug}`).replaceWith(teamBtn);
         teamsList.appendChild(row);
 
-        // roster section (table)
         if(isOpen){
           teamsList.appendChild(renderRosterTable(rosterByTeam.get(team.name)));
         } else {
@@ -961,7 +964,6 @@
         playerStandings = normalizePlayerStandings(playerRows);
         rosterByTeam = parseRosters(rosterRows);
 
-        // If a team disappears, un-expand it
         const names = new Set(teamStandings.map(t=>t.name));
         [...expandedTeams].forEach(n => { if(!names.has(n)) expandedTeams.delete(n); });
 
