@@ -21,6 +21,8 @@
 
       --border-lite: rgba(148,163,184,0.20);
       --sep: rgba(148,163,184,0.26);
+
+      --top10-bg: rgba(16,185,129,0.18); /* subtle dark green */
     }
 
     *{ box-sizing:border-box; }
@@ -169,7 +171,13 @@
       justify-content:center;
       padding: 0 10px;
       height: 100%;
+      background: transparent;
     }
+    /* Player rankings: top 10 (and ties) rank cell background */
+    .place.top10bg{
+      background: var(--top10-bg);
+    }
+
     .gold{color:#ffd700;}
     .silver{color:#c0c0c0;}
     .bronze{color:#cd7f32;}
@@ -187,7 +195,7 @@
       background: rgba(255,255,255,0.08);
       color:#fff;
       cursor:pointer;
-      font-weight: 900;
+      font-weight: 900; /* base weight */
       text-transform: uppercase;
       letter-spacing: .02em;
       overflow:hidden;
@@ -196,6 +204,7 @@
     .team-cell:hover{ filter: brightness(1.04); }
     .team-cell .name-text{
       font-size: 20px;
+      font-weight: 950; /* ↑ increased weight for main-row names */
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
@@ -570,15 +579,28 @@
         .replace(/'/g,"&#39;");
     }
 
-    function fmt(v){
-      return (v === null || v === undefined || v === "") ? "—" : String(v);
-    }
-
     function toNum(v){
       const s = String(v ?? "").trim();
       if(!s) return null;
       const n = Number(s);
       return Number.isFinite(n) ? n : null;
+    }
+
+    // Golf-style display:
+    //  - positive: +N
+    //  - zero: E
+    //  - negative: -N
+    //  - null/blank: —
+    function fmtScore(v){
+      if (v === null || v === undefined || v === "") return "—";
+      const n = (typeof v === "number") ? v : Number(String(v).trim());
+      if (!Number.isFinite(n)) return String(v);
+
+      const isZero = (n === 0) || Object.is(n, -0);
+      if (isZero) return "E";
+
+      const s = Number.isInteger(n) ? String(n) : String(n);
+      return n > 0 ? `+${s}` : s;
     }
 
     function rankClass(rank){
@@ -588,7 +610,6 @@
     // ==============================
     // Normalize standings
     // ==============================
-    // Team standings mapping: rank=0, team=second-to-last, score=last (robust)
     function normalizeTeamStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -609,7 +630,6 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // Player standings mapping: rank=0, player=second-to-last, score=last (robust)
     function normalizePlayerStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -673,9 +693,7 @@
             rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
           };
 
-          // Stats map by exact player name (ties directly to player ranking range)
           if (pName) byPlayer.set(pName, stat);
-
           return stat;
         });
 
@@ -791,17 +809,17 @@
         const best = (p.best || [null,null,null]);
 
         const cells = [];
-        cells.push(`<td class="cell-rank">${escapeHtml(fmt(p.overallRank))}</td>`);
+        cells.push(`<td class="cell-rank">${escapeHtml(String(p.overallRank ?? "—"))}</td>`);
         cells.push(`<td class="cell-name">${escapeHtml(p.name || "")}</td>`);
-        cells.push(`<td class="stageScore">${escapeHtml(fmt(p.stageScore))}</td>`);
+        cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
 
         for(let i=0;i<3;i++){
-          cells.push(`<td class="counted">${escapeHtml(fmt(best[i]))}</td>`);
+          cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
         }
 
         for(let i=0;i<4;i++){
           const cls = (i===3) ? "sep-right" : "";
-          cells.push(`<td class="${cls}">${escapeHtml(fmt(weekTotals[i]))}</td>`);
+          cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
         }
 
         for(let i=0;i<8;i++){
@@ -809,7 +827,7 @@
           const isCounted = (v != null) && bestSet.has(String(v));
           const isWeekEnd = (i===1 || i===3 || i===5);
           const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
-          cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
+          cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
         }
 
         const tr = document.createElement("tr");
@@ -824,8 +842,6 @@
 
     // ==============================
     // Render: Player stats (abbreviated)
-    // - No rank/name/stage (already in list)
-    // - Just best3, weekly totals, rounds
     // ==============================
     function renderPlayerStatsTable(stat){
       const wrap = document.createElement("div");
@@ -887,12 +903,12 @@
       const cells = [];
 
       for(let i=0;i<3;i++){
-        cells.push(`<td class="counted">${escapeHtml(fmt(best[i]))}</td>`);
+        cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
       }
 
       for(let i=0;i<4;i++){
         const cls = (i===3) ? "sep-right" : "";
-        cells.push(`<td class="${cls}">${escapeHtml(fmt(weekTotals[i]))}</td>`);
+        cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
       }
 
       for(let i=0;i<8;i++){
@@ -900,7 +916,7 @@
         const isCounted = (v != null) && bestSet.has(String(v));
         const isWeekEnd = (i===1 || i===3 || i===5);
         const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
-        cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
+        cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
       }
 
       const tr = document.createElement("tr");
@@ -953,7 +969,7 @@
         row.innerHTML = `
           <div class="place ${rankClass(team.rank)}">${team.rank}</div>
           <div id="teamHost-${team.slug}"></div>
-          <div class="score-col">${team.score != null ? team.score : "—"}</div>
+          <div class="score-col">${escapeHtml(fmtScore(team.score))}</div>
         `;
         row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
         teamsList.appendChild(row);
@@ -1001,16 +1017,17 @@
           `<span class="chev" aria-hidden="true">${chev}</span>` +
           `<span class="name-text">${escapeHtml(p.name)}</span>`;
 
+        const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
+
         row.innerHTML = `
-          <div class="place ${rankClass(p.rank)}">${p.rank}</div>
+          <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
           <div id="playerHost-${p.slug}"></div>
-          <div class="score-col">${p.score != null ? p.score : "—"}</div>
+          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
         `;
         row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
         playersList.appendChild(row);
 
         if(isOpen){
-          // Names are tied directly, so just fetch by player name.
           const stat = playerStatsByName.get(p.name);
           playersList.appendChild(renderPlayerStatsTable(stat));
         } else {
