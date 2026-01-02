@@ -306,6 +306,9 @@
       const TEAM_STANDINGS_HEADERS   = ["Rank","Team","Points"];
       const PLAYER_STANDINGS_HEADERS = ["Rank","Player","Points","Notes"];
 
+      // Column C is index 2
+      const NAME_COL = 2;
+
       // ==============================
       // Fetch helpers
       // ==============================
@@ -361,11 +364,7 @@
         return { headers: fallbackHeaders, rows: cleaned };
       }
 
-      // Your sheet has: team name in the "points" column and team score in the "notes" column.
-      // Instead of hard-coding indices, we map using "last 2 cells" for robustness:
-      //   rank = first cell
-      //   team = second-to-last cell
-      //   pts  = last cell
+      // Team standings: rank is first cell; team name is second-to-last; score is last
       function remapTeamStandingsRow(r){
         const arr = Array.isArray(r) ? r : [];
         const rank = arr[0] ?? "";
@@ -375,24 +374,8 @@
       }
 
       // ==============================
-      // Roster parsing (FULL TEAM & PLAYER RANGE formatting)
+      // Roster parsing (Column C names, repeating: team row + 4 player rows)
       // ==============================
-      function firstNonEmptyIndex(row){
-        if(!Array.isArray(row)) return -1;
-        for(let i=0;i<row.length;i++){
-          if(String(row[i] ?? "").trim() !== "") return i;
-        }
-        return -1;
-      }
-      function firstNonEmptyCell(row){
-        const idx = firstNonEmptyIndex(row);
-        return idx >= 0 ? String(row[idx] ?? "").trim() : "";
-      }
-
-      // IMPORTANT CHANGE:
-      // - Header row exists (used for labeling)
-      // - Then repeating pattern: team row (team name) + 4 player rows
-      // - For player rows: first non-empty cell is player name; remaining filled cells are player stats
       function chunkTeamsFromRange(rangeValues){
         const cleaned = (rangeValues || []).filter(rowHasAnyValue);
         if(!cleaned.length) return { header: [], teams: [] };
@@ -407,11 +390,11 @@
           return (h && h.trim()) ? h.trim() : `Col ${j+1}`;
         }
 
-        function extractStats(row, nameIdx){
+        function extractStats(row){
           const stats = [];
           const r = row || [];
           for(let j=0; j<r.length; j++){
-            if(j === nameIdx) continue;
+            if(j === NAME_COL) continue; // skip name col
             const v = String(r[j] ?? "").trim();
             if(!v) continue;
             stats.push({ key: labelForCol(j), value: v });
@@ -424,13 +407,12 @@
           const teamRow = rows[i] || [];
           const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
 
-          // Team name = first non-empty cell of team row (NOT a fixed column)
-          const teamName = firstNonEmptyCell(teamRow) || `Team ${Math.floor(i/5)+1}`;
+          // Team name is in column C (index 2)
+          const teamName = String(teamRow[NAME_COL] ?? "").trim() || `Team ${Math.floor(i/5)+1}`;
 
           const players = playerRows.map((pr, idx)=>{
-            const nameIdx = firstNonEmptyIndex(pr);
-            const playerName = (nameIdx >= 0 ? String(pr[nameIdx] ?? "").trim() : "") || firstNonEmptyCell(pr) || `Player ${idx+1}`;
-            const stats = extractStats(pr, nameIdx >= 0 ? nameIdx : 0);
+            const playerName = String((pr||[])[NAME_COL] ?? "").trim() || `Player ${idx+1}`;
+            const stats = extractStats(pr);
             return { name: playerName, stats };
           });
 
@@ -441,53 +423,18 @@
       }
 
       // ==============================
-      // Matching team names between standings + roster range
+      // Matching team names (exact, because they match)
       // ==============================
       function normName(s){
-        return String(s ?? "")
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, " ")
-          .replace(/[’']/g, "'"); // normalize apostrophes a bit
+        return String(s ?? "").trim();
       }
-      function simplify(s){
-        return normName(s).replace(/[^a-z0-9 ]+/g, "").trim();
-      }
-
       function buildRosterMap(teams){
         const m = new Map();
         teams.forEach(t => m.set(normName(t.teamName), t));
         return m;
       }
-
-      // Tries exact match, then simplified match, then substring match
       function findRosterTeam(rosterMap, teamDisplayName){
-        const k = normName(teamDisplayName);
-        if(rosterMap.has(k)) return rosterMap.get(k);
-
-        const ks = simplify(teamDisplayName);
-        if(!ks) return null;
-
-        // simplified exact
-        for(const [key, team] of rosterMap.entries()){
-          if(simplify(key) === ks) return team;
-        }
-
-        // substring / contains (best-effort)
-        let best = null;
-        let bestScore = 0;
-        for(const [key, team] of rosterMap.entries()){
-          const a = simplify(key);
-          if(!a) continue;
-          if(a.includes(ks) || ks.includes(a)){
-            const score = Math.min(a.length, ks.length);
-            if(score > bestScore){
-              bestScore = score;
-              best = team;
-            }
-          }
-        }
-        return best;
+        return rosterMap.get(normName(teamDisplayName)) || null;
       }
 
       // ==============================
@@ -657,8 +604,8 @@
 
       let rawTeamStandings = [];
       let rawPlayerStandings = [];
-      let rosterMap = new Map();      // key: normalized roster team name -> { teamName, players }
-      let expandedTeams = new Set();  // key: normalized TEAM NAME FROM STANDINGS (post-remap)
+      let rosterMap = new Map();
+      let expandedTeams = new Set();
 
       let filteredTeamRows = [];
       let filteredPlayerRows = [];
@@ -687,7 +634,7 @@
         renderSimpleTable(playerHead, playerBody, playerHeaders, filteredPlayerRows, 1, "No players found.");
       }
 
-      // Team roster toggles (event delegation)
+      // Team roster toggles
       teamBody.addEventListener("click", (e)=>{
         const btn = e.target.closest(".team-link");
         if(!btn) return;
@@ -706,7 +653,7 @@
       });
 
       teamSearch.addEventListener("input", ()=>{
-        expandedTeams = new Set(); // collapse on filter changes
+        expandedTeams = new Set();
         applyFiltersAndRender();
       });
       playerSearch.addEventListener("input", applyFiltersAndRender);
@@ -719,12 +666,12 @@
           statusEl.textContent = "Loading standings…";
 
           const [teamInfoResp, teamStResp, playerStResp] = await Promise.all([
-            fetchRange(RANGES.teamInfo),        // full team & player range
+            fetchRange(RANGES.teamInfo),
             fetchRange(RANGES.teamStandings),
             fetchRange(RANGES.playerStandings),
           ]);
 
-          // Build roster map using the EXACT formatting of the full team & player range
+          // Build roster map using Column C names
           const teamInfoValues = normalizeValues(teamInfoResp);
           const { teams } = chunkTeamsFromRange(teamInfoValues);
           rosterMap = buildRosterMap(teams);
