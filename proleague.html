@@ -113,7 +113,7 @@
     /* Standings header row + entries */
     .header-row, .entry{
       display:grid;
-      grid-template-columns: 100px 1fr 120px;
+      grid-template-columns: 100px 1fr 120px; /* Rank, Name, Score */
       align-items:center;
     }
     @media (max-width: 640px){
@@ -174,15 +174,15 @@
     .silver{color:#c0c0c0;}
     .bronze{color:#cd7f32;}
 
-    /* Clickable name cell (team + player) */
-    .name-cell{
-      position:relative;
+    /* Name cell (used for teams AND players) */
+    .team-cell{
+      position: relative;
       height: 100%;
       width: 100%;
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      padding: 0 10px 0 92px;
+      padding: 0 10px 0 92px; /* room for chev */
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
@@ -193,25 +193,25 @@
       overflow:hidden;
       border-radius: 0;
     }
-    .name-cell:hover{ filter: brightness(1.04); }
-    .name-cell .name-text{
+    .team-cell:hover{ filter: brightness(1.04); }
+    .team-cell .name-text{
       font-size: 20px;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
     @media (max-width: 640px){
-      .name-cell{ padding-left: 82px; }
-      .name-cell .name-text{ font-size: 16px; }
+      .team-cell{ padding-left: 82px; }
+      .team-cell .name-text{ font-size: 16px; }
     }
-    .name-cell .chev{
+    .team-cell .chev{
       position:absolute;
       left: 14px;
       font-size: 18px;
       font-weight: 900;
       opacity: .85;
     }
-    .name-cell::before{
+    .team-cell::before{
       content:"";
       position:absolute;
       inset:0;
@@ -236,14 +236,14 @@
     }
 
     /* =========================
-       Collapsible tables
+       Collapsible roster / stats
        ========================= */
-    .collapse-wrap{
+    .roster-wrap{
       margin-top: 4px;
       margin-bottom: 10px;
       padding-top: 2px;
     }
-    .collapse-title{
+    .roster-title{
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
@@ -252,26 +252,27 @@
       padding: 0 10px 6px 10px;
     }
 
-    .collapse-scroll{
+    .roster-scroll{
       max-height: 280px;
       overflow-y: auto;
       overflow-x: hidden;
       padding-right: 4px;
     }
-    .collapse-scroll::-webkit-scrollbar { width: 10px; }
-    .collapse-scroll::-webkit-scrollbar-thumb {
+    .roster-scroll::-webkit-scrollbar { width: 10px; }
+    .roster-scroll::-webkit-scrollbar-thumb {
       background: rgba(148,163,184,0.22);
       border-radius: 999px;
     }
-    .collapse-scroll::-webkit-scrollbar-track { background: transparent; }
+    .roster-scroll::-webkit-scrollbar-track { background: transparent; }
 
-    table.stats-table{
+    table.roster-table{
       width: 100%;
       border-collapse: separate;
-      border-spacing: 0 6px;
+      border-spacing: 0 6px;   /* row gaps */
       table-layout: fixed;
     }
 
+    /* Column widths (reused by both team roster and player stats tables) */
     col.c-rank{  width: 54px; }
     col.c-name{  width: 156px; }
     col.c-stage{ width: 62px; }
@@ -279,7 +280,7 @@
     col.c-week{  width: 52px; }
     col.c-round{ width: 44px; }
 
-    .stats-table thead th{
+    .roster-table thead th{
       position: sticky;
       top: 0;
       z-index: 3;
@@ -296,22 +297,22 @@
       text-align: center;
     }
 
-    /* Prevent trapezoid artifacts */
-    .stats-table tbody tr{ background: transparent !important; }
-    .stats-table tbody td{ background: var(--row-bg); }
-    .stats-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
+    /* Prevent trapezoid artifacts: do not paint TR, paint TD */
+    .roster-table tbody tr{ background: transparent !important; }
+    .roster-table tbody td{ background: var(--row-bg); }
+    .roster-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
 
-    /* Hard rectangles */
-    .stats-table,
-    .stats-table thead th,
-    .stats-table tbody tr,
-    .stats-table tbody td{
+    /* Hard-disable rounding/clipping so cells are rectangles */
+    .roster-table,
+    .roster-table thead th,
+    .roster-table tbody tr,
+    .roster-table tbody td{
       border-radius: 0 !important;
       clip-path: none !important;
       mask: none !important;
     }
 
-    .stats-table td{
+    .roster-table td{
       padding: 8px 6px;
       font-size: 11px;
       color: rgba(233,238,248,0.92);
@@ -326,6 +327,15 @@
       background-clip: padding-box;
     }
 
+    /* Rank column styling (team roster only) */
+    .cell-rank{
+      color: rgba(156,163,199,0.95);
+      font-weight: 900;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+
+    /* Player name cells (team roster only) */
     .cell-name{
       font-weight: 900;
       text-transform: uppercase;
@@ -334,16 +344,10 @@
       padding-left: 0;
     }
 
-    .cell-rank{
-      color: rgba(156,163,199,0.95);
-      font-weight: 900;
-      letter-spacing: .10em;
-      text-transform: uppercase;
-      text-align: center;
-    }
-
+    /* Separators */
     .sep-right{ border-right: 2px solid var(--sep) !important; }
 
+    /* Highlighted cells */
     .stageScore{
       background: rgba(217,217,217,0.14) !important;
       color: #ffffff;
@@ -467,6 +471,9 @@
   </div>
 
   <script>
+    // ==============================
+    // Config
+    // ==============================
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 
@@ -495,15 +502,18 @@
       "BREAKERS":        { bg: "#f1c232", fg: "#1c4487" },
       "DAGGERS":         { bg: "#ea9999", fg: "#0f0d36" },
       "SNIPERS":         { bg: "#275318", fg: "#ffe6cd", iconPos: "-11px 55%", iconSize: "auto 220%" },
-      "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff", iconPos: "-3px 55%", iconSize: "auto 190%" },
+      "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff", iconPos: "-3px 55%", iconSize: "auto 190%" }
     };
 
-    function getTeamStyle(name){
-      if(!name) return null;
+    function getTeamStyle(name) {
+      if (!name) return null;
       const key = String(name).trim().toUpperCase();
       return TEAM_STYLES[key] || null;
     }
 
+    // ==============================
+    // Worker fetch (POST first, GET fallback)
+    // ==============================
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -523,7 +533,7 @@
           body: JSON.stringify(payload),
         });
         if(r.ok) return normalizeValues(await r.json());
-      }catch(e){}
+      }catch(e){ /* fallback */ }
 
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
@@ -536,6 +546,9 @@
       return normalizeValues(await r2.json());
     }
 
+    // ==============================
+    // Helpers
+    // ==============================
     function rowHasAnyValue(row){
       return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
     }
@@ -568,6 +581,14 @@
       return Number.isFinite(n) ? n : null;
     }
 
+    function rankClass(rank){
+      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
+
+    // ==============================
+    // Normalize standings
+    // ==============================
+    // Team standings mapping: rank=0, team=second-to-last, score=last (robust)
     function normalizeTeamStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -588,6 +609,7 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
+    // Player standings mapping: rank=0, player=second-to-last, score=last (robust)
     function normalizePlayerStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -608,25 +630,34 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // Build player stats map from the roster range (players are in Column C)
-    function parsePlayersFromRosters(values){
+    // ==============================
+    // Parse roster range
+    // - Team collapsible needs per-team 4 players
+    // - Player collapsible needs per-player stats map
+    // ==============================
+    function parseRostersAndPlayerStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
-      if(!cleaned.length) return new Map();
-
-      const rows = cleaned.slice(1); // skip header row
+      const byTeam = new Map();
       const byPlayer = new Map();
 
+      if(!cleaned.length) return { byTeam, byPlayer };
+
+      const rows = cleaned.slice(1); // ignore header row in formatting
+
       for(let i=0; i<rows.length; i+=5){
-        // rows[i] is team row; next 4 are players
+        const teamRow = rows[i] || [];
+        const teamName = String(teamRow[COL.name] ?? "").trim();
+        if(!teamName) continue;
+
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
 
-        for(const pr of playerRows){
+        const players = playerRows.map(pr=>{
           const r = pr || [];
-          const name = String(r[COL.name] ?? "").trim();
-          if(!name) continue;
+          const pName = String(r[COL.name] ?? "").trim();
 
-          byPlayer.set(name, {
-            name,
+          const stat = {
+            overallRank: toNum(r[COL.overallRank]),
+            name: pName,
             stageScore: toNum(r[COL.stage]),
             best: [
               toNum(r[COL.bestStart + 0]),
@@ -640,28 +671,41 @@
               toNum(r[COL.weekStart + 3]),
             ],
             rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
-          });
-        }
+          };
+
+          // Stats map by exact player name (ties directly to player ranking range)
+          if (pName) byPlayer.set(pName, stat);
+
+          return stat;
+        });
+
+        byTeam.set(teamName, { teamName, players });
       }
 
-      return byPlayer;
+      return { byTeam, byPlayer };
     }
 
+    // ==============================
+    // DOM refs + state
+    // ==============================
     const statusCard = document.getElementById("statusCard");
-    const contentEl = document.getElementById("content");
-    const teamsView = document.getElementById("teamsView");
-    const playersView = document.getElementById("playersView");
-    const teamsList = document.getElementById("teamsList");
-    const playersList = document.getElementById("playersList");
+    const contentEl  = document.getElementById("content");
+
+    const teamsView  = document.getElementById("teamsView");
+    const playersView= document.getElementById("playersView");
+
+    const teamsList  = document.getElementById("teamsList");
+    const playersList= document.getElementById("playersList");
     const playerSearch = document.getElementById("playerSearch");
 
     let teamStandings = [];
     let playerStandings = [];
+
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
 
-    const expandedTeams = new Set();
-    const expandedPlayers = new Set(); // by exact player name
+    const expandedTeams = new Set();    // team name
+    const expandedPlayers = new Set();  // player name
 
     function setTab(tab){
       document.querySelectorAll(".tabbtn").forEach(b=>{
@@ -676,30 +720,24 @@
       btn.addEventListener("click", ()=> setTab(btn.dataset.tab));
     });
 
-    function rankClass(rank){
-      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
-    }
-
-    // TEAM collapse table (full)
+    // ==============================
+    // Render: Team roster (full)
+    // ==============================
     function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
-      wrap.className = "collapse-wrap";
-      wrap.innerHTML = `<div class="collapse-title">Roster</div>`;
+      wrap.className = "roster-wrap";
+      wrap.innerHTML = `<div class="roster-title">Roster</div>`;
 
       if(!roster || !roster.players || !roster.players.length){
-        const empty = document.createElement("div");
-        empty.className = "error";
-        empty.style.padding = "10px 10px 4px";
-        empty.textContent = "Roster not found.";
-        wrap.appendChild(empty);
+        wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Roster not found.</div>`;
         return wrap;
       }
 
       const scroll = document.createElement("div");
-      scroll.className = "collapse-scroll";
+      scroll.className = "roster-scroll";
 
       const table = document.createElement("table");
-      table.className = "stats-table";
+      table.className = "roster-table";
 
       table.innerHTML = `
         <colgroup>
@@ -711,7 +749,6 @@
           <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
           <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
         </colgroup>
-
         <thead>
           <tr>
             <th>Rank</th>
@@ -740,7 +777,6 @@
             <th>4-2</th>
           </tr>
         </thead>
-
         <tbody></tbody>
       `;
 
@@ -769,10 +805,11 @@
         }
 
         for(let i=0;i<8;i++){
-          const isCounted = (rounds[i] != null) && bestSet.has(String(rounds[i]));
+          const v = rounds[i];
+          const isCounted = (v != null) && bestSet.has(String(v));
           const isWeekEnd = (i===1 || i===3 || i===5);
           const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
-          cells.push(`<td class="${cls}">${escapeHtml(fmt(rounds[i]))}</td>`);
+          cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
         }
 
         const tr = document.createElement("tr");
@@ -785,26 +822,26 @@
       return wrap;
     }
 
-    // PLAYER collapse table (abbreviated: best3 + week totals + rounds)
+    // ==============================
+    // Render: Player stats (abbreviated)
+    // - No rank/name/stage (already in list)
+    // - Just best3, weekly totals, rounds
+    // ==============================
     function renderPlayerStatsTable(stat){
       const wrap = document.createElement("div");
-      wrap.className = "collapse-wrap";
-      wrap.innerHTML = `<div class="collapse-title">Stats</div>`;
+      wrap.className = "roster-wrap";
+      wrap.innerHTML = `<div class="roster-title">Stats</div>`;
 
       if(!stat){
-        const empty = document.createElement("div");
-        empty className = "error";
-        empty.style.padding = "10px 10px 4px";
-        empty.textContent = "Stats not found.";
-        wrap.appendChild(empty);
+        wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Stats not found.</div>`;
         return wrap;
       }
 
       const scroll = document.createElement("div");
-      scroll.className = "collapse-scroll";
+      scroll.className = "roster-scroll";
 
       const table = document.createElement("table");
-      table.className = "stats-table";
+      table.className = "roster-table";
 
       table.innerHTML = `
         <colgroup>
@@ -813,7 +850,6 @@
           <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
           <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
         </colgroup>
-
         <thead>
           <tr>
             <th>1st</th>
@@ -838,31 +874,27 @@
             <th>4-2</th>
           </tr>
         </thead>
-
         <tbody></tbody>
       `;
 
       const tbody = table.querySelector("tbody");
+
       const best = stat.best || [null,null,null];
       const weekTotals = stat.weekTotals || [null,null,null,null];
       const rounds = stat.rounds || Array(8).fill(null);
-
       const bestSet = new Set(best.filter(v=>v!=null).map(v=>String(v)));
 
       const cells = [];
 
-      // best 3
       for(let i=0;i<3;i++){
         cells.push(`<td class="counted">${escapeHtml(fmt(best[i]))}</td>`);
       }
 
-      // weekly totals
       for(let i=0;i<4;i++){
         const cls = (i===3) ? "sep-right" : "";
         cells.push(`<td class="${cls}">${escapeHtml(fmt(weekTotals[i]))}</td>`);
       }
 
-      // rounds (highlight if equals best-set)
       for(let i=0;i<8;i++){
         const v = rounds[i];
         const isCounted = (v != null) && bestSet.has(String(v));
@@ -880,6 +912,9 @@
       return wrap;
     }
 
+    // ==============================
+    // Render: Teams list
+    // ==============================
     function renderTeams(){
       teamsList.innerHTML = "";
 
@@ -901,7 +936,7 @@
 
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "name-cell";
+        btn.className = "team-cell";
         btn.setAttribute("data-team", team.name);
         btn.style.background = bg;
         btn.style.color = fg;
@@ -926,13 +961,14 @@
         if(isOpen){
           teamsList.appendChild(renderTeamRosterTable(rosterByTeam.get(team.name)));
         } else {
-          const placeholder = document.createElement("div");
-          placeholder.className = "collapse-wrap hidden";
-          teamsList.appendChild(placeholder);
+          teamsList.appendChild(Object.assign(document.createElement("div"), { className: "roster-wrap hidden" }));
         }
       });
     }
 
+    // ==============================
+    // Render: Players list (+ collapsible stats)
+    // ==============================
     function renderPlayers(){
       const q = playerSearch.value.trim().toLowerCase();
       playersList.innerHTML = "";
@@ -956,9 +992,8 @@
 
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "name-cell";
+        btn.className = "team-cell";
         btn.setAttribute("data-player", p.name);
-        btn.style.cursor = "pointer";
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "#ffffff";
         btn.style.setProperty("--icon", "none");
@@ -975,19 +1010,22 @@
         playersList.appendChild(row);
 
         if(isOpen){
-          const stat = playerStatsByName.get(p.name) || null;
+          // Names are tied directly, so just fetch by player name.
+          const stat = playerStatsByName.get(p.name);
           playersList.appendChild(renderPlayerStatsTable(stat));
         } else {
-          const placeholder = document.createElement("div");
-          placeholder.className = "collapse-wrap hidden";
-          playersList.appendChild(placeholder);
+          playersList.appendChild(Object.assign(document.createElement("div"), { className: "roster-wrap hidden" }));
         }
       });
     }
 
+    // ==============================
+    // Events
+    // ==============================
     teamsList.addEventListener("click", (e)=>{
-      const btn = e.target.closest("button.name-cell[data-team]");
+      const btn = e.target.closest("button.team-cell[data-team]");
       if(!btn) return;
+
       const teamName = btn.getAttribute("data-team");
       if(!teamName) return;
 
@@ -998,8 +1036,9 @@
     });
 
     playersList.addEventListener("click", (e)=>{
-      const btn = e.target.closest("button.name-cell[data-player]");
+      const btn = e.target.closest("button.team-cell[data-player]");
       if(!btn) return;
+
       const playerName = btn.getAttribute("data-player");
       if(!playerName) return;
 
@@ -1011,6 +1050,9 @@
 
     playerSearch.addEventListener("input", renderPlayers);
 
+    // ==============================
+    // Update loop
+    // ==============================
     async function update(){
       try{
         const [teamRows, playerRows, rosterRows] = await Promise.all([
@@ -1022,55 +1064,9 @@
         teamStandings = normalizeTeamStandings(teamRows);
         playerStandings = normalizePlayerStandings(playerRows);
 
-        // Team rosters (for team collapses)
-        rosterByTeam = (function parseTeams(values){
-          const cleaned = (values || []).filter(rowHasAnyValue);
-          if(!cleaned.length) return new Map();
-          const rows = cleaned.slice(1);
-          const byTeam = new Map();
-
-          for(let i=0; i<rows.length; i+=5){
-            const teamRow = rows[i] || [];
-            const teamName = String(teamRow[COL.name] ?? "").trim();
-            if(!teamName) continue;
-
-            const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
-            const players = playerRows.map(pr=>{
-              const r = pr || [];
-              return {
-                overallRank: toNum(r[COL.overallRank]),
-                name: String(r[COL.name] ?? "").trim(),
-                stageScore: toNum(r[COL.stage]),
-                best: [
-                  toNum(r[COL.bestStart + 0]),
-                  toNum(r[COL.bestStart + 1]),
-                  toNum(r[COL.bestStart + 2]),
-                ],
-                weekTotals: [
-                  toNum(r[COL.weekStart + 0]),
-                  toNum(r[COL.weekStart + 1]),
-                  toNum(r[COL.weekStart + 2]),
-                  toNum(r[COL.weekStart + 3]),
-                ],
-                rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
-              };
-            });
-
-            byTeam.set(teamName, { teamName, players });
-          }
-
-          return byTeam;
-        })(rosterRows);
-
-        // Player stats map (for player collapses)
-        playerStatsByName = parsePlayersFromRosters(rosterRows);
-
-        // Clean expanded sets if names disappeared
-        const teamNames = new Set(teamStandings.map(t=>t.name));
-        [...expandedTeams].forEach(n => { if(!teamNames.has(n)) expandedTeams.delete(n); });
-
-        const playerNames = new Set(playerStandings.map(p=>p.name));
-        [...expandedPlayers].forEach(n => { if(!playerNames.has(n)) expandedPlayers.delete(n); });
+        const parsed = parseRostersAndPlayerStats(rosterRows);
+        rosterByTeam = parsed.byTeam;
+        playerStatsByName = parsed.byPlayer;
 
         renderTeams();
         renderPlayers();
@@ -1087,6 +1083,7 @@
       }
     }
 
+    // Boot
     setTab("teams");
     update();
     setInterval(update, REFRESH_MS);
