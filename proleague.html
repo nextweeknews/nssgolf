@@ -46,7 +46,7 @@
         font-size:18px;
       }
       .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: var(--muted2);}
-      .title{font-weight:800;}
+      .title{font-weight:900;}
       .tabs{display:flex; gap:10px; flex-wrap:wrap;}
       .tabbtn{
         border:1px solid var(--border2);
@@ -54,7 +54,7 @@
         color: rgba(255,255,255,.85);
         padding:10px 14px;
         border-radius: 12px;
-        font-weight:800;
+        font-weight:900;
         cursor:pointer;
         transition: .15s ease;
       }
@@ -115,7 +115,7 @@
       }
       .search input::placeholder{color: rgba(255,255,255,.40)}
       .table-wrap{overflow-x:auto;}
-      table{width:100%; border-collapse:collapse; min-width: 720px;}
+      table{width:100%; border-collapse:collapse; min-width: 640px;}
       thead th{
         text-align:left;
         font-size:11px;
@@ -208,9 +208,7 @@
           <div class="row">
             <div>
               <div class="kicker">Live Standings</div>
-              <div class="muted small" style="margin-top:10px;">
-                Updated from official league scoring.
-              </div>
+              <div class="muted small" style="margin-top:10px;">Updated from official league scoring.</div>
             </div>
             <div class="pillgrid">
               <div class="metric">
@@ -278,9 +276,7 @@
           <div id="rosterGrid" class="grid grid-2"></div>
         </div>
 
-        <div class="footer">
-          Shotgun Pro League • Season 6
-        </div>
+        <div class="footer">Shotgun Pro League • Season 6</div>
       </div>
     </div>
 
@@ -300,7 +296,10 @@
       // If your standings ranges include header rows, set true
       const USE_FIRST_ROW_AS_HEADER = false;
 
-      const TEAM_STANDINGS_HEADERS   = ["Rank","Team","Points","Notes"];
+      // IMPORTANT: Team standings "Notes" is not used publicly.
+      // Your sheet has team name in the "Points" column and team score in the "Notes" column,
+      // so we remap to: Rank | Team | Points (3 columns).
+      const TEAM_STANDINGS_HEADERS   = ["Rank","Team","Points"];
       const PLAYER_STANDINGS_HEADERS = ["Rank","Player","Points","Notes"];
 
       // ==============================
@@ -555,17 +554,35 @@
       let rawPlayerStandings = [];
       let teams = [];
 
+      // Remap team standings rows from sheet -> UI
+      // Sheet columns (current): [Rank, (unused), TeamName(in Points), TeamScore(in Notes)]
+      // UI columns (desired):   [Rank, Team, Points]
+      function remapTeamStandingsRow(r){
+        const rank = r?.[0] ?? "";
+        const team = r?.[2] ?? "";   // points column
+        const pts  = r?.[3] ?? "";   // notes column (score)
+        return [rank, team, pts];
+      }
+
       function applyFilters(){
         const tQ = teamSearch.value.trim().toLowerCase();
         const pQ = playerSearch.value.trim().toLowerCase();
 
-        const tSplit = splitHeaderAndRows(rawTeamStandings, TEAM_STANDINGS_HEADERS);
+        // Team standings: split then remap and drop Notes
+        const tSplitRaw = splitHeaderAndRows(rawTeamStandings, ["Rank","(unused)","(team in points)","(score in notes)"]);
+        const tMappedRows = tSplitRaw.rows.map(remapTeamStandingsRow);
+
+        const tRows = tMappedRows.filter(r =>
+          r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(tQ)
+        );
+
+        // Player standings: unchanged
         const pSplit = splitHeaderAndRows(rawPlayerStandings, PLAYER_STANDINGS_HEADERS);
+        const pRows = pSplit.rows.filter(r =>
+          r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(pQ)
+        );
 
-        const tRows = tSplit.rows.filter(r => r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(tQ));
-        const pRows = pSplit.rows.filter(r => r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(pQ));
-
-        renderTable(teamHead, teamBody, tSplit.headers, tRows, 1, "No teams found.");
+        renderTable(teamHead, teamBody, TEAM_STANDINGS_HEADERS, tRows, 1, "No teams found.");
         renderTable(playerHead, playerBody, pSplit.headers, pRows, 1, "No players found.");
       }
 
@@ -620,10 +637,6 @@
           console.error(err);
         }
       })();
-    </script>
-  </body>
-</html>
-
     </script>
   </body>
 </html>
