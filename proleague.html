@@ -6,338 +6,418 @@
   <title>Shotgun Pro League - Season 6</title>
 
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      background: transparent;
-      font-family: Inter, system-ui, sans-serif;
-      display: flex; justify-content: center; align-items: center;
-      overflow: hidden;
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      /* Overlay card palette (Season 5 style) */
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+
+      --border-lite: rgba(148,163,184,0.20);
     }
 
-    /* --- Card style matched from your Season 5 page --- */
-    .card {
-      width: 880px;
-      height: 880px;
-      background: rgba(15,23,42,1);
-      border-radius: 20px;
-      padding: 32px 40px;
-      display: flex;
-      flex-direction: column;
-      color: #e9eef8;
-      box-shadow: 0 32px 32px rgba(0,0,0,0.65);
-      box-sizing: border-box;
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
     }
 
-    .title {
-      font-size: 46px;
-      font-weight: 900;
-      color: #c7d7ff;
-      text-align: center;
-      margin-bottom: 14px;
-      text-transform: uppercase;
-      letter-spacing: .035em;
-      flex-shrink: 0;
+    /* Topbar (full webpage design) */
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
     }
-
-    /* Tabs (kept minimal, using same palette) */
-    .tabs {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 14px;
-      flex-shrink: 0;
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
     }
-    .tabbtn {
-      background: rgba(148,163,184,0.12);
-      border: 1px solid rgba(148,163,184,0.20);
-      color: #c7d7ff;
-      font-size: 14px;
-      font-weight: 800;
+    .brand{display:flex; gap:12px; align-items:center;}
+    .logo{
+      width:40px; height:40px; border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      font-size:18px;
+    }
+    .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65);}
+    .titlebar{font-weight:900; font-size:16px; color:#fff;}
+    .tabs{display:flex; gap:10px; flex-wrap:wrap;}
+    .tabbtn{
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.86);
+      padding:10px 14px;
+      border-radius: 12px;
+      font-weight:900;
+      cursor:pointer;
+      transition: .15s ease;
       text-transform: uppercase;
       letter-spacing: .08em;
-      border-radius: 10px;
-      padding: 10px 14px;
-      cursor: pointer;
-      transition: background .2s ease, transform .08s ease;
+      font-size: 12px;
     }
-    .tabbtn:hover { background: rgba(148,163,184,0.18); }
-    .tabbtn:active { transform: translateY(1px); }
-    .tabbtn.active {
-      background: rgba(255,255,255,0.16);
-      border-color: rgba(255,255,255,0.22);
-      color: #e9eef8;
+    .tabbtn:hover{background: rgba(255,255,255,.10)}
+    .tabbtn.active{
+      background:#fff;
+      color:#061C3B;
+      border-color:#fff;
     }
 
-    .header-row, .entry {
-      display: grid;
-      grid-template-columns: 120px 1fr 130px; /* Rank, Name, Score */
-      align-items: center;
+    /* Page container */
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 18px 18px 60px;
     }
 
-    .header-row {
-      height: 46px;
-      margin-bottom: 10px;
-      background: rgba(148,163,184,0.12);
-      border-radius: 10px;
-      font-size: 20px;
-      font-weight: 700;
+    /* Overlay-style card INSIDE the webpage layout */
+    .card{
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 22px 22px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .card-head{
+      display:flex;
+      gap:14px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom: 14px;
+    }
+    .card-head .h2{
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--title);
+      letter-spacing: .035em;
       text-transform: uppercase;
-      color: #9ca3c7;
-      flex-shrink: 0;
+      margin: 0;
     }
-
-    /* scroll area for list (so rosters can expand) */
-    .scroll {
-      flex: 1 1 auto;
-      overflow: auto;
-      padding-right: 6px; /* little breathing room for scrollbar */
-    }
-    .scroll::-webkit-scrollbar { width: 10px; }
-    .scroll::-webkit-scrollbar-thumb {
-      background: rgba(148,163,184,0.22);
-      border-radius: 999px;
-    }
-    .scroll::-webkit-scrollbar-track { background: transparent; }
-
-    .resultsList {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      transition: opacity .3s ease, gap .3s ease;
-    }
-
-    .entry {
-      height: 60px;
-      background: rgba(255,255,255,0.06);
+    .search{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border-lite);
+      background: rgba(148,163,184,0.10);
+      padding: 10px 12px;
       border-radius: 10px;
-      font-size: 24px;
-      font-weight: 600;
-      transition: background .25s ease, box-shadow .25s ease;
-      overflow: hidden;
+      min-width: 260px;
+    }
+    .search span{color: var(--muted); font-weight:900;}
+    .search input{
+      width:100%;
+      background:transparent;
+      border:none;
+      outline:none;
+      color: var(--text);
+      font-size:14px;
+    }
+    .search input::placeholder{color: rgba(156,163,199,.70);}
+
+    /* Header row + entries (Season 5 overlay style) */
+    .header-row, .entry{
+      display:grid;
+      grid-template-columns: 120px 1fr 130px; /* Rank, Name, Score */
+      align-items:center;
+    }
+    @media (max-width: 640px){
+      .header-row, .entry{ grid-template-columns: 84px 1fr 110px; }
     }
 
-    /* Base cell styling */
-    .header-row span {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .header-row{
+      height:46px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+    }
+    .header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
       padding: 0 12px;
-      box-sizing: border-box;
       height: 20px;
-      border-right: none;
     }
-
-    .entry > span, .entry > button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 12px;
-      box-sizing: border-box;
-      height: 100%;
-      border-right: none;
-    }
-
-    /* Header "Team/Player" alignment only */
-    .header-row span:nth-child(2) {
-      justify-content: flex-start;
+    .header-row span:nth-child(2){
+      justify-content:flex-start;
       padding-left: 24px;
     }
 
-    .place {
-      font-size: 32px;
-      font-weight: 750;
-      text-align: center;
-      color: #c7d7ff;
+    .resultsList{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
     }
 
-    .name-text {
-      font-size: 34px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .entry{
+      height:60px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 20px;
+      font-weight: 700;
+      transition: background .25s ease;
     }
 
-    /* Team/Player main cell (color bar + caps + logo) */
-    .team-cell {
-      position: relative;
-      font-weight: 800;
+    .place{
+      font-size: 28px;
+      font-weight: 900;
+      text-align:center;
+      color: var(--title);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 12px;
+      height: 100%;
+    }
+    .gold{color:#ffd700;}
+    .silver{color:#c0c0c0;}
+    .bronze{color:#cd7f32;}
+
+    /* Clickable team cell (uses overlay team-cell visual) */
+    .team-cell{
+      position:relative;
+      height: 100%;
+      width: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      padding: 0 12px 0 112px; /* room for chev + logo */
+      border:none;
+      background: rgba(255,255,255,0.08);
+      color:#fff;
+      cursor:pointer;
+      font-weight: 900;
       text-transform: uppercase;
+      letter-spacing: .02em;
+      overflow:hidden;
       border-radius: 0;
-      overflow: hidden;
-
-      /* make it button-safe */
-      background: transparent;
-      border: none;
-      cursor: pointer;
-
-      /* match sample alignment */
-      justify-content: flex-start;
-      text-align: left;
-      padding-left: 112px; /* room for chevron + logo overlay */
-      color: #ffffff;
+    }
+    .team-cell:hover{ filter: brightness(1.04); }
+    .team-cell .name-text{
+      font-size: 26px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    @media (max-width: 640px){
+      .team-cell{ padding-left: 96px; }
+      .team-cell .name-text{ font-size: 20px; }
     }
 
-    /* Chevron */
-    .team-cell .chev {
-      position: absolute;
+    .team-cell .chev{
+      position:absolute;
       left: 18px;
       font-size: 20px;
       font-weight: 900;
-      opacity: 0.85;
+      opacity: .85;
     }
 
-    /* Logo overlay — driven by CSS variables set in JS */
-    .team-cell::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-repeat: no-repeat;
+    /* Logo overlay via CSS variables */
+    .team-cell::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-repeat:no-repeat;
       background-position: var(--icon-pos, 0px center);
       background-size: var(--icon-size, auto 180%);
       background-image: var(--icon, none);
       opacity: var(--icon-opacity, 0.20);
-      pointer-events: none;
+      pointer-events:none;
     }
 
-    /* Score column: light gray background, black text */
-    .score-col {
-      font-size: 32px;
-      font-weight: 750;
-      text-align: center;
-      background: #d9d9d9;
-      color: #000000;
-      border-radius: 0;
-      justify-content: center;
+    .score-col{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#d9d9d9;
+      color:#000;
+      font-size: 26px;
+      font-weight: 900;
+      padding: 0 12px;
     }
 
-    .gold   { color: #ffd700; }
-    .silver { color: #c0c0c0; }
-    .bronze { color: #cd7f32; }
-
-    /* Collapsible roster area (kept in same palette + rounding) */
-    .roster-wrap {
+    /* Roster (collapsible section under each team row) */
+    .roster-wrap{
       margin-top: 6px;
-      margin-bottom: 10px;
-      padding: 10px 0 0 0;
+      margin-bottom: 12px;
+      padding-top: 2px;
     }
-    .roster-title {
-      font-size: 16px;
-      font-weight: 800;
+    .roster-title{
+      font-size: 13px;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .12em;
-      color: #9ca3c7;
+      color: var(--muted);
       padding: 0 12px 8px 12px;
     }
-    .roster-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 0 0 0 0;
+    .roster-list{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
     }
-    .roster-entry {
+    .roster-entry{
       height: 56px;
-      background: rgba(255,255,255,0.06);
+      background: var(--row-bg);
       border-radius: 10px;
-      display: grid;
+      display:grid;
       grid-template-columns: 260px 1fr;
-      align-items: center;
-      overflow: hidden;
+      align-items:center;
+      overflow:hidden;
       padding: 0 12px;
-      box-sizing: border-box;
       gap: 14px;
     }
-    .roster-entry .pname {
-      font-size: 22px;
-      font-weight: 850;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    @media (max-width: 720px){
+      .roster-entry{ grid-template-columns: 1fr; height: auto; padding: 12px; }
+    }
+    .roster-entry .pname{
+      font-size: 18px;
+      font-weight: 900;
       text-transform: uppercase;
-      color: #c7d7ff;
+      color: var(--title);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
-    .roster-entry .pstats {
-      display: flex;
-      flex-wrap: wrap;
+    .pstats{
+      display:flex;
+      flex-wrap:wrap;
       gap: 8px 10px;
-      justify-content: flex-start;
-      align-items: center;
-      font-size: 13px;
-      color: rgba(233,238,248,0.85);
-      overflow: hidden;
+      align-items:center;
+      font-size: 12px;
+      color: rgba(233,238,248,0.90);
+      overflow:hidden;
     }
-    .pill {
-      display: inline-flex;
+    .pill{
+      display:inline-flex;
       gap: 6px;
-      align-items: center;
+      align-items:center;
       padding: 6px 10px;
       border-radius: 999px;
       background: rgba(148,163,184,0.12);
-      color: rgba(233,238,248,0.92);
       white-space: nowrap;
     }
-    .pill span {
+    .pill span{
       color: rgba(156,163,199,0.95);
-      font-weight: 800;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .06em;
-      font-size: 11px;
+      font-size: 10px;
     }
 
-    .loading, .error {
-      width: 100%;
-      text-align: center;
-      font-size: 28px;
-      padding: 24px 0;
+    .status{
+      color: rgba(233,238,248,0.92);
+      font-size: 18px;
+      font-weight: 800;
+      text-align:center;
+      padding: 28px 0;
+    }
+    .error{
+      color: rgba(233,238,248,0.92);
+      font-size: 16px;
+      text-align:center;
+      padding: 28px 12px;
     }
 
-    .hidden { display: none !important; }
+    .hidden{ display:none !important; }
+
+    .footer{
+      margin-top: 20px;
+      text-align:center;
+      font-size:12px;
+      color: rgba(233,238,248,0.55);
+    }
   </style>
 </head>
 
 <body>
-  <div class="card" id="card">
-    <div class="title">Shotgun Pro League - Season 6</div>
-
-    <div class="tabs" role="tablist" aria-label="Standings tabs">
-      <button class="tabbtn active" data-tab="teams" role="tab" aria-selected="true">Team Standings</button>
-      <button class="tabbtn" data-tab="players" role="tab" aria-selected="false">Player Standings</button>
-    </div>
-
-    <!-- Teams view -->
-    <div id="teamsView">
-      <div class="header-row">
-        <span>Rank</span>
-        <span>Team</span>
-        <span>Score</span>
-      </div>
-
-      <div class="scroll">
-        <div id="teamsList" class="resultsList">
-          <div class="loading">Loading…</div>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo">⚡</div>
+        <div>
+          <div class="kicker">Shotgun Pro League</div>
+          <div class="titlebar">Season 6</div>
         </div>
       </div>
+
+      <div class="tabs" role="tablist" aria-label="Standings tabs">
+        <button class="tabbtn active" data-tab="teams" role="tab" aria-selected="true">Team Rankings</button>
+        <button class="tabbtn" data-tab="players" role="tab" aria-selected="false">Player Rankings</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="statusCard" class="card">
+      <div class="status">Loading standings…</div>
     </div>
 
-    <!-- Players view -->
-    <div id="playersView" class="hidden">
-      <div class="header-row">
-        <span>Rank</span>
-        <span>Player</span>
-        <span>Score</span>
+    <div id="content" class="hidden">
+      <!-- Team Rankings -->
+      <div id="teamsView" class="card">
+        <div class="card-head">
+          <h2 class="h2">Team Rankings</h2>
+          <div class="search">
+            <span>⌕</span>
+            <input id="teamSearch" type="text" placeholder="Search…" />
+          </div>
+        </div>
+
+        <div class="header-row">
+          <span>Rank</span>
+          <span>Team</span>
+          <span>Score</span>
+        </div>
+
+        <div id="teamsList" class="resultsList"></div>
       </div>
 
-      <div class="scroll">
-        <div id="playersList" class="resultsList">
-          <div class="loading">Loading…</div>
+      <!-- Player Rankings -->
+      <div id="playersView" class="card hidden" style="margin-top:16px;">
+        <div class="card-head">
+          <h2 class="h2">Player Rankings</h2>
+          <div class="search">
+            <span>⌕</span>
+            <input id="playerSearch" type="text" placeholder="Search…" />
+          </div>
         </div>
+
+        <div class="header-row">
+          <span>Rank</span>
+          <span>Player</span>
+          <span>Score</span>
+        </div>
+
+        <div id="playersList" class="resultsList"></div>
       </div>
+
+      <div class="footer">Shotgun Pro League • Season 6</div>
     </div>
   </div>
 
   <script>
     // ==============================
-    // Config (not displayed publicly)
+    // Config
     // ==============================
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
@@ -348,20 +428,19 @@
 
     const REFRESH_MS = 15000;
 
-    // Logos live here (add files in this folder):
-    //   ./logos/<fileName>.png  (or .webp/.svg)
+    // Put team logos here (relative to this HTML file):
+    //   ./logos/<filename>.png (or .webp/.svg)
     const LOGO_DIR = "logos";
 
-    // In the full roster range, TEAM + PLAYER names are in Column C (index 2)
+    // In the roster range: TEAM + PLAYER names are in Column C (index 2)
     const NAME_COL = 2;
 
-    // ------------------------------
-    // Team styles (UPDATE THIS)
-    // Add new teams here with bg/fg + logo file name.
-    // slug is auto-created; logo is just a filename inside ./logos/
-    // ------------------------------
+    // ==============================
+    // Team colors + logos (EDIT THIS for Season 6)
+    // Keys MUST match the team names exactly as they appear in standings.
+    // ==============================
     const TEAM_STYLES = {
-      // Examples (replace/update for Season 6):
+      // Example entries (replace/update for Season 6 teams):
       "ANIMALS":         { bg: "#cd7f32", fg: "#ffffff", logo: "animals.png" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000", logo: "terrific-tigers.png", iconPos: "0 47%" },
       "BREAKERS":        { bg: "#f1c232", fg: "#1c4487", logo: "breakers.png" },
@@ -369,8 +448,8 @@
       "SNIPERS":         { bg: "#275318", fg: "#ffe6cd", logo: "snipers.png", iconPos: "-11px 55%", iconSize: "auto 220%" },
       "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff", logo: "mcstrokers.png", iconPos: "-3px 55%", iconSize: "auto 190%" },
 
-      // Add NEW Season 6 teams here:
-      // "NEW TEAM NAME": { bg: "#123456", fg: "#ffffff", logo: "new-team.png", iconPos: "0 center", iconSize: "auto 180%" },
+      // Add new teams like:
+      // "NEW TEAM": { bg:"#123456", fg:"#ffffff", logo:"new-team.png", iconPos:"0 center", iconSize:"auto 180%", iconOpacity:0.20 },
     };
 
     function getTeamStyle(name){
@@ -379,7 +458,51 @@
       return TEAM_STYLES[key] || null;
     }
 
-    function slugify(name) {
+    // ==============================
+    // Worker fetch (POST first, GET fallback)
+    // ==============================
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function fetchRange(range){
+      const payload = { sheetId: SHEET_ID, range };
+
+      // Try POST
+      try{
+        const r = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){ /* fall back */ }
+
+      // GET fallback
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(()=>"");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    // ==============================
+    // Parsing
+    // ==============================
+    function rowHasAnyValue(row){
+      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
+    }
+
+    function slugify(name){
       return String(name)
         .trim()
         .toLowerCase()
@@ -387,29 +510,16 @@
         .replace(/^-|-$/g, "");
     }
 
-    function rowHasAnyValue(row){
-      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
-    }
-
-    async function fetchRange(range){
-      // match your existing worker pattern (GET query params)
-      const url = `${WORKER_URL}?sheetId=${SHEET_ID}&range=${encodeURIComponent(range)}`;
-      const res = await fetch(url);
-      const json = await res.json();
-      return json.values || json.data?.values || json.result?.values || [];
-    }
-
-    // Team standings rows come back like: [rank, ?, teamName, score, ...]
-    // You confirmed: teamName is in "points" column, score is in "notes" column,
-    // which in practice is the last 2 cells of the row in this range.
+    // Team standings: [rank, ?, teamName(in points), score(in notes)]
+    // Robust: rank = [0], team = second-to-last cell, score = last cell
     function normalizeTeamStandings(rows){
       return (rows || [])
-        .map(r => {
+        .filter(rowHasAnyValue)
+        .map(r=>{
           const arr = Array.isArray(r) ? r : [];
           const rank = arr[0];
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
-
           if(!rank || !name) return null;
           return {
             rank: Number(rank),
@@ -422,15 +532,15 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // Player standings: use same “last-2 cells are name+score” pattern for robustness
+    // Player standings: same robust pattern
     function normalizePlayerStandings(rows){
       return (rows || [])
-        .map(r => {
+        .filter(rowHasAnyValue)
+        .map(r=>{
           const arr = Array.isArray(r) ? r : [];
           const rank = arr[0];
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
-
           if(!rank || !name) return null;
           return {
             rank: Number(rank),
@@ -444,7 +554,7 @@
     }
 
     // Roster parsing:
-    // header row + repeating blocks: team row (name in col C) + 4 player rows (name in col C)
+    // header row + repeating blocks: team row (team name in col C) + 4 player rows (player name col C)
     function parseRosters(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       if(!cleaned.length) return new Map();
@@ -470,14 +580,12 @@
       }
 
       const byTeam = new Map();
-
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
         const teamName = String(teamRow[NAME_COL] ?? "").trim();
         if(!teamName) continue;
 
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
-
         const players = playerRows.map((pr, idx)=>{
           const playerName = String((pr||[])[NAME_COL] ?? "").trim() || `Player ${idx+1}`;
           const stats = extractPlayerStats(pr);
@@ -486,183 +594,203 @@
 
         byTeam.set(teamName, { teamName, players });
       }
-
       return byTeam;
     }
 
-    // UI state
+    // ==============================
+    // UI State + Rendering
+    // ==============================
+    const statusCard = document.getElementById("statusCard");
+    const contentEl = document.getElementById("content");
+    const teamsView = document.getElementById("teamsView");
+    const playersView = document.getElementById("playersView");
+    const teamsList = document.getElementById("teamsList");
+    const playersList = document.getElementById("playersList");
+
+    const teamSearch = document.getElementById("teamSearch");
+    const playerSearch = document.getElementById("playerSearch");
+
     let teamStandings = [];
     let playerStandings = [];
     let rosterByTeam = new Map();
-    const expanded = new Set(); // teamName strings (exact match)
+    const expandedTeams = new Set(); // exact team names
 
-    // Tabs
     function setTab(tab){
       document.querySelectorAll(".tabbtn").forEach(b=>{
         const on = b.dataset.tab === tab;
         b.classList.toggle("active", on);
         b.setAttribute("aria-selected", on ? "true" : "false");
       });
-      document.getElementById("teamsView").classList.toggle("hidden", tab !== "teams");
-      document.getElementById("playersView").classList.toggle("hidden", tab !== "players");
+      teamsView.classList.toggle("hidden", tab !== "teams");
+      playersView.classList.toggle("hidden", tab !== "players");
     }
     document.querySelectorAll(".tabbtn").forEach(btn=>{
       btn.addEventListener("click", ()=> setTab(btn.dataset.tab));
     });
 
-    function renderTeams(){
-      const el = document.getElementById("teamsList");
-      el.innerHTML = "";
+    function rankClass(rank){
+      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
 
-      if(!teamStandings.length){
-        el.innerHTML = `<div class="error">No team standings found.</div>`;
+    function pillHTML(key, value){
+      return `<div class="pill"><span>${escapeHtml(key)}</span>${escapeHtml(value)}</div>`;
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+
+    function renderTeams(){
+      const q = teamSearch.value.trim().toLowerCase();
+      teamsList.innerHTML = "";
+
+      const view = teamStandings.filter(t=>{
+        if(!q) return true;
+        return (t.name + " " + (t.score ?? "") + " " + t.rank).toLowerCase().includes(q);
+      });
+
+      if(!view.length){
+        teamsList.innerHTML = `<div class="error">No teams found.</div>`;
         return;
       }
 
-      teamStandings.forEach(team=>{
+      view.forEach(team=>{
+        // Entry row
         const row = document.createElement("div");
         row.className = "entry";
 
-        const clr =
-          team.rank === 1 ? "gold" :
-          team.rank === 2 ? "silver" :
-          team.rank === 3 ? "bronze" : "";
-
         const style = getTeamStyle(team.name) || {};
-        const teamBg = style.bg || "rgba(255,255,255,0.08)";
-        const teamFg = style.fg || "#ffffff";
+        const bg = style.bg || "rgba(255,255,255,0.08)";
+        const fg = style.fg || "#ffffff";
 
-        const isOpen = expanded.has(team.name);
+        const isOpen = expandedTeams.has(team.name);
         const chev = isOpen ? "▾" : "▸";
 
-        const btn = document.createElement("button");
-        btn.className = "name-text team-cell";
-        btn.type = "button";
-        btn.setAttribute("data-team", team.name);
-        btn.style.background = teamBg;
-        btn.style.color = teamFg;
+        const teamBtn = document.createElement("button");
+        teamBtn.type = "button";
+        teamBtn.className = "team-cell";
+        teamBtn.setAttribute("data-team", team.name);
+        teamBtn.style.background = bg;
+        teamBtn.style.color = fg;
 
-        // logo (optional)
+        // Logo variables (optional)
         if(style.logo){
-          btn.style.setProperty("--icon", `url('${LOGO_DIR}/${style.logo}')`);
+          teamBtn.style.setProperty("--icon", `url('${LOGO_DIR}/${style.logo}')`);
+        } else {
+          teamBtn.style.setProperty("--icon", "none");
         }
-        if(style.iconPos) btn.style.setProperty("--icon-pos", style.iconPos);
-        if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
-        if(style.iconOpacity) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
+        if(style.iconPos) teamBtn.style.setProperty("--icon-pos", style.iconPos);
+        if(style.iconSize) teamBtn.style.setProperty("--icon-size", style.iconSize);
+        if(style.iconOpacity != null) teamBtn.style.setProperty("--icon-opacity", String(style.iconOpacity));
 
-        btn.innerHTML = `<span class="chev" aria-hidden="true">${chev}</span>${team.name}`;
+        teamBtn.innerHTML = `<span class="chev" aria-hidden="true">${chev}</span><span class="name-text">${escapeHtml(team.name)}</span>`;
 
         row.innerHTML = `
-          <span class="place ${clr}">${team.rank}</span>
-          <span id="teamBtnHost-${team.slug}"></span>
-          <span class="score-col">${team.score != null ? team.score : "—"}</span>
+          <div class="place ${rankClass(team.rank)}">${team.rank}</div>
+          <div id="teamHost-${team.slug}"></div>
+          <div class="score-col">${team.score != null ? team.score : "—"}</div>
         `;
+        row.querySelector(`#teamHost-${team.slug}`).replaceWith(teamBtn);
+        teamsList.appendChild(row);
 
-        row.querySelector(`#teamBtnHost-${team.slug}`).replaceWith(btn);
-        el.appendChild(row);
+        // Roster (collapsible)
+        const rosterWrap = document.createElement("div");
+        rosterWrap.className = "roster-wrap";
+        rosterWrap.classList.toggle("hidden", !isOpen);
 
-        // Roster block
         const roster = rosterByTeam.get(team.name);
-        const wrap = document.createElement("div");
-        wrap.className = "roster-wrap";
-        wrap.setAttribute("data-roster", team.name);
-        wrap.classList.toggle("hidden", !isOpen);
-
-        // Build roster rows
-        const inner = document.createElement("div");
-        inner.innerHTML = `<div class="roster-title">Roster</div>`;
-        const list = document.createElement("div");
-        list.className = "roster-list";
+        rosterWrap.innerHTML = `<div class="roster-title">Roster</div>`;
+        const rosterList = document.createElement("div");
+        rosterList.className = "roster-list";
 
         if(!roster || !roster.players || !roster.players.length){
           const empty = document.createElement("div");
           empty.className = "error";
-          empty.style.fontSize = "18px";
-          empty.style.padding = "10px 12px";
+          empty.style.padding = "12px 12px 6px";
           empty.textContent = "Roster not found.";
-          list.appendChild(empty);
+          rosterList.appendChild(empty);
         } else {
           roster.players.forEach(p=>{
             const r = document.createElement("div");
             r.className = "roster-entry";
 
-            const stats = document.createElement("div");
-            stats.className = "pstats";
+            const statsHTML = (p.stats || [])
+              .map(s => pillHTML(s.key, s.value))
+              .join("");
 
-            // show all stats as pills (trim if you want fewer)
-            p.stats.forEach(s=>{
-              const pill = document.createElement("div");
-              pill.className = "pill";
-              pill.innerHTML = `<span>${s.key}</span>${s.value}`;
-              stats.appendChild(pill);
-            });
-
-            r.innerHTML = `<div class="pname">${p.name}</div>`;
-            r.appendChild(stats);
-
-            list.appendChild(r);
+            r.innerHTML = `
+              <div class="pname">${escapeHtml(p.name)}</div>
+              <div class="pstats">${statsHTML || `<span style="color:rgba(156,163,199,.85);font-weight:800;">No stats</span>`}</div>
+            `;
+            rosterList.appendChild(r);
           });
         }
 
-        inner.appendChild(list);
-        wrap.appendChild(inner);
-        el.appendChild(wrap);
+        rosterWrap.appendChild(rosterList);
+        teamsList.appendChild(rosterWrap);
       });
     }
 
     function renderPlayers(){
-      const el = document.getElementById("playersList");
-      el.innerHTML = "";
+      const q = playerSearch.value.trim().toLowerCase();
+      playersList.innerHTML = "";
 
-      if(!playerStandings.length){
-        el.innerHTML = `<div class="error">No player standings found.</div>`;
+      const view = playerStandings.filter(p=>{
+        if(!q) return true;
+        return (p.name + " " + (p.score ?? "") + " " + p.rank).toLowerCase().includes(q);
+      });
+
+      if(!view.length){
+        playersList.innerHTML = `<div class="error">No players found.</div>`;
         return;
       }
 
-      playerStandings.forEach(p=>{
+      view.forEach(p=>{
         const row = document.createElement("div");
         row.className = "entry";
 
-        const clr =
-          p.rank === 1 ? "gold" :
-          p.rank === 2 ? "silver" :
-          p.rank === 3 ? "bronze" : "";
-
-        // Player “name cell” uses the same team-cell visuals but without logo/color mapping
-        const btn = document.createElement("button");
-        btn.className = "name-text team-cell";
-        btn.type = "button";
-        btn.style.background = "rgba(255,255,255,0.08)";
-        btn.style.color = "#ffffff";
-        btn.style.cursor = "default";
-        btn.style.setProperty("--icon", "none");
-        btn.innerHTML = `<span class="chev" aria-hidden="true"></span>${p.name}`;
+        const nameCell = document.createElement("div");
+        nameCell.className = "team-cell";
+        nameCell.style.cursor = "default";
+        nameCell.style.background = "rgba(255,255,255,0.08)";
+        nameCell.style.color = "#ffffff";
+        nameCell.style.setProperty("--icon", "none");
+        nameCell.innerHTML = `<span class="chev" aria-hidden="true"></span><span class="name-text">${escapeHtml(p.name)}</span>`;
 
         row.innerHTML = `
-          <span class="place ${clr}">${p.rank}</span>
-          <span id="playerHost-${p.slug}"></span>
-          <span class="score-col">${p.score != null ? p.score : "—"}</span>
+          <div class="place ${rankClass(p.rank)}">${p.rank}</div>
+          <div id="playerHost-${p.slug}"></div>
+          <div class="score-col">${p.score != null ? p.score : "—"}</div>
         `;
-        row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
-
-        el.appendChild(row);
+        row.querySelector(`#playerHost-${p.slug}`).replaceWith(nameCell);
+        playersList.appendChild(row);
       });
     }
 
-    // Toggle rosters (event delegation)
-    document.getElementById("teamsList").addEventListener("click", (e)=>{
+    // Click handling (toggle rosters)
+    teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell");
       if(!btn) return;
-
       const teamName = btn.getAttribute("data-team");
       if(!teamName) return;
 
-      if(expanded.has(teamName)) expanded.delete(teamName);
-      else expanded.add(teamName);
+      if(expandedTeams.has(teamName)) expandedTeams.delete(teamName);
+      else expandedTeams.add(teamName);
 
-      // re-render teams only (keeps style consistent + updates chevron)
       renderTeams();
     });
+
+    teamSearch.addEventListener("input", ()=>{
+      // collapse all on search change to avoid confusion
+      expandedTeams.clear();
+      renderTeams();
+    });
+    playerSearch.addEventListener("input", renderPlayers);
 
     async function update(){
       try{
@@ -676,19 +804,24 @@
         playerStandings = normalizePlayerStandings(playerRows);
         rosterByTeam = parseRosters(rosterRows);
 
-        // (Optional) auto-clean expanded set if a team disappears
-        const teamNames = new Set(teamStandings.map(t=>t.name));
-        [...expanded].forEach(n => { if(!teamNames.has(n)) expanded.delete(n); });
+        // If a team disappears, un-expand it
+        const names = new Set(teamStandings.map(t=>t.name));
+        [...expandedTeams].forEach(n => { if(!names.has(n)) expandedTeams.delete(n); });
 
         renderTeams();
         renderPlayers();
+
+        statusCard.classList.add("hidden");
+        contentEl.classList.remove("hidden");
       }catch(err){
-        document.getElementById("teamsList").innerHTML = `<div class="error">${err.message}</div>`;
-        document.getElementById("playersList").innerHTML = `<div class="error">${err.message}</div>`;
+        statusCard.classList.remove("hidden");
+        contentEl.classList.add("hidden");
+        statusCard.innerHTML = `<div class="error"><b>Couldn’t load data</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load standings.")}</div></div>`;
+        console.error(err);
       }
     }
 
-    // boot
+    // Boot
     setTab("teams");
     update();
     setInterval(update, REFRESH_MS);
