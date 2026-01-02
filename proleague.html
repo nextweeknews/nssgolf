@@ -252,8 +252,7 @@
       padding: 0 10px 6px 10px;
     }
 
-    /* Keep vertical scroll available if a roster is tall,
-       but avoid horizontal scrolling on desktop. */
+    /* Keep vertical scroll available if a roster is tall */
     .roster-scroll{
       max-height: 280px;
       overflow-y: auto;
@@ -270,12 +269,13 @@
     table.roster-table{
       width: 100%;
       border-collapse: separate;
-      border-spacing: 0 6px; /* row "gaps" like overlay list */
+      border-spacing: 0 6px; /* keep row gaps like overlay */
       table-layout: fixed;
     }
 
-    /* Narrower columns via colgroup widths (keeps desktop within card) */
-    col.c-player{ width: 210px; }
+    /* Narrow columns via colgroup widths */
+    col.c-rank{  width: 54px; }
+    col.c-name{  width: 156px; }
     col.c-stage{ width: 62px; }
     col.c-best{  width: 54px; }
     col.c-week{  width: 52px; }
@@ -324,35 +324,33 @@
       padding-left:10px;
     }
 
-    .roster-table tbody tr td:first-child{
-      border-radius: 10px 0 0 10px;
-    }
+    /* Remove inner rounding inside the table (square edges) */
+    .roster-table tbody tr td:first-child,
     .roster-table tbody tr td:last-child{
-      border-radius: 0 10px 10px 0;
+      border-radius: 0 !important;
     }
 
-    .cell-player{
+    .cell-name{
       font-weight: 900;
       text-transform: uppercase;
       color: var(--title);
+      text-align:left;
+      padding-left:10px;
     }
-    .player-rank{
-      display:inline-block;
-      min-width: 24px;
-      margin-right: 8px;
-      font-size: 10px;
+
+    /* Rank column styling */
+    .cell-rank{
+      color: rgba(156,163,199,0.95);
       font-weight: 900;
       letter-spacing: .10em;
-      color: rgba(156,163,199,0.95);
-      opacity: 0.95;
-      text-align: right;
+      text-transform: uppercase;
     }
 
     /* Separators requested */
     .sep-right{ border-right: 2px solid var(--sep) !important; }
     .sep-left{ border-left: 2px solid var(--sep) !important; }
 
-    /* Important cells */
+    /* Important cells (no red/green conditional text now) */
     .stageScore{
       background: rgba(217,217,217,0.14);
       color: #ffffff;
@@ -363,10 +361,6 @@
       color: #ffffff;
       font-weight: 900;
     }
-
-    /* golf scoring hint */
-    .goodScore{ color: rgba(52,211,153,0.95); font-weight: 800; }   /* negative */
-    .badScore{ color: rgba(248,113,113,0.95); font-weight: 800; }    /* positive */
 
     .status{
       color: rgba(233,238,248,0.92);
@@ -719,11 +713,6 @@
       return (v === null || v === undefined || v === "") ? "—" : String(v);
     }
 
-    function scoreClass(n){
-      if(n == null) return "";
-      return n < 0 ? "goodScore" : (n > 0 ? "badScore" : "");
-    }
-
     function renderRosterTable(roster){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -744,13 +733,11 @@
       const table = document.createElement("table");
       table.className = "roster-table";
 
-      // Single-row header per request:
-      // - Counted columns are 1st/2nd/3rd
-      // - Rounds labeled 1-1, 1-2, ... 4-2
-      // - Separator after WK4 and after each week's second round column
+      // Single-row header with separate "Rank" + "Player" headers
       table.innerHTML = `
         <colgroup>
-          <col class="c-player">
+          <col class="c-rank">
+          <col class="c-name">
           <col class="c-stage">
           <col class="c-best"><col class="c-best"><col class="c-best">
           <col class="c-week"><col class="c-week"><col class="c-week"><col class="c-week">
@@ -760,6 +747,7 @@
 
         <thead>
           <tr>
+            <th>Rank</th>
             <th class="left">Player</th>
             <th>Stage</th>
 
@@ -801,40 +789,40 @@
 
         const cells = [];
 
-        // Player cell: small overall rank at far left
-        const rankPrefix = (p.overallRank != null)
-          ? `<span class="player-rank">${escapeHtml(p.overallRank)}</span>`
-          : `<span class="player-rank"></span>`;
-
+        // Rank column (Column A)
         cells.push(
-          `<td class="left cell-player">${rankPrefix}${escapeHtml(p.name || "")}</td>`
+          `<td class="cell-rank">${escapeHtml(fmt(p.overallRank))}</td>`
+        );
+
+        // Player name column
+        cells.push(
+          `<td class="cell-name">${escapeHtml(p.name || "")}</td>`
         );
 
         // Stage
         cells.push(
-          `<td class="stageScore ${scoreClass(p.stageScore)}">${escapeHtml(fmt(p.stageScore))}</td>`
+          `<td class="stageScore">${escapeHtml(fmt(p.stageScore))}</td>`
         );
 
-        // 1st/2nd/3rd (always highlighted as counted)
+        // 1st/2nd/3rd (highlighted)
         for(let i=0;i<3;i++){
           const v = best[i];
-          const cls = `counted ${scoreClass(v)}`.trim();
-          cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
+          cells.push(`<td class="counted">${escapeHtml(fmt(v))}</td>`);
         }
 
         // Weekly totals (WK4 has separator)
         for(let i=0;i<4;i++){
           const v = weekTotals[i];
-          const cls = `${scoreClass(v)} ${i===3 ? "sep-right" : ""}`.trim();
+          const cls = `${i===3 ? "sep-right" : ""}`.trim();
           cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
         }
 
-        // Rounds: add separator after each pair (1-2, 2-2, 3-2)
+        // Rounds: separator after each pair (1-2, 2-2, 3-2). Highlight counted rounds.
         for(let i=0;i<8;i++){
           const v = rounds[i];
           const isCounted = (v != null) && bestSet.has(String(v));
           const isWeekEnd = (i===1 || i===3 || i===5);
-          const cls = `${scoreClass(v)} ${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+          const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
           cells.push(`<td class="${cls}">${escapeHtml(fmt(v))}</td>`);
         }
 
