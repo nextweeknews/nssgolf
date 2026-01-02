@@ -131,47 +131,84 @@
         color: rgba(255,255,255,.80);
         font-size:14px;
         white-space:nowrap;
+        vertical-align: top;
       }
       tbody tr:hover{background: var(--hover);}
       tbody tr.top3{background: rgba(255,255,255,.03);}
       td.highlight{font-weight:900; color:#fff;}
 
-      /* Rosters */
-      .section-kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: var(--muted2);}
-      .section-title{font-size:18px; font-weight:900; margin:6px 0 0;}
-      .grid{display:grid; gap:14px;}
-      @media (min-width: 980px){ .grid-2{grid-template-columns: 1fr 1fr;} }
-      .team-card h3{margin: 6px 0 0; font-size:20px;}
-      .team-top{display:flex; justify-content:space-between; gap:14px; align-items:flex-start;}
-      .live{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:900; letter-spacing:.06em; text-transform:uppercase; color: rgba(255,255,255,.80);}
-      .dot{width:8px; height:8px; border-radius:999px; background:#fff; display:inline-block;}
-      .statgrid{display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px; margin-top:14px;}
-      @media (min-width: 640px){ .statgrid{grid-template-columns: repeat(4, minmax(0,1fr));} }
-      .statpill{
-        border:1px solid var(--border);
-        background: var(--panel);
-        border-radius: 14px;
-        padding: 10px 12px;
+      /* Clickable team */
+      .team-link{
+        background: transparent;
+        border: none;
+        padding: 0;
+        color: #fff;
+        font-weight: 900;
+        cursor: pointer;
+        text-align: left;
       }
-      .statpill .l{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color: var(--muted2);}
-      .statpill .v{font-size:14px; font-weight:900; margin-top:2px;}
-      .rostergrid{display:grid; gap:10px; margin-top:12px;}
-      @media (min-width: 640px){ .rostergrid{grid-template-columns: 1fr 1fr;} }
-      .player-card{
-        border:1px solid var(--border);
-        background: var(--panel2);
-        border-radius: 18px;
-        padding: 12px 12px;
+      .team-link:hover{ text-decoration: underline; }
+      .chev{
+        display:inline-block;
+        width: 16px;
+        color: rgba(255,255,255,.65);
+        margin-right: 6px;
       }
-      .player-name{font-weight:900; font-size:14px;}
-      .player-stats{
-        display:grid; grid-template-columns: 1fr 1fr;
-        gap: 6px 10px;
+
+      /* Roster row inside table */
+      tr.roster-row:hover{background: transparent;}
+      td.roster-cell{
+        padding: 0;
+        border-top: none;
+      }
+      .roster-panel{
+        border-top: 1px solid var(--border);
+        background: rgba(255,255,255,.03);
+        padding: 14px 18px 18px;
+      }
+      .roster-grid{
+        display:grid;
+        grid-template-columns: 180px 1fr;
+        gap: 10px 14px;
         margin-top: 10px;
-        font-size:12px;
-        color: rgba(255,255,255,.70);
       }
-      .player-stats span{color: rgba(255,255,255,.50)}
+      @media (max-width: 720px){
+        .roster-grid{grid-template-columns: 1fr;}
+      }
+      .roster-head{
+        font-size:11px;
+        letter-spacing:.25em;
+        text-transform:uppercase;
+        color: var(--muted2);
+      }
+      .player-row{
+        display:grid;
+        grid-template-columns: 220px 1fr;
+        gap: 10px 14px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: rgba(4,20,46,.60);
+        align-items:center;
+      }
+      @media (max-width: 720px){
+        .player-row{grid-template-columns: 1fr;}
+      }
+      .player-name{
+        font-weight: 900;
+        color: #fff;
+      }
+      .player-stats{
+        display:flex;
+        flex-wrap:wrap;
+        gap: 8px 12px;
+        color: rgba(255,255,255,.75);
+        font-size: 12px;
+      }
+      .player-stats span{
+        color: rgba(255,255,255,.50);
+      }
+
       .footer{margin-top:34px; text-align:center; font-size:12px; color: var(--muted3);}
       .hidden{display:none !important;}
       .status{padding: 16px 18px; color: rgba(255,255,255,.80);}
@@ -194,7 +231,6 @@
         <div class="tabs" role="tablist" aria-label="Standings tabs">
           <button class="tabbtn active" data-tab="teams" role="tab" aria-selected="true">Team Rankings</button>
           <button class="tabbtn" data-tab="players" role="tab" aria-selected="false">Player Rankings</button>
-          <button class="tabbtn" data-tab="rosters" role="tab" aria-selected="false">Rosters</button>
         </div>
       </div>
     </div>
@@ -208,7 +244,7 @@
           <div class="row">
             <div>
               <div class="kicker">Live Standings</div>
-              <div class="muted small" style="margin-top:10px;">Updated from official league scoring.</div>
+              <div class="muted small" style="margin-top:10px;">Click a team to view its roster.</div>
             </div>
             <div class="pillgrid">
               <div class="metric">
@@ -223,7 +259,7 @@
           </div>
         </div>
 
-        <!-- Team standings -->
+        <!-- Team standings (with embedded rosters) -->
         <div id="view-teams" class="card table-card">
           <div class="table-head">
             <div>
@@ -244,7 +280,7 @@
         </div>
 
         <!-- Player standings -->
-        <div id="view-players" class="card table-card hidden">
+        <div id="view-players" class="card table-card hidden" style="margin-top:16px;">
           <div class="table-head">
             <div>
               <div class="kicker">Standings</div>
@@ -261,19 +297,6 @@
               <tbody id="playerBody"></tbody>
             </table>
           </div>
-        </div>
-
-        <!-- Rosters -->
-        <div id="view-rosters" class="hidden">
-          <div style="margin: 0 0 12px;">
-            <div class="section-kicker">Teams</div>
-            <div class="section-title">Rosters</div>
-            <div class="muted small" style="margin-top:8px;">
-              The roster range has a header row (used to label stats). Teams are grouped into blocks of 5 rows:
-              one team row + four player rows.
-            </div>
-          </div>
-          <div id="rosterGrid" class="grid grid-2"></div>
         </div>
 
         <div class="footer">Shotgun Pro League • Season 6</div>
@@ -293,12 +316,12 @@
         playerStandings: "'Season 6, Stage 1'!AE4:AH101",
       };
 
-      // If your standings ranges include header rows, set true
+      // If your player standings range includes a header row, set true.
+      // (Team standings are remapped manually.)
       const USE_FIRST_ROW_AS_HEADER = false;
 
-      // IMPORTANT: Team standings "Notes" is not used publicly.
-      // Your sheet has team name in the "Points" column and team score in the "Notes" column,
-      // so we remap to: Rank | Team | Points (3 columns).
+      // Team standings: UI wants Rank | Team | Points
+      // Sheet sends columns including: rank, ?, teamName(in Points col), teamScore(in Notes col)
       const TEAM_STANDINGS_HEADERS   = ["Rank","Team","Points"];
       const PLAYER_STANDINGS_HEADERS = ["Rank","Player","Points","Notes"];
 
@@ -338,9 +361,7 @@
             body: JSON.stringify(payload),
           });
           if(r.ok) return await r.json();
-        }catch(e){
-          // ignore and fall back
-        }
+        }catch(e){ /* fall back */ }
 
         // Fallback: GET params
         const u = new URL(WORKER_URL);
@@ -365,14 +386,14 @@
         return { headers: fallbackHeaders, rows: cleaned };
       }
 
-      // Header-aware team chunking:
-      // - First row of roster range is a header (labels)
-      // - Remaining rows are grouped: team row + 4 player rows
+      // Roster parsing:
+      // - First row is a header (labels)
+      // - Remaining rows are grouped in blocks of 5: team row + 4 player rows
+      // - Name is in column A (index 0)
+      // - Stats are labeled using the header row (no Team:/Player: prefix)
       function chunkTeams(teamInfoValues, headerRow){
         const values = (teamInfoValues || []).filter(rowHasAnyValue);
         const headers = Array.isArray(headerRow) ? headerRow.map(h => String(h ?? "").trim()) : [];
-
-        // Assumption: names are in column A (index 0)
         const nameCol = 0;
 
         function labelForCol(j){
@@ -380,7 +401,6 @@
           return (h && h.trim()) ? h.trim() : `Col ${j+1}`;
         }
 
-        // OPTIONAL CHANGE APPLIED: no "Team:" / "Player:" prefixes — just header labels
         function extractStats(row){
           const stats = [];
           const r = row || [];
@@ -403,21 +423,21 @@
             firstNonEmptyCell(teamRow) ||
             `Team ${Math.floor(i/5)+1}`;
 
-          const teamStats = extractStats(teamRow);
-
           const players = playerRows.map((row, idx)=>{
             const playerName =
               String((row||[])[nameCol] ?? "").trim() ||
               firstNonEmptyCell(row) ||
               `Player ${idx+1}`;
-
             const stats = extractStats(row);
             return { name: playerName, stats };
           });
 
-          teams.push({ teamName, teamStats, players });
+          teams.push({
+            teamName,
+            players,
+            // If you want team-level stats later, you can add extractStats(teamRow) here
+          });
         }
-
         return teams;
       }
 
@@ -436,10 +456,127 @@
         return node;
       }
 
-      function renderTable(headEl, bodyEl, headers, rows, highlightIdx=1, emptyText="No results."){
+      function clearTable(headEl, bodyEl, headers){
         headEl.innerHTML = "";
         bodyEl.innerHTML = "";
+        headers.forEach(h => headEl.appendChild(el("th", {}, [String(h ?? "")])));
+      }
 
+      // Remap team standings row from sheet -> UI:
+      // Sheet columns (current): [Rank, (unused), TeamName(in Points), TeamScore(in Notes)]
+      // UI columns (desired):   [Rank, Team, Points]
+      function remapTeamStandingsRow(r){
+        const rank = r?.[0] ?? "";
+        const team = r?.[2] ?? "";   // points column contains team name
+        const pts  = r?.[3] ?? "";   // notes column contains team score
+        return [rank, team, pts];
+      }
+
+      // Normalize team name for matching (case/whitespace)
+      function normName(s){
+        return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+      }
+
+      // Renders team standings with collapsible roster rows
+      function renderTeamStandingsWithRosters(headEl, bodyEl, rows, rosterByTeam, expandedSet){
+        clearTable(headEl, bodyEl, TEAM_STANDINGS_HEADERS);
+
+        if(!rows.length){
+          bodyEl.appendChild(
+            el("tr", {}, [
+              el("td", { colspan: TEAM_STANDINGS_HEADERS.length, class:"muted" }, ["No teams found."])
+            ])
+          );
+          return;
+        }
+
+        rows.forEach((row, rIdx)=>{
+          const [rank, team, pts] = row;
+          const teamKey = normName(team);
+
+          // Main row
+          const tr = el("tr", { class: (rIdx < 3 ? "top3" : "") }, []);
+
+          // Rank
+          tr.appendChild(el("td", {}, [String(rank).trim()]));
+
+          // Team (clickable)
+          const isExpanded = expandedSet.has(teamKey);
+          const chev = isExpanded ? "▾" : "▸";
+
+          const teamBtn = el("button", {
+            class: "team-link",
+            "data-team": teamKey,
+            "aria-expanded": isExpanded ? "true" : "false",
+            type: "button",
+          }, [
+            el("span", { class:"chev", "aria-hidden":"true" }, [chev]),
+            String(team).trim()
+          ]);
+
+          tr.appendChild(el("td", { class:"highlight" }, [teamBtn]));
+
+          // Points
+          tr.appendChild(el("td", {}, [String(pts).trim()]));
+
+          bodyEl.appendChild(tr);
+
+          // Roster row (collapsible)
+          const rosterTr = el("tr", { class:"roster-row" }, []);
+          const rosterTd = el("td", { class:"roster-cell", colspan: TEAM_STANDINGS_HEADERS.length }, []);
+          rosterTr.appendChild(rosterTd);
+
+          const roster = rosterByTeam.get(teamKey);
+
+          if(isExpanded){
+            rosterTd.appendChild(renderRosterPanel(team, roster));
+          }
+
+          bodyEl.appendChild(rosterTr);
+        });
+      }
+
+      function renderRosterPanel(teamName, roster){
+        const panel = el("div", { class:"roster-panel" }, [
+          el("div", { class:"roster-head" }, ["Roster"]),
+        ]);
+
+        if(!roster || !roster.players || !roster.players.length){
+          panel.appendChild(el("div", { class:"muted small", style:"margin-top:8px;" }, [
+            "No roster found for this team."
+          ]));
+          return panel;
+        }
+
+        // Individual row per player
+        roster.players.forEach(p=>{
+          const statsLine = el("div", { class:"player-stats" }, []);
+          if(p.stats && p.stats.length){
+            p.stats.forEach(s=>{
+              statsLine.appendChild(el("div", {}, [
+                el("span", {}, [s.key + ": "]),
+                s.value
+              ]));
+            });
+          } else {
+            statsLine.appendChild(el("div", { class:"muted3" }, ["No stats available."]));
+          }
+
+          panel.appendChild(
+            el("div", { class:"player-row" }, [
+              el("div", { class:"player-name" }, [p.name]),
+              statsLine
+            ])
+          );
+        });
+
+        return panel;
+      }
+
+      // Generic table render (players)
+      function renderSimpleTable(headEl, bodyEl, headers, rows, highlightIdx=1, emptyText="No results."){
+        headEl.innerHTML = "";
+        bodyEl.innerHTML = "";
         headers.forEach(h => headEl.appendChild(el("th", {}, [String(h ?? "")])));
 
         if(!rows.length){
@@ -454,68 +591,11 @@
         rows.forEach((row, rIdx)=>{
           const tr = el("tr", { class: (rIdx < 3 ? "top3" : "") }, []);
           headers.forEach((_, cIdx)=>{
-            const td = el("td", { class: (cIdx === highlightIdx ? "highlight" : "") }, [
-              String(row?.[cIdx] ?? "").trim()
-            ]);
-            tr.appendChild(td);
+            tr.appendChild(
+              el("td", { class: (cIdx === highlightIdx ? "highlight" : "") }, [String(row?.[cIdx] ?? "").trim()])
+            );
           });
           bodyEl.appendChild(tr);
-        });
-      }
-
-      function renderRosters(container, teams){
-        container.innerHTML = "";
-        teams.forEach(t=>{
-          const teamCard = el("div", { class:"card team-card" }, [
-            el("div", { class:"team-top" }, [
-              el("div", {}, [
-                el("div", { class:"section-kicker" }, ["Team"]),
-                el("h3", {}, [t.teamName]),
-              ]),
-              el("div", { class:"live" }, [
-                el("span", { class:"dot" }),
-                el("span", {}, ["Live"]),
-              ]),
-            ]),
-          ]);
-
-          if(t.teamStats?.length){
-            const statgrid = el("div", { class:"statgrid" }, []);
-            t.teamStats.slice(0,4).forEach(s=>{
-              statgrid.appendChild(
-                el("div", { class:"statpill" }, [
-                  el("div", { class:"l" }, [s.key]),
-                  el("div", { class:"v" }, [s.value]),
-                ])
-              );
-            });
-            teamCard.appendChild(statgrid);
-          }
-
-          teamCard.appendChild(el("div", { style:"margin-top:16px" }, [
-            el("div", { class:"section-kicker" }, ["Roster"])
-          ]));
-
-          const rosterGrid = el("div", { class:"rostergrid" }, []);
-          t.players.forEach(p=>{
-            const pc = el("div", { class:"player-card" }, [
-              el("div", { class:"player-name" }, [p.name]),
-            ]);
-
-            if(p.stats?.length){
-              const ps = el("div", { class:"player-stats" }, []);
-              p.stats.slice(0,4).forEach(s=>{
-                ps.appendChild(el("div", {}, [el("span", {}, [s.key + ": "]), s.value]));
-              });
-              pc.appendChild(ps);
-            } else {
-              pc.appendChild(el("div", { class:"muted3 small", style:"margin-top:6px" }, ["(No player stats found in this row.)"]));
-            }
-            rosterGrid.appendChild(pc);
-          });
-
-          teamCard.appendChild(rosterGrid);
-          container.appendChild(teamCard);
         });
       }
 
@@ -528,11 +608,10 @@
 
         document.getElementById("view-teams").classList.toggle("hidden", tab !== "teams");
         document.getElementById("view-players").classList.toggle("hidden", tab !== "players");
-        document.getElementById("view-rosters").classList.toggle("hidden", tab !== "rosters");
       }
 
       // ==============================
-      // App
+      // App state
       // ==============================
       const statusEl  = document.getElementById("status");
       const contentEl = document.getElementById("content");
@@ -548,50 +627,64 @@
       const teamSearch = document.getElementById("teamSearch");
       const playerSearch = document.getElementById("playerSearch");
 
-      const rosterGrid = document.getElementById("rosterGrid");
-
       let rawTeamStandings = [];
       let rawPlayerStandings = [];
-      let teams = [];
+      let rosterByTeam = new Map(); // key: normalized team name -> { teamName, players: [...] }
+      let expandedTeams = new Set(); // normalized team names expanded
 
-      // Remap team standings rows from sheet -> UI
-      // Sheet columns (current): [Rank, (unused), TeamName(in Points), TeamScore(in Notes)]
-      // UI columns (desired):   [Rank, Team, Points]
-      function remapTeamStandingsRow(r){
-        const rank = r?.[0] ?? "";
-        const team = r?.[2] ?? "";   // points column
-        const pts  = r?.[3] ?? "";   // notes column (score)
-        return [rank, team, pts];
-      }
+      // Computed (cached per filter application)
+      let filteredTeamRows = [];
+      let filteredPlayerRows = [];
+      let playerHeaders = PLAYER_STANDINGS_HEADERS;
 
-      function applyFilters(){
+      function applyFiltersAndRender(){
         const tQ = teamSearch.value.trim().toLowerCase();
         const pQ = playerSearch.value.trim().toLowerCase();
 
-        // Team standings: split then remap and drop Notes
-        const tSplitRaw = splitHeaderAndRows(rawTeamStandings, ["Rank","(unused)","(team in points)","(score in notes)"]);
+        // Team standings: split then remap and drop notes column
+        const tSplitRaw = splitHeaderAndRows(rawTeamStandings, ["Rank","(unused)","(team)","(score)"]);
         const tMappedRows = tSplitRaw.rows.map(remapTeamStandingsRow);
 
-        const tRows = tMappedRows.filter(r =>
+        filteredTeamRows = tMappedRows.filter(r =>
           r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(tQ)
         );
 
-        // Player standings: unchanged
+        // Player standings
         const pSplit = splitHeaderAndRows(rawPlayerStandings, PLAYER_STANDINGS_HEADERS);
-        const pRows = pSplit.rows.filter(r =>
+        playerHeaders = pSplit.headers;
+        filteredPlayerRows = pSplit.rows.filter(r =>
           r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(pQ)
         );
 
-        renderTable(teamHead, teamBody, TEAM_STANDINGS_HEADERS, tRows, 1, "No teams found.");
-        renderTable(playerHead, playerBody, pSplit.headers, pRows, 1, "No players found.");
+        // Render
+        renderTeamStandingsWithRosters(teamHead, teamBody, filteredTeamRows, rosterByTeam, expandedTeams);
+        renderSimpleTable(playerHead, playerBody, playerHeaders, filteredPlayerRows, 1, "No players found.");
       }
+
+      // Event delegation for team roster toggles
+      teamBody.addEventListener("click", (e)=>{
+        const btn = e.target.closest(".team-link");
+        if(!btn) return;
+        const key = btn.getAttribute("data-team");
+        if(!key) return;
+
+        if(expandedTeams.has(key)) expandedTeams.delete(key);
+        else expandedTeams.add(key);
+
+        // Re-render the team table only, preserving filters
+        renderTeamStandingsWithRosters(teamHead, teamBody, filteredTeamRows, rosterByTeam, expandedTeams);
+      });
 
       document.querySelectorAll(".tabbtn").forEach(btn=>{
         btn.addEventListener("click", ()=> setActiveTab(btn.dataset.tab));
       });
 
-      teamSearch.addEventListener("input", applyFilters);
-      playerSearch.addEventListener("input", applyFilters);
+      teamSearch.addEventListener("input", ()=> {
+        // If the user filters, collapse everything to avoid weird mismatches
+        expandedTeams = new Set();
+        applyFiltersAndRender();
+      });
+      playerSearch.addEventListener("input", applyFiltersAndRender);
 
       // boot
       (async function init(){
@@ -604,22 +697,23 @@
             fetchRange(RANGES.playerStandings),
           ]);
 
+          // Build roster map
           const teamInfoValues = normalizeValues(teamInfoResp);
 
           // Roster range has a header row:
           const rosterHeader = teamInfoValues?.length ? teamInfoValues[0] : [];
           const rosterData   = teamInfoValues?.length > 1 ? teamInfoValues.slice(1) : [];
 
+          const teams = chunkTeams(rosterData, rosterHeader);
+          rosterByTeam = new Map(teams.map(t => [normName(t.teamName), t]));
+
           rawTeamStandings = normalizeValues(teamStResp);
           rawPlayerStandings = normalizeValues(playerStResp);
-
-          teams = chunkTeams(rosterData, rosterHeader);
 
           teamCountEl.textContent = String(teams.length);
           playerCountEl.textContent = String(teams.length * 4);
 
-          renderRosters(rosterGrid, teams);
-          applyFilters();
+          applyFiltersAndRender();
 
           statusEl.classList.add("hidden");
           contentEl.classList.remove("hidden");
