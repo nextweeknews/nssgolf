@@ -26,7 +26,7 @@
         background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
         min-height: 100vh;
       }
-      .container{max-width:1100px; margin:0 auto; padding: 24px 18px 60px;}
+      .container{max-width:1100px; margin:0 auto; padding: 18px 18px 60px;}
       .topbar{
         position: sticky; top:0; z-index:10;
         border-bottom: 1px solid var(--border);
@@ -72,21 +72,6 @@
         padding: 18px;
         box-shadow: 0 6px 24px rgba(0,0,0,.18);
       }
-      .hero{border-radius: 26px; padding: 18px;}
-      .row{display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;}
-      .pillgrid{display:flex; gap:10px; flex-wrap:wrap;}
-      .metric{
-        border:1px solid var(--border);
-        background: var(--panel2);
-        padding: 12px 14px;
-        border-radius: 18px;
-        min-width: 120px;
-      }
-      .metric .label{font-size:11px; letter-spacing:.08em; text-transform:uppercase; color: var(--muted2);}
-      .metric .value{font-size:18px; font-weight:900; margin-top:2px;}
-      .muted{color: var(--muted);}
-      .muted2{color: var(--muted2);}
-      .muted3{color: var(--muted3);}
 
       /* Table */
       .table-card{padding:0; overflow:hidden;}
@@ -197,7 +182,9 @@
       .status{padding: 16px 18px; color: rgba(255,255,255,.80);}
       .error{padding: 16px 18px;}
       .error b{display:block; margin-bottom:6px;}
-      .small{font-size:12px;}
+      .muted{color: var(--muted);}
+      .muted2{color: var(--muted2);}
+      .muted3{color: var(--muted3);}
     </style>
   </head>
 
@@ -223,25 +210,6 @@
       <div id="status" class="card status">Loading standings…</div>
 
       <div id="content" class="hidden">
-        <div class="card hero" style="margin-bottom:16px;">
-          <div class="row">
-            <div>
-              <div class="kicker">Live Standings</div>
-              <div class="muted small" style="margin-top:10px;">Click a team to view its roster.</div>
-            </div>
-            <div class="pillgrid">
-              <div class="metric">
-                <div class="label">Teams</div>
-                <div class="value" id="teamCount">0</div>
-              </div>
-              <div class="metric">
-                <div class="label">Players</div>
-                <div class="value" id="playerCount">0</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Team standings (with embedded rosters) -->
         <div id="view-teams" class="card table-card">
           <div class="table-head">
@@ -306,7 +274,7 @@
       const TEAM_STANDINGS_HEADERS   = ["Rank","Team","Points"];
       const PLAYER_STANDINGS_HEADERS = ["Rank","Player","Points","Notes"];
 
-      // Column C is index 2
+      // Column C is index 2 for team + player names in the full range
       const NAME_COL = 2;
 
       // ==============================
@@ -407,8 +375,8 @@
           const teamRow = rows[i] || [];
           const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
 
-          // Team name is in column C (index 2)
-          const teamName = String(teamRow[NAME_COL] ?? "").trim() || `Team ${Math.floor(i/5)+1}`;
+          const teamName = String(teamRow[NAME_COL] ?? "").trim();
+          if(!teamName) continue; // skip malformed blocks
 
           const players = playerRows.map((pr, idx)=>{
             const playerName = String((pr||[])[NAME_COL] ?? "").trim() || `Player ${idx+1}`;
@@ -423,11 +391,9 @@
       }
 
       // ==============================
-      // Matching team names (exact, because they match)
+      // Matching team names (exact match)
       // ==============================
-      function normName(s){
-        return String(s ?? "").trim();
-      }
+      function normName(s){ return String(s ?? "").trim(); }
       function buildRosterMap(teams){
         const m = new Map();
         teams.forEach(t => m.set(normName(t.teamName), t));
@@ -470,7 +436,7 @@
         ]);
 
         if(!rosterTeam || !rosterTeam.players || !rosterTeam.players.length){
-          panel.appendChild(el("div", { class:"muted small", style:"margin-top:8px;" }, [
+          panel.appendChild(el("div", { class:"muted", style:"margin-top:8px; font-size:12px;" }, [
             `No roster found for "${teamDisplayName}".`
           ]));
           return panel;
@@ -591,9 +557,6 @@
       const statusEl  = document.getElementById("status");
       const contentEl = document.getElementById("content");
 
-      const teamCountEl = document.getElementById("teamCount");
-      const playerCountEl = document.getElementById("playerCount");
-
       const teamHead = document.getElementById("teamHead");
       const teamBody = document.getElementById("teamBody");
       const playerHead = document.getElementById("playerHead");
@@ -615,7 +578,6 @@
         const tQ = teamSearch.value.trim().toLowerCase();
         const pQ = playerSearch.value.trim().toLowerCase();
 
-        // Team standings: split then remap and drop notes column
         const tSplitRaw = splitHeaderAndRows(rawTeamStandings, ["Rank","(unused)","(team)","(score)"]);
         const tMappedRows = tSplitRaw.rows.map(remapTeamStandingsRow);
 
@@ -623,7 +585,6 @@
           r.map(c => String(c ?? "").toLowerCase()).join(" ").includes(tQ)
         );
 
-        // Player standings
         const pSplit = splitHeaderAndRows(rawPlayerStandings, PLAYER_STANDINGS_HEADERS);
         playerHeaders = pSplit.headers;
         filteredPlayerRows = pSplit.rows.filter(r =>
@@ -671,16 +632,13 @@
             fetchRange(RANGES.playerStandings),
           ]);
 
-          // Build roster map using Column C names
+          // Build roster map (exact name match, Column C names)
           const teamInfoValues = normalizeValues(teamInfoResp);
           const { teams } = chunkTeamsFromRange(teamInfoValues);
           rosterMap = buildRosterMap(teams);
 
           rawTeamStandings = normalizeValues(teamStResp);
           rawPlayerStandings = normalizeValues(playerStResp);
-
-          teamCountEl.textContent = String(teams.length);
-          playerCountEl.textContent = String(teams.length * 4);
 
           applyFiltersAndRender();
 
@@ -693,7 +651,7 @@
           statusEl.innerHTML = `
             <b>Couldn’t load data</b>
             <div class="muted">${(err && err.message) ? err.message : "Failed to load standings."}</div>
-            <div class="muted3 small" style="margin-top:10px;">
+            <div class="muted3" style="margin-top:10px; font-size:12px;">
               Tip: your Worker might require a different request shape. Update <code>fetchRange()</code> in this file to match your existing site.
             </div>
           `;
