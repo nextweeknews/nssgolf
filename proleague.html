@@ -497,7 +497,7 @@
     .captain-icon{
       width: 14px;
       height: 14px;
-      display: inline-flex;     /* helps vertical centering */
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       flex: 0 0 auto;
@@ -507,7 +507,7 @@
       -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
-      transform: none;          /* no offset */
+      transform: none;
       position: relative;
       top: 0;
     }
@@ -682,7 +682,7 @@
     .hero-team img{
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain; /* square logos: never crop */
       display:block;
     }
     .hero-text{
@@ -918,36 +918,39 @@
       display:inline-flex;
       align-items:center;
       gap: 8px;
-      padding: 6px 8px;
+      padding: 6px 10px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
       cursor: default;
       max-width: 100%;
       min-width: 0;
+      background: var(--team-bg, rgba(255,255,255,0.06));
+      color: var(--team-fg, rgba(255,255,255,0.92));
     }
     .team-pill .mini-logo{
-      width: 16px;
-      height: 16px;
-      border-radius: 5px;
-      overflow:hidden;
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.05);
-      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08);
       display:grid;
       place-items:center;
+      padding: 0;
+      line-height: 0;
     }
     .team-pill .mini-logo img{
       width:100%;
       height:100%;
-      object-fit: cover;
+      object-fit: contain; /* square logos: never crop */
       display:block;
     }
     .team-pill .team-text{
       font-weight: 950;
       letter-spacing: .10em;
       text-transform: uppercase;
-      color: var(--team-color, rgba(255,255,255,0.92)); /* team color applied to text */
+      color: inherit; /* uses team fg */
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1064,6 +1067,17 @@
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 15000;
+
+    /* -----------------------------------------------------------
+       CURRENT SEASON CONTROL
+       - Used to exclude trophies for the ongoing/current season.
+       - You can set it via query param: ?currentSeason=6
+       - Or hardcode it here.
+    ----------------------------------------------------------- */
+    let CURRENT_SEASON = 6;
+    const qsBoot = new URLSearchParams(location.search);
+    const qsCur = Number(qsBoot.get("currentSeason"));
+    if (Number.isFinite(qsCur) && qsCur >= 1 && qsCur <= 6) CURRENT_SEASON = qsCur;
 
     const COL = { overallRank:0, name:2, stage:3, bestStart:4, weekStart:7, roundsStart:11 };
 
@@ -1822,19 +1836,21 @@
     function buildTeamPill(teamName, forceMedalRank=null){
       if (!teamName) return "";
       const style = getTeamStyle(teamName) || {};
-      const teamColor = style.bg || "rgba(255,255,255,0.92)";
+      const bg = style.bg || "rgba(255,255,255,0.06)";
+      const fg = style.fg || "rgba(255,255,255,0.92)";
+
+      // if forced medal, tint bg + set fg to medal color (optional)
+      let pillBg = bg;
+      let pillFg = fg;
+      if (forceMedalRank === 1){ pillBg = "rgba(255,215,0,0.18)"; pillFg = "var(--gold)"; }
+      if (forceMedalRank === 2){ pillBg = "rgba(192,192,192,0.16)"; pillFg = "var(--silver)"; }
+      if (forceMedalRank === 3){ pillBg = "rgba(205,127,50,0.18)"; pillFg = "var(--bronze)"; }
+
       const teamCaps = String(teamName).toUpperCase();
       const logo = teamLogoSrc(teamName);
 
-      const medal = forceMedalRank ? medalClass(forceMedalRank) : "";
-      const textColor = forceMedalRank ? (
-        forceMedalRank === 1 ? "var(--gold)" :
-        forceMedalRank === 2 ? "var(--silver)" :
-        "var(--bronze)"
-      ) : teamColor;
-
       return `
-        <span class="team-pill" style="--team-color:${escapeHtml(textColor)};">
+        <span class="team-pill" style="--team-bg:${escapeHtml(pillBg)};--team-fg:${escapeHtml(pillFg)};">
           <span class="mini-logo">
             <img src="${escapeHtml(logo)}"
                  alt="${escapeHtml(teamCaps)} logo"
@@ -1856,8 +1872,6 @@
       playerModalContent.innerHTML = `<div class="modal-loading">Loading ${escapeHtml(cleanName.toUpperCase())}…</div>`;
 
       try{
-        const currentSeason = Number(seasonSelect.value) || 6;
-
         // Build season summaries (most recent first)
         const seasons = [6,5,4,3,2,1];
         const summaries = [];
@@ -1905,10 +1919,10 @@
           });
         }
 
-        // Determine header team (prefer current season, else most recent season with team)
+        // Determine header team (prefer CURRENT_SEASON, else most recent season with team)
         let headerTeam = null;
         {
-          const cur = summaries.find(x => x.season === currentSeason);
+          const cur = summaries.find(x => x.season === CURRENT_SEASON);
           headerTeam = cur?.teamName || null;
           if(!headerTeam){
             headerTeam = summaries.find(x => !!x.teamName)?.teamName || null;
@@ -1924,9 +1938,11 @@
         const bestRound = allRounds.length ? Math.min(...allRounds) : null;
         const avgRound = allRounds.length ? (allRounds.reduce((a,b)=>a+b,0) / allRounds.length) : null;
 
-        // Trophy case
+        // Trophy case (EXCLUDE current season)
         const trophies = [];
         for (const sum of summaries){
+          if (sum.season === CURRENT_SEASON) continue; // <-- requested: no trophies for current season
+
           if (sum.teamRank === 1) trophies.push({ season: sum.season, type:"TEAM_1", team: sum.teamName });
           if (sum.teamRank === 2) trophies.push({ season: sum.season, type:"TEAM_2", team: sum.teamName });
           if (sum.teamRank === 3) trophies.push({ season: sum.season, type:"TEAM_3", team: sum.teamName });
@@ -1941,7 +1957,7 @@
           return trophyMeta(a.type).pr - trophyMeta(b.type).pr;
         });
 
-        // Season history column
+        // Season history column (includes current season)
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
@@ -1992,7 +2008,7 @@
             `;
           }).join("");
 
-        // Trophy HTML (team names can be overridden by medal colors)
+        // Trophy HTML
         const trophyHtml = trophies.length
           ? trophies.map(t=>{
               const meta = trophyMeta(t.type);
