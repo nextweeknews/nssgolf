@@ -28,8 +28,8 @@
       --silver:#c0c0c0;
       --bronze:#cd7f32;
 
-      /* Logo layout */
-      --logo-slot: 40px; /* slot stays even if image fails */
+      /* Team row logo slot */
+      --logo-slot: 40px;
     }
 
     *{ box-sizing:border-box; }
@@ -242,7 +242,6 @@
     }
     .team-cell:hover{ filter: brightness(1.04); }
 
-    /* Fixed logo slot: stays even if image missing */
     .team-logo-slot{
       width: var(--logo-slot);
       height: 100%;
@@ -423,7 +422,7 @@
       background: rgba(15,23,42,0.92);
       backdrop-filter: blur(6px);
       padding: 6px 6px;
-      border-bottom: none; /* header bottom border removed */
+      border-bottom: none;
       color: var(--muted);
       font-size: 10px;
       font-weight: 900;
@@ -469,7 +468,6 @@
       text-transform: uppercase;
     }
 
-    /* Player cell is centered; captain icon inherits currentColor */
     .cell-name{
       text-transform: uppercase;
       color: var(--title);
@@ -479,7 +477,7 @@
     }
     .cell-name .name-inline{
       display: inline-flex;
-      align-items: center;     /* vertical centering */
+      align-items: center;
       justify-content: center;
       gap: 6px;
       max-width: 100%;
@@ -493,7 +491,6 @@
       line-height: 1.05;
     }
 
-    /* Captain icon (centered vertically relative to text) */
     .captain-icon{
       width: 14px;
       height: 14px;
@@ -503,7 +500,7 @@
       flex: 0 0 auto;
       align-self: center;
       color: currentColor;
-      background-color: currentColor; /* used for mask */
+      background-color: currentColor;
       -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
@@ -511,10 +508,7 @@
       top: 0;
     }
 
-    /* clickable player name in roster table */
-    .clickable-player{
-      cursor: pointer;
-    }
+    .clickable-player{ cursor: pointer; }
     .clickable-player:hover{
       text-decoration: underline;
       text-underline-offset: 2px;
@@ -656,7 +650,6 @@
       padding: 12px;
     }
 
-    /* Left column stacks */
     .modal-left{
       display:flex;
       flex-direction:column;
@@ -681,12 +674,10 @@
     .hero-team img{
       width: 100%;
       height: 100%;
-      object-fit: contain; /* square logos: never crop */
+      object-fit: contain;
       display:block;
     }
-    .hero-text{
-      min-width: 0;
-    }
+    .hero-text{ min-width: 0; }
     .hero-name{
       font-size: 18px;
       font-weight: 950;
@@ -763,7 +754,6 @@
       align-items: flex-start;
     }
 
-    /* Trophy "button" with right-side counter (shrink-to-fit) */
     .trophy{
       display:inline-flex;
       align-items:center;
@@ -816,7 +806,7 @@
       display:flex;
       flex-direction:column;
       gap: 2px;
-      max-width: 280px; /* helps keep shrink-to-fit */
+      max-width: 280px;
     }
     .trophy-main{
       font-size: 11px;
@@ -888,7 +878,6 @@
       justify-content:flex-end;
     }
 
-    /* placement badges (gold/silver/bronze) */
     .badge{
       font-size: 10px;
       font-weight: 950;
@@ -948,47 +937,19 @@
       flex: 1 1 auto;
     }
 
-     /* Team button in history (pill) */
+    /* TEAM PILL (HISTORY): NO LOGO, tighter fit */
     .team-pill{
       display:inline-flex;
       align-items:center;
-      gap: 8px;
-      padding: 6px 10px;
+      padding: 4px 8px;            /* smaller */
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.18);
-      cursor: default;
       max-width: 100%;
       min-width: 0;
       width: fit-content;
       background: var(--team-bg, rgba(255,255,255,0.06)) !important;
       color: var(--team-fg, rgba(255,255,255,0.92)) !important;
     }
-
-   .team-pill .mini-logo{
-      width: 28px;
-      height: 28px;
-      flex: 0 0 28px;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.22);
-      background: rgba(255,255,255,0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-      line-height: 0;
-    }
-
-    .team-pill .mini-logo img{
-      width: 100% !important;
-      height: 100% !important;
-      max-width: none !important;
-      max-height: none !important;
-      display: block !important;
-      object-fit: cover;                 /* fills box both axes */
-      object-position: 50% 50% !important; /* always centered */
-    }
-
     .team-pill .team-text{
       font-weight: 950;
       letter-spacing: .10em;
@@ -998,7 +959,9 @@
       overflow: hidden;
       text-overflow: ellipsis;
       min-width: 0;
-      max-width: 220px;
+      max-width: 260px;
+      font-size: 10px;            /* slightly smaller */
+      line-height: 1;
     }
 
     .modal-loading{
@@ -1112,12 +1075,6 @@
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 15000;
 
-    /* -----------------------------------------------------------
-       CURRENT SEASON CONTROL
-       - Exclude current season from: trophies, accolades, best-finish stats.
-       - You can set it via query param: ?currentSeason=6
-       - Or hardcode it here.
-    ----------------------------------------------------------- */
     let CURRENT_SEASON = 6;
     const qsBoot = new URLSearchParams(location.search);
     const qsCur = Number(qsBoot.get("currentSeason"));
@@ -1139,13 +1096,9 @@
     const RANGE_W2_A1 = "Z16:AC25";
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
-
-    // broader lookup (includes solo players)
     const LOOKUP_RANGE_A1 = "A3:S250";
 
-    function a1(sheetName, rangeA1){
-      return `'${sheetName}'!${rangeA1}`;
-    }
+    function a1(sheetName, rangeA1){ return `'${sheetName}'!${rangeA1}`; }
 
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
@@ -1184,7 +1137,6 @@
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
 
-      // Try POST; if it doesn't work, fall back to GET
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -1242,7 +1194,6 @@
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
-    // standings rows: [rank, ..., name, score] (name is second-to-last, score last)
     function normalizeStandingsGeneric(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -1264,7 +1215,6 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
-    // highlight exactly 3 rounds (or fewer if fewer played), earliest occurrences for duplicates
     function pickTop3RoundIndices(rounds){
       const played = (rounds || [])
         .map((v, idx) => ({ v, idx }))
@@ -1298,7 +1248,7 @@
 
       if(!cleaned.length) return { byTeam, byPlayer, playerTeamByName, captains };
 
-      const rows = cleaned.slice(1); // drop header
+      const rows = cleaned.slice(1);
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -1328,7 +1278,6 @@
           return stat;
         });
 
-        // captain = first player row, if present
         const capName = String(playerRows?.[0]?.[COL.name] ?? "").trim();
         if (capName) captains.add(capName);
 
@@ -1343,7 +1292,7 @@
       const byPlayer = new Map();
       if(!cleaned.length) return byPlayer;
 
-      const rows = cleaned.slice(1); // drop header
+      const rows = cleaned.slice(1);
       for (const r of rows){
         const name = String(r?.[COL.name] ?? "").trim();
         if(!name) continue;
@@ -1385,7 +1334,6 @@
     const weeklyCards= document.getElementById("weeklyCards");
     const playerSearch = document.getElementById("playerSearch");
 
-    // Modal (declared ONCE)
     const playerModal = document.getElementById("playerModal");
     const playerModalClose = document.getElementById("playerModalClose");
     const playerModalContent = document.getElementById("playerModalContent");
@@ -1396,7 +1344,7 @@
 
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
-    let currentPlayerToTeam = new Map(); // current season mapping
+    let currentPlayerToTeam = new Map();
 
     const expandedTeams = new Set();
     const expandedPlayers = new Set();
@@ -1767,7 +1715,6 @@
       renderPlayers();
     });
 
-    // Click a player name inside team roster table -> open modal
     teamsView.addEventListener("click", (e)=>{
       const cell = e.target.closest("td.clickable-player[data-player]");
       if(!cell) return;
@@ -1776,7 +1723,6 @@
       openPlayerModal(name);
     });
 
-    // Click "Full Player Stats" button in player collapsible -> open modal
     playersView.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.full-stats-btn[data-player]");
       if(!btn) return;
@@ -1785,7 +1731,6 @@
       openPlayerModal(name);
     });
 
-    // Click a player name in Weekly Top 5 -> open modal
     weeklyView.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-player]");
       if(!btn) return;
@@ -1832,8 +1777,7 @@
       }
     }
 
-    // season data cache
-    const seasonHistoryCache = new Map(); // seasonNum -> data
+    const seasonHistoryCache = new Map();
 
     async function getSeasonHistoryData(seasonNum){
       if (seasonHistoryCache.has(seasonNum)) return seasonHistoryCache.get(seasonNum);
@@ -1882,6 +1826,7 @@
       return data;
     }
 
+    // Team pill now only shows text, tight to content
     function buildTeamPill(teamName){
       if (!teamName) return "";
       const style = getTeamStyle(teamName) || {};
@@ -1889,17 +1834,8 @@
       const fg = style.fg || "rgba(255,255,255,0.92)";
 
       const teamCaps = String(teamName).toUpperCase();
-      const logo = teamLogoSrc(teamName);
-
       return `
         <span class="team-pill" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">
-          <span class="mini-logo">
-            <img src="${escapeHtml(logo)}"
-                 alt="${escapeHtml(teamCaps)} logo"
-                 loading="lazy"
-                 decoding="async"
-                 onerror="this.style.display='none'; this.removeAttribute('src');" />
-          </span>
           <span class="team-text">${escapeHtml(teamCaps)}</span>
         </span>
       `;
@@ -1926,7 +1862,6 @@
         let bestTeamFinishPrev = null;
         let bestIndFinishPrev  = null;
 
-        // stackable trophies (exclude current season)
         let season60 = 0, season70 = 0, season80 = 0;
         let round20 = 0, round25 = 0, round30 = 0;
         let captainCount = 0;
@@ -1944,13 +1879,10 @@
 
           const isPrev = (s !== CURRENT_SEASON);
 
-          // rounds aggregation (prev seasons only)
           if (stats && Array.isArray(stats.rounds) && isPrev){
             for (const v of stats.rounds){
               if (Number.isFinite(v)){
                 allRoundsPrev.push(v);
-
-                // stackable round clubs (inclusive thresholds)
                 if (v <= -20) round20++;
                 if (v <= -25) round25++;
                 if (v <= -30) round30++;
@@ -1958,7 +1890,6 @@
             }
           }
 
-          // season score clubs (prev seasons only)
           if (isPrev){
             const seasonTotal = (playerStanding?.score ?? stats?.stageScore);
             if (Number.isFinite(seasonTotal)){
@@ -1966,7 +1897,6 @@
               if (seasonTotal <= -70) season70++;
               if (seasonTotal <= -80) season80++;
             }
-            // team captain trophy (prev seasons only)
             if (data.captains?.has(cleanName)) captainCount++;
           }
 
@@ -2004,7 +1934,6 @@
         const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
         const avgRoundPrev = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
 
-        // Trophy case excludes current season
         const trophies = [];
         for (const sum of summaries){
           if (sum.season === CURRENT_SEASON) continue;
@@ -2018,7 +1947,6 @@
           }
         }
 
-        // "Best first": sort by trophy priority, then most recent season within each
         trophies.sort((a,b)=>{
           const pa = trophyMeta(a.type).pr;
           const pb = trophyMeta(b.type).pr;
@@ -2074,7 +2002,6 @@
             `;
           }).join("");
 
-        // base trophies (per-season)
         const trophyBaseHtml = trophies.length
           ? trophies.map(t=>{
               const meta = trophyMeta(t.type);
@@ -2095,17 +2022,16 @@
             }).join("")
           : "";
 
-        // stackables: order requested
         const stackablesOrdered = [
-          { key:"R30",  label:"-30 Club", icon:"🎯", count: round30,  sub:"Round score ≤ -30" },
-          { key:"R25",  label:"-25 Club", icon:"🎯", count: round25,  sub:"Round score ≤ -25" },
-          { key:"R20",  label:"-20 Club", icon:"🎯", count: round20,  sub:"Round score ≤ -20" },
+          { label:"-30 Club", icon:"🎯", count: round30,  sub:"Round score ≤ -30" },
+          { label:"-25 Club", icon:"🎯", count: round25,  sub:"Round score ≤ -25" },
+          { label:"-20 Club", icon:"🎯", count: round20,  sub:"Round score ≤ -20" },
 
-          { key:"S80",  label:"-80 Club", icon:"⛳", count: season80, sub:"Season total ≤ -80" },
-          { key:"S70",  label:"-70 Club", icon:"⛳", count: season70, sub:"Season total ≤ -70" },
-          { key:"S60",  label:"-60 Club", icon:"⛳", count: season60, sub:"Season total ≤ -60" },
+          { label:"-80 Club", icon:"⛳", count: season80, sub:"Season total ≤ -80" },
+          { label:"-70 Club", icon:"⛳", count: season70, sub:"Season total ≤ -70" },
+          { label:"-60 Club", icon:"⛳", count: season60, sub:"Season total ≤ -60" },
 
-          { key:"CAP",  label:"Team Captain", icon:"CAPTAIN", count: captainCount, sub:"Seasons as captain" },
+          { label:"Team Captain", icon:"CAPTAIN", count: captainCount, sub:"Seasons as captain" },
         ];
 
         const trophyStackHtml = stackablesOrdered
