@@ -490,7 +490,6 @@
       </div>
 
       <div class="header-controls">
-        <!-- Season selector (replaces Season 6 title) -->
         <div class="select-wrap" aria-label="Season selector">
           <label class="select-label" for="seasonSelect">Season</label>
           <select id="seasonSelect" class="select">
@@ -503,7 +502,6 @@
           </select>
         </div>
 
-        <!-- View selector -->
         <div class="select-wrap" aria-label="Standings view selector">
           <label class="select-label" for="viewSelect">View</label>
           <select id="viewSelect" class="select">
@@ -522,7 +520,6 @@
     </div>
 
     <div id="content" class="hidden">
-      <!-- Team Rankings -->
       <div id="teamsView" class="card">
         <div class="card-head">
           <h2 class="h2">Team Rankings</h2>
@@ -537,7 +534,6 @@
         <div id="teamsList" class="resultsList"></div>
       </div>
 
-      <!-- Player Rankings -->
       <div id="playersView" class="card hidden" style="margin-top:16px;">
         <div class="card-head">
           <h2 class="h2">Player Rankings</h2>
@@ -556,7 +552,6 @@
         <div id="playersList" class="resultsList"></div>
       </div>
 
-      <!-- Weekly Top 5 -->
       <div id="weeklyView" class="hidden" style="margin-top:16px;">
         <div id="weeklyCards"></div>
       </div>
@@ -575,9 +570,8 @@
     // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
     const COL = { overallRank:0, name:2, stage:3, bestStart:4, weekStart:7, roundsStart:11 };
 
-    // Season configs
     // Seasons 1–5 sheets are named exactly: "Season 1" ... "Season 5"
-    // Season 6 currently uses: "Season 6, Stage 1" (we'll expand later).
+    // Season 6 currently uses: "Season 6, Stage 1"
     const SEASON_CONFIG = {
       6: { sheet: "Season 6, Stage 1", rosters: "A3:S63", teamRank: "U4:X15" },
       5: { sheet: "Season 5",         rosters: "A3:S63", teamRank: "U4:X15" },
@@ -587,7 +581,7 @@
       1: { sheet: "Season 1",         rosters: "A3:S38", teamRank: "U4:X10" },
     };
 
-    // All seasons: player + weekly ranges remain same cell addresses
+    // Player + weekly ranges (same for all seasons per your spec)
     const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
     const RANGE_W1_A1 = "Z4:AC13";
     const RANGE_W2_A1 = "Z16:AC25";
@@ -595,7 +589,6 @@
     const RANGE_W4_A1 = "Z40:AC49";
 
     function a1(sheetName, rangeA1){
-      // Always wrap in single quotes to support spaces/commas
       return `'${sheetName}'!${rangeA1}`;
     }
 
@@ -608,14 +601,13 @@
       "SNIPERS":         { bg: "#275318", fg: "#ffe6cd", iconPos: "-11px 55%", iconSize: "auto 220%" },
       "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff", iconPos: "-3px 55%", iconSize: "auto 190%" }
     };
-
     function getTeamStyle(name) {
       if (!name) return null;
       const key = String(name).trim().toUpperCase();
       return TEAM_STYLES[key] || null;
     }
 
-    // Worker fetch (POST first, GET fallback)
+    // Worker fetch
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -652,11 +644,9 @@
     function rowHasAnyValue(row){
       return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
     }
-
     function slugify(name){
       return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
-
     function escapeHtml(s){
       return String(s ?? "")
         .replace(/&/g,"&amp;")
@@ -665,7 +655,6 @@
         .replace(/"/g,"&quot;")
         .replace(/'/g,"&#39;");
     }
-
     function toNum(v){
       const s = String(v ?? "").trim();
       if(!s) return null;
@@ -686,7 +675,6 @@
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
-    // Normalize standings (expects: [rank, ..., name, score] within each row)
     function normalizeStandingsGeneric(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -711,7 +699,42 @@
       return normalizeStandingsGeneric(rows);
     }
 
-    // Parse roster range: header row + repeating (team row + 4 player rows)
+    // NEW: choose EXACTLY up to 3 round indices to highlight.
+    // - Ignores null/unplayed rounds
+    // - Chooses the best 3 by score (lowest is best)
+    // - Handles duplicates by selecting only the first N occurrences (in chronological order) needed
+    function pickTop3RoundIndices(rounds){
+      const played = (rounds || [])
+        .map((v, idx) => ({ v, idx }))
+        .filter(o => o.v !== null && o.v !== undefined && Number.isFinite(o.v));
+
+      if (!played.length) return new Set();
+
+      // Determine which 3 "values" are considered best, by sorting values ascending.
+      const sortedVals = played.map(o => o.v).slice().sort((a,b)=>a-b);
+      const chosenVals = sortedVals.slice(0, Math.min(3, sortedVals.length));
+
+      // Count how many times each value is needed (handles duplicates)
+      const need = new Map();
+      for (const v of chosenVals){
+        need.set(v, (need.get(v) || 0) + 1);
+      }
+
+      // Walk rounds chronologically, pick indices until needs are satisfied.
+      const picked = new Set();
+      for (const o of played){
+        const remaining = need.get(o.v) || 0;
+        if (remaining > 0){
+          picked.add(o.idx);
+          need.set(o.v, remaining - 1);
+        }
+        if (picked.size >= chosenVals.length) break; // exactly as many as played (<=3)
+      }
+
+      return picked;
+    }
+
+    // Parse rosters + build team + player stat maps
     function parseRostersAndPlayerStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
@@ -794,7 +817,6 @@
       const sheet = cfg.sheet;
 
       return {
-        sheet,
         teamStandings: a1(sheet, cfg.teamRank),
         rosters: a1(sheet, cfg.rosters),
         playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
@@ -851,10 +873,9 @@
       const tbody = table.querySelector("tbody");
 
       roster.players.forEach(p=>{
-        const bestVals = (p.best || []).filter(v=>v!=null).map(v=>String(v));
-        const bestSet = new Set(bestVals);
-
         const rounds = (p.rounds || Array(8).fill(null));
+        const highlightIdx = pickTop3RoundIndices(rounds); // <=3, ignores unplayed
+
         const weekTotals = (p.weekTotals || [null,null,null,null]);
         const best = (p.best || [null,null,null]);
 
@@ -863,20 +884,23 @@
         cells.push(`<td class="cell-name">${escapeHtml(p.name || "")}</td>`);
         cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
 
+        // Best 3 columns are always the counted scores (as provided by the sheet)
         for(let i=0;i<3;i++){
           cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
         }
 
+        // Weekly totals
         for(let i=0;i<4;i++){
           const cls = (i===3) ? "sep-right" : "";
           cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
         }
 
+        // Individual rounds: highlight EXACTLY up to 3 indices chosen by pickTop3RoundIndices
         for(let i=0;i<8;i++){
           const v = rounds[i];
-          const isCounted = (v != null) && bestSet.has(String(v));
+          const isHighlighted = highlightIdx.has(i);
           const isWeekEnd = (i===1 || i===3 || i===5);
-          const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+          const cls = `${isHighlighted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
           cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
         }
 
@@ -932,7 +956,8 @@
       const best = stat.best || [null,null,null];
       const weekTotals = stat.weekTotals || [null,null,null,null];
       const rounds = stat.rounds || Array(8).fill(null);
-      const bestSet = new Set(best.filter(v=>v!=null).map(v=>String(v)));
+
+      const highlightIdx = pickTop3RoundIndices(rounds); // <=3
 
       const cells = [];
 
@@ -947,9 +972,9 @@
 
       for(let i=0;i<8;i++){
         const v = rounds[i];
-        const isCounted = (v != null) && bestSet.has(String(v));
+        const isHighlighted = highlightIdx.has(i);
         const isWeekEnd = (i===1 || i===3 || i===5);
-        const cls = `${isCounted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+        const cls = `${isHighlighted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
         cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
       }
 
@@ -1052,7 +1077,7 @@
       });
     }
 
-    // Render: Weekly (most recent first)
+    // Render: Weekly
     function renderWeekly(){
       weeklyCards.innerHTML = "";
       const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
@@ -1145,7 +1170,6 @@
 
     playerSearch.addEventListener("input", renderPlayers);
 
-    // Season change: clear expansions, refetch
     seasonSelect.addEventListener("change", ()=>{
       expandedTeams.clear();
       expandedPlayers.clear();
@@ -1161,8 +1185,23 @@
       updating = true;
 
       try{
-        const seasonNum = getSelectedSeason();
-        const ranges = getRangesForSeason(seasonNum);
+        const seasonNum = (function(){
+          const n = Number(seasonSelect.value);
+          return SEASON_CONFIG[n] ? n : 6;
+        })();
+
+        const cfg = SEASON_CONFIG[seasonNum];
+        const sheet = cfg.sheet;
+
+        const ranges = {
+          teamStandings: a1(sheet, cfg.teamRank),
+          rosters: a1(sheet, cfg.rosters),
+          playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
+          week1: a1(sheet, RANGE_W1_A1),
+          week2: a1(sheet, RANGE_W2_A1),
+          week3: a1(sheet, RANGE_W3_A1),
+          week4: a1(sheet, RANGE_W4_A1),
+        };
 
         const [
           teamRows, playerRows, rosterRows,
