@@ -876,9 +876,10 @@
       display:flex;
       align-items:center;
       gap: 6px;
-      flex-wrap: nowrap;          /* keep table inline in the same row */
-      overflow-x: auto;           /* allow scroll if extremely tight */
-      padding-bottom: 2px;        /* keep scrollbar off content */
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      justify-content: flex-start; /* left-justify buttons within the card */
     }
     .btn-row + .btn-row{ margin-top: 8px; }
 
@@ -937,51 +938,42 @@
       letter-spacing: .08em;
     }
 
-   /* Inline "simple table" for rounds (no gridlines between every column) */
-table.mini-rounds{
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-  width: 360px;
-  max-width: 360px;
-  background: transparent;
+    /* Inline "simple table" for rounds (no gridlines between every column) */
+    table.mini-rounds{
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      width: 360px;
+      max-width: 360px;
+      background: transparent;
 
-  /* keep only the outer border */
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 0;
-  overflow: visible;
-  flex: 0 0 auto;
-}
+      border: 1px solid rgba(255,255,255,0.10); /* outer border only */
+      border-radius: 0;
+      overflow: visible;
+      flex: 0 0 auto;
+    }
+    .mini-rounds td{
+      padding: 6px 0;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      line-height: 1;
+      color: rgba(255,255,255,0.92);
+      font-variant-numeric: tabular-nums;
+      user-select: none;
 
-.mini-rounds td{
-  padding: 6px 0;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  line-height: 1;
-  color: rgba(255,255,255,0.92);
-  font-variant-numeric: tabular-nums;
-  user-select: none;
-
-  /* REMOVE per-column borders */
-  border: none;
-
-  /* continuous row background */
-  background: rgba(255,255,255,0.03);
-}
-
-/* keep ONLY the separators between weeks (every 2 columns) */
-.mini-rounds td.sep-left{
-  border-left: 2px solid rgba(148,163,184,0.26);
-}
-
-/* counted highlights still work */
-.mini-rounds td.counted{
-  background: rgba(52,211,153,0.16);
-  color: rgba(255,255,255,0.98);
-}
+      border: none; /* no per-column borders */
+      background: rgba(255,255,255,0.03);
+    }
+    .mini-rounds td.sep-left{
+      border-left: 2px solid rgba(148,163,184,0.26); /* week separators only */
+    }
+    .mini-rounds td.counted{
+      background: rgba(52,211,153,0.16);
+      color: rgba(255,255,255,0.98);
+    }
 
     @media (max-width: 860px){
       table.mini-rounds{
@@ -1297,23 +1289,23 @@ table.mini-rounds{
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
-        const teamName = String(teamRow[COL.name] ?? "").trim();
+        const teamName = String(teamRow[2] ?? "").trim();
         if(!teamName) continue;
 
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
 
         const players = playerRows.map(pr=>{
           const r = pr || [];
-          const pName = String(r[COL.name] ?? "").trim();
+          const pName = String(r[2] ?? "").trim();
 
           const stat = {
-            overallRank: toNum(r[COL.overallRank]),
+            overallRank: toNum(r[0]),
             name: pName,
             displayName: pName ? pName.toUpperCase() : "",
-            stageScore: toNum(r[COL.stage]),
-            best: [toNum(r[COL.bestStart+0]), toNum(r[COL.bestStart+1]), toNum(r[COL.bestStart+2])],
-            weekTotals: [toNum(r[COL.weekStart+0]), toNum(r[COL.weekStart+1]), toNum(r[COL.weekStart+2]), toNum(r[COL.weekStart+3])],
-            rounds: Array.from({length:8}, (_,k)=> toNum(r[COL.roundsStart + k]))
+            stageScore: toNum(r[3]),
+            best: [toNum(r[4]), toNum(r[5]), toNum(r[6])],
+            weekTotals: [toNum(r[7]), toNum(r[8]), toNum(r[9]), toNum(r[10])],
+            rounds: Array.from({length:8}, (_,k)=> toNum(r[11 + k]))
           };
 
           if (pName) {
@@ -1323,7 +1315,7 @@ table.mini-rounds{
           return stat;
         });
 
-        const capName = String(playerRows?.[0]?.[COL.name] ?? "").trim();
+        const capName = String(playerRows?.[0]?.[2] ?? "").trim();
         if (capName) captains.add(capName);
 
         byTeam.set(teamName, { teamName, displayTeamName: teamName.toUpperCase(), players });
@@ -1339,20 +1331,20 @@ table.mini-rounds{
 
       const rows = cleaned.slice(1);
       for (const r of rows){
-        const name = String(r?.[COL.name] ?? "").trim();
+        const name = String(r?.[2] ?? "").trim();
         if(!name) continue;
 
-        const overallRank = toNum(r?.[COL.overallRank]);
+        const overallRank = toNum(r?.[0]);
         if (overallRank === null) continue;
 
         byPlayer.set(name, {
           overallRank,
           name,
           displayName: name.toUpperCase(),
-          stageScore: toNum(r?.[COL.stage]),
-          best: [toNum(r?.[COL.bestStart+0]), toNum(r?.[COL.bestStart+1]), toNum(r?.[COL.bestStart+2])],
-          weekTotals: [toNum(r?.[COL.weekStart+0]), toNum(r?.[COL.weekStart+1]), toNum(r?.[COL.weekStart+2]), toNum(r?.[COL.weekStart+3])],
-          rounds: Array.from({length:8}, (_,k)=> toNum(r?.[COL.roundsStart + k]))
+          stageScore: toNum(r?.[3]),
+          best: [toNum(r?.[4]), toNum(r?.[5]), toNum(r?.[6])],
+          weekTotals: [toNum(r?.[7]), toNum(r?.[8]), toNum(r?.[9]), toNum(r?.[10])],
+          rounds: Array.from({length:8}, (_,k)=> toNum(r?.[11 + k]))
         });
       }
       return byPlayer;
@@ -1389,7 +1381,6 @@ table.mini-rounds{
 
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
-    let currentPlayerToTeam = new Map();
 
     const expandedTeams = new Set();
     const expandedPlayers = new Set();
@@ -1831,10 +1822,10 @@ table.mini-rounds{
       const sheet = cfg.sheet;
 
       const ranges = {
-        teamStandings: a1(sheet, cfg.teamRank),
-        rosters: a1(sheet, cfg.rosters),
-        lookup: a1(sheet, LOOKUP_RANGE_A1),
-        playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
+        teamStandings: `'${sheet}'!${cfg.teamRank}`,
+        rosters: `'${sheet}'!${cfg.rosters}`,
+        lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+        playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
       };
 
       const [teamRows, rosterRows, lookupRows, playerRows] = await Promise.all([
@@ -1907,22 +1898,20 @@ table.mini-rounds{
       return `<span class="chip score">${escapeHtml(fmtScore(score))}</span>`;
     }
 
-    // FIXED: blanks and nulls stay null (=> "-"), never coerced to 0 (=> "E")
     function normalizeRoundValue(v){
       if (v === null || v === undefined) return null;
       const s = String(v).trim();
-      if (s === "") return null;            // BLANK -> null
+      if (s === "") return null;
       const n = Number(s);
-      return Number.isFinite(n) ? n : null; // non-numeric -> null (safe)
+      return Number.isFinite(n) ? n : null;
     }
 
-    // Individual rounds as a simple inline TABLE, with separators every 2 (between weeks).
     function buildRoundsTable(stat){
       const roundsRaw = (stat && Array.isArray(stat.rounds)) ? stat.rounds.slice(0,8) : Array(8).fill(null);
       const rounds = roundsRaw.map(normalizeRoundValue);
       const hi = pickTop3RoundIndices(rounds);
 
-      const sepIdx = new Set([2,4,6]); // border-left on week boundaries
+      const sepIdx = new Set([2,4,6]);
       let tds = "";
       for(let i=0;i<8;i++){
         const v = rounds[i];
@@ -2076,19 +2065,31 @@ table.mini-rounds{
           })
           .join("");
 
+        // Trophy descriptions rule:
+        // - Keep description ONLY for TOP_10 and TEAM_* trophies
+        // - TOP_10: "Season X | #X"
+        // - TEAM trophies: "[TEAM NAME] | Season X"
         const trophyBaseHtml = trophies.length
           ? trophies.map(t=>{
               const meta = trophyMeta(t.type);
-              let sub = `Season ${t.season}`;
-              if (t.type === "TOP_10" && t.playerRank != null) sub += ` • #${t.playerRank}`;
-              if (t.team) sub += ` • ${escapeHtml(String(t.team).toUpperCase())}`;
+
+              const isTeamTrophy = (t.type === "TEAM_1" || t.type === "TEAM_2" || t.type === "TEAM_3");
+              const isTop10 = (t.type === "TOP_10");
+
+              let sub = "";
+              if (isTop10){
+                sub = `Season ${t.season} | #${t.playerRank}`;
+              } else if (isTeamTrophy){
+                sub = `${String(t.team || "").toUpperCase()} | Season ${t.season}`;
+              }
+
               return `
                 <div class="trophy">
                   <div class="trophy-left">
                     <div class="trophy-icon">${meta.icon}</div>
                     <div class="trophy-text">
                       <div class="trophy-main">${escapeHtml(meta.main)}</div>
-                      <div class="trophy-sub">${sub}</div>
+                      ${sub ? `<div class="trophy-sub">${escapeHtml(sub)}</div>` : ``}
                     </div>
                   </div>
                 </div>
@@ -2097,17 +2098,18 @@ table.mini-rounds{
           : "";
 
         const stackablesOrdered = [
-          { label:"-30 Club", icon:"🎯", count: round30,  sub:"Round score ≤ -30" },
-          { label:"-25 Club", icon:"🎯", count: round25,  sub:"Round score ≤ -25" },
-          { label:"-20 Club", icon:"🎯", count: round20,  sub:"Round score ≤ -20" },
+          { label:"-30 Club", icon:"🎯", count: round30 },
+          { label:"-25 Club", icon:"🎯", count: round25 },
+          { label:"-20 Club", icon:"🎯", count: round20 },
 
-          { label:"-80 Club", icon:"⛳", count: season80, sub:"Season total ≤ -80" },
-          { label:"-70 Club", icon:"⛳", count: season70, sub:"Season total ≤ -70" },
-          { label:"-60 Club", icon:"⛳", count: season60, sub:"Season total ≤ -60" },
+          { label:"-80 Club", icon:"⛳", count: season80 },
+          { label:"-70 Club", icon:"⛳", count: season70 },
+          { label:"-60 Club", icon:"⛳", count: season60 },
 
-          { label:"Team Captain", icon:"CAPTAIN", count: captainCount, sub:"Seasons as captain" },
+          { label:"Team Captain", icon:"CAPTAIN", count: captainCount },
         ];
 
+        // Remove description text for stackables (and captain): no trophy-sub
         const trophyStackHtml = stackablesOrdered
           .filter(t => t.count && t.count > 0)
           .map(t=>{
@@ -2122,7 +2124,6 @@ table.mini-rounds{
                   ${iconHtml}
                   <div class="trophy-text">
                     <div class="trophy-main">${escapeHtml(t.label).toUpperCase()}</div>
-                    <div class="trophy-sub">${escapeHtml(t.sub).toUpperCase()}</div>
                   </div>
                 </div>
                 ${countLabel ? `<div class="trophy-count">${escapeHtml(countLabel)}</div>` : ``}
@@ -2207,6 +2208,8 @@ table.mini-rounds{
     /* ---------------- Data Update ---------------- */
     let updating = false;
 
+    let rosterByTeam = new Map();
+
     async function update(force=false){
       if(updating && !force) return;
       updating = true;
@@ -2221,15 +2224,15 @@ table.mini-rounds{
         const sheet = cfg.sheet;
 
         const ranges = {
-          teamStandings: a1(sheet, cfg.teamRank),
-          rosters: a1(sheet, cfg.rosters),
-          lookup: a1(sheet, LOOKUP_RANGE_A1),
+          teamStandings: `'${sheet}'!${cfg.teamRank}`,
+          rosters: `'${sheet}'!${cfg.rosters}`,
+          lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
 
-          playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
-          week1: a1(sheet, RANGE_W1_A1),
-          week2: a1(sheet, RANGE_W2_A1),
-          week3: a1(sheet, RANGE_W3_A1),
-          week4: a1(sheet, RANGE_W4_A1),
+          playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
+          week1: `'${sheet}'!${RANGE_W1_A1}`,
+          week2: `'${sheet}'!${RANGE_W2_A1}`,
+          week3: `'${sheet}'!${RANGE_W3_A1}`,
+          week4: `'${sheet}'!${RANGE_W4_A1}`,
         };
 
         const [
@@ -2252,7 +2255,6 @@ table.mini-rounds{
 
         const parsedTeams = parseTeamRosters(rosterRows);
         rosterByTeam = parsedTeams.byTeam;
-        currentPlayerToTeam = parsedTeams.playerTeamByName;
 
         const lookupMap = parseLookupStats(lookupRows);
 
