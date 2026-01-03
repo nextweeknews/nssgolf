@@ -36,6 +36,14 @@
       --neon-green:  rgba(34,197,94,1);
       --neon-silver: rgba(226,232,240,1);
       --neon-bronze: rgba(251,146,60,1);
+
+      /* Desktop-first row sizing (kept exactly) */
+      --rank-col: 100px;
+      --score-col: 120px;
+
+      --wk-rank-col: 100px;
+      --wk-round-col: 88px;
+      --wk-score-col: 120px;
     }
 
     *{ box-sizing:border-box; }
@@ -66,7 +74,7 @@
     }
     .brand{display:flex; gap:12px; align-items:center;}
 
-    /* Home button icon (replaces ⚡) */
+    /* Home button icon */
     .home-btn{
       width:40px; height:40px;
       border-radius:16px;
@@ -181,11 +189,9 @@
     /* Main header row + entries */
     .header-row, .entry{
       display:grid;
-      grid-template-columns: 100px 1fr 120px;
+      grid-template-columns: var(--rank-col) 1fr var(--score-col);
       align-items:center;
-    }
-    @media (max-width: 640px){
-      .header-row, .entry{ grid-template-columns: 78px 1fr 102px; }
+      min-width: 0;
     }
 
     .header-row{
@@ -205,6 +211,7 @@
       justify-content:center;
       padding: 0 10px;
       height: 18px;
+      min-width: 0;
     }
     .header-row span:nth-child(2){
       justify-content:flex-start;
@@ -225,6 +232,7 @@
       font-size: 18px;
       font-weight: 700;
       transition: background .25s ease;
+      min-width: 0;
     }
 
     .place{
@@ -238,6 +246,7 @@
       padding: 0 10px;
       height: 100%;
       background: transparent;
+      min-width: 0;
     }
     .place.top10bg{ background: var(--top10-bg); }
 
@@ -264,6 +273,7 @@
       overflow:hidden;
       border-radius: 0;
       gap: 0;
+      min-width: 0;
     }
     .team-cell:hover{ filter: brightness(1.04); }
 
@@ -303,12 +313,6 @@
       padding-left: 10px;
     }
 
-    @media (max-width: 640px){
-      :root{ --logo-slot: 40px; }
-      .team-cell{ padding: 0 10px; }
-      .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
-    }
-
     button.team-cell{
       font-family: inherit !important;
       font-size: inherit !important;
@@ -334,18 +338,16 @@
       font-size: 20px;
       font-weight: 900;
       padding: 0 10px;
+      min-width: 0;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Weekly */
     .weekly-header-row, .weekly-entry{
       display:grid;
-      grid-template-columns: 100px 1fr 88px 88px 120px;
+      grid-template-columns: var(--wk-rank-col) 1fr var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
       align-items:center;
-    }
-    @media (max-width: 640px){
-      .weekly-header-row, .weekly-entry{
-        grid-template-columns: 78px 1fr 70px 70px 102px;
-      }
+      min-width: 0;
     }
 
     .weekly-header-row{
@@ -366,6 +368,7 @@
       padding: 0 10px;
       height: 18px;
       white-space: nowrap;
+      min-width: 0;
     }
     .weekly-header-row span:nth-child(2){
       justify-content:flex-start;
@@ -379,6 +382,7 @@
       overflow:hidden;
       font-size: 18px;
       font-weight: 700;
+      min-width: 0;
     }
     .weekly-round{
       height:100%;
@@ -389,6 +393,8 @@
       color: #ffffff;
       font-size: 16px;
       font-weight: 900;
+      min-width: 0;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Collapsible roster / stats */
@@ -413,13 +419,14 @@
       color: var(--muted);
     }
 
+    /* Default: vertical scroll only, but we'll enable horizontal scroll on small screens */
     .roster-scroll{
       max-height: 280px;
       overflow-y: auto;
       overflow-x: hidden;
       padding-right: 4px;
     }
-    .roster-scroll::-webkit-scrollbar { width: 10px; }
+    .roster-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
     .roster-scroll::-webkit-scrollbar-thumb {
       background: rgba(148,163,184,0.22);
       border-radius: 999px;
@@ -627,10 +634,9 @@
     .modal-wrap{
       position: relative;
       width: min(980px, 100%);
-      padding-top: 56px; /* space for floating close button */
+      padding-top: 56px;
     }
 
-    /* Close button floats ABOVE the card and never overlaps it */
     .modal-close-float{
       position: absolute;
       top: 0;
@@ -663,7 +669,6 @@
       overflow: hidden;
     }
 
-    /* Loading state: compact, centered within card */
     .modal-loading{
       min-height: 360px;
       display:flex;
@@ -737,7 +742,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Top-left team text is ALWAYS default white here */
     .hero-sub{
       margin-top: 4px;
       font-size: 11px;
@@ -755,7 +759,6 @@
       color: rgba(255,255,255,0.75);
     }
 
-    /* Player info buttons (2 rows: 4 + 2) */
     .info-btn-grid{
       margin-top: 12px;
       display:grid;
@@ -895,7 +898,6 @@
       text-overflow: ellipsis;
     }
 
-    /* Keep counter text default white */
     .trophy-count{
       flex: 0 0 auto;
       font-size: 12px;
@@ -906,18 +908,14 @@
       white-space: nowrap;
     }
 
-    /* --------- Neon Trophy Tiers --------- */
+    /* Neon tiers */
     .trophy.tier-blue{
       border-color: rgba(56,189,248,0.35);
       background: rgba(56,189,248,0.08);
-      box-shadow:
-        0 0 0 1px rgba(56,189,248,0.10) inset,
-        0 0 18px rgba(56,189,248,0.22);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.10) inset, 0 0 18px rgba(56,189,248,0.22);
     }
     .trophy.tier-blue .trophy-main,
-    .trophy.tier-blue .trophy-icon{
-      color: rgba(186,230,253,0.95);
-    }
+    .trophy.tier-blue .trophy-icon{ color: rgba(186,230,253,0.95); }
     .trophy.tier-blue .trophy-icon{
       border-color: rgba(56,189,248,0.35);
       background: rgba(56,189,248,0.10);
@@ -926,14 +924,10 @@
     .trophy.tier-purple{
       border-color: rgba(168,85,247,0.35);
       background: rgba(168,85,247,0.08);
-      box-shadow:
-        0 0 0 1px rgba(168,85,247,0.10) inset,
-        0 0 18px rgba(168,85,247,0.22);
+      box-shadow: 0 0 0 1px rgba(168,85,247,0.10) inset, 0 0 18px rgba(168,85,247,0.22);
     }
     .trophy.tier-purple .trophy-main,
-    .trophy.tier-purple .trophy-icon{
-      color: rgba(233,213,255,0.95);
-    }
+    .trophy.tier-purple .trophy-icon{ color: rgba(233,213,255,0.95); }
     .trophy.tier-purple .trophy-icon{
       border-color: rgba(168,85,247,0.35);
       background: rgba(168,85,247,0.10);
@@ -942,14 +936,10 @@
     .trophy.tier-gold{
       border-color: rgba(253,224,71,0.40);
       background: rgba(253,224,71,0.10);
-      box-shadow:
-        0 0 0 1px rgba(253,224,71,0.12) inset,
-        0 0 18px rgba(253,224,71,0.24);
+      box-shadow: 0 0 0 1px rgba(253,224,71,0.12) inset, 0 0 18px rgba(253,224,71,0.24);
     }
     .trophy.tier-gold .trophy-main,
-    .trophy.tier-gold .trophy-icon{
-      color: rgba(254,240,138,0.98);
-    }
+    .trophy.tier-gold .trophy-icon{ color: rgba(254,240,138,0.98); }
     .trophy.tier-gold .trophy-icon{
       border-color: rgba(253,224,71,0.40);
       background: rgba(253,224,71,0.12);
@@ -958,14 +948,10 @@
     .trophy.tier-silver{
       border-color: rgba(226,232,240,0.38);
       background: rgba(226,232,240,0.08);
-      box-shadow:
-        0 0 0 1px rgba(226,232,240,0.10) inset,
-        0 0 18px rgba(226,232,240,0.20);
+      box-shadow: 0 0 0 1px rgba(226,232,240,0.10) inset, 0 0 18px rgba(226,232,240,0.20);
     }
     .trophy.tier-silver .trophy-main,
-    .trophy.tier-silver .trophy-icon{
-      color: rgba(241,245,249,0.98);
-    }
+    .trophy.tier-silver .trophy-icon{ color: rgba(241,245,249,0.98); }
     .trophy.tier-silver .trophy-icon{
       border-color: rgba(226,232,240,0.38);
       background: rgba(226,232,240,0.10);
@@ -974,14 +960,10 @@
     .trophy.tier-bronze{
       border-color: rgba(251,146,60,0.40);
       background: rgba(251,146,60,0.09);
-      box-shadow:
-        0 0 0 1px rgba(251,146,60,0.10) inset,
-        0 0 18px rgba(251,146,60,0.20);
+      box-shadow: 0 0 0 1px rgba(251,146,60,0.10) inset, 0 0 18px rgba(251,146,60,0.20);
     }
     .trophy.tier-bronze .trophy-main,
-    .trophy.tier-bronze .trophy-icon{
-      color: rgba(254,215,170,0.96);
-    }
+    .trophy.tier-bronze .trophy-icon{ color: rgba(254,215,170,0.96); }
     .trophy.tier-bronze .trophy-icon{
       border-color: rgba(251,146,60,0.40);
       background: rgba(251,146,60,0.11);
@@ -990,14 +972,10 @@
     .trophy.tier-green{
       border-color: rgba(34,197,94,0.40);
       background: rgba(34,197,94,0.09);
-      box-shadow:
-        0 0 0 1px rgba(34,197,94,0.10) inset,
-        0 0 18px rgba(34,197,94,0.22);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.10) inset, 0 0 18px rgba(34,197,94,0.22);
     }
     .trophy.tier-green .trophy-main,
-    .trophy.tier-green .trophy-icon{
-      color: rgba(187,247,208,0.96);
-    }
+    .trophy.tier-green .trophy-icon{ color: rgba(187,247,208,0.96); }
     .trophy.tier-green .trophy-icon{
       border-color: rgba(34,197,94,0.40);
       background: rgba(34,197,94,0.11);
@@ -1046,6 +1024,7 @@
       overflow-x: auto;
       padding-bottom: 2px;
       justify-content: flex-end;
+      -webkit-overflow-scrolling: touch;
     }
     .btn-row + .btn-row{ margin-top: 8px; }
 
@@ -1079,10 +1058,7 @@
       font-variant-numeric: tabular-nums;
       flex: 0 0 auto;
     }
-    .chip.solo{
-      text-transform: uppercase;
-      letter-spacing: .10em;
-    }
+    .chip.solo{ text-transform: uppercase; letter-spacing: .10em; }
 
     .chip.rank{
       background: rgba(255,255,255,0.04);
@@ -1108,7 +1084,7 @@
       letter-spacing: .08em;
     }
 
-    /* Inline rounds table: continuous background, borders only between weeks */
+    /* Inline rounds table */
     table.mini-rounds{
       border-collapse: separate;
       border-spacing: 0;
@@ -1135,16 +1111,101 @@
       border: none;
       background: rgba(255,255,255,0.03);
     }
-    .mini-rounds td.sep-left{
-      border-left: 2px solid rgba(148,163,184,0.26);
-    }
+    .mini-rounds td.sep-left{ border-left: 2px solid rgba(148,163,184,0.26); }
     .mini-rounds td.counted{
       background: rgba(52,211,153,0.16);
       color: rgba(255,255,255,0.98);
     }
 
-    @media (max-width: 860px){
-      table.mini-rounds{ width: 340px; max-width: 340px; }
+    /* ---------------- MOBILE OPTIMIZATION (shrink-to-fit; desktop unchanged) ---------------- */
+    @media (max-width: 760px){
+      /* Narrow the row sections */
+      :root{
+        --rank-col: 72px;
+        --score-col: 92px;
+
+        --wk-rank-col: 72px;
+        --wk-round-col: 64px;
+        --wk-score-col: 92px;
+
+        --logo-slot: 34px;
+      }
+
+      .container{ padding: 14px 12px 40px; }
+      .topbar-inner{ padding: 12px 12px; }
+
+      .card{ padding: 14px 12px; border-radius: 18px; }
+      .card-head .h2{ font-size: 18px; }
+
+      .header-row, .weekly-header-row{ height: 36px; font-size: 12px; }
+      .entry, .weekly-entry{ height: 44px; }
+      .place{ font-size: 18px; padding: 0 6px; }
+      .score-col{ font-size: 16px; padding: 0 6px; }
+
+      .team-cell{ padding: 0 8px; }
+      .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
+      .team-logo{ height: calc(100% - 8px); }
+
+      .weekly-round{ font-size: 14px; }
+
+      /* Search box fits */
+      .search{ min-width: 0; width: 100%; }
+
+      /* Make complex tables scrollable horizontally on mobile */
+      .roster-scroll{
+        overflow-x: auto;
+        padding-right: 0;
+        -webkit-overflow-scrolling: touch;
+      }
+      /* Ensure the table keeps its column sizing without crushing */
+      table.roster-table{
+        width: max-content;
+        min-width: 820px;
+      }
+
+      /* Modal scales tighter */
+      .modal-backdrop{ padding: 12px; }
+      .modal-wrap{ padding-top: 52px; width: 100%; }
+      .modal-card{ border-radius: 18px; }
+      .modal-body{ padding: 12px; }
+      .hero-name{ font-size: 16px; }
+      .hero-sub{ font-size: 10px; }
+
+      /* Trophy pills wrap well */
+      .trophy-text{ max-width: 220px; }
+
+      /* Mini rounds table can scroll within row if needed */
+      table.mini-rounds{
+        width: 300px;
+        max-width: 300px;
+      }
+      .btn-row{
+        justify-content: flex-end;
+      }
+    }
+
+    @media (max-width: 420px){
+      /* Even smaller phones */
+      :root{
+        --rank-col: 64px;
+        --score-col: 84px;
+
+        --wk-rank-col: 64px;
+        --wk-round-col: 58px;
+        --wk-score-col: 84px;
+
+        --logo-slot: 30px;
+      }
+
+      .select{ min-width: 170px; padding: 10px 38px 10px 12px; }
+      .select-label{ font-size: 10px; }
+      .kicker{ font-size: 10px; }
+
+      .entry, .weekly-entry{ height: 42px; }
+      .team-cell .name-text{ font-size: 15px; }
+
+      table.mini-rounds{ width: 280px; max-width: 280px; }
+      table.roster-table{ min-width: 860px; } /* keep readable; scrollable */
     }
   </style>
 </head>
@@ -1237,9 +1298,7 @@
     <div class="modal-wrap">
       <button id="playerModalClose" class="modal-close-float" type="button" aria-label="Close">✕</button>
       <div class="modal-card" role="dialog" aria-modal="true" aria-label="Player details">
-        <div id="playerModalContent" class="modal-body">
-          <!-- content inserted by JS -->
-        </div>
+        <div id="playerModalContent" class="modal-body"></div>
       </div>
     </div>
   </div>
@@ -1470,7 +1529,6 @@
           return stat;
         });
 
-        // captain is the first player row
         const capName = String(playerRows?.[0]?.[2] ?? "").trim();
         if (capName) captains.add(capName);
 
@@ -2162,7 +2220,7 @@
         let round20 = 0, round25 = 0, round30 = 0;
         let captainCount = 0;
 
-        // Pre-fetch CURRENT_SEASON roster membership ONLY (for header team)
+        // CURRENT_SEASON roster membership ONLY (for header team)
         const currentSeasonData = await getSeasonHistoryData(CURRENT_SEASON);
         const currentTeamOnly = currentSeasonData.playerToTeam.get(cleanName) || null;
 
@@ -2226,7 +2284,7 @@
           });
         }
 
-        // Header team MUST be from CURRENT_SEASON roster only (otherwise SOLO PLAYER)
+        // Header team from CURRENT_SEASON roster only (otherwise SOLO PLAYER)
         const headerTeam = currentTeamOnly;
 
         const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
@@ -2240,13 +2298,12 @@
         const bestSeasonPrev = seasonTotalsPrev.length ? Math.min(...seasonTotalsPrev) : null;
         const avgSeasonPrev  = seasonTotalsPrev.length ? (seasonTotalsPrev.reduce((a,b)=>a+b,0) / seasonTotalsPrev.length) : null;
 
-        // -------- trophies (exclude current season) --------
+        // trophies (exclude current season)
         const trophyItems = [];
 
         for (const sum of summaries){
           if (sum.season === CURRENT_SEASON) continue;
 
-          // team podium
           if (sum.teamRank === 1) trophyItems.push({
             kind:"season", season: sum.season, type:"TEAM_1",
             meta: trophyMeta("TEAM_1"),
@@ -2263,7 +2320,6 @@
             sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
           });
 
-          // individual podium: description should be just Season X (no position)
           if (sum.playerRank === 1) trophyItems.push({
             kind:"season", season: sum.season, type:"IND_1",
             meta: trophyMeta("IND_1"),
@@ -2280,7 +2336,6 @@
             sub: `Season ${sum.season}`
           });
 
-          // top 10: description includes Season + #rank
           if (sum.playerRank != null && Number(sum.playerRank) >= 4 && Number(sum.playerRank) <= 10) {
             trophyItems.push({
               kind:"season", season: sum.season, type:"TOP_10",
@@ -2290,7 +2345,7 @@
           }
         }
 
-        // Stackables (misc)
+        // stackables
         const stackablesOrdered = [
           { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
           { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
@@ -2371,7 +2426,6 @@
           ? ordinal(bestIndFinishPrev).toUpperCase()
           : "-";
 
-        // Build final content (restore grid)
         playerModalContent.className = "modal-body";
         playerModalContent.innerHTML = `
           <div class="modal-left">
@@ -2472,11 +2526,11 @@
           rosters: `'${sheet}'!${cfg.rosters}`,
           lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
 
-          playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
-          week1: `'${sheet}'!${RANGE_W1_A1}`,
-          week2: `'${sheet}'!${RANGE_W2_A1}`,
-          week3: `'${sheet}'!${RANGE_W3_A1}`,
-          week4: `'${sheet}'!${RANGE_W4_A1}`,
+          playerStandings: `'${sheet}'!AE4:AH101`,
+          week1: `'${sheet}'!Z4:AC13`,
+          week2: `'${sheet}'!Z16:AC25`,
+          week3: `'${sheet}'!Z28:AC37`,
+          week4: `'${sheet}'!Z40:AC49`,
         };
 
         const [
