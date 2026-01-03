@@ -25,7 +25,7 @@
       --top10-bg: rgba(16,185,129,0.18);
 
       /* Logo layout */
-      --logo-slot: 40px; /* area between cell-left and name start */
+      --logo-slot: 40px; /* ✅ slot stays even if image fails */
     }
 
     *{ box-sizing:border-box; }
@@ -224,7 +224,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start; /* keep left-justified */
-      padding: 0 0px;
+      padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
@@ -238,14 +238,14 @@
     }
     .team-cell:hover{ filter: brightness(1.04); }
 
-    /* Fixed logo slot: no left/right padding */
+    /* Fixed logo slot: stays even if image missing */
     .team-logo-slot{
       width: var(--logo-slot);
       height: 100%;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 0;              /* ✅ removed padding */
+      padding: 0;              /* no side padding */
       flex: 0 0 auto;
     }
     .team-logo{
@@ -272,7 +272,7 @@
       min-width: 0;
       text-align: left;
       justify-content: flex-start;
-      padding-left: 0px; /* minimal gap between logo slot and text */
+      padding-left: 10px; /* minimal consistent spacing after slot */
     }
 
     @media (max-width: 640px){
@@ -1060,7 +1060,9 @@
             <img class="team-logo"
                  src="${escapeHtml(logoSrc)}"
                  alt="${escapeHtml(team.displayName)} logo"
-                 onerror="this.style.display='none'; this.closest('.team-logo-slot') && (this.closest('.team-logo-slot').style.display='none');" />
+                 loading="lazy"
+                 decoding="async"
+                 onerror="this.style.display='none'; this.removeAttribute('src');" />
           </span>
           <span class="name-text">${escapeHtml(team.displayName)}</span>
         `;
