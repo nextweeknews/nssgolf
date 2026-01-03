@@ -255,6 +255,21 @@
       pointer-events:none;
     }
 
+    /* FIX: buttons sometimes inherit UA/reset styles that override weight */
+    button.team-cell{
+      font-family: inherit !important;
+      font-size: inherit !important;
+      font-weight: 900 !important;
+      letter-spacing: inherit !important;
+      text-transform: inherit !important;
+      line-height: 1 !important;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button.team-cell .name-text{
+      font-weight: 950 !important;
+    }
+
     .score-col{
       height:100%;
       display:flex;
@@ -570,8 +585,7 @@
     // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
     const COL = { overallRank:0, name:2, stage:3, bestStart:4, weekStart:7, roundsStart:11 };
 
-    // Seasons 1–5 sheets are named exactly: "Season 1" ... "Season 5"
-    // Season 6 currently uses: "Season 6, Stage 1"
+    // Season configs
     const SEASON_CONFIG = {
       6: { sheet: "Season 6, Stage 1", rosters: "A3:S63", teamRank: "U4:X15" },
       5: { sheet: "Season 5",         rosters: "A3:S63", teamRank: "U4:X15" },
@@ -581,7 +595,7 @@
       1: { sheet: "Season 1",         rosters: "A3:S38", teamRank: "U4:X10" },
     };
 
-    // Player + weekly ranges (same for all seasons per your spec)
+    // Same ranges for all seasons
     const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
     const RANGE_W1_A1 = "Z4:AC13";
     const RANGE_W2_A1 = "Z16:AC25";
@@ -607,7 +621,7 @@
       return TEAM_STYLES[key] || null;
     }
 
-    // Worker fetch
+    // Worker fetch (POST first, GET fallback)
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -699,10 +713,7 @@
       return normalizeStandingsGeneric(rows);
     }
 
-    // NEW: choose EXACTLY up to 3 round indices to highlight.
-    // - Ignores null/unplayed rounds
-    // - Chooses the best 3 by score (lowest is best)
-    // - Handles duplicates by selecting only the first N occurrences (in chronological order) needed
+    // Pick EXACTLY up to 3 round indices to highlight (duplicates handled by first occurrences)
     function pickTop3RoundIndices(rounds){
       const played = (rounds || [])
         .map((v, idx) => ({ v, idx }))
@@ -710,17 +721,12 @@
 
       if (!played.length) return new Set();
 
-      // Determine which 3 "values" are considered best, by sorting values ascending.
       const sortedVals = played.map(o => o.v).slice().sort((a,b)=>a-b);
       const chosenVals = sortedVals.slice(0, Math.min(3, sortedVals.length));
 
-      // Count how many times each value is needed (handles duplicates)
       const need = new Map();
-      for (const v of chosenVals){
-        need.set(v, (need.get(v) || 0) + 1);
-      }
+      for (const v of chosenVals) need.set(v, (need.get(v) || 0) + 1);
 
-      // Walk rounds chronologically, pick indices until needs are satisfied.
       const picked = new Set();
       for (const o of played){
         const remaining = need.get(o.v) || 0;
@@ -728,13 +734,12 @@
           picked.add(o.idx);
           need.set(o.v, remaining - 1);
         }
-        if (picked.size >= chosenVals.length) break; // exactly as many as played (<=3)
+        if (picked.size >= chosenVals.length) break;
       }
-
       return picked;
     }
 
-    // Parse rosters + build team + player stat maps
+    // Parse rosters + build maps
     function parseRostersAndPlayerStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
@@ -807,26 +812,6 @@
     }
     viewSelect.addEventListener("change", ()=> setTab(viewSelect.value));
 
-    function getSelectedSeason(){
-      const n = Number(seasonSelect.value);
-      return SEASON_CONFIG[n] ? n : 6;
-    }
-
-    function getRangesForSeason(seasonNum){
-      const cfg = SEASON_CONFIG[seasonNum];
-      const sheet = cfg.sheet;
-
-      return {
-        teamStandings: a1(sheet, cfg.teamRank),
-        rosters: a1(sheet, cfg.rosters),
-        playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
-        week1: a1(sheet, RANGE_W1_A1),
-        week2: a1(sheet, RANGE_W2_A1),
-        week3: a1(sheet, RANGE_W3_A1),
-        week4: a1(sheet, RANGE_W4_A1),
-      };
-    }
-
     // Render: Team roster
     function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
@@ -874,7 +859,7 @@
 
       roster.players.forEach(p=>{
         const rounds = (p.rounds || Array(8).fill(null));
-        const highlightIdx = pickTop3RoundIndices(rounds); // <=3, ignores unplayed
+        const highlightIdx = pickTop3RoundIndices(rounds);
 
         const weekTotals = (p.weekTotals || [null,null,null,null]);
         const best = (p.best || [null,null,null]);
@@ -884,18 +869,15 @@
         cells.push(`<td class="cell-name">${escapeHtml(p.name || "")}</td>`);
         cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
 
-        // Best 3 columns are always the counted scores (as provided by the sheet)
         for(let i=0;i<3;i++){
           cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
         }
 
-        // Weekly totals
         for(let i=0;i<4;i++){
           const cls = (i===3) ? "sep-right" : "";
           cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
         }
 
-        // Individual rounds: highlight EXACTLY up to 3 indices chosen by pickTop3RoundIndices
         for(let i=0;i<8;i++){
           const v = rounds[i];
           const isHighlighted = highlightIdx.has(i);
@@ -956,8 +938,7 @@
       const best = stat.best || [null,null,null];
       const weekTotals = stat.weekTotals || [null,null,null,null];
       const rounds = stat.rounds || Array(8).fill(null);
-
-      const highlightIdx = pickTop3RoundIndices(rounds); // <=3
+      const highlightIdx = pickTop3RoundIndices(rounds);
 
       const cells = [];
 
