@@ -846,102 +846,134 @@
       color: rgba(255,255,255,.65);
       margin-bottom: 10px;
     }
-    .season-list{
-      display:flex;
-      flex-direction:column;
-      gap: 8px;
-    }
-    .season-row{
+
+    /* -------- NEW: Season Performance layout (pill rows + mini rounds) -------- */
+    .season-entry{
       padding: 10px 10px;
       border-radius: 14px;
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.08);
     }
-    .season-row-top{
+    .season-entry + .season-entry{ margin-top: 10px; }
+
+    .season-entry-head{
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 10px;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
     }
-    .season-name{
+    .season-entry-name{
       font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,0.92);
+    }
+    .season-entry-note{
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(156,163,199,0.95);
+    }
+
+    .perf-row{
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      display: grid;
+      background: var(--row-bg);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .perf-row + .perf-row{ margin-top: 8px; }
+
+    .perf-row .seg{
+      height: 40px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      font-size: 11px;
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .10em;
       color: rgba(255,255,255,0.92);
+      min-width: 0;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
     }
-    .season-badges{
-      display:flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      justify-content:flex-end;
+    .perf-row .seg + .seg{
+      border-left: 1px solid rgba(255,255,255,0.10);
     }
 
-    .badge{
-      font-size: 10px;
+    .rank-seg{ color: var(--title); }
+    .rank-seg.gold{ color: var(--gold); }
+    .rank-seg.silver{ color: var(--silver); }
+    .rank-seg.bronze{ color: var(--bronze); }
+    .rank-emoji{ margin-right: 6px; }
+
+    .team-seg{
+      justify-content: center;
+      text-align: center;
+      background: var(--team-bg, rgba(255,255,255,0.06));
+      color: var(--team-fg, rgba(255,255,255,0.92));
+    }
+
+    .score-seg{
+      background: #d9d9d9;
+      color: #000000;
+      letter-spacing: .08em;
+    }
+
+    .rounds-seg{
+      padding: 0;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .mini-rounds{
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      grid-template-rows: 16px 1fr;
+    }
+    .mr-h{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 9px;
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .12em;
-      padding: 6px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.90);
-      white-space: nowrap;
+      color: var(--muted);
+      background: rgba(148,163,184,0.12);
     }
-    .badge.medal-gold{
-      background: rgba(255,215,0,0.18);
-      border-color: rgba(255,215,0,0.35);
-      color: var(--gold);
-    }
-    .badge.medal-silver{
-      background: rgba(192,192,192,0.16);
-      border-color: rgba(192,192,192,0.30);
-      color: var(--silver);
-    }
-    .badge.medal-bronze{
-      background: rgba(205,127,50,0.18);
-      border-color: rgba(205,127,50,0.32);
-      color: var(--bronze);
-    }
-
-    .season-lines{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 4px;
-    }
-    .season-line{
-      display:flex;
-      justify-content:space-between;
-      gap: 10px;
-      font-size: 11px;
-      font-weight: 900;
-      color: rgba(233,238,248,0.88);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      align-items: center;
-    }
-    .season-line span:first-child{
-      color: rgba(156,163,199,0.95);
-      letter-spacing: .12em;
-      flex: 0 0 auto;
-      padding-right: 8px;
-    }
-    .season-line .right{
+    .mr-v{
       display:flex;
       align-items:center;
-      gap: 8px;
-      justify-content:flex-end;
-      min-width: 0;
-      flex: 1 1 auto;
+      justify-content:center;
+      font-size: 11px;
+      font-weight: 950;
+      color: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.04);
+    }
+    .mr-v.counted{
+      background: rgba(52,211,153,0.16);
+      color: rgba(255,255,255,0.98);
+    }
+    .mr-sep{
+      border-left: 2px solid rgba(148,163,184,0.26);
     }
 
-    /* TEAM PILL (HISTORY): NO LOGO, tighter fit */
+    /* Team pill (history): no logo, tight fit */
     .team-pill{
       display:inline-flex;
       align-items:center;
-      padding: 4px 8px;            /* smaller */
+      padding: 4px 8px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.18);
       max-width: 100%;
@@ -960,8 +992,9 @@
       text-overflow: ellipsis;
       min-width: 0;
       max-width: 260px;
-      font-size: 10px;            /* slightly smaller */
+      font-size: 10px;
       line-height: 1;
+      text-align: center;
     }
 
     .modal-loading{
@@ -1192,6 +1225,19 @@
     }
     function rankClass(rank){
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
+
+    function ordinal(n){
+      const v = Number(n);
+      if(!Number.isFinite(v)) return "—";
+      const mod100 = v % 100;
+      const mod10  = v % 10;
+      const suf =
+        (mod100 >= 11 && mod100 <= 13) ? "th" :
+        (mod10 === 1) ? "st" :
+        (mod10 === 2) ? "nd" :
+        (mod10 === 3) ? "rd" : "th";
+      return `${v}${suf}`;
     }
 
     function normalizeStandingsGeneric(rows){
@@ -1826,24 +1872,59 @@
       return data;
     }
 
-    // Team pill now only shows text, tight to content
-    function buildTeamPill(teamName){
-      if (!teamName) return "";
-      const style = getTeamStyle(teamName) || {};
-      const bg = style.bg || "rgba(255,255,255,0.06)";
-      const fg = style.fg || "rgba(255,255,255,0.92)";
-
-      const teamCaps = String(teamName).toUpperCase();
-      return `
-        <span class="team-pill" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">
-          <span class="team-text">${escapeHtml(teamCaps)}</span>
-        </span>
-      `;
-    }
-
     function trophyCountLabel(n){
       if (!n || n <= 1) return "";
       return `x${n}`;
+    }
+
+    function buildRankSeg(rank, isPrev){
+      if (rank == null || !Number.isFinite(Number(rank))){
+        return `<div class="seg rank-seg">—</div>`;
+      }
+      const r = Number(rank);
+      let cls = "rank-seg";
+      let emoji = "";
+      if (isPrev){
+        if (r === 1){ cls += " gold"; emoji = "🥇"; }
+        else if (r === 2){ cls += " silver"; emoji = "🥈"; }
+        else if (r === 3){ cls += " bronze"; emoji = "🥉"; }
+      }
+      const txt = ordinal(r);
+      return `<div class="seg ${cls}">${emoji ? `<span class="rank-emoji">${emoji}</span>` : ""}${escapeHtml(txt)}</div>`;
+    }
+
+    function buildTeamSeg(teamName){
+      if(!teamName){
+        return `<div class="seg team-seg" style="--team-bg: rgba(255,255,255,0.06); --team-fg: rgba(255,255,255,0.92);">SOLO</div>`;
+      }
+      const style = getTeamStyle(teamName) || {};
+      const bg = style.bg || "rgba(255,255,255,0.06)";
+      const fg = style.fg || "rgba(255,255,255,0.92)";
+      return `<div class="seg team-seg" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">${escapeHtml(String(teamName).toUpperCase())}</div>`;
+    }
+
+    function buildScoreSeg(score){
+      return `<div class="seg score-seg">${escapeHtml(fmtScore(score))}</div>`;
+    }
+
+    function buildMiniRounds(stat){
+      const labels = ["1-1","1-2","2-1","2-2","3-1","3-2","4-1","4-2"];
+      const rounds = (stat && Array.isArray(stat.rounds)) ? stat.rounds.slice(0,8) : Array(8).fill(null);
+      const cleaned = rounds.map(v => (Number.isFinite(Number(v)) ? Number(v) : null));
+      const hi = pickTop3RoundIndices(cleaned);
+
+      let html = `<div class="mini-rounds">`;
+      for(let i=0;i<8;i++){
+        const sep = (i===2 || i===4 || i===6) ? " mr-sep" : "";
+        html += `<div class="mr-h${sep}">${labels[i]}</div>`;
+      }
+      for(let i=0;i<8;i++){
+        const sep = (i===2 || i===4 || i===6) ? " mr-sep" : "";
+        const cls = hi.has(i) ? " counted" : "";
+        html += `<div class="mr-v${sep}${cls}">${escapeHtml(fmtScore(cleaned[i]))}</div>`;
+      }
+      html += `</div>`;
+      return html;
     }
 
     async function openPlayerModal(playerName){
@@ -1915,7 +1996,8 @@
             teamRank: teamStanding?.rank ?? null,
             teamScore: teamStanding?.score ?? null,
             playerRank: playerStanding?.rank ?? null,
-            playerScore: playerStanding?.score ?? null,
+            playerScore: (playerStanding?.score ?? stats?.stageScore) ?? null,
+            stats: stats || null
           });
         }
 
@@ -1957,50 +2039,36 @@
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
-            const badges = [];
-            if (sum.season !== CURRENT_SEASON){
-              if (sum.teamRank === 1) badges.push({ text:"TEAM 1ST", cls:"medal-gold" });
-              if (sum.teamRank === 2) badges.push({ text:"TEAM 2ND", cls:"medal-silver" });
-              if (sum.teamRank === 3) badges.push({ text:"TEAM 3RD", cls:"medal-bronze" });
+            const isPrev = (sum.season !== CURRENT_SEASON);
 
-              if (sum.playerRank === 1) badges.push({ text:"IND 1ST", cls:"medal-gold" });
-              if (sum.playerRank === 2) badges.push({ text:"IND 2ND", cls:"medal-silver" });
-              if (sum.playerRank === 3) badges.push({ text:"IND 3RD", cls:"medal-bronze" });
-
-              if (sum.playerRank != null && Number(sum.playerRank) <= 10 && sum.playerRank > 3) {
-                badges.push({ text:"TOP 10", cls:"" });
-              }
-            }
-
-            const teamRight = sum.teamName
-              ? `
-                <span class="right">
-                  ${buildTeamPill(sum.teamName)}
-                  <span style="opacity:.95; font-variant-numeric: tabular-nums;">#${sum.teamRank ?? "—"} • ${escapeHtml(fmtScore(sum.teamScore))}</span>
-                </span>
-              `
-              : `<span class="right"><span style="opacity:.75;">—</span></span>`;
-
-            const playerRight =
-              (sum.playerRank != null || sum.playerScore != null)
-                ? `<span class="right"><span style="opacity:.95; font-variant-numeric: tabular-nums;">#${sum.playerRank ?? "—"} • ${escapeHtml(fmtScore(sum.playerScore))}</span></span>`
-                : `<span class="right"><span style="opacity:.75;">—</span></span>`;
-
-            return `
-              <div class="season-row">
-                <div class="season-row-top">
-                  <div class="season-name">Season ${sum.season}${sum.season === CURRENT_SEASON ? " (Current)" : ""}</div>
-                  <div class="season-badges">
-                    ${badges.slice(0,4).map(b=>`<span class="badge ${escapeHtml(b.cls)}">${escapeHtml(b.text)}</span>`).join("")}
-                  </div>
-                </div>
-                <div class="season-lines">
-                  <div class="season-line"><span>Team</span>${teamRight}</div>
-                  <div class="season-line"><span>Player</span>${playerRight}</div>
-                </div>
+            const teamRow = `
+              <div class="perf-row" style="grid-template-columns: 110px 1fr 120px;">
+                ${buildRankSeg(sum.teamRank, isPrev)}
+                ${buildTeamSeg(sum.teamName)}
+                ${buildScoreSeg(sum.teamScore)}
               </div>
             `;
-          }).join("");
+
+            const playerRow = `
+              <div class="perf-row" style="grid-template-columns: 110px 120px 1fr;">
+                ${buildRankSeg(sum.playerRank, isPrev)}
+                ${buildScoreSeg(sum.playerScore)}
+                <div class="seg rounds-seg">${buildMiniRounds(sum.stats)}</div>
+              </div>
+            `;
+
+            return `
+              <div class="season-entry">
+                <div class="season-entry-head">
+                  <div class="season-entry-name">Season ${sum.season}${sum.season === CURRENT_SEASON ? " (Current)" : ""}</div>
+                  <div class="season-entry-note">Team • Player</div>
+                </div>
+                ${teamRow}
+                ${playerRow}
+              </div>
+            `;
+          })
+          .join("");
 
         const trophyBaseHtml = trophies.length
           ? trophies.map(t=>{
@@ -2116,7 +2184,7 @@
 
           <div class="modal-pane">
             <div class="season-title">Season Performance</div>
-            <div class="season-list">
+            <div>
               ${seasonRowsHtml || `<div style="opacity:.8; font-weight:900; text-transform:uppercase; letter-spacing:.12em;">No history found.</div>`}
             </div>
           </div>
