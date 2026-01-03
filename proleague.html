@@ -940,12 +940,16 @@
       padding: 0;
       line-height: 0;
     }
+
+    /* FIX #1: make logo FIT the slot (not tiny-left) */
     .team-pill .mini-logo img{
-      width:100%;
-      height:100%;
-      object-fit: contain; /* square logos: never crop */
-      display:block;
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;    /* square logos, fill the square */
+      object-position: center;
     }
+
     .team-pill .team-text{
       font-weight: 950;
       letter-spacing: .10em;
@@ -1070,7 +1074,7 @@
 
     /* -----------------------------------------------------------
        CURRENT SEASON CONTROL
-       - Used to exclude trophies for the ongoing/current season.
+       - Exclude current season from: trophies, accolades, best-finish stats.
        - You can set it via query param: ?currentSeason=6
        - Or hardcode it here.
     ----------------------------------------------------------- */
@@ -1780,10 +1784,6 @@
       }
     }
 
-    function medalClass(rank){
-      return rank === 1 ? "medal-gold" : rank === 2 ? "medal-silver" : rank === 3 ? "medal-bronze" : "";
-    }
-
     // season data cache
     const seasonHistoryCache = new Map(); // seasonNum -> { teamMap, playerMap, playerToTeam, playerStatsMap }
 
@@ -1833,15 +1833,17 @@
       return data;
     }
 
+    /* FIX #2: team pill MUST use TEAM_STYLES bg + fg */
     function buildTeamPill(teamName, forceMedalRank=null){
       if (!teamName) return "";
       const style = getTeamStyle(teamName) || {};
-      const bg = style.bg || "rgba(255,255,255,0.06)";
-      const fg = style.fg || "rgba(255,255,255,0.92)";
+      const baseBg = style.bg || "rgba(255,255,255,0.06)";
+      const baseFg = style.fg || "rgba(255,255,255,0.92)";
 
-      // if forced medal, tint bg + set fg to medal color (optional)
-      let pillBg = bg;
-      let pillFg = fg;
+      let pillBg = baseBg;
+      let pillFg = baseFg;
+
+      // If forced medal, override (for trophy case usage; optional)
       if (forceMedalRank === 1){ pillBg = "rgba(255,215,0,0.18)"; pillFg = "var(--gold)"; }
       if (forceMedalRank === 2){ pillBg = "rgba(192,192,192,0.16)"; pillFg = "var(--silver)"; }
       if (forceMedalRank === 3){ pillBg = "rgba(205,127,50,0.18)"; pillFg = "var(--bronze)"; }
@@ -1875,10 +1877,11 @@
         // Build season summaries (most recent first)
         const seasons = [6,5,4,3,2,1];
         const summaries = [];
-        const allRounds = [];
+        const allRoundsAll = [];      // all seasons (for display if you want)
+        const allRoundsPrev = [];     // prev seasons only (for best/avg stats that exclude current)
 
-        let bestTeamFinish = null;
-        let bestIndFinish  = null;
+        let bestTeamFinishPrev = null;
+        let bestIndFinishPrev  = null;
 
         for (const s of seasons){
           const data = await getSeasonHistoryData(s);
@@ -1895,18 +1898,24 @@
 
           if(!hasAny) continue;
 
-          // accumulate rounds for best/avg
+          // accumulate rounds
           if (stats && Array.isArray(stats.rounds)){
             for (const v of stats.rounds){
-              if (Number.isFinite(v)) allRounds.push(v);
+              if (Number.isFinite(v)) {
+                allRoundsAll.push(v);
+                if (s !== CURRENT_SEASON) allRoundsPrev.push(v);
+              }
             }
           }
 
-          if (teamStanding?.rank != null){
-            bestTeamFinish = bestTeamFinish == null ? teamStanding.rank : Math.min(bestTeamFinish, teamStanding.rank);
-          }
-          if (playerStanding?.rank != null){
-            bestIndFinish = bestIndFinish == null ? playerStanding.rank : Math.min(bestIndFinish, playerStanding.rank);
+          // Best finishes (PREVIOUS SEASONS ONLY)
+          if (s !== CURRENT_SEASON){
+            if (teamStanding?.rank != null){
+              bestTeamFinishPrev = bestTeamFinishPrev == null ? teamStanding.rank : Math.min(bestTeamFinishPrev, teamStanding.rank);
+            }
+            if (playerStanding?.rank != null){
+              bestIndFinishPrev = bestIndFinishPrev == null ? playerStanding.rank : Math.min(bestIndFinishPrev, playerStanding.rank);
+            }
           }
 
           summaries.push({
@@ -1934,14 +1943,14 @@
         const headerFg = headerStyle?.fg || "#ffffff";
         const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
 
-        // Player info stats
-        const bestRound = allRounds.length ? Math.min(...allRounds) : null;
-        const avgRound = allRounds.length ? (allRounds.reduce((a,b)=>a+b,0) / allRounds.length) : null;
+        // Player info stats (PREVIOUS SEASONS ONLY)
+        const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
+        const avgRoundPrev = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
 
         // Trophy case (EXCLUDE current season)
         const trophies = [];
         for (const sum of summaries){
-          if (sum.season === CURRENT_SEASON) continue; // <-- requested: no trophies for current season
+          if (sum.season === CURRENT_SEASON) continue;
 
           if (sum.teamRank === 1) trophies.push({ season: sum.season, type:"TEAM_1", team: sum.teamName });
           if (sum.teamRank === 2) trophies.push({ season: sum.season, type:"TEAM_2", team: sum.teamName });
@@ -1957,25 +1966,27 @@
           return trophyMeta(a.type).pr - trophyMeta(b.type).pr;
         });
 
-        // Season history column (includes current season)
+        // FIX #3: current season row shows NO badges/accolades
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
             const badges = [];
 
-            // Team placement badges
-            if (sum.teamRank === 1) badges.push({ text:"TEAM 1ST", cls:"medal-gold" });
-            if (sum.teamRank === 2) badges.push({ text:"TEAM 2ND", cls:"medal-silver" });
-            if (sum.teamRank === 3) badges.push({ text:"TEAM 3RD", cls:"medal-bronze" });
+            if (sum.season !== CURRENT_SEASON){
+              // Team placement badges
+              if (sum.teamRank === 1) badges.push({ text:"TEAM 1ST", cls:"medal-gold" });
+              if (sum.teamRank === 2) badges.push({ text:"TEAM 2ND", cls:"medal-silver" });
+              if (sum.teamRank === 3) badges.push({ text:"TEAM 3RD", cls:"medal-bronze" });
 
-            // Individual placement badges (1/2/3)
-            if (sum.playerRank === 1) badges.push({ text:"IND 1ST", cls:"medal-gold" });
-            if (sum.playerRank === 2) badges.push({ text:"IND 2ND", cls:"medal-silver" });
-            if (sum.playerRank === 3) badges.push({ text:"IND 3RD", cls:"medal-bronze" });
+              // Individual placement badges (1/2/3)
+              if (sum.playerRank === 1) badges.push({ text:"IND 1ST", cls:"medal-gold" });
+              if (sum.playerRank === 2) badges.push({ text:"IND 2ND", cls:"medal-silver" });
+              if (sum.playerRank === 3) badges.push({ text:"IND 3RD", cls:"medal-bronze" });
 
-            // Top 10 badge (non-medal)
-            if (sum.playerRank != null && Number(sum.playerRank) <= 10 && sum.playerRank > 3) {
-              badges.push({ text:"TOP 10", cls:"" });
+              // Top 10 badge (non-medal)
+              if (sum.playerRank != null && Number(sum.playerRank) <= 10 && sum.playerRank > 3) {
+                badges.push({ text:"TOP 10", cls:"" });
+              }
             }
 
             const teamRight = sum.teamName
@@ -1995,7 +2006,7 @@
             return `
               <div class="season-row">
                 <div class="season-row-top">
-                  <div class="season-name">Season ${sum.season}</div>
+                  <div class="season-name">Season ${sum.season}${sum.season === CURRENT_SEASON ? " (Current)" : ""}</div>
                   <div class="season-badges">
                     ${badges.slice(0,4).map(b=>`<span class="badge ${escapeHtml(b.cls)}">${escapeHtml(b.text)}</span>`).join("")}
                   </div>
@@ -2008,7 +2019,6 @@
             `;
           }).join("");
 
-        // Trophy HTML
         const trophyHtml = trophies.length
           ? trophies.map(t=>{
               const meta = trophyMeta(t.type);
@@ -2019,13 +2029,7 @@
 
               let sub = `Season ${t.season}`;
               if (t.type === "TOP_10" && t.playerRank != null) sub += ` • #${t.playerRank}`;
-              if (t.team) {
-                const cls =
-                  medalRank === 1 ? "medal-gold" :
-                  medalRank === 2 ? "medal-silver" :
-                  medalRank === 3 ? "medal-bronze" : "";
-                sub += ` • <span class="${cls}">${escapeHtml(String(t.team).toUpperCase())}</span>`;
-              }
+              if (t.team) sub += ` • ${escapeHtml(String(t.team).toUpperCase())}`;
 
               return `
                 <div class="trophy">
@@ -2068,20 +2072,20 @@
 
               <div class="info-stats">
                 <div class="statbox">
-                  <div class="statlabel">Best Round</div>
-                  <div class="statvalue">${escapeHtml(fmtScore(bestRound))}</div>
+                  <div class="statlabel">Best Round (Prev)</div>
+                  <div class="statvalue">${escapeHtml(fmtScore(bestRoundPrev))}</div>
                 </div>
                 <div class="statbox">
-                  <div class="statlabel">Avg Round</div>
-                  <div class="statvalue">${escapeHtml(fmtScoreAvg(avgRound))}</div>
+                  <div class="statlabel">Avg Round (Prev)</div>
+                  <div class="statvalue">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
                 </div>
                 <div class="statbox">
-                  <div class="statlabel">Best Team Finish</div>
-                  <div class="statvalue">${bestTeamFinish != null ? "#" + escapeHtml(bestTeamFinish) : "—"}</div>
+                  <div class="statlabel">Best Team Finish (Prev)</div>
+                  <div class="statvalue">${bestTeamFinishPrev != null ? "#" + escapeHtml(bestTeamFinishPrev) : "—"}</div>
                 </div>
                 <div class="statbox">
-                  <div class="statlabel">Best Individual Finish</div>
-                  <div class="statvalue">${bestIndFinish != null ? "#" + escapeHtml(bestIndFinish) : "—"}</div>
+                  <div class="statlabel">Best Individual Finish (Prev)</div>
+                  <div class="statvalue">${bestIndFinishPrev != null ? "#" + escapeHtml(bestIndFinishPrev) : "—"}</div>
                 </div>
               </div>
             </div>
@@ -2195,6 +2199,25 @@
       }finally{
         updating = false;
       }
+    }
+
+    /* ---------------- Modal close handlers ---------------- */
+    const playerModal = document.getElementById("playerModal");
+    const playerModalClose = document.getElementById("playerModalClose");
+    const playerModalContent = document.getElementById("playerModalContent");
+
+    playerModalClose.addEventListener("click", closePlayerModal);
+    playerModal.addEventListener("click", (e)=>{
+      if (e.target === playerModal) closePlayerModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
+    });
+
+    function closePlayerModal(){
+      playerModal.classList.remove("show");
+      playerModal.setAttribute("aria-hidden", "true");
+      playerModalContent.innerHTML = `<div class="modal-loading">Loading Player…</div>`;
     }
 
     (function boot(){
