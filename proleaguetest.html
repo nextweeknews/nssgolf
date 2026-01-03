@@ -343,6 +343,8 @@
     }
 
     /* Weekly */
+    .wk-hide-mobile{ /* default: visible */ }
+
     .weekly-header-row, .weekly-entry{
       display:grid;
       grid-template-columns: var(--wk-rank-col) 1fr var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
@@ -657,8 +659,8 @@
       z-index: 2;
     }
     .modal-close-float:hover{
-      background: rgba(15,23,42
-      erhaps easier? We'll keep as-is.
+      background: rgba(15,23,42,0.90);
+      border-color: rgba(255,255,255,.28);
     }
 
     .modal-card{
@@ -668,7 +670,6 @@
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,.10);
       overflow: hidden;
-      /* desktop: content is not scroll-clipped */
     }
 
     .modal-loading{
@@ -1124,7 +1125,7 @@
       /* Narrow the row sections (team score column slightly narrower for name fit) */
       :root{
         --rank-col: 72px;
-        --score-col: 82px;      /* WAS 92px */
+        --score-col: 82px;
         --wk-rank-col: 72px;
         --wk-round-col: 64px;
         --wk-score-col: 92px;
@@ -1151,7 +1152,7 @@
       /* Search box fits */
       .search{ min-width: 0; width: 100%; }
 
-      /* Make complex tables scrollable horizontally on mobile (non-modal roster tables) */
+      /* Make complex tables scrollable horizontally on mobile */
       .roster-scroll{
         overflow-x: auto;
         padding-right: 0;
@@ -1176,73 +1177,32 @@
       .modal-card{
         max-height: calc(100vh - 84px);
         overflow-y: auto;
-        overflow-x: hidden;            /* prevent horizontal scroll/cutoff */
         -webkit-overflow-scrolling: touch;
       }
       .modal-body{
         grid-template-columns: 1fr;
-        padding: 10px;                 /* slightly tighter to fit */
-        gap: 10px;
-      }
-      .modal-pane{
-        padding: 10px;                 /* slightly tighter */
-        overflow-x: hidden;            /* ensure no inner overflow */
+        padding: 12px;
       }
       .modal-loading{
         min-height: 300px;
       }
 
-      /* Scale down hero + info buttons slightly */
-      .hero-team{ width: 48px; height: 48px; border-radius: 14px; }
-      .hero-name{ font-size: 16px; }
-      .hero-sub{ font-size: 10px; }
+      /* Trophy pills wrap well */
+      .trophy-text{ max-width: 220px; }
 
-      .info-btn-grid{ gap: 6px; margin-top: 10px; }
-      .info-btn{ min-height: 58px; padding: 8px 6px; }
-      .info-btn .lbl{ font-size: 9px; margin-bottom: 5px; }
-      .info-btn .val{ font-size: 14px; }
-
-      /* Trophy pills: force-fit within viewport (no horizontal scroll) */
-      .trophy-grid{
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
-      }
-      .trophy{
-        width: 100%;
-        max-width: 100%;
-      }
-      .trophy-text{ max-width: none; }
-      .trophy-main, .trophy-sub{
-        white-space: normal;           /* allow wrap instead of overflow */
-        overflow: visible;
-        text-overflow: clip;
-      }
-
-      /* Season performance rows: wrap instead of horizontal scrolling */
-      .btn-row{
-        flex-wrap: wrap;               /* wrap chips + rounds table */
-        overflow-x: hidden;            /* remove horizontal scrolling in modal */
-        justify-content: flex-start;   /* avoids edge clipping when wrapping */
-        padding-bottom: 0;
-      }
-      .btn-row::-webkit-scrollbar{ height: 0; }
-
-      .chip{
-        flex: 0 1 auto;
-        max-width: 100%;
-      }
-
-      /* Make mini rounds table responsive to viewport */
+      /* Mini rounds table can scroll within row if needed */
       table.mini-rounds{
-        width: 100%;
-        max-width: 100%;
-        flex: 1 1 100%;
+        width: 300px;
+        max-width: 300px;
       }
-      .mini-rounds td{
-        font-size: 10px;
-        padding: 6px 0;
-        letter-spacing: .06em;
+      .btn-row{
+        justify-content: flex-end;
+      }
+
+      /* ✅ Weekly Top 5: on mobile show only Rank | Player | Score */
+      .wk-hide-mobile{ display:none !important; }
+      .weekly-header-row, .weekly-entry{
+        grid-template-columns: var(--wk-rank-col) 1fr var(--wk-score-col);
       }
     }
 
@@ -1250,7 +1210,7 @@
       /* Even smaller phones */
       :root{
         --rank-col: 64px;
-        --score-col: 76px;      /* tighter still */
+        --score-col: 76px;
         --wk-rank-col: 64px;
         --wk-round-col: 58px;
         --wk-score-col: 84px;
@@ -1264,23 +1224,8 @@
       .entry, .weekly-entry{ height: 42px; }
       .team-cell .name-text{ font-size: 15px; }
 
+      table.mini-rounds{ width: 280px; max-width: 280px; }
       table.roster-table{ min-width: 860px; }
-
-      /* Modal: a touch tighter */
-      .modal-body{ padding: 9px; gap: 9px; }
-      .modal-pane{ padding: 9px; }
-
-      .info-btn .val{ font-size: 13px; }
-      .trophy-icon{ width: 26px; height: 26px; border-radius: 10px; font-size: 15px; }
-
-      table.mini-rounds{
-        width: 100%;
-        max-width: 100%;
-      }
-      .mini-rounds td{
-        font-size: 9px;
-        padding: 5px 0;
-      }
     }
   </style>
 </head>
@@ -1980,8 +1925,8 @@
           <div class="weekly-header-row">
             <span>Rank</span>
             <span>Player</span>
-            <span>${r1Label}</span>
-            <span>${r2Label}</span>
+            <span class="wk-hide-mobile">${r1Label}</span>
+            <span class="wk-hide-mobile">${r2Label}</span>
             <span>Score</span>
           </div>
 
@@ -2011,8 +1956,8 @@
           row.innerHTML = `
             <div class="place">${p.rank}</div>
             <div id="wkName-${weekNum}-${p.slug}"></div>
-            <div class="weekly-round">${escapeHtml(fmtScore(round1))}</div>
-            <div class="weekly-round">${escapeHtml(fmtScore(round2))}</div>
+            <div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(round1))}</div>
+            <div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(round2))}</div>
             <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
           `;
           row.querySelector(`#wkName-${weekNum}-${p.slug}`).replaceWith(nameCell);
@@ -2096,7 +2041,6 @@
       playerModalContent.className = "modal-loading";
       playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
 
-      // keep scroll position at top (modal-card is the scroll container on mobile)
       const card = playerModal.querySelector(".modal-card");
       if (card) card.scrollTop = 0;
     }
@@ -2284,7 +2228,6 @@
       playerModal.setAttribute("aria-hidden", "false");
       showPlayerLoading();
 
-      // ensure default view starts at top
       const card = playerModal.querySelector(".modal-card");
       if (card) card.scrollTop = 0;
 
@@ -2579,7 +2522,6 @@
           </div>
         `;
 
-        // after heavy DOM injection, ensure the modal scroll starts at the very top
         if (card) card.scrollTop = 0;
 
       }catch(err){
@@ -2589,7 +2531,6 @@
             <div class="error"><b>Couldn’t load player history</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load.")}</div></div>
           </div>
         `;
-        if (card) card.scrollTop = 0;
       }
     }
 
