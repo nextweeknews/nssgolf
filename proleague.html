@@ -61,25 +61,55 @@
     }
     .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65);}
     .titlebar{font-weight:900; font-size:16px; color:#fff;}
-    .tabs{display:flex; gap:10px; flex-wrap:wrap;}
-    .tabbtn{
-      border:1px solid rgba(255,255,255,.15);
+
+    /* Dropdown */
+    .view-select-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .view-select-wrap label{
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .view-select{
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      border: 1px solid rgba(255,255,255,.15);
       background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.86);
-      padding:10px 14px;
+      color: rgba(255,255,255,.90);
+      padding: 10px 42px 10px 14px;
       border-radius: 12px;
-      font-weight:900;
-      cursor:pointer;
-      transition: .15s ease;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .08em;
       font-size: 12px;
+      cursor: pointer;
+      outline: none;
+      position: relative;
+      min-width: 220px;
     }
-    .tabbtn:hover{background: rgba(255,255,255,.10)}
-    .tabbtn.active{
-      background:#fff;
-      color:#061C3B;
-      border-color:#fff;
+    .view-select-wrap{
+      position: relative;
+    }
+    .view-select-wrap::after{
+      content:"▾";
+      position:absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,.75);
+      pointer-events:none;
+      font-weight: 900;
+    }
+    .view-select:focus{
+      border-color: rgba(255,255,255,.35);
+      background: rgba(255,255,255,.09);
     }
 
     .container{
@@ -94,7 +124,6 @@
       padding: 18px 18px;
       box-shadow: var(--card-shadow);
     }
-
     .card + .card{ margin-top: 16px; }
 
     .card-head{
@@ -189,7 +218,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      padding: 0 10px 0 92px;
+      padding: 0 14px;           /* no arrow space */
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
@@ -203,21 +232,13 @@
     .team-cell:hover{ filter: brightness(1.04); }
     .team-cell .name-text{
       font-size: 20px;
-      font-weight: 950;
+      font-weight: 950; /* heavier main-row names */
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
     @media (max-width: 640px){
-      .team-cell{ padding-left: 82px; }
       .team-cell .name-text{ font-size: 16px; }
-    }
-    .team-cell .chev{
-      position:absolute;
-      left: 14px;
-      font-size: 18px;
-      font-weight: 900;
-      opacity: .85;
     }
     .team-cell::before{
       content:"";
@@ -246,7 +267,7 @@
     /* Weekly Top 5 */
     .weekly-header-row, .weekly-entry{
       display:grid;
-      grid-template-columns: 100px 1fr 88px 88px 120px;
+      grid-template-columns: 100px 1fr 88px 88px 120px; /* Rank, Player, R1, R2, Total */
       align-items:center;
     }
     @media (max-width: 640px){
@@ -347,7 +368,6 @@
       background: rgba(15,23,42,0.92);
       backdrop-filter: blur(6px);
       padding: 6px 6px;
-      /* removed bottom border per request */
       border-bottom: none;
       color: var(--muted);
       font-size: 10px;
@@ -384,7 +404,7 @@
       text-align: center;
       font-variant-numeric: tabular-nums;
       background-clip: padding-box;
-      font-weight: 900; /* enforce consistent thickness throughout table */
+      font-weight: 900;
     }
 
     .cell-rank{
@@ -398,9 +418,12 @@
       text-align: center;
       padding-left: 0;
     }
-    .sep-right{ border-right: 2px solid var(--sep) !important; }
 
-    /* Keep highlight backgrounds, but no special font weight (now uniform) */
+    /* Body separators remain visible */
+    .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
+    /* Header separators: keep them for spacing but transparent */
+    .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
+
     .stageScore{
       background: rgba(217,217,217,0.14) !important;
       color: #ffffff;
@@ -470,10 +493,13 @@
         </div>
       </div>
 
-      <div class="tabs" role="tablist" aria-label="Standings tabs">
-        <button class="tabbtn active" data-tab="teams" role="tab" aria-selected="true">Team Rankings</button>
-        <button class="tabbtn" data-tab="players" role="tab" aria-selected="false">Player Rankings</button>
-        <button class="tabbtn" data-tab="weekly" role="tab" aria-selected="false">Weekly Top 5</button>
+      <div class="view-select-wrap" aria-label="Standings view selector">
+        <label for="viewSelect">View</label>
+        <select id="viewSelect" class="view-select">
+          <option value="teams">Team Rankings</option>
+          <option value="players">Player Rankings</option>
+          <option value="weekly">Weekly Top 5</option>
+        </select>
       </div>
     </div>
   </div>
@@ -511,7 +537,7 @@
 
         <div class="header-row">
           <span>Rank</span>
-          <span>Player</span>
+          <span style="justify-content:center;padding-left:0;">Player</span>
           <span>Score</span>
         </div>
 
@@ -542,10 +568,12 @@
 
     const REFRESH_MS = 15000;
 
+    // Roster range columns (0-indexed):
     // A=0 overall rank, C=2 name, D=3 stage score, E-G=4..6 best 3,
     // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
     const COL = { overallRank:0, name:2, stage:3, bestStart:4, weekStart:7, roundsStart:11 };
 
+    // Team colors (extend as needed)
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#cd7f32", fg: "#ffffff" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000", iconPos: "0 47%" },
@@ -554,12 +582,14 @@
       "SNIPERS":         { bg: "#275318", fg: "#ffe6cd", iconPos: "-11px 55%", iconSize: "auto 220%" },
       "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff", iconPos: "-3px 55%", iconSize: "auto 190%" }
     };
+
     function getTeamStyle(name) {
       if (!name) return null;
       const key = String(name).trim().toUpperCase();
       return TEAM_STYLES[key] || null;
     }
 
+    // Worker fetch (POST first, GET fallback)
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -571,6 +601,7 @@
 
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
+
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -578,7 +609,7 @@
           body: JSON.stringify(payload),
         });
         if(r.ok) return normalizeValues(await r.json());
-      }catch(e){}
+      }catch(e){ /* fallback */ }
 
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
@@ -591,12 +622,15 @@
       return normalizeValues(await r2.json());
     }
 
+    // Helpers
     function rowHasAnyValue(row){
       return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
     }
+
     function slugify(name){
       return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
+
     function escapeHtml(s){
       return String(s ?? "")
         .replace(/&/g,"&amp;")
@@ -605,6 +639,7 @@
         .replace(/"/g,"&quot;")
         .replace(/'/g,"&#39;");
     }
+
     function toNum(v){
       const s = String(v ?? "").trim();
       if(!s) return null;
@@ -612,19 +647,24 @@
       return Number.isFinite(n) ? n : null;
     }
 
-    // Golf-style display: +N, E, -N, —
+    // Golf-style display:
+    //  - positive: +N
+    //  - zero: E
+    //  - negative: -N
+    //  - null/blank: —
     function fmtScore(v){
       if (v === null || v === undefined || v === "") return "—";
       const n = (typeof v === "number") ? v : Number(String(v).trim());
       if (!Number.isFinite(n)) return String(v);
       if ((n === 0) || Object.is(n, -0)) return "E";
-      const s = String(n);
-      return n > 0 ? `+${s}` : s;
+      return n > 0 ? `+${n}` : String(n);
     }
+
     function rankClass(rank){
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
+    // Normalize standings
     function normalizeTeamStandings(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -634,7 +674,12 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          return { rank:Number(rank), name:String(name).trim(), slug:slugify(name), score:(score!==""&&score!=null)?Number(score):null };
+          return {
+            rank: Number(rank),
+            name: String(name).trim(),
+            slug: slugify(name),
+            score: (score !== "" && score != null) ? Number(score) : null
+          };
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
@@ -649,12 +694,18 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          return { rank:Number(rank), name:String(name).trim(), slug:slugify(name), score:(score!==""&&score!=null)?Number(score):null };
+          return {
+            rank: Number(rank),
+            name: String(name).trim(),
+            slug: slugify(name),
+            score: (score !== "" && score != null) ? Number(score) : null
+          };
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
     }
 
+    // Weekly rows: [rank, ?, playerName, weeklyScore] in Z:AC
     function normalizeWeekly(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -664,19 +715,26 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          return { rank:Number(rank), name:String(name).trim(), slug:slugify(name), score:(score!==""&&score!=null)?Number(score):null };
+          return {
+            rank: Number(rank),
+            name: String(name).trim(),
+            slug: slugify(name),
+            score: (score !== "" && score != null) ? Number(score) : null
+          };
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
     }
 
+    // Parse roster range
     function parseRostersAndPlayerStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
       const byPlayer = new Map();
+
       if(!cleaned.length) return { byTeam, byPlayer };
 
-      const rows = cleaned.slice(1); // skip header
+      const rows = cleaned.slice(1); // ignore header row in formatting
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -693,12 +751,21 @@
             overallRank: toNum(r[COL.overallRank]),
             name: pName,
             stageScore: toNum(r[COL.stage]),
-            best: [toNum(r[COL.bestStart+0]), toNum(r[COL.bestStart+1]), toNum(r[COL.bestStart+2])],
-            weekTotals: [toNum(r[COL.weekStart+0]), toNum(r[COL.weekStart+1]), toNum(r[COL.weekStart+2]), toNum(r[COL.weekStart+3])],
-            rounds: Array.from({length:8}, (_,k)=> toNum(r[COL.roundsStart + k]))
+            best: [
+              toNum(r[COL.bestStart + 0]),
+              toNum(r[COL.bestStart + 1]),
+              toNum(r[COL.bestStart + 2]),
+            ],
+            weekTotals: [
+              toNum(r[COL.weekStart + 0]),
+              toNum(r[COL.weekStart + 1]),
+              toNum(r[COL.weekStart + 2]),
+              toNum(r[COL.weekStart + 3]),
+            ],
+            rounds: Array.from({length: 8}, (_,k)=> toNum(r[COL.roundsStart + k]))
           };
 
-          if(pName) byPlayer.set(pName, stat);
+          if (pName) byPlayer.set(pName, stat);
           return stat;
         });
 
@@ -711,6 +778,8 @@
     // DOM refs + state
     const statusCard = document.getElementById("statusCard");
     const contentEl  = document.getElementById("content");
+
+    const viewSelect = document.getElementById("viewSelect");
 
     const teamsView  = document.getElementById("teamsView");
     const playersView= document.getElementById("playersView");
@@ -732,20 +801,14 @@
     const expandedPlayers = new Set();
 
     function setTab(tab){
-      document.querySelectorAll(".tabbtn").forEach(b=>{
-        const on = b.dataset.tab === tab;
-        b.classList.toggle("active", on);
-        b.setAttribute("aria-selected", on ? "true" : "false");
-      });
+      if (viewSelect.value !== tab) viewSelect.value = tab;
       teamsView.classList.toggle("hidden", tab !== "teams");
       playersView.classList.toggle("hidden", tab !== "players");
       weeklyView.classList.toggle("hidden", tab !== "weekly");
     }
-    document.querySelectorAll(".tabbtn").forEach(btn=>{
-      btn.addEventListener("click", ()=> setTab(btn.dataset.tab));
-    });
+    viewSelect.addEventListener("change", ()=> setTab(viewSelect.value));
 
-    // Team roster table
+    // Render: Team roster (full)
     function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -845,7 +908,7 @@
       return wrap;
     }
 
-    // Player stats table (collapsible)
+    // Render: Player stats (abbreviated)
     function renderPlayerStatsTable(stat){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -931,9 +994,10 @@
       return wrap;
     }
 
-    // Render teams
+    // Render: Teams list
     function renderTeams(){
       teamsList.innerHTML = "";
+
       if(!teamStandings.length){
         teamsList.innerHTML = `<div class="error">No teams found.</div>`;
         return;
@@ -947,9 +1011,6 @@
         const bg = style.bg || "rgba(255,255,255,0.08)";
         const fg = style.fg || "#ffffff";
 
-        const isOpen = expandedTeams.has(team.name);
-        const chev = isOpen ? "▾" : "▸";
-
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "team-cell";
@@ -962,9 +1023,7 @@
         if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
         if(style.iconOpacity != null) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
 
-        btn.innerHTML =
-          `<span class="chev" aria-hidden="true">${chev}</span>` +
-          `<span class="name-text">${escapeHtml(team.name)}</span>`;
+        btn.innerHTML = `<span class="name-text">${escapeHtml(team.name)}</span>`;
 
         row.innerHTML = `
           <div class="place ${rankClass(team.rank)}">${team.rank}</div>
@@ -974,14 +1033,14 @@
         row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
         teamsList.appendChild(row);
 
-        teamsList.appendChild(isOpen
+        teamsList.appendChild(expandedTeams.has(team.name)
           ? renderTeamRosterTable(rosterByTeam.get(team.name))
           : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
         );
       });
     }
 
-    // Render players
+    // Render: Players list (+ collapsible stats)
     function renderPlayers(){
       const q = playerSearch.value.trim().toLowerCase();
       playersList.innerHTML = "";
@@ -1000,9 +1059,6 @@
         const row = document.createElement("div");
         row.className = "entry";
 
-        const isOpen = expandedPlayers.has(p.name);
-        const chev = isOpen ? "▾" : "▸";
-
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "team-cell";
@@ -1010,9 +1066,7 @@
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "#ffffff";
         btn.style.setProperty("--icon", "none");
-        btn.innerHTML =
-          `<span class="chev" aria-hidden="true">${chev}</span>` +
-          `<span class="name-text">${escapeHtml(p.name)}</span>`;
+        btn.innerHTML = `<span class="name-text">${escapeHtml(p.name)}</span>`;
 
         const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
 
@@ -1024,18 +1078,18 @@
         row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
         playersList.appendChild(row);
 
-        playersList.appendChild(isOpen
+        playersList.appendChild(expandedPlayers.has(p.name)
           ? renderPlayerStatsTable(playerStatsByName.get(p.name))
           : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
         );
       });
     }
 
-    // Render weekly
+    // Render: Weekly Top 5 cards (most recent week first)
     function renderWeekly(){
       weeklyCards.innerHTML = "";
-      const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
 
+      const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
       if(!weeks.length){
         weeklyCards.innerHTML = `<div class="card"><div class="status">Weekly Top 5 has not been posted yet.</div></div>`;
         return;
@@ -1084,9 +1138,7 @@
           nameCell.style.background = "rgba(255,255,255,0.08)";
           nameCell.style.color = "#ffffff";
           nameCell.style.setProperty("--icon", "none");
-          nameCell.innerHTML =
-            `<span class="chev" aria-hidden="true"></span>` +
-            `<span class="name-text">${escapeHtml(p.name)}</span>`;
+          nameCell.innerHTML = `<span class="name-text">${escapeHtml(p.name)}</span>`;
 
           row.innerHTML = `
             <div class="place">${p.rank}</div>
@@ -1107,18 +1159,26 @@
     teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-team]");
       if(!btn) return;
+
       const teamName = btn.getAttribute("data-team");
       if(!teamName) return;
-      expandedTeams.has(teamName) ? expandedTeams.delete(teamName) : expandedTeams.add(teamName);
+
+      if(expandedTeams.has(teamName)) expandedTeams.delete(teamName);
+      else expandedTeams.add(teamName);
+
       renderTeams();
     });
 
     playersList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-player]");
       if(!btn) return;
+
       const playerName = btn.getAttribute("data-player");
       if(!playerName) return;
-      expandedPlayers.has(playerName) ? expandedPlayers.delete(playerName) : expandedPlayers.add(playerName);
+
+      if(expandedPlayers.has(playerName)) expandedPlayers.delete(playerName);
+      else expandedPlayers.add(playerName);
+
       renderPlayers();
     });
 
@@ -1147,6 +1207,7 @@
         rosterByTeam = parsed.byTeam;
         playerStatsByName = parsed.byPlayer;
 
+        // Weekly: omit weeks that are fully blank
         weeklyByWeek = new Map();
         const w1 = normalizeWeekly(wk1);
         const w2 = normalizeWeekly(wk2);
