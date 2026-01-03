@@ -1643,6 +1643,7 @@
 
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
+    let playerTeamByName = new Map();
 
     const expandedTeams = new Set();
     const expandedPlayers = new Set();
@@ -1898,13 +1899,33 @@
         const row = document.createElement("div");
         row.className = "entry";
 
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "team-cell";
-        btn.setAttribute("data-player", p.name);
-        btn.style.background = "rgba(255,255,255,0.08)";
-        btn.style.color = "#ffffff";
-        btn.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
+        const teamName = playerTeamByName.get(p.name) || null;
+    const style = teamName ? (getTeamStyle(teamName) || {}) : null;
+    const bg = style?.bg || "rgba(255,255,255,0.08)";
+    const fg = style?.fg || "#ffffff";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "team-cell";
+    btn.setAttribute("data-player", p.name);
+    btn.style.background = bg;
+    btn.style.color = fg;
+
+    const logoHtml = teamName
+      ? `
+        <img class="team-logo"
+         src="${escapeHtml(teamLogoSrc(teamName))}"
+         alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+         loading="lazy"
+         decoding="async"
+         onerror="this.style.display='none'; this.removeAttribute('src');" />
+      `
+      : "";
+
+    btn.innerHTML = `
+      <span class="team-logo-slot">${logoHtml}</span>
+      <span class="name-text">${escapeHtml(p.displayName)}</span>
+    `;
 
         const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
 
@@ -1969,14 +1990,34 @@
           const round1 = stat?.rounds?.[idx1] ?? null;
           const round2 = stat?.rounds?.[idx2] ?? null;
 
+          const teamName = playerTeamByName.get(p.name) || null;
+          const style = teamName ? (getTeamStyle(teamName) || {}) : null;
+          const bg = style?.bg || "rgba(255,255,255,0.08)";
+          const fg = style?.fg || "#ffffff";
+
           const nameCell = document.createElement("button");
           nameCell.type = "button";
           nameCell.className = "team-cell";
           nameCell.dataset.player = p.name;
           nameCell.style.cursor = "pointer";
-          nameCell.style.background = "rgba(255,255,255,0.08)";
-          nameCell.style.color = "#ffffff";
-          nameCell.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
+          nameCell.style.background = bg;
+          nameCell.style.color = fg;
+
+          const logoHtml = teamName
+            ? `
+              <img class="team-logo"
+                   src="${escapeHtml(teamLogoSrc(teamName))}"
+                   alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+                   loading="lazy"
+                   decoding="async"
+                   onerror="this.style.display='none'; this.removeAttribute('src');" />
+            `
+            : "";
+
+          nameCell.innerHTML = `
+            <span class="team-logo-slot">${logoHtml}</span>
+            <span class="name-text">${escapeHtml(p.displayName)}</span>
+          `;
 
           row.innerHTML = `
             <div class="place">${p.rank}</div>
@@ -2607,6 +2648,7 @@
 
         const parsedTeams = parseTeamRosters(rosterRows);
         rosterByTeam = parsedTeams.byTeam;
+        playerTeamByName = parsedTeams.playerTeamByName;
 
         const lookupMap = parseLookupStats(lookupRows);
 
