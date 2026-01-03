@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NSS Golf Community Events</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+
+      --border-lite: rgba(148,163,184,0.20);
+      --btn-bg: rgba(255,255,255,0.06);
+      --btn-bg-hover: rgba(255,255,255,0.10);
+      --btn-border: rgba(255,255,255,0.15);
+      --btn-border-hover: rgba(255,255,255,0.28);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    /* Topbar (matches your site vibe) */
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+    .home-badge{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      font-weight: 950;
+      letter-spacing: .05em;
+      color: rgba(255,255,255,.9);
+      user-select:none;
+    }
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight:900;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 28px 18px 56px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .card{
+      width: min(820px, 100%);
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .headline{
+      font-size: 22px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0 0 10px 0;
+    }
+
+    .copy{
+      margin: 0;
+      color: rgba(233,238,248,0.92);
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .actions{
+      margin-top: 18px;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-lite);
+    }
+
+    .btn{
+      appearance:none;
+      -webkit-appearance:none;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,0.92);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      font-size: 12px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      line-height: 1;
+    }
+    .btn:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+
+    .footer{
+      margin-top: 18px;
+      text-align:center;
+      font-size:12px;
+      color: rgba(233,238,248,0.55);
+    }
+
+    @media (max-width: 760px){
+      .container{ padding: 20px 12px 44px; }
+      .topbar-inner{ padding: 12px 12px; }
+      .headline{ font-size: 18px; }
+      .card{ padding: 18px 14px; border-radius: 18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true">NSS</div>
+        <div>
+          <div class="kicker">NSS Golf Community</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1 class="headline">Welcome</h1>
+      <p class="copy">
+        Welcome to the NSS Golf Community Events Page! Select an event to view results and leaderboards.
+      </p>
+
+       <div class="actions">
+        <a class="btn" href="https://teamupdiscord.com/leaderboard/client/DISCORD%7C1069003073311211601/leaderboard/Season_11" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
+          Ranked League
+        </a>
+
+        <a class="btn" href="/proleague" aria-label="Go to Pro League">
+          Pro League
+        </a>
+      </div>
+
+      <div class="footer">NSS Golf Community Events</div>
+    </div>
+  </div>
+</body>
+</html>
