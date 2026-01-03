@@ -28,6 +28,14 @@
       --bronze:#cd7f32;
 
       --logo-slot: 40px;
+
+      /* Neon tier colors */
+      --neon-blue:   rgba(56,189,248,1);   /* sky-400 */
+      --neon-purple: rgba(168,85,247,1);   /* purple-500 */
+      --neon-gold:   rgba(253,224,71,1);   /* yellow-300 */
+      --neon-green:  rgba(34,197,94,1);    /* green-500 */
+      --neon-silver: rgba(226,232,240,1);  /* slate-200 */
+      --neon-bronze: rgba(251,146,60,1);   /* orange-400 */
     }
 
     *{ box-sizing:border-box; }
@@ -712,25 +720,27 @@
       border: 1px solid rgba(255,255,255,0.10);
       background: rgba(255,255,255,0.05);
       border-radius: 14px;
-      padding: 10px 10px;
+      padding: 10px 8px;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
       text-align:center;
-      min-height: 54px;
+      min-height: 58px;
     }
+
+    /* UPDATED: no ellipses; slightly smaller; allow wrap */
     .info-btn .lbl{
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 950;
       text-transform: uppercase;
-      letter-spacing: .16em;
+      letter-spacing: .12em;
       color: rgba(156,163,199,0.95);
-      line-height: 1.1;
+      line-height: 1.15;
       margin-bottom: 6px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
       width: 100%;
     }
     .info-btn .val{
@@ -837,14 +847,113 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* Keep counter text default white */
     .trophy-count{
       flex: 0 0 auto;
       font-size: 12px;
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .10em;
-      color: rgba(233,238,248,0.92);
+      color: rgba(233,238,248,0.92) !important;
       white-space: nowrap;
+    }
+
+    /* --------- Neon Trophy Tiers --------- */
+    .trophy.tier-blue{
+      border-color: rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.08);
+      box-shadow:
+        0 0 0 1px rgba(56,189,248,0.10) inset,
+        0 0 18px rgba(56,189,248,0.22);
+    }
+    .trophy.tier-blue .trophy-main,
+    .trophy.tier-blue .trophy-icon{
+      color: rgba(186,230,253,0.95);
+    }
+    .trophy.tier-blue .trophy-icon{
+      border-color: rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.10);
+    }
+
+    .trophy.tier-purple{
+      border-color: rgba(168,85,247,0.35);
+      background: rgba(168,85,247,0.08);
+      box-shadow:
+        0 0 0 1px rgba(168,85,247,0.10) inset,
+        0 0 18px rgba(168,85,247,0.22);
+    }
+    .trophy.tier-purple .trophy-main,
+    .trophy.tier-purple .trophy-icon{
+      color: rgba(233,213,255,0.95);
+    }
+    .trophy.tier-purple .trophy-icon{
+      border-color: rgba(168,85,247,0.35);
+      background: rgba(168,85,247,0.10);
+    }
+
+    .trophy.tier-gold{
+      border-color: rgba(253,224,71,0.40);
+      background: rgba(253,224,71,0.10);
+      box-shadow:
+        0 0 0 1px rgba(253,224,71,0.12) inset,
+        0 0 18px rgba(253,224,71,0.24);
+    }
+    .trophy.tier-gold .trophy-main,
+    .trophy.tier-gold .trophy-icon{
+      color: rgba(254,240,138,0.98);
+    }
+    .trophy.tier-gold .trophy-icon{
+      border-color: rgba(253,224,71,0.40);
+      background: rgba(253,224,71,0.12);
+    }
+
+    .trophy.tier-silver{
+      border-color: rgba(226,232,240,0.38);
+      background: rgba(226,232,240,0.08);
+      box-shadow:
+        0 0 0 1px rgba(226,232,240,0.10) inset,
+        0 0 18px rgba(226,232,240,0.20);
+    }
+    .trophy.tier-silver .trophy-main,
+    .trophy.tier-silver .trophy-icon{
+      color: rgba(241,245,249,0.98);
+    }
+    .trophy.tier-silver .trophy-icon{
+      border-color: rgba(226,232,240,0.38);
+      background: rgba(226,232,240,0.10);
+    }
+
+    .trophy.tier-bronze{
+      border-color: rgba(251,146,60,0.40);
+      background: rgba(251,146,60,0.09);
+      box-shadow:
+        0 0 0 1px rgba(251,146,60,0.10) inset,
+        0 0 18px rgba(251,146,60,0.20);
+    }
+    .trophy.tier-bronze .trophy-main,
+    .trophy.tier-bronze .trophy-icon{
+      color: rgba(254,215,170,0.96);
+    }
+    .trophy.tier-bronze .trophy-icon{
+      border-color: rgba(251,146,60,0.40);
+      background: rgba(251,146,60,0.11);
+    }
+
+    .trophy.tier-green{
+      border-color: rgba(34,197,94,0.40);
+      background: rgba(34,197,94,0.09);
+      box-shadow:
+        0 0 0 1px rgba(34,197,94,0.10) inset,
+        0 0 18px rgba(34,197,94,0.22);
+    }
+    .trophy.tier-green .trophy-main,
+    .trophy.tier-green .trophy-icon{
+      color: rgba(187,247,208,0.96);
+    }
+    .trophy.tier-green .trophy-icon{
+      border-color: rgba(34,197,94,0.40);
+      background: rgba(34,197,94,0.11);
     }
 
     .season-title{
@@ -881,7 +990,7 @@
       color: rgba(255,255,255,0.92);
     }
 
-    /* RIGHT-JUSTIFY buttons inside season performance cards */
+    /* Right-justified season buttons */
     .btn-row{
       display:flex;
       align-items:center;
@@ -1606,7 +1715,7 @@
                  alt="${escapeHtml(team.displayName)} logo"
                  loading="lazy"
                  decoding="async"
-                 onerror="this.style.display='none'; this.removeAttribute('src');" />
+                 onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.width='40px';" />
           </span>
           <span class="name-text">${escapeHtml(team.displayName)}</span>
         `;
@@ -1814,11 +1923,11 @@
 
     function trophyMeta(type){
       switch(type){
-        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST",  pr:1 };
-        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND",  pr:2 };
-        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD",  pr:3 };
-        case "TOP_10": return { icon:"⭐", main:"TOP 10",    pr:4 };
-        default: return { icon:"🏅", main:"AWARD", pr:9 };
+        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST",  pr:1, tier:"gold" };
+        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND",  pr:2, tier:"silver" };
+        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD",  pr:3, tier:"bronze" };
+        case "TOP_10": return { icon:"⭐", main:"TOP 10",    pr:4, tier:"default" };
+        default: return { icon:"🏅", main:"AWARD", pr:9, tier:"default" };
       }
     }
 
@@ -2103,10 +2212,11 @@
                 sub = `${String(t.team || "").toUpperCase()} | Season ${t.season}`;
               }
 
+              const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
               return `
-                <div class="trophy">
+                <div class="trophy${tierClass}">
                   <div class="trophy-left">
-                    <div class="trophy-icon">${meta.icon}</div>
+                    <div class="trophy-icon">${escapeHtml(meta.icon)}</div>
                     <div class="trophy-text">
                       <div class="trophy-main">${escapeHtml(meta.main)}</div>
                       ${sub ? `<div class="trophy-sub">${escapeHtml(sub)}</div>` : ``}
@@ -2117,17 +2227,17 @@
             }).join("")
           : "";
 
-        // stackables (no description)
+        // stackables (icons + tiers)
         const stackablesOrdered = [
-          { label:"-30 Club", icon:"🎯", count: round30 },
-          { label:"-25 Club", icon:"🎯", count: round25 },
-          { label:"-20 Club", icon:"🎯", count: round20 },
+          { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
+          { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
+          { label:"-20 Club", icon:"⛳️", tier:"blue",   count: round20 },
 
-          { label:"-80 Club", icon:"⛳", count: season80 },
-          { label:"-70 Club", icon:"⛳", count: season70 },
-          { label:"-60 Club", icon:"⛳", count: season60 },
+          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: season80 },
+          { label:"-70 Club", icon:"🎖️", tier:"purple", count: season70 },
+          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: season60 },
 
-          { label:"Team Captain", icon:"CAPTAIN", count: captainCount },
+          { label:"Team Captain", icon:"CAPTAIN", tier:"green", count: captainCount },
         ];
 
         const trophyStackHtml = stackablesOrdered
@@ -2138,8 +2248,9 @@
               t.icon === "CAPTAIN"
                 ? `<div class="trophy-icon captain" title="Captain"></div>`
                 : `<div class="trophy-icon">${escapeHtml(t.icon)}</div>`;
+            const tierClass = t.tier ? ` tier-${t.tier}` : "";
             return `
-              <div class="trophy">
+              <div class="trophy${tierClass}">
                 <div class="trophy-left">
                   ${iconHtml}
                   <div class="trophy-text">
@@ -2190,7 +2301,6 @@
                 </div>
               </div>
 
-              <!-- NEW: two rows of centered "buttons" (prev seasons only) -->
               <div class="info-btn-grid">
                 <div class="info-btn">
                   <div class="lbl">AVG. ROUND</div>
