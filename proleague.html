@@ -25,7 +25,7 @@
       --top10-bg: rgba(16,185,129,0.18);
 
       /* Logo layout */
-      --logo-slot: 40px; /* ✅ slot stays even if image fails */
+      --logo-slot: 40px; /* slot stays even if image fails */
     }
 
     *{ box-sizing:border-box; }
@@ -223,7 +223,7 @@
       width: 100%;
       display:flex;
       align-items:center;
-      justify-content:flex-start; /* keep left-justified */
+      justify-content:flex-start;
       padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
@@ -245,7 +245,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 0;              /* no side padding */
+      padding: 0;
       flex: 0 0 auto;
     }
     .team-logo{
@@ -272,7 +272,7 @@
       min-width: 0;
       text-align: left;
       justify-content: flex-start;
-      padding-left: 10px; /* minimal consistent spacing after slot */
+      padding-left: 10px;
     }
 
     @media (max-width: 640px){
@@ -382,13 +382,20 @@
       margin-bottom: 10px;
       padding-top: 2px;
     }
+    .roster-title-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 0 10px 6px 10px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     .roster-title{
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .12em;
       color: var(--muted);
-      padding: 0 10px 6px 10px;
     }
 
     .roster-scroll{
@@ -476,6 +483,15 @@
       padding-left: 0;
     }
 
+    /* clickable player name in roster table */
+    .clickable-player{
+      cursor: pointer;
+    }
+    .clickable-player:hover{
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
     .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
     .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
 
@@ -486,6 +502,25 @@
     .counted{
       background: rgba(52,211,153,0.16) !important;
       color: #ffffff;
+    }
+
+    .full-stats-btn{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.90);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+      line-height: 1;
+    }
+    .full-stats-btn:hover{
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.28);
     }
 
     .status{
@@ -528,6 +563,257 @@
       text-align:center;
       font-size:12px;
       color: rgba(233,238,248,0.55);
+    }
+
+    /* ---------------- MODAL ---------------- */
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+    }
+    .modal-backdrop.show{ display:flex; }
+
+    .modal-card{
+      width: min(980px, 100%);
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow: hidden;
+    }
+    .modal-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding: 14px 14px 0 14px;
+      gap: 10px;
+    }
+    .modal-close{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.85);
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 900;
+      line-height: 1;
+      display:grid;
+      place-items:center;
+    }
+    .modal-close:hover{
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.28);
+    }
+    .modal-body{
+      padding: 14px;
+      display:grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 860px){
+      .modal-body{ grid-template-columns: 1fr; }
+    }
+
+    .modal-pane{
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .player-hero{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+    }
+    .hero-team{
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.15);
+      overflow: hidden;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,0.05);
+      flex: 0 0 auto;
+    }
+    .hero-team img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display:block;
+    }
+    .hero-text{
+      min-width: 0;
+    }
+    .hero-name{
+      font-size: 18px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      color: var(--title);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hero-sub{
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trophy-title{
+      margin-top: 12px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+    }
+    .trophy-grid{
+      margin-top: 10px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .trophy{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      max-width: 100%;
+    }
+    .trophy-icon{
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 16px;
+      flex: 0 0 auto;
+    }
+    .trophy-text{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+    }
+    .trophy-main{
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,0.92);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .trophy-sub{
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(156,163,199,0.95);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .season-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+    }
+    .season-list{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .season-row{
+      padding: 10px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .season-row-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .season-name{
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,0.92);
+    }
+    .season-badges{
+      display:flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+    .badge{
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.90);
+      white-space: nowrap;
+    }
+    .season-lines{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .season-line{
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 900;
+      color: rgba(233,238,248,0.88);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .season-line span:first-child{
+      color: rgba(156,163,199,0.95);
+      letter-spacing: .12em;
+    }
+    .modal-loading{
+      padding: 18px 12px;
+      text-align:center;
+      font-size: 16px;
+      font-weight: 900;
+      color: rgba(233,238,248,0.90);
+      text-transform: uppercase;
+      letter-spacing: .12em;
     }
   </style>
 </head>
@@ -613,6 +899,19 @@
     </div>
   </div>
 
+  <!-- Player Modal -->
+  <div id="playerModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Player details">
+      <div class="modal-top">
+        <div style="height:38px;"></div>
+        <button id="playerModalClose" class="modal-close" type="button" aria-label="Close">✕</button>
+      </div>
+      <div id="playerModalContent" class="modal-body">
+        <div class="modal-loading">Loading Player…</div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
@@ -634,6 +933,8 @@
     const RANGE_W2_A1 = "Z16:AC25";
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
+
+    // wider lookup for solo players / stat fetching
     const LOOKUP_RANGE_A1 = "A3:S250";
 
     function a1(sheetName, rangeA1){
@@ -728,6 +1029,7 @@
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
+    // standings rows: [rank, ..., name, score] (name is second-to-last, score last)
     function normalizeStandingsGeneric(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -749,6 +1051,7 @@
         .sort((a,b)=>a.rank-b.rank);
     }
 
+    // highlight exactly 3 rounds (or fewer if fewer played), earliest occurrences for duplicates
     function pickTop3RoundIndices(rounds){
       const played = (rounds || [])
         .map((v, idx) => ({ v, idx }))
@@ -777,9 +1080,10 @@
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
       const byPlayer = new Map();
-      if(!cleaned.length) return { byTeam, byPlayer };
+      const playerTeamByName = new Map();
+      if(!cleaned.length) return { byTeam, byPlayer, playerTeamByName };
 
-      const rows = cleaned.slice(1);
+      const rows = cleaned.slice(1); // drop header
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -802,14 +1106,17 @@
             rounds: Array.from({length:8}, (_,k)=> toNum(r[COL.roundsStart + k]))
           };
 
-          if (pName) byPlayer.set(pName, stat);
+          if (pName) {
+            byPlayer.set(pName, stat);
+            playerTeamByName.set(pName, teamName);
+          }
           return stat;
         });
 
         byTeam.set(teamName, { teamName, displayTeamName: teamName.toUpperCase(), players });
       }
 
-      return { byTeam, byPlayer };
+      return { byTeam, byPlayer, playerTeamByName };
     }
 
     function parseLookupStats(values){
@@ -817,7 +1124,7 @@
       const byPlayer = new Map();
       if(!cleaned.length) return byPlayer;
 
-      const rows = cleaned.slice(1);
+      const rows = cleaned.slice(1); // drop header
       for (const r of rows){
         const name = String(r?.[COL.name] ?? "").trim();
         if(!name) continue;
@@ -865,6 +1172,7 @@
 
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
+    let currentPlayerToTeam = new Map(); // current season mapping
 
     const expandedTeams = new Set();
     const expandedPlayers = new Set();
@@ -880,7 +1188,11 @@
     function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
-      wrap.innerHTML = `<div class="roster-title">Roster</div>`;
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "roster-title-row";
+      titleRow.innerHTML = `<div class="roster-title">Roster</div>`;
+      wrap.appendChild(titleRow);
 
       if(!roster || !roster.players || !roster.players.length){
         wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Roster not found.</div>`;
@@ -930,7 +1242,7 @@
 
         const cells = [];
         cells.push(`<td class="cell-rank">${escapeHtml(String(p.overallRank ?? "—"))}</td>`);
-        cells.push(`<td class="cell-name">${escapeHtml((p.displayName || p.name || "").toUpperCase())}</td>`);
+        cells.push(`<td class="cell-name clickable-player" data-player="${escapeHtml(p.name)}">${escapeHtml((p.displayName || p.name || "").toUpperCase())}</td>`);
         cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
 
         for(let i=0;i<3;i++){
@@ -960,10 +1272,17 @@
       return wrap;
     }
 
-    function renderPlayerStatsTable(stat){
+    function renderPlayerStatsTable(stat, playerName){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
-      wrap.innerHTML = `<div class="roster-title">Stats</div>`;
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "roster-title-row";
+      titleRow.innerHTML = `
+        <div class="roster-title">Stats</div>
+        <button class="full-stats-btn" type="button" data-player="${escapeHtml(playerName)}">Full Player Stats</button>
+      `;
+      wrap.appendChild(titleRow);
 
       if(!stat){
         wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Stats not found.</div>`;
@@ -1120,7 +1439,7 @@
         playersList.appendChild(row);
 
         playersList.appendChild(expandedPlayers.has(p.name)
-          ? renderPlayerStatsTable(playerStatsByName.get(p.name))
+          ? renderPlayerStatsTable(playerStatsByName.get(p.name), p.name)
           : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
         );
       });
@@ -1172,9 +1491,11 @@
           const round1 = stat?.rounds?.[idx1] ?? null;
           const round2 = stat?.rounds?.[idx2] ?? null;
 
-          const nameCell = document.createElement("div");
+          const nameCell = document.createElement("button");
+          nameCell.type = "button";
           nameCell.className = "team-cell";
-          nameCell.style.cursor = "default";
+          nameCell.dataset.player = p.name;
+          nameCell.style.cursor = "pointer";
           nameCell.style.background = "rgba(255,255,255,0.08)";
           nameCell.style.color = "#ffffff";
           nameCell.style.setProperty("--icon", "none");
@@ -1215,6 +1536,33 @@
       renderPlayers();
     });
 
+    // Click a player name inside team roster table -> open modal
+    teamsView.addEventListener("click", (e)=>{
+      const cell = e.target.closest("td.clickable-player[data-player]");
+      if(!cell) return;
+      const name = cell.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    // Click "Full Player Stats" button in player collapsible -> open modal
+    playersView.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.full-stats-btn[data-player]");
+      if(!btn) return;
+      const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    // Click a player name in Weekly Top 5 -> open modal
+    weeklyView.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-player]");
+      if(!btn) return;
+      const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
     playerSearch.addEventListener("input", renderPlayers);
 
     seasonSelect.addEventListener("change", ()=>{
@@ -1228,6 +1576,255 @@
       setTab(viewSelect.value);
     });
 
+    /* ---------------- Player Modal + History ---------------- */
+    const playerModal = document.getElementById("playerModal");
+    const playerModalClose = document.getElementById("playerModalClose");
+    const playerModalContent = document.getElementById("playerModalContent");
+
+    playerModalClose.addEventListener("click", closePlayerModal);
+    playerModal.addEventListener("click", (e)=>{
+      if (e.target === playerModal) closePlayerModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
+    });
+
+    function closePlayerModal(){
+      playerModal.classList.remove("show");
+      playerModal.setAttribute("aria-hidden", "true");
+      playerModalContent.innerHTML = `<div class="modal-loading">Loading Player…</div>`;
+    }
+
+    function trophyMeta(type){
+      // priority list: 1st, 2nd, 3rd, top10
+      switch(type){
+        case "TEAM_1": return { icon:"🏆", main:"Team 1st",  pr:1 };
+        case "TEAM_2": return { icon:"🥈", main:"Team 2nd",  pr:2 };
+        case "TEAM_3": return { icon:"🥉", main:"Team 3rd",  pr:3 };
+        case "TOP_10": return { icon:"⭐", main:"Top 10",    pr:4 };
+        default: return { icon:"🏅", main:"Award", pr:9 };
+      }
+    }
+
+    // season data cache
+    const seasonHistoryCache = new Map(); // seasonNum -> { teamMap, playerMap, playerToTeam, playerStatsMap }
+
+    async function getSeasonHistoryData(seasonNum){
+      if (seasonHistoryCache.has(seasonNum)) return seasonHistoryCache.get(seasonNum);
+
+      const cfg = SEASON_CONFIG[seasonNum];
+      const sheet = cfg.sheet;
+
+      const ranges = {
+        teamStandings: a1(sheet, cfg.teamRank),
+        rosters: a1(sheet, cfg.rosters),
+        lookup: a1(sheet, LOOKUP_RANGE_A1),
+        playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
+      };
+
+      const [teamRows, rosterRows, lookupRows, playerRows] = await Promise.all([
+        fetchRange(ranges.teamStandings),
+        fetchRange(ranges.rosters),
+        fetchRange(ranges.lookup),
+        fetchRange(ranges.playerStandings),
+      ]);
+
+      const teamList = normalizeStandingsGeneric(teamRows);
+      const playerList = normalizeStandingsGeneric(playerRows);
+
+      const teamMap = new Map(teamList.map(t => [t.name, t]));
+      const playerMap = new Map(playerList.map(p => [p.name, p]));
+
+      const parsed = parseTeamRosters(rosterRows);
+      const lookupMap = parseLookupStats(lookupRows);
+
+      // stats map (lookup + roster)
+      const playerStatsMap = new Map();
+      for (const [n, s] of lookupMap.entries()) playerStatsMap.set(n, s);
+      for (const [n, s] of parsed.byPlayer.entries()) playerStatsMap.set(n, s);
+
+      const data = {
+        seasonNum,
+        sheet,
+        teamMap,
+        playerMap,
+        playerToTeam: parsed.playerTeamByName,
+        playerStatsMap
+      };
+
+      seasonHistoryCache.set(seasonNum, data);
+      return data;
+    }
+
+    async function openPlayerModal(playerName){
+      const cleanName = String(playerName).trim();
+      if(!cleanName) return;
+
+      playerModal.classList.add("show");
+      playerModal.setAttribute("aria-hidden", "false");
+      playerModalContent.innerHTML = `<div class="modal-loading">Loading ${escapeHtml(cleanName.toUpperCase())}…</div>`;
+
+      try{
+        const currentSeason = Number(seasonSelect.value) || 6;
+
+        // Build season summaries (most recent first)
+        const seasons = [6,5,4,3,2,1];
+        const summaries = [];
+
+        for (const s of seasons){
+          const data = await getSeasonHistoryData(s);
+
+          const teamName = data.playerToTeam.get(cleanName) || null;
+          const teamStanding = teamName ? (data.teamMap.get(teamName) || null) : null;
+          const playerStanding = data.playerMap.get(cleanName) || null;
+
+          // Only include seasons where player appears in ANY capacity
+          const hasAny =
+            !!teamName ||
+            !!playerStanding ||
+            data.playerStatsMap.has(cleanName);
+
+          if(!hasAny) continue;
+
+          summaries.push({
+            season: s,
+            teamName,
+            teamRank: teamStanding?.rank ?? null,
+            teamScore: teamStanding?.score ?? null,
+            playerRank: playerStanding?.rank ?? null,
+            playerScore: playerStanding?.score ?? null,
+          });
+        }
+
+        // Determine header team (prefer current season, else most recent season with team)
+        let headerTeam = null;
+        {
+          const cur = summaries.find(x => x.season === currentSeason);
+          headerTeam = cur?.teamName || null;
+          if(!headerTeam){
+            headerTeam = summaries.find(x => !!x.teamName)?.teamName || null;
+          }
+        }
+
+        const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
+        const headerBg = headerStyle?.bg || "rgba(255,255,255,0.06)";
+        const headerFg = headerStyle?.fg || "#ffffff";
+        const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
+
+        // Trophy case
+        const trophies = [];
+        for (const sum of summaries){
+          if (sum.teamRank === 1) trophies.push({ season: sum.season, type:"TEAM_1", team: sum.teamName });
+          if (sum.teamRank === 2) trophies.push({ season: sum.season, type:"TEAM_2", team: sum.teamName });
+          if (sum.teamRank === 3) trophies.push({ season: sum.season, type:"TEAM_3", team: sum.teamName });
+          if (sum.playerRank != null && Number(sum.playerRank) <= 10) trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName });
+        }
+
+        // Sort: recent seasons first, then priority list
+        trophies.sort((a,b)=>{
+          if (b.season !== a.season) return b.season - a.season;
+          return trophyMeta(a.type).pr - trophyMeta(b.type).pr;
+        });
+
+        // Right column season summaries (recent seasons first already)
+        const seasonRowsHtml = summaries
+          .sort((a,b)=>b.season-a.season)
+          .map(sum=>{
+            const badges = [];
+            if (sum.teamRank === 1) badges.push("TEAM 1ST");
+            if (sum.teamRank === 2) badges.push("TEAM 2ND");
+            if (sum.teamRank === 3) badges.push("TEAM 3RD");
+            if (sum.playerRank != null && Number(sum.playerRank) <= 10) badges.push("TOP 10");
+
+            const teamLine = sum.teamName
+              ? `${sum.teamName.toUpperCase()} • #${sum.teamRank ?? "—"} • ${fmtScore(sum.teamScore)}`
+              : `—`;
+
+            const playerLine =
+              (sum.playerRank != null || sum.playerScore != null)
+                ? `#${sum.playerRank ?? "—"} • ${fmtScore(sum.playerScore)}`
+                : `—`;
+
+            return `
+              <div class="season-row">
+                <div class="season-row-top">
+                  <div class="season-name">Season ${sum.season}</div>
+                  <div class="season-badges">
+                    ${badges.slice(0,3).map(b=>`<span class="badge">${escapeHtml(b)}</span>`).join("")}
+                  </div>
+                </div>
+                <div class="season-lines">
+                  <div class="season-line"><span>Team</span><span>${escapeHtml(teamLine)}</span></div>
+                  <div class="season-line"><span>Player</span><span>${escapeHtml(playerLine)}</span></div>
+                </div>
+              </div>
+            `;
+          }).join("");
+
+        const trophyHtml = trophies.length
+          ? trophies.map(t=>{
+              const meta = trophyMeta(t.type);
+              return `
+                <div class="trophy">
+                  <div class="trophy-icon">${meta.icon}</div>
+                  <div class="trophy-text">
+                    <div class="trophy-main">${escapeHtml(meta.main)}</div>
+                    <div class="trophy-sub">Season ${t.season}${t.team ? " • " + escapeHtml(String(t.team).toUpperCase()) : ""}</div>
+                  </div>
+                </div>
+              `;
+            }).join("")
+          : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
+
+        // Build modal DOM
+        const nameCaps = cleanName.toUpperCase();
+        const teamCaps = headerTeam ? headerTeam.toUpperCase() : "";
+
+        playerModalContent.innerHTML = `
+          <div class="modal-pane">
+            <div class="player-hero">
+              ${headerTeam ? `
+                <div class="hero-team" style="background:${escapeHtml(headerBg)}; border-color: rgba(255,255,255,.18);">
+                  <img src="${escapeHtml(headerLogo)}"
+                       alt="${escapeHtml(teamCaps)} logo"
+                       loading="lazy"
+                       decoding="async"
+                       onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.background='${escapeHtml(headerBg)}';" />
+                </div>
+              ` : `
+                <div class="hero-team">
+                  <div style="font-weight:950; opacity:.9;">👤</div>
+                </div>
+              `}
+              <div class="hero-text">
+                <div class="hero-name">${escapeHtml(nameCaps)}</div>
+                ${headerTeam ? `<div class="hero-sub" style="color:${escapeHtml(headerFg)};">${escapeHtml(teamCaps)}</div>` : `<div class="hero-sub">SOLO PLAYER</div>`}
+              </div>
+            </div>
+
+            <div class="trophy-title">Trophy Case</div>
+            <div class="trophy-grid">
+              ${trophyHtml}
+            </div>
+          </div>
+
+          <div class="modal-pane">
+            <div class="season-title">Season Performance</div>
+            <div class="season-list">
+              ${seasonRowsHtml || `<div style="opacity:.8; font-weight:900; text-transform:uppercase; letter-spacing:.12em;">No history found.</div>`}
+            </div>
+          </div>
+        `;
+      }catch(err){
+        playerModalContent.innerHTML = `
+          <div class="modal-pane" style="grid-column:1 / -1;">
+            <div class="error"><b>Couldn’t load player history</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load.")}</div></div>
+          </div>
+        `;
+      }
+    }
+
+    /* ---------------- Data Update ---------------- */
     let updating = false;
 
     async function update(force=false){
@@ -1275,6 +1872,7 @@
 
         const parsedTeams = parseTeamRosters(rosterRows);
         rosterByTeam = parsedTeams.byTeam;
+        currentPlayerToTeam = parsedTeams.playerTeamByName;
 
         const lookupMap = parseLookupStats(lookupRows);
 
