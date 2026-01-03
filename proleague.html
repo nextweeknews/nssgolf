@@ -606,16 +606,17 @@
     }
     .modal-backdrop.show{ display:flex; }
 
-    /* Wrapper allows close button OUTSIDE the card */
     .modal-wrap{
       position: relative;
       width: min(980px, 100%);
+      padding-top: 56px; /* space for floating close button */
     }
 
+    /* Close button floats ABOVE the card and never overlaps it */
     .modal-close-float{
       position: absolute;
-      top: -14px;
-      right: -14px;
+      top: 0;
+      right: 0;
       width: 44px;
       height: 44px;
       border-radius: 14px;
@@ -642,12 +643,12 @@
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,.10);
       overflow: hidden;
-      min-height: 520px;
+      /* no forced min-height (prevents awkward giant loading size) */
     }
 
-    /* Loading state centered in card */
+    /* Loading state: compact, centered within card */
     .modal-loading{
-      height: 520px;
+      min-height: 360px; /* closer to prior feel, not huge */
       display:flex;
       align-items:center;
       justify-content:center;
@@ -656,8 +657,9 @@
       font-weight: 950;
       color: rgba(233,238,248,0.92);
       text-transform: uppercase;
-      letter-spacing: .18em;
-      padding: 20px;
+      letter-spacing: 0.18em;
+      padding: 24px;
+      width: 100%;
     }
 
     .modal-body{
@@ -667,13 +669,9 @@
       gap: 12px;
     }
     @media (max-width: 860px){
+      .modal-wrap{ padding-top: 52px; }
       .modal-body{ grid-template-columns: 1fr; }
-      .modal-card{ min-height: 0; }
-      .modal-loading{ height: 420px; }
-      .modal-close-float{
-        top: -10px;
-        right: -10px;
-      }
+      .modal-loading{ min-height: 300px; }
     }
 
     .modal-pane{
@@ -721,13 +719,15 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    /* Top-left team text is ALWAYS default white here */
     .hero-sub{
       margin-top: 4px;
       font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .16em;
-      color: rgba(255,255,255,.65);
+      color: rgba(255,255,255,0.86);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -735,6 +735,7 @@
     .hero-sub.solo{
       text-transform: none;
       letter-spacing: .10em;
+      color: rgba(255,255,255,0.75);
     }
 
     /* Player info buttons (2 rows: 4 + 2) */
@@ -1939,10 +1940,16 @@
       if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
     });
 
+    function showPlayerLoading(){
+      // Ensure centered loading text without forcing huge layout
+      playerModalContent.className = "modal-loading";
+      playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
+    }
+
     function closePlayerModal(){
       playerModal.classList.remove("show");
       playerModal.setAttribute("aria-hidden", "true");
-      playerModalContent.innerHTML = `<div class="modal-loading">LOADING PLAYER DATA...</div>`;
+      showPlayerLoading();
     }
 
     function trophyMeta(type){
@@ -1951,9 +1958,10 @@
         case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND", tier:"silver",cat:"team" };
         case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD", tier:"bronze",cat:"team" };
 
-        case "IND_1":  return { icon:"🏆", main:"INDIV 1ST", tier:"gold",  cat:"individual" };
-        case "IND_2":  return { icon:"🥈", main:"INDIV 2ND", tier:"silver",cat:"individual" };
-        case "IND_3":  return { icon:"🥉", main:"INDIV 3RD", tier:"bronze",cat:"individual" };
+        // Individual podium should read "NTH OVERALL"
+        case "IND_1":  return { icon:"🏆", main:"1ST OVERALL", tier:"gold",  cat:"individual" };
+        case "IND_2":  return { icon:"🥈", main:"2ND OVERALL", tier:"silver",cat:"individual" };
+        case "IND_3":  return { icon:"🥉", main:"3RD OVERALL", tier:"bronze",cat:"individual" };
 
         case "TOP_10": return { icon:"⭐", main:"TOP 10", tier:"default", cat:"individual" };
 
@@ -2120,7 +2128,7 @@
 
       playerModal.classList.add("show");
       playerModal.setAttribute("aria-hidden", "false");
-      playerModalContent.innerHTML = `<div class="modal-loading">LOADING PLAYER DATA...</div>`;
+      showPlayerLoading();
 
       try{
         const seasons = [6,5,4,3,2,1];
@@ -2137,8 +2145,12 @@
         let round20 = 0, round25 = 0, round30 = 0;
         let captainCount = 0;
 
+        // Pre-fetch CURRENT_SEASON roster membership ONLY (for header team)
+        const currentSeasonData = await getSeasonHistoryData(CURRENT_SEASON);
+        const currentTeamOnly = currentSeasonData.playerToTeam.get(cleanName) || null;
+
         for (const s of seasons){
-          const data = await getSeasonHistoryData(s);
+          const data = (s === CURRENT_SEASON) ? currentSeasonData : await getSeasonHistoryData(s);
 
           const teamName = data.playerToTeam.get(cleanName) || null;
           const teamStanding = teamName ? (data.teamMap.get(teamName) || null) : null;
@@ -2197,15 +2209,11 @@
           });
         }
 
-        // header team (current season if possible, else most recent)
-        let headerTeam = summaries.find(x => x.season === CURRENT_SEASON)?.teamName || null;
-        if(!headerTeam){
-          headerTeam = summaries.find(x => !!x.teamName)?.teamName || null;
-        }
+        // Header team MUST be from CURRENT_SEASON roster only (otherwise Solo Player)
+        const headerTeam = currentTeamOnly;
 
         const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
         const headerBg = headerStyle?.bg || "rgba(255,255,255,0.06)";
-        const headerFg = headerStyle?.fg || "#ffffff";
         const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
 
         // info buttons (prev only)
@@ -2218,7 +2226,6 @@
         // -------- trophies (exclude current season) --------
         const trophyItems = [];
 
-        // Per-season trophies
         for (const sum of summaries){
           if (sum.season === CURRENT_SEASON) continue;
 
@@ -2239,24 +2246,24 @@
             sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
           });
 
-          // individual podium separated from top10
+          // individual podium: description should be just Season X (no position)
           if (sum.playerRank === 1) trophyItems.push({
             kind:"season", season: sum.season, type:"IND_1",
             meta: trophyMeta("IND_1"),
-            sub: `Season ${sum.season} | #${sum.playerRank}`
+            sub: `Season ${sum.season}`
           });
           if (sum.playerRank === 2) trophyItems.push({
             kind:"season", season: sum.season, type:"IND_2",
             meta: trophyMeta("IND_2"),
-            sub: `Season ${sum.season} | #${sum.playerRank}`
+            sub: `Season ${sum.season}`
           });
           if (sum.playerRank === 3) trophyItems.push({
             kind:"season", season: sum.season, type:"IND_3",
             meta: trophyMeta("IND_3"),
-            sub: `Season ${sum.season} | #${sum.playerRank}`
+            sub: `Season ${sum.season}`
           });
 
-          // top 10 finishes exclude 1/2/3
+          // top 10: description includes Season + #rank
           if (sum.playerRank != null && Number(sum.playerRank) >= 4 && Number(sum.playerRank) <= 10) {
             trophyItems.push({
               kind:"season", season: sum.season, type:"TOP_10",
@@ -2347,6 +2354,8 @@
           ? ordinal(bestIndFinishPrev).toUpperCase()
           : "-";
 
+        // Build final content (restore grid)
+        playerModalContent.className = "modal-body";
         playerModalContent.innerHTML = `
           <div class="modal-left">
             <div class="modal-pane">
@@ -2367,7 +2376,7 @@
                 <div class="hero-text">
                   <div class="hero-name">${escapeHtml(nameCaps)}</div>
                   ${headerTeam
-                    ? `<div class="hero-sub" style="color:${escapeHtml(headerFg)};">${escapeHtml(teamLabel)}</div>`
+                    ? `<div class="hero-sub">${escapeHtml(teamLabel)}</div>`
                     : `<div class="hero-sub solo">Solo Player</div>`
                   }
                 </div>
@@ -2416,6 +2425,7 @@
           </div>
         `;
       }catch(err){
+        playerModalContent.className = "modal-body";
         playerModalContent.innerHTML = `
           <div class="modal-pane" style="grid-column:1 / -1;">
             <div class="error"><b>Couldn’t load player history</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load.")}</div></div>
@@ -2518,6 +2528,7 @@
       if (["teams","players","weekly"].includes(viewParam)) viewSelect.value = viewParam;
 
       setTab(viewSelect.value);
+      showPlayerLoading();
       update(true);
       setInterval(()=>update(false), REFRESH_MS);
     })();
