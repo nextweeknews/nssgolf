@@ -24,6 +24,10 @@
 
       --top10-bg: rgba(16,185,129,0.18);
 
+      --gold:  #ffd700;
+      --silver:#c0c0c0;
+      --bronze:#cd7f32;
+
       /* Logo layout */
       --logo-slot: 40px; /* slot stays even if image fails */
     }
@@ -212,9 +216,9 @@
     }
     .place.top10bg{ background: var(--top10-bg); }
 
-    .gold{color:#ffd700;}
-    .silver{color:#c0c0c0;}
-    .bronze{color:#cd7f32;}
+    .gold{color:var(--gold);}
+    .silver{color:var(--silver);}
+    .bronze{color:var(--bronze);}
 
     /* Team/Player button cell */
     .team-cell{
@@ -279,19 +283,6 @@
       :root{ --logo-slot: 40px; }
       .team-cell{ padding: 0 10px; }
       .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
-    }
-
-    /* Background watermark */
-    .team-cell::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background-repeat:no-repeat;
-      background-position: var(--icon-pos, 0px center);
-      background-size: var(--icon-size, auto 180%);
-      background-image: var(--icon, none);
-      opacity: var(--icon-opacity, 0.20);
-      pointer-events:none;
     }
 
     button.team-cell{
@@ -469,6 +460,7 @@
       font-variant-numeric: tabular-nums;
       background-clip: padding-box;
       font-weight: 900;
+      line-height: 1.05;
     }
 
     .cell-rank{
@@ -483,10 +475,11 @@
       color: var(--title);
       text-align: center;
       padding-left: 0;
+      line-height: 1.05;
     }
     .cell-name .name-inline{
       display: inline-flex;
-      align-items: center;
+      align-items: center;     /* vertical centering */
       justify-content: center;
       gap: 6px;
       max-width: 100%;
@@ -497,20 +490,26 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      line-height: 1.05;
     }
 
-    /* Captain icon (same color as text via currentColor) */
+    /* Captain icon (centered vertically relative to text) */
     .captain-icon{
       width: 14px;
       height: 14px;
-      display: inline-block;
+      display: inline-flex;     /* helps vertical centering */
+      align-items: center;
+      justify-content: center;
       flex: 0 0 auto;
+      align-self: center;
       color: currentColor;
       background-color: currentColor; /* used for mask */
       -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
-      transform: translateY(0.5px);
+      transform: none;          /* no offset */
+      position: relative;
+      top: 0;
     }
 
     /* clickable player name in roster table */
@@ -523,7 +522,6 @@
     }
 
     .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
-    /* keep header separators present but invisible to preserve widths/centering */
     .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
 
     .stageScore{
@@ -659,6 +657,13 @@
       padding: 12px;
     }
 
+    /* Left column stacks */
+    .modal-left{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+
     .player-hero{
       display:flex;
       align-items:center;
@@ -705,16 +710,54 @@
       text-overflow: ellipsis;
     }
 
-    .trophy-title{
+    .info-stats{
       margin-top: 12px;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+    }
+    @media (max-width: 520px){
+      .info-stats{ grid-template-columns: 1fr; }
+    }
+    .statbox{
+      padding: 10px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      min-width: 0;
+    }
+    .statlabel{
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(156,163,199,0.95);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .statvalue{
+      font-size: 14px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: rgba(255,255,255,0.92);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .trophy-title{
       font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .16em;
       color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
     }
     .trophy-grid{
-      margin-top: 10px;
       display:flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -766,6 +809,9 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .trophy-sub .medal-gold{ color: var(--gold); }
+    .trophy-sub .medal-silver{ color: var(--silver); }
+    .trophy-sub .medal-bronze{ color: var(--bronze); }
 
     .season-title{
       font-size: 11px;
@@ -806,6 +852,8 @@
       flex-wrap: wrap;
       justify-content:flex-end;
     }
+
+    /* placement badges (gold/silver/bronze) */
     .badge{
       font-size: 10px;
       font-weight: 950;
@@ -818,6 +866,22 @@
       color: rgba(255,255,255,0.90);
       white-space: nowrap;
     }
+    .badge.medal-gold{
+      background: rgba(255,215,0,0.18);
+      border-color: rgba(255,215,0,0.35);
+      color: var(--gold);
+    }
+    .badge.medal-silver{
+      background: rgba(192,192,192,0.16);
+      border-color: rgba(192,192,192,0.30);
+      color: var(--silver);
+    }
+    .badge.medal-bronze{
+      background: rgba(205,127,50,0.18);
+      border-color: rgba(205,127,50,0.32);
+      color: var(--bronze);
+    }
+
     .season-lines{
       display:grid;
       grid-template-columns: 1fr;
@@ -832,11 +896,64 @@
       color: rgba(233,238,248,0.88);
       text-transform: uppercase;
       letter-spacing: .06em;
+      align-items: center;
     }
     .season-line span:first-child{
       color: rgba(156,163,199,0.95);
       letter-spacing: .12em;
+      flex: 0 0 auto;
+      padding-right: 8px;
     }
+    .season-line .right{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      justify-content:flex-end;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    /* Team button in history */
+    .team-pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      cursor: default;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .team-pill .mini-logo{
+      width: 16px;
+      height: 16px;
+      border-radius: 5px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.05);
+      flex: 0 0 auto;
+      display:grid;
+      place-items:center;
+    }
+    .team-pill .mini-logo img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .team-pill .team-text{
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      color: var(--team-color, rgba(255,255,255,0.92)); /* team color applied to text */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
     .modal-loading{
       padding: 18px 12px;
       text-align:center;
@@ -1009,7 +1126,6 @@
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
 
-      // POST first (better for custom domains / CORS setups)
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -1019,7 +1135,6 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
-      // fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -1057,6 +1172,12 @@
       if (!Number.isFinite(n)) return String(v);
       if ((n === 0) || Object.is(n, -0)) return "E";
       return n > 0 ? `+${n}` : String(n);
+    }
+    function fmtScoreAvg(n){
+      if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+      const rounded = Math.round(n * 10) / 10;
+      if (rounded === 0) return "E";
+      return rounded > 0 ? `+${rounded}` : String(rounded);
     }
     function rankClass(rank){
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
@@ -1414,7 +1535,6 @@
         btn.setAttribute("data-team", team.name);
         btn.style.background = bg;
         btn.style.color = fg;
-        btn.style.setProperty("--icon", "none");
 
         const logoSrc = teamLogoSrc(team.name);
         btn.innerHTML = `
@@ -1468,7 +1588,6 @@
         btn.setAttribute("data-player", p.name);
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "#ffffff";
-        btn.style.setProperty("--icon", "none");
         btn.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
 
         const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
@@ -1541,7 +1660,6 @@
           nameCell.style.cursor = "pointer";
           nameCell.style.background = "rgba(255,255,255,0.08)";
           nameCell.style.color = "#ffffff";
-          nameCell.style.setProperty("--icon", "none");
           nameCell.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
 
           row.innerHTML = `
@@ -1648,6 +1766,10 @@
       }
     }
 
+    function medalClass(rank){
+      return rank === 1 ? "medal-gold" : rank === 2 ? "medal-silver" : rank === 3 ? "medal-bronze" : "";
+    }
+
     // season data cache
     const seasonHistoryCache = new Map(); // seasonNum -> { teamMap, playerMap, playerToTeam, playerStatsMap }
 
@@ -1680,7 +1802,6 @@
       const parsed = parseTeamRosters(rosterRows);
       const lookupMap = parseLookupStats(lookupRows);
 
-      // stats map (lookup + roster)
       const playerStatsMap = new Map();
       for (const [n, s] of lookupMap.entries()) playerStatsMap.set(n, s);
       for (const [n, s] of parsed.byPlayer.entries()) playerStatsMap.set(n, s);
@@ -1698,6 +1819,34 @@
       return data;
     }
 
+    function buildTeamPill(teamName, forceMedalRank=null){
+      if (!teamName) return "";
+      const style = getTeamStyle(teamName) || {};
+      const teamColor = style.bg || "rgba(255,255,255,0.92)";
+      const teamCaps = String(teamName).toUpperCase();
+      const logo = teamLogoSrc(teamName);
+
+      const medal = forceMedalRank ? medalClass(forceMedalRank) : "";
+      const textColor = forceMedalRank ? (
+        forceMedalRank === 1 ? "var(--gold)" :
+        forceMedalRank === 2 ? "var(--silver)" :
+        "var(--bronze)"
+      ) : teamColor;
+
+      return `
+        <span class="team-pill" style="--team-color:${escapeHtml(textColor)};">
+          <span class="mini-logo">
+            <img src="${escapeHtml(logo)}"
+                 alt="${escapeHtml(teamCaps)} logo"
+                 loading="lazy"
+                 decoding="async"
+                 onerror="this.style.display='none'; this.removeAttribute('src');" />
+          </span>
+          <span class="team-text">${escapeHtml(teamCaps)}</span>
+        </span>
+      `;
+    }
+
     async function openPlayerModal(playerName){
       const cleanName = String(playerName).trim();
       if(!cleanName) return;
@@ -1712,6 +1861,10 @@
         // Build season summaries (most recent first)
         const seasons = [6,5,4,3,2,1];
         const summaries = [];
+        const allRounds = [];
+
+        let bestTeamFinish = null;
+        let bestIndFinish  = null;
 
         for (const s of seasons){
           const data = await getSeasonHistoryData(s);
@@ -1719,14 +1872,28 @@
           const teamName = data.playerToTeam.get(cleanName) || null;
           const teamStanding = teamName ? (data.teamMap.get(teamName) || null) : null;
           const playerStanding = data.playerMap.get(cleanName) || null;
+          const stats = data.playerStatsMap.get(cleanName) || null;
 
-          // Only include seasons where player appears in ANY capacity
           const hasAny =
             !!teamName ||
             !!playerStanding ||
-            data.playerStatsMap.has(cleanName);
+            !!stats;
 
           if(!hasAny) continue;
+
+          // accumulate rounds for best/avg
+          if (stats && Array.isArray(stats.rounds)){
+            for (const v of stats.rounds){
+              if (Number.isFinite(v)) allRounds.push(v);
+            }
+          }
+
+          if (teamStanding?.rank != null){
+            bestTeamFinish = bestTeamFinish == null ? teamStanding.rank : Math.min(bestTeamFinish, teamStanding.rank);
+          }
+          if (playerStanding?.rank != null){
+            bestIndFinish = bestIndFinish == null ? playerStanding.rank : Math.min(bestIndFinish, playerStanding.rank);
+          }
 
           summaries.push({
             season: s,
@@ -1753,13 +1920,20 @@
         const headerFg = headerStyle?.fg || "#ffffff";
         const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
 
+        // Player info stats
+        const bestRound = allRounds.length ? Math.min(...allRounds) : null;
+        const avgRound = allRounds.length ? (allRounds.reduce((a,b)=>a+b,0) / allRounds.length) : null;
+
         // Trophy case
         const trophies = [];
         for (const sum of summaries){
           if (sum.teamRank === 1) trophies.push({ season: sum.season, type:"TEAM_1", team: sum.teamName });
           if (sum.teamRank === 2) trophies.push({ season: sum.season, type:"TEAM_2", team: sum.teamName });
           if (sum.teamRank === 3) trophies.push({ season: sum.season, type:"TEAM_3", team: sum.teamName });
-          if (sum.playerRank != null && Number(sum.playerRank) <= 10) trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName });
+
+          if (sum.playerRank != null && Number(sum.playerRank) <= 10) {
+            trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName, playerRank: sum.playerRank });
+          }
         }
 
         trophies.sort((a,b)=>{
@@ -1767,49 +1941,82 @@
           return trophyMeta(a.type).pr - trophyMeta(b.type).pr;
         });
 
+        // Season history column
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
             const badges = [];
-            if (sum.teamRank === 1) badges.push("TEAM 1ST");
-            if (sum.teamRank === 2) badges.push("TEAM 2ND");
-            if (sum.teamRank === 3) badges.push("TEAM 3RD");
-            if (sum.playerRank != null && Number(sum.playerRank) <= 10) badges.push("TOP 10");
 
-            const teamLine = sum.teamName
-              ? `${sum.teamName.toUpperCase()} • #${sum.teamRank ?? "—"} • ${fmtScore(sum.teamScore)}`
-              : `—`;
+            // Team placement badges
+            if (sum.teamRank === 1) badges.push({ text:"TEAM 1ST", cls:"medal-gold" });
+            if (sum.teamRank === 2) badges.push({ text:"TEAM 2ND", cls:"medal-silver" });
+            if (sum.teamRank === 3) badges.push({ text:"TEAM 3RD", cls:"medal-bronze" });
 
-            const playerLine =
+            // Individual placement badges (1/2/3)
+            if (sum.playerRank === 1) badges.push({ text:"IND 1ST", cls:"medal-gold" });
+            if (sum.playerRank === 2) badges.push({ text:"IND 2ND", cls:"medal-silver" });
+            if (sum.playerRank === 3) badges.push({ text:"IND 3RD", cls:"medal-bronze" });
+
+            // Top 10 badge (non-medal)
+            if (sum.playerRank != null && Number(sum.playerRank) <= 10 && sum.playerRank > 3) {
+              badges.push({ text:"TOP 10", cls:"" });
+            }
+
+            const teamRight = sum.teamName
+              ? `
+                <span class="right">
+                  ${buildTeamPill(sum.teamName)}
+                  <span style="opacity:.95; font-variant-numeric: tabular-nums;">#${sum.teamRank ?? "—"} • ${escapeHtml(fmtScore(sum.teamScore))}</span>
+                </span>
+              `
+              : `<span class="right"><span style="opacity:.75;">—</span></span>`;
+
+            const playerRight =
               (sum.playerRank != null || sum.playerScore != null)
-                ? `#${sum.playerRank ?? "—"} • ${fmtScore(sum.playerScore)}`
-                : `—`;
+                ? `<span class="right"><span style="opacity:.95; font-variant-numeric: tabular-nums;">#${sum.playerRank ?? "—"} • ${escapeHtml(fmtScore(sum.playerScore))}</span></span>`
+                : `<span class="right"><span style="opacity:.75;">—</span></span>`;
 
             return `
               <div class="season-row">
                 <div class="season-row-top">
                   <div class="season-name">Season ${sum.season}</div>
                   <div class="season-badges">
-                    ${badges.slice(0,3).map(b=>`<span class="badge">${escapeHtml(b)}</span>`).join("")}
+                    ${badges.slice(0,4).map(b=>`<span class="badge ${escapeHtml(b.cls)}">${escapeHtml(b.text)}</span>`).join("")}
                   </div>
                 </div>
                 <div class="season-lines">
-                  <div class="season-line"><span>Team</span><span>${escapeHtml(teamLine)}</span></div>
-                  <div class="season-line"><span>Player</span><span>${escapeHtml(playerLine)}</span></div>
+                  <div class="season-line"><span>Team</span>${teamRight}</div>
+                  <div class="season-line"><span>Player</span>${playerRight}</div>
                 </div>
               </div>
             `;
           }).join("");
 
+        // Trophy HTML (team names can be overridden by medal colors)
         const trophyHtml = trophies.length
           ? trophies.map(t=>{
               const meta = trophyMeta(t.type);
+              const medalRank =
+                t.type === "TEAM_1" ? 1 :
+                t.type === "TEAM_2" ? 2 :
+                t.type === "TEAM_3" ? 3 : null;
+
+              let sub = `Season ${t.season}`;
+              if (t.type === "TOP_10" && t.playerRank != null) sub += ` • #${t.playerRank}`;
+              if (t.team) {
+                const cls =
+                  medalRank === 1 ? "medal-gold" :
+                  medalRank === 2 ? "medal-silver" :
+                  medalRank === 3 ? "medal-bronze" : "";
+                sub += ` • <span class="${cls}">${escapeHtml(String(t.team).toUpperCase())}</span>`;
+              }
+
               return `
                 <div class="trophy">
                   <div class="trophy-icon">${meta.icon}</div>
                   <div class="trophy-text">
                     <div class="trophy-main">${escapeHtml(meta.main)}</div>
-                    <div class="trophy-sub">Season ${t.season}${t.team ? " • " + escapeHtml(String(t.team).toUpperCase()) : ""}</div>
+                    <div class="trophy-sub">${sub}</div>
                   </div>
                 </div>
               `;
@@ -1820,33 +2027,59 @@
         const teamCaps = headerTeam ? headerTeam.toUpperCase() : "";
 
         playerModalContent.innerHTML = `
-          <div class="modal-pane">
-            <div class="player-hero">
-              ${headerTeam ? `
-                <div class="hero-team" style="background:${escapeHtml(headerBg)}; border-color: rgba(255,255,255,.18);">
-                  <img src="${escapeHtml(headerLogo)}"
-                       alt="${escapeHtml(teamCaps)} logo"
-                       loading="lazy"
-                       decoding="async"
-                       onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.background='${escapeHtml(headerBg)}';" />
+          <div class="modal-left">
+            <!-- Player Info Card -->
+            <div class="modal-pane">
+              <div class="player-hero">
+                ${headerTeam ? `
+                  <div class="hero-team" style="background:${escapeHtml(headerBg)}; border-color: rgba(255,255,255,.18);">
+                    <img src="${escapeHtml(headerLogo)}"
+                         alt="${escapeHtml(teamCaps)} logo"
+                         loading="lazy"
+                         decoding="async"
+                         onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.background='${escapeHtml(headerBg)}';" />
+                  </div>
+                ` : `
+                  <div class="hero-team">
+                    <div style="font-weight:950; opacity:.9;">👤</div>
+                  </div>
+                `}
+                <div class="hero-text">
+                  <div class="hero-name">${escapeHtml(nameCaps)}</div>
+                  ${headerTeam ? `<div class="hero-sub" style="color:${escapeHtml(headerFg)};">${escapeHtml(teamCaps)}</div>` : `<div class="hero-sub">SOLO PLAYER</div>`}
                 </div>
-              ` : `
-                <div class="hero-team">
-                  <div style="font-weight:950; opacity:.9;">👤</div>
+              </div>
+
+              <div class="info-stats">
+                <div class="statbox">
+                  <div class="statlabel">Best Round</div>
+                  <div class="statvalue">${escapeHtml(fmtScore(bestRound))}</div>
                 </div>
-              `}
-              <div class="hero-text">
-                <div class="hero-name">${escapeHtml(nameCaps)}</div>
-                ${headerTeam ? `<div class="hero-sub" style="color:${escapeHtml(headerFg)};">${escapeHtml(teamCaps)}</div>` : `<div class="hero-sub">SOLO PLAYER</div>`}
+                <div class="statbox">
+                  <div class="statlabel">Avg Round</div>
+                  <div class="statvalue">${escapeHtml(fmtScoreAvg(avgRound))}</div>
+                </div>
+                <div class="statbox">
+                  <div class="statlabel">Best Team Finish</div>
+                  <div class="statvalue">${bestTeamFinish != null ? "#" + escapeHtml(bestTeamFinish) : "—"}</div>
+                </div>
+                <div class="statbox">
+                  <div class="statlabel">Best Individual Finish</div>
+                  <div class="statvalue">${bestIndFinish != null ? "#" + escapeHtml(bestIndFinish) : "—"}</div>
+                </div>
               </div>
             </div>
 
-            <div class="trophy-title">Trophy Case</div>
-            <div class="trophy-grid">
-              ${trophyHtml}
+            <!-- Trophy Case Card -->
+            <div class="modal-pane">
+              <div class="trophy-title">Trophy Case</div>
+              <div class="trophy-grid">
+                ${trophyHtml}
+              </div>
             </div>
           </div>
 
+          <!-- Season Performance -->
           <div class="modal-pane">
             <div class="season-title">Season Performance</div>
             <div class="season-list">
