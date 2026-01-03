@@ -23,6 +23,10 @@
       --sep: rgba(148,163,184,0.26);
 
       --top10-bg: rgba(16,185,129,0.18);
+
+      /* Logo layout */
+      --logo-gap: 10px;          /* small symmetric gap left/right of logo column */
+      --logo-slot: 44px;         /* fixed logo column width */
     }
 
     *{ box-sizing:border-box; }
@@ -221,7 +225,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      padding: 0 14px;
+      padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
@@ -231,21 +235,46 @@
       letter-spacing: .02em;
       overflow:hidden;
       border-radius: 0;
-      gap: 12px;
+      gap: var(--logo-gap);
     }
     .team-cell:hover{ filter: brightness(1.04); }
+
+    /* Fixed centered logo column between left edge and name */
+    .team-logo-wrap{
+      width: var(--logo-slot);
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+    }
+    .team-logo{
+      height: calc(100% - 10px); /* minimal symmetric padding top/bottom */
+      width: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display:block;
+      border:none;
+      outline:none;
+      box-shadow:none;
+    }
+
     .team-cell .name-text{
       font-size: 20px;
       font-weight: 950;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
-      text-transform: uppercase; /* always caps */
+      text-transform: uppercase;
       position: relative;
       z-index: 1;
+      flex: 1 1 auto;
+      min-width: 0;
     }
     @media (max-width: 640px){
+      .team-cell{ padding: 0 10px; }
       .team-cell .name-text{ font-size: 16px; }
+      :root{ --logo-slot: 38px; --logo-gap: 8px; }
     }
 
     /* Background watermark (optional icons via CSS vars) */
@@ -259,20 +288,6 @@
       background-image: var(--icon, none);
       opacity: var(--icon-opacity, 0.20);
       pointer-events:none;
-    }
-
-    /* Inline square logo (fills row height) */
-    .team-logo{
-      height: 100%;
-      aspect-ratio: 1 / 1;
-      width: auto;
-      display: block;
-      object-fit: cover;
-      flex: 0 0 auto;
-      border: none;
-      outline: none;
-      box-shadow: none;
-      margin-left: -14px; /* tuck into left padding so it feels flush */
     }
 
     /* Fix: buttons sometimes inherit UA/reset styles that override weight */
@@ -623,7 +638,6 @@
       return `'${sheetName}'!${rangeA1}`;
     }
 
-    // ✅ Updated TEAM_STYLES (your new source of truth)
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000" },
@@ -723,7 +737,7 @@
           if(!rank || !name) return null;
           return {
             rank: Number(rank),
-            name: String(name).trim(),                 // key
+            name: String(name).trim(),
             displayName: String(name).trim().toUpperCase(),
             slug: slugify(name),
             score: (score !== "" && score != null) ? Number(score) : null
@@ -1038,13 +1052,16 @@
         btn.setAttribute("data-team", team.name);
         btn.style.background = bg;
         btn.style.color = fg;
-
         btn.style.setProperty("--icon", "none");
 
         const logoSrc = teamLogoSrc(team.name);
         btn.innerHTML = `
-          <img class="team-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(team.displayName)} logo"
-               onerror="this.style.display='none';" />
+          <span class="team-logo-wrap">
+            <img class="team-logo"
+                 src="${escapeHtml(logoSrc)}"
+                 alt="${escapeHtml(team.displayName)} logo"
+                 onerror="this.style.display='none'; this.closest('.team-logo-wrap')?.style && (this.closest('.team-logo-wrap').style.display='none');" />
+          </span>
           <span class="name-text">${escapeHtml(team.displayName)}</span>
         `;
 
