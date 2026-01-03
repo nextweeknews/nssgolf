@@ -29,6 +29,14 @@
 
       --logo-slot: 40px;
 
+      /* Neon tier colors */
+      --neon-blue:   rgba(56,189,248,1);
+      --neon-purple: rgba(168,85,247,1);
+      --neon-gold:   rgba(253,224,71,1);
+      --neon-green:  rgba(34,197,94,1);
+      --neon-silver: rgba(226,232,240,1);
+      --neon-bronze: rgba(251,146,60,1);
+
       /* Desktop-first row sizing */
       --rank-col: 100px;
       --score-col: 120px;
@@ -204,7 +212,6 @@
       padding: 0 10px;
       height: 18px;
       min-width: 0;
-      border-bottom: none;
     }
     .header-row span:nth-child(2){
       justify-content:flex-start;
@@ -240,7 +247,6 @@
       height: 100%;
       background: transparent;
       min-width: 0;
-      font-variant-numeric: tabular-nums;
     }
     .place.top10bg{ background: var(--top10-bg); }
 
@@ -255,13 +261,13 @@
       width: 100%;
       display:flex;
       align-items:center;
-      justify-content:flex-start; /* keep left-justified */
-      padding: 0 10px;
+      justify-content:flex-start;
+      padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
       cursor:pointer;
-      font-weight: 950;
+      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .02em;
       overflow:hidden;
@@ -277,7 +283,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 0;              /* no left/right padding */
+      padding: 0;
       flex: 0 0 auto;
     }
     .team-logo{
@@ -304,13 +310,13 @@
       min-width: 0;
       text-align: left;
       justify-content: flex-start;
-      padding-left: 10px; /* minimal gap after logo slot */
+      padding-left: 10px;
     }
 
     button.team-cell{
       font-family: inherit !important;
       font-size: inherit !important;
-      font-weight: 950 !important;
+      font-weight: 900 !important;
       letter-spacing: inherit !important;
       text-transform: uppercase !important;
       line-height: 1 !important;
@@ -336,7 +342,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Weekly (desktop default) */
+    /* Weekly */
     .weekly-header-row, .weekly-entry{
       display:grid;
       grid-template-columns: var(--wk-rank-col) 1fr var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
@@ -363,7 +369,6 @@
       height: 18px;
       white-space: nowrap;
       min-width: 0;
-      border-bottom: none;
     }
     .weekly-header-row span:nth-child(2){
       justify-content:flex-start;
@@ -414,7 +419,7 @@
       color: var(--muted);
     }
 
-    /* Default: vertical scroll only */
+    /* Default: vertical scroll only, but we'll enable horizontal scroll on small screens */
     .roster-scroll{
       max-height: 280px;
       overflow-y: auto;
@@ -436,7 +441,7 @@
     }
 
     col.c-rank{  width: 54px; }
-    col.c-name{  width: 170px; }
+    col.c-name{  width: 156px; }
     col.c-stage{ width: 62px; }
     col.c-best{  width: 54px; }
     col.c-week{  width: 52px; }
@@ -449,7 +454,7 @@
       background: rgba(15,23,42,0.92);
       backdrop-filter: blur(6px);
       padding: 6px 6px;
-      border-bottom: none; /* remove bottom border */
+      border-bottom: none;
       color: var(--muted);
       font-size: 10px;
       font-weight: 900;
@@ -463,7 +468,6 @@
     .roster-table tbody td{ background: var(--row-bg); }
     .roster-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
 
-    /* Force square corners (no trapezoids / rounding) */
     .roster-table,
     .roster-table thead th,
     .roster-table tbody tr,
@@ -471,7 +475,6 @@
       border-radius: 0 !important;
       clip-path: none !important;
       mask: none !important;
-      background-clip: padding-box !important;
     }
 
     .roster-table td{
@@ -482,10 +485,12 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      border: none !important; /* no internal borders by default */
+      border-top: 1px solid rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
       text-align: center;
       font-variant-numeric: tabular-nums;
-      font-weight: 900; /* consistent thickness */
+      background-clip: padding-box;
+      font-weight: 900;
       line-height: 1.05;
     }
 
@@ -522,16 +527,15 @@
       width: 14px;
       height: 14px;
       display: inline-flex;
-      align-items: center;      /* vertical center */
-      justify-content: center;  /* vertical center */
+      align-items: center;
+      justify-content: center;
       flex: 0 0 auto;
-      align-self: center;       /* vertical center relative to text */
+      align-self: center;
       color: currentColor;
       background-color: currentColor;
       -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
-      transform: translateY(0.5px);
     }
 
     .clickable-player{ cursor: pointer; }
@@ -540,9 +544,8 @@
       text-underline-offset: 2px;
     }
 
-    /* Only show specified separators */
     .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
-    .roster-table thead .sep-right{ border-right: 2px solid transparent !important; } /* transparent (preserve centering) */
+    .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
 
     .stageScore{
       background: rgba(217,217,217,0.14) !important;
@@ -551,6 +554,25 @@
     .counted{
       background: rgba(52,211,153,0.16) !important;
       color: #ffffff;
+    }
+
+    .full-stats-btn{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.90);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+      line-height: 1;
+    }
+    .full-stats-btn:hover{
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.28);
     }
 
     .status{
@@ -569,7 +591,33 @@
 
     .hidden{ display:none !important; }
 
-    /* ---------------- MODAL / PLAYER CARD ---------------- */
+    .search{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border-lite);
+      background: rgba(148,163,184,0.10);
+      padding: 10px 12px;
+      border-radius: 10px;
+      min-width: 260px;
+    }
+    .search span{color: var(--muted); font-weight:900;}
+    .search input{
+      width:100%;
+      background:transparent;
+      border:none;
+      outline:none;
+      color: var(--text);
+      font-size:14px;
+    }
+    .search input::placeholder{color: rgba(156,163,199,.70);}
+
+    .footer{
+      margin-top: 18px;
+      text-align:center;
+      font-size:12px;
+      color: rgba(233,238,248,0.55);
+    }
+
+    /* ---------------- MODAL ---------------- */
     .modal-backdrop{
       position: fixed;
       inset: 0;
@@ -622,9 +670,8 @@
       overflow: hidden;
     }
 
-    /* Keep card size stable while loading, center text */
     .modal-loading{
-      min-height: 420px;
+      min-height: 360px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -648,7 +695,7 @@
     @media (max-width: 860px){
       .modal-wrap{ padding-top: 52px; }
       .modal-body{ grid-template-columns: 1fr; }
-      .modal-loading{ min-height: 360px; }
+      .modal-loading{ min-height: 300px; }
     }
 
     .modal-pane{
@@ -656,6 +703,13 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 12px;
+      min-width: 0;
+    }
+
+    .modal-left{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
       min-width: 0;
     }
 
@@ -692,16 +746,22 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
     .hero-sub{
       margin-top: 4px;
       font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .16em;
-      color: rgba(255,255,255,0.86); /* always white here */
+      color: rgba(255,255,255,0.86);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .hero-sub.solo{
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,0.75);
     }
 
     .info-btn-grid{
@@ -725,7 +785,7 @@
       align-items:center;
       justify-content:center;
       text-align:center;
-      min-height: 70px;
+      min-height: 62px;
       min-width: 0;
     }
     .info-btn .lbl{
@@ -810,7 +870,6 @@
     .trophy-icon.captain{
       font-size: 0;
       position: relative;
-      color: rgba(187,247,208,0.96);
     }
     .trophy-icon.captain::before{
       content:"";
@@ -972,6 +1031,27 @@
       color: rgba(255,255,255,0.92);
     }
 
+    /* Right-justified season buttons */
+    .btn-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      justify-content: flex-end;
+      -webkit-overflow-scrolling: touch;
+      min-width: 0;
+    }
+    .btn-row + .btn-row{ margin-top: 8px; }
+
+    .btn-row::-webkit-scrollbar { height: 10px; }
+    .btn-row::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,0.22);
+      border-radius: 999px;
+    }
+    .btn-row::-webkit-scrollbar-track { background: transparent; }
+
     .chip{
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(255,255,255,0.06);
@@ -994,7 +1074,6 @@
       text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
       flex: 0 0 auto;
-      gap: 6px;
     }
     .chip.solo{ text-transform: uppercase; letter-spacing: .10em; }
 
@@ -1022,69 +1101,38 @@
       letter-spacing: .08em;
     }
 
-    /* Team row in season performance (right-justified) */
-    .season-team-row{
-      display:flex;
-      align-items:center;
-      justify-content: flex-end;
-      gap: 6px;
-      flex-wrap: wrap;
-      min-width: 0;
-    }
-
-    /* ✅ Player row in season performance: NO horizontal scroll, table compresses */
-    .season-player-row{
-      display: grid;
-      grid-template-columns: auto auto minmax(0, 1fr);
-      gap: 6px;
-      align-items: center;
-      justify-items: end;  /* right-justified */
-      width: 100%;
-      min-width: 0;
-      margin-top: 8px;
-    }
-    .season-player-row .chip{
-      padding: 6px 8px;
-      font-size: 10px;
-      border-radius: 10px;
-      letter-spacing: .08em;
-      white-space: nowrap;
-    }
-
-    /* Inline rounds table (compressed to fit) */
+    /* Inline rounds table */
     table.mini-rounds{
       border-collapse: separate;
       border-spacing: 0;
       table-layout: fixed;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
+      width: 360px;
+      max-width: 360px;
       background: transparent;
       border: 1px solid rgba(255,255,255,0.10);
       border-radius: 0;
       overflow: visible;
+      flex: 0 0 auto;
+      min-width: 0;
     }
     .mini-rounds td{
       padding: 6px 0;
       text-align: center;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 950;
       text-transform: uppercase;
-      letter-spacing: .06em;
+      letter-spacing: .08em;
       line-height: 1;
       color: rgba(255,255,255,0.92);
       font-variant-numeric: tabular-nums;
       user-select: none;
-      border: none !important; /* continuous background (no extra borders) */
+      border: none;
       background: rgba(255,255,255,0.03);
       min-width: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
-    .mini-rounds td.sep-left{ border-left: 2px solid rgba(148,163,184,0.26) !important; }
+    .mini-rounds td.sep-left{ border-left: 2px solid rgba(148,163,184,0.26); }
     .mini-rounds td.counted{
-      background: rgba(52,211,153,0.16) !important;
+      background: rgba(52,211,153,0.16);
       color: rgba(255,255,255,0.98);
     }
 
@@ -1092,7 +1140,7 @@
     @media (max-width: 760px){
       :root{
         --rank-col: 72px;
-        --score-col: 82px;      /* mobile narrower for team names fit */
+        --score-col: 82px;      /* mobile narrower for PHANTOM TROUPE fit */
         --wk-rank-col: 72px;
         --wk-round-col: 64px;
         --wk-score-col: 92px;
@@ -1116,6 +1164,8 @@
 
       .weekly-round{ font-size: 14px; }
 
+      .search{ min-width: 0; width: 100%; }
+
       /* Make complex tables scrollable horizontally on mobile */
       .roster-scroll{
         overflow-x: auto;
@@ -1124,10 +1174,10 @@
       }
       table.roster-table{
         width: max-content;
-        min-width: 860px;
+        min-width: 820px;
       }
 
-      /* Modal: fit to viewport horizontally + scale down */
+      /* Modal: fit to viewport horizontally + scale down content so it never overflows */
       .modal-backdrop{
         align-items: flex-start;
         justify-content: center;
@@ -1141,16 +1191,20 @@
       .modal-card{
         max-height: calc(100vh - 84px);
         overflow-y: auto;
-        overflow-x: hidden;
+        overflow-x: hidden; /* critical: no horizontal overflow */
         -webkit-overflow-scrolling: touch;
       }
 
-      .modal-card{ --modal-scale: .92; }
+      /* scale modal contents to fit narrow screens */
+      .modal-card{
+        --modal-scale: 1;
+      }
+      /* Use a slight scale-down on phones; keeps layout identical but shrunk */
       @media (max-width: 520px){
-        .modal-card{ --modal-scale: .88; }
+        .modal-card{ --modal-scale: .92; }
       }
       @media (max-width: 420px){
-        .modal-card{ --modal-scale: .84; }
+        .modal-card{ --modal-scale: .86; }
       }
 
       .modal-body, .modal-loading{
@@ -1163,32 +1217,21 @@
         grid-template-columns: 1fr;
         padding: 12px;
       }
-
-      /* Further compress season performance player row on mobile */
-      .season-player-row{
-        gap: 5px;
-      }
-      .season-player-row .chip{
-        padding: 5px 6px;
-        font-size: 9px;
-        border-radius: 9px;
-        letter-spacing: .06em;
-      }
-      .mini-rounds td{
-        padding: 5px 0;
-        font-size: 9px;
-        letter-spacing: .04em;
+      .modal-loading{
+        min-height: 300px;
       }
 
-      /* ✅ Weekly Top 5: mobile removes R1/R2 columns */
-      .weekly-header-row,
-      .weekly-entry{
-        grid-template-columns: var(--wk-rank-col) 1fr var(--wk-score-col);
+      /* ensure season pills row can scroll within the card if needed */
+      .btn-row{
+        justify-content: flex-end;
       }
-      .weekly-header-row .wk-col-round,
-      .weekly-entry .wk-col-round{
-        display: none !important;
+
+      /* mini rounds table shrinks a bit on mobile */
+      table.mini-rounds{
+        width: 300px;
+        max-width: 300px;
       }
+      .trophy-text{ max-width: 220px; }
     }
 
     @media (max-width: 420px){
@@ -1196,6 +1239,7 @@
         --rank-col: 64px;
         --score-col: 76px;
         --wk-rank-col: 64px;
+        --wk-round-col: 58px;
         --wk-score-col: 84px;
         --logo-slot: 30px;
       }
@@ -1206,6 +1250,9 @@
 
       .entry, .weekly-entry{ height: 42px; }
       .team-cell .name-text{ font-size: 15px; }
+
+      table.mini-rounds{ width: 280px; max-width: 280px; }
+      table.roster-table{ min-width: 860px; }
     }
   </style>
 </head>
@@ -1270,6 +1317,10 @@
       <div id="playersView" class="card hidden" style="margin-top:16px;">
         <div class="card-head">
           <h2 class="h2">Player Rankings</h2>
+          <div class="search">
+            <span>⌕</span>
+            <input id="playerSearch" type="text" placeholder="Search…" />
+          </div>
         </div>
 
         <div class="header-row">
@@ -1284,6 +1335,8 @@
       <div id="weeklyView" class="hidden" style="margin-top:16px;">
         <div id="weeklyCards"></div>
       </div>
+
+      <div class="footer">Shotgun Pro League</div>
     </div>
   </div>
 
@@ -1292,7 +1345,7 @@
     <div class="modal-wrap">
       <button id="playerModalClose" class="modal-close-float" type="button" aria-label="Close">✕</button>
       <div class="modal-card" role="dialog" aria-modal="true" aria-label="Player details">
-        <div id="playerModalContent"></div>
+        <div id="playerModalContent" class="modal-body"></div>
       </div>
     </div>
   </div>
@@ -1302,7 +1355,12 @@
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 15000;
 
-    // Season config (Season 6 uses "Season 6, Stage 1")
+    // set via ?currentSeason=6
+    let CURRENT_SEASON = 6;
+    const qsBoot = new URLSearchParams(location.search);
+    const qsCur = Number(qsBoot.get("currentSeason"));
+    if (Number.isFinite(qsCur) && qsCur >= 1 && qsCur <= 6) CURRENT_SEASON = qsCur;
+
     const SEASON_CONFIG = {
       6: { sheet: "Season 6, Stage 1", rosters: "A3:S63", teamRank: "U4:X15" },
       5: { sheet: "Season 5",         rosters: "A3:S63", teamRank: "U4:X15" },
@@ -1312,15 +1370,12 @@
       1: { sheet: "Season 1",         rosters: "A3:S38", teamRank: "U4:X10" },
     };
 
+    const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
+    const RANGE_W1_A1 = "Z4:AC13";
+    const RANGE_W2_A1 = "Z16:AC25";
+    const RANGE_W3_A1 = "Z28:AC37";
+    const RANGE_W4_A1 = "Z40:AC49";
     const LOOKUP_RANGE_A1 = "A3:S250";
-    const PLAYER_RANK_RANGE_A1 = "AE4:AH101";
-
-    const WEEK_RANGES = {
-      1: "Z4:AC13",
-      2: "Z16:AC25",
-      3: "Z28:AC37",
-      4: "Z40:AC49",
-    };
 
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
@@ -1341,16 +1396,10 @@
       "REVERIE":         { bg: "#e2a9f1", fg: "#00357a" },
     };
 
-    const TEAM_LOGO_DIR = "logos";
-    const TEAM_LOGO_EXT = "png";
-
     function getTeamStyle(name) {
       if (!name) return null;
       const key = String(name).trim().toUpperCase();
       return TEAM_STYLES[key] || null;
-    }
-    function teamLogoSrc(teamName){
-      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
     }
 
     function normalizeValues(resp){
@@ -1390,11 +1439,9 @@
     function rowHasAnyValue(row){
       return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
     }
-
     function slugify(name){
       return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
-
     function escapeHtml(s){
       return String(s ?? "")
         .replace(/&/g,"&amp;")
@@ -1403,7 +1450,6 @@
         .replace(/"/g,"&quot;")
         .replace(/'/g,"&#39;");
     }
-
     function toNum(v){
       const s = String(v ?? "").trim();
       if(!s) return null;
@@ -1421,14 +1467,28 @@
       if (n === 0 || Object.is(n, -0)) return "E";
       return n > 0 ? `+${n}` : String(n);
     }
+    function fmtScoreAvg(n){
+      if (n === null || n === undefined || !Number.isFinite(n)) return "-";
+      const rounded = Math.round(n * 10) / 10;
+      if (rounded === 0) return "E";
+      return rounded > 0 ? `+${rounded}` : String(rounded);
+    }
 
     function rankClass(rank){
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
 
     function ordinal(n){
-      const s = ["th","st","nd","rd"], v = n % 100;
-      return n + (s[(v-20)%10] || s[v] || s[0]);
+      const v = Number(n);
+      if(!Number.isFinite(v)) return "-";
+      const mod100 = v % 100;
+      const mod10  = v % 10;
+      const suf =
+        (mod100 >= 11 && mod100 <= 13) ? "th" :
+        (mod10 === 1) ? "st" :
+        (mod10 === 2) ? "nd" :
+        (mod10 === 3) ? "rd" : "th";
+      return `${v}${suf}`;
     }
 
     function normalizeStandingsGeneric(rows){
@@ -1477,10 +1537,6 @@
       return picked;
     }
 
-    function buildRange(sheet, a1){
-      return `'${sheet}'!${a1}`;
-    }
-
     function parseTeamRosters(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
@@ -1499,7 +1555,7 @@
 
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
 
-        const players = playerRows.map((pr, idx)=>{
+        const players = playerRows.map(pr=>{
           const r = pr || [];
           const pName = String(r[2] ?? "").trim();
 
@@ -1516,10 +1572,12 @@
           if (pName) {
             byPlayer.set(pName, stat);
             playerTeamByName.set(pName, teamName);
-            if (idx === 0) captains.add(pName);
           }
           return stat;
         });
+
+        const capName = String(playerRows?.[0]?.[2] ?? "").trim();
+        if (capName) captains.add(capName);
 
         byTeam.set(teamName, { teamName, displayTeamName: teamName.toUpperCase(), players });
       }
@@ -1527,6 +1585,7 @@
       return { byTeam, byPlayer, playerTeamByName, captains };
     }
 
+    // broader lookup for solo players etc
     function parseLookupStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byPlayer = new Map();
@@ -1538,7 +1597,7 @@
         if(!name) continue;
 
         const overallRank = toNum(r?.[0]);
-        if (overallRank === null) continue;
+        if (overallRank === null) continue; // skip team header rows
 
         byPlayer.set(name, {
           overallRank,
@@ -1553,7 +1612,13 @@
       return byPlayer;
     }
 
-    /* ---------------- DOM refs ---------------- */
+    const TEAM_LOGO_DIR = "logos";
+    const TEAM_LOGO_EXT = "png";
+    function teamLogoSrc(teamName){
+      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
+    }
+
+    // DOM refs
     const statusCard = document.getElementById("statusCard");
     const contentEl  = document.getElementById("content");
 
@@ -1567,26 +1632,22 @@
     const teamsList  = document.getElementById("teamsList");
     const playersList= document.getElementById("playersList");
     const weeklyCards= document.getElementById("weeklyCards");
+    const playerSearch = document.getElementById("playerSearch");
 
     const playerModal = document.getElementById("playerModal");
     const playerModalClose = document.getElementById("playerModalClose");
     const playerModalContent = document.getElementById("playerModalContent");
 
-    /* ---------------- state ---------------- */
-    let CURRENT_SEASON = 6;
-
+    // state
     let teamStandings = [];
     let playerStandings = [];
     let weeklyByWeek = new Map();
 
     let rosterByTeam = new Map();
-    let playerTeamByName = new Map();
-    let captainsSet = new Set();
-
     let playerStatsByName = new Map();
-    const expandedTeams = new Set();
 
-    const seasonCache = new Map(); // seasonNum -> {teamStandings, playerStandings, roster, lookup, captains}
+    const expandedTeams = new Set();
+    const expandedPlayers = new Set();
 
     function setTab(tab){
       if (viewSelect.value !== tab) viewSelect.value = tab;
@@ -1596,36 +1657,181 @@
     }
     viewSelect.addEventListener("change", ()=> setTab(viewSelect.value));
 
-    playerModalClose.addEventListener("click", closePlayerModal);
-    playerModal.addEventListener("click", (e)=>{
-      if(e.target === playerModal) closePlayerModal();
-    });
-    window.addEventListener("keydown", (e)=>{
-      if(e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
-    });
+    function renderTeamRosterTable(roster){
+      const wrap = document.createElement("div");
+      wrap.className = "roster-wrap";
 
-    function closePlayerModal(){
-      playerModal.classList.remove("show");
-      playerModal.setAttribute("aria-hidden","true");
-    }
+      const titleRow = document.createElement("div");
+      titleRow.className = "roster-title-row";
+      titleRow.innerHTML = `<div class="roster-title">Roster</div>`;
+      wrap.appendChild(titleRow);
 
-    function openPlayerModal(playerName){
-      const p = String(playerName || "").trim();
-      if(!p) return;
+      if(!roster || !roster.players || !roster.players.length){
+        wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Roster not found.</div>`;
+        return wrap;
+      }
 
-      playerModal.classList.add("show");
-      playerModal.setAttribute("aria-hidden","false");
+      const scroll = document.createElement("div");
+      scroll.className = "roster-scroll";
 
-      // loading state centered
-      playerModalContent.innerHTML = `<div class="modal-loading">LOADING PLAYER DATA...</div>`;
+      const table = document.createElement("table");
+      table.className = "roster-table";
 
-      renderPlayerCard(p).catch(err=>{
-        console.error(err);
-        playerModalContent.innerHTML = `<div class="modal-loading">FAILED TO LOAD PLAYER DATA</div>`;
+      table.innerHTML = `
+        <colgroup>
+          <col class="c-rank">
+          <col class="c-name">
+          <col class="c-stage">
+          <col class="c-best"><col class="c-best"><col class="c-best">
+          <col class="c-week"><col class="c-week"><col class="c-week"><col class="c-week">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Stage</th>
+            <th>1st</th><th>2nd</th><th>3rd</th>
+            <th>WK1</th><th>WK2</th><th>WK3</th><th class="sep-right">WK4</th>
+            <th>1-1</th><th class="sep-right">1-2</th>
+            <th>2-1</th><th class="sep-right">2-2</th>
+            <th>3-1</th><th class="sep-right">3-2</th>
+            <th>4-1</th><th>4-2</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+
+      roster.players.forEach((p, idxOnTeam)=>{
+        const rounds = (p.rounds || Array(8).fill(null));
+        const highlightIdx = pickTop3RoundIndices(rounds);
+
+        const weekTotals = (p.weekTotals || [null,null,null,null]);
+        const best = (p.best || [null,null,null]);
+
+        const isCaptain = (idxOnTeam === 0);
+        const captainMark = isCaptain ? `<span class="captain-icon" aria-label="Captain" title="Captain"></span>` : ``;
+
+        const cells = [];
+        cells.push(`<td class="cell-rank">${escapeHtml(String(p.overallRank ?? "-"))}</td>`);
+        cells.push(`
+          <td class="cell-name clickable-player" data-player="${escapeHtml(p.name)}">
+            <span class="name-inline">
+              <span>${escapeHtml((p.displayName || p.name || "").toUpperCase())}</span>
+              ${captainMark}
+            </span>
+          </td>
+        `);
+        cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
+
+        for(let i=0;i<3;i++){
+          cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
+        }
+
+        for(let i=0;i<4;i++){
+          const cls = (i===3) ? "sep-right" : "";
+          cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
+        }
+
+        for(let i=0;i<8;i++){
+          const v = rounds[i];
+          const isHighlighted = highlightIdx.has(i);
+          const isWeekEnd = (i===1 || i===3 || i===5);
+          const cls = `${isHighlighted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+          cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = cells.join("");
+        tbody.appendChild(tr);
       });
+
+      scroll.appendChild(table);
+      wrap.appendChild(scroll);
+      return wrap;
     }
 
-    /* ---------------- render helpers ---------------- */
+    function renderPlayerStatsTable(stat, playerName){
+      const wrap = document.createElement("div");
+      wrap.className = "roster-wrap";
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "roster-title-row";
+      titleRow.innerHTML = `
+        <div class="roster-title">Stats</div>
+        <button class="full-stats-btn" type="button" data-player="${escapeHtml(playerName)}">Full Player Stats</button>
+      `;
+      wrap.appendChild(titleRow);
+
+      if(!stat){
+        wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Stats not found.</div>`;
+        return wrap;
+      }
+
+      const scroll = document.createElement("div");
+      scroll.className = "roster-scroll";
+
+      const table = document.createElement("table");
+      table.className = "roster-table";
+
+      table.innerHTML = `
+        <colgroup>
+          <col class="c-best"><col class="c-best"><col class="c-best">
+          <col class="c-week"><col class="c-week"><col class="c-week"><col class="c-week">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>1st</th><th>2nd</th><th>3rd</th>
+            <th>WK1</th><th>WK2</th><th>WK3</th><th class="sep-right">WK4</th>
+            <th>1-1</th><th class="sep-right">1-2</th>
+            <th>2-1</th><th class="sep-right">2-2</th>
+            <th>3-1</th><th class="sep-right">3-2</th>
+            <th>4-1</th><th>4-2</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+
+      const best = stat.best || [null,null,null];
+      const weekTotals = stat.weekTotals || [null,null,null,null];
+      const rounds = stat.rounds || Array(8).fill(null);
+      const highlightIdx = pickTop3RoundIndices(rounds);
+
+      const cells = [];
+
+      for(let i=0;i<3;i++){
+        cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
+      }
+
+      for(let i=0;i<4;i++){
+        const cls = (i===3) ? "sep-right" : "";
+        cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
+      }
+
+      for(let i=0;i<8;i++){
+        const v = rounds[i];
+        const isHighlighted = highlightIdx.has(i);
+        const isWeekEnd = (i===1 || i===3 || i===5);
+        const cls = `${isHighlighted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+        cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = cells.join("");
+      tbody.appendChild(tr);
+
+      scroll.appendChild(table);
+      wrap.appendChild(scroll);
+      return wrap;
+    }
+
     function renderTeams(){
       teamsList.innerHTML = "";
       if(!teamStandings.length){
@@ -1634,7 +1840,6 @@
       }
 
       teamStandings.forEach(team=>{
-        const slug = team.slug;
         const row = document.createElement("div");
         row.className = "entry";
 
@@ -1657,148 +1862,41 @@
                  alt="${escapeHtml(team.displayName)} logo"
                  loading="lazy"
                  decoding="async"
-                 onerror="this.style.display='none'; this.removeAttribute('src');" />
+                 onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.width='40px';" />
           </span>
           <span class="name-text">${escapeHtml(team.displayName)}</span>
         `;
 
-        btn.addEventListener("click", ()=>{
-          if (expandedTeams.has(team.name)) expandedTeams.delete(team.name);
-          else expandedTeams.add(team.name);
-          toggleRoster(team.name);
-        });
-
         row.innerHTML = `
           <div class="place ${rankClass(team.rank)}">${team.rank}</div>
-          <div id="teamHost-${slug}"></div>
+          <div id="teamHost-${team.slug}"></div>
           <div class="score-col">${escapeHtml(fmtScore(team.score))}</div>
         `;
-        row.querySelector(`#teamHost-${slug}`).replaceWith(btn);
+        row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
         teamsList.appendChild(row);
 
-        // Collapsible roster section
-        const wrap = document.createElement("div");
-        wrap.className = "roster-wrap";
-        wrap.id = `roster-${slug}`;
-        wrap.classList.toggle("hidden", !expandedTeams.has(team.name));
-
-        wrap.innerHTML = `
-          <div class="roster-title-row">
-            <div class="roster-title">${escapeHtml(team.displayName)} ROSTER</div>
-          </div>
-          <div class="roster-scroll"></div>
-        `;
-
-        teamsList.appendChild(wrap);
-        if (expandedTeams.has(team.name)) renderTeamRoster(team.name);
+        teamsList.appendChild(expandedTeams.has(team.name)
+          ? renderTeamRosterTable(rosterByTeam.get(team.name))
+          : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
+        );
       });
     }
 
-    function toggleRoster(teamName){
-      const slug = slugify(teamName);
-      const el = document.getElementById(`roster-${slug}`);
-      if(!el) return;
-      const show = expandedTeams.has(teamName);
-      el.classList.toggle("hidden", !show);
-      if (show) renderTeamRoster(teamName);
-    }
-
-    function renderTeamRoster(teamName){
-      const slug = slugify(teamName);
-      const wrap = document.getElementById(`roster-${slug}`);
-      if(!wrap) return;
-      const scroll = wrap.querySelector(".roster-scroll");
-      if(!scroll) return;
-
-      const t = rosterByTeam.get(teamName);
-      if(!t){
-        scroll.innerHTML = `<div class="error">No roster data.</div>`;
-        return;
-      }
-
-      const cols = `
-        <colgroup>
-          <col class="c-rank" />
-          <col class="c-name" />
-          <col class="c-stage" />
-          <col class="c-best" /><col class="c-best" /><col class="c-best" />
-          <col class="c-week" /><col class="c-week" /><col class="c-week" /><col class="c-week" />
-          <col class="c-round" /><col class="c-round" />
-          <col class="c-round" /><col class="c-round" />
-          <col class="c-round" /><col class="c-round" />
-          <col class="c-round" /><col class="c-round" />
-        </colgroup>
-      `;
-
-      const thead = `
-        <thead>
-          <tr>
-            <th>RANK</th>
-            <th>PLAYER</th>
-            <th>STG</th>
-            <th>1ST</th><th>2ND</th><th>3RD</th>
-            <th>W1</th><th>W2</th><th>W3</th><th class="sep-right">W4</th>
-            <th>1-1</th><th class="sep-right">1-2</th>
-            <th>2-1</th><th class="sep-right">2-2</th>
-            <th>3-1</th><th class="sep-right">3-2</th>
-            <th>4-1</th><th>4-2</th>
-          </tr>
-        </thead>
-      `;
-
-      const rowsHtml = t.players.map((p, idx)=>{
-        const top3 = pickTop3RoundIndices(p.rounds || []);
-        const isCaptain = idx === 0;
-
-        const rounds = (p.rounds || []).map((v, i)=>{
-          const played = (v !== null && v !== undefined && Number.isFinite(v));
-          const counted = played && top3.has(i);
-          const sepLeft = (i % 2 === 0 && i !== 0) ? " sep-left" : "";
-          const sepRight = (i % 2 === 1 && i !== 7) ? " sep-right" : "";
-          return `<td class="${counted ? "counted" : ""}${sepLeft}${sepRight}">${escapeHtml(fmtScore(played ? v : ""))}</td>`;
-        }).join("");
-
-        const capIcon = isCaptain ? `<span class="captain-icon" aria-hidden="true"></span>` : "";
-
-        return `
-          <tr>
-            <td class="cell-rank">${escapeHtml(p.overallRank ?? "-")}</td>
-            <td class="cell-name clickable-player" data-player="${escapeHtml(p.name)}">
-              <span class="name-inline">
-                <span>${escapeHtml(p.displayName || "")}</span>
-                ${capIcon}
-              </span>
-            </td>
-            <td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>
-            <td>${escapeHtml(fmtScore(p.best?.[0]))}</td>
-            <td>${escapeHtml(fmtScore(p.best?.[1]))}</td>
-            <td>${escapeHtml(fmtScore(p.best?.[2]))}</td>
-            <td>${escapeHtml(fmtScore(p.weekTotals?.[0]))}</td>
-            <td>${escapeHtml(fmtScore(p.weekTotals?.[1]))}</td>
-            <td>${escapeHtml(fmtScore(p.weekTotals?.[2]))}</td>
-            <td class="sep-right">${escapeHtml(fmtScore(p.weekTotals?.[3]))}</td>
-            ${rounds}
-          </tr>
-        `;
-      }).join("");
-
-      scroll.innerHTML = `
-        <table class="roster-table">
-          ${cols}
-          ${thead}
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      `;
-    }
-
     function renderPlayers(){
+      const q = playerSearch.value.trim().toLowerCase();
       playersList.innerHTML = "";
-      if(!playerStandings.length){
+
+      const view = playerStandings.filter(p=>{
+        if(!q) return true;
+        return (p.name + " " + (p.score ?? "") + " " + p.rank).toLowerCase().includes(q);
+      });
+
+      if(!view.length){
         playersList.innerHTML = `<div class="error">No players found.</div>`;
         return;
       }
 
-      playerStandings.forEach(p=>{
+      view.forEach(p=>{
         const row = document.createElement("div");
         row.className = "entry";
 
@@ -1809,7 +1907,6 @@
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "#ffffff";
         btn.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
-        btn.addEventListener("click", ()=> openPlayerModal(p.name));
 
         const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
 
@@ -1820,6 +1917,11 @@
         `;
         row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
         playersList.appendChild(row);
+
+        playersList.appendChild(expandedPlayers.has(p.name)
+          ? renderPlayerStatsTable(playerStatsByName.get(p.name), p.name)
+          : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
+        );
       });
     }
 
@@ -1850,8 +1952,8 @@
           <div class="weekly-header-row">
             <span>Rank</span>
             <span>Player</span>
-            <span class="wk-col-round">${r1Label}</span>
-            <span class="wk-col-round">${r2Label}</span>
+            <span>${r1Label}</span>
+            <span>${r2Label}</span>
             <span>Score</span>
           </div>
 
@@ -1866,8 +1968,8 @@
           const stat = playerStatsByName.get(p.name);
           const idx1 = (weekNum - 1) * 2;
           const idx2 = idx1 + 1;
-          const r1 = stat?.rounds?.[idx1];
-          const r2 = stat?.rounds?.[idx2];
+          const round1 = stat?.rounds?.[idx1] ?? null;
+          const round2 = stat?.rounds?.[idx2] ?? null;
 
           const nameCell = document.createElement("button");
           nameCell.type = "button";
@@ -1877,13 +1979,12 @@
           nameCell.style.background = "rgba(255,255,255,0.08)";
           nameCell.style.color = "#ffffff";
           nameCell.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
-          nameCell.addEventListener("click", ()=> openPlayerModal(p.name));
 
           row.innerHTML = `
             <div class="place">${p.rank}</div>
             <div id="wkName-${weekNum}-${p.slug}"></div>
-            <div class="weekly-round wk-col-round">${escapeHtml(fmtScore(r1 === null ? "" : r1))}</div>
-            <div class="weekly-round wk-col-round">${escapeHtml(fmtScore(r2 === null ? "" : r2))}</div>
+            <div class="weekly-round">${escapeHtml(fmtScore(round1))}</div>
+            <div class="weekly-round">${escapeHtml(fmtScore(round2))}</div>
             <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
           `;
           row.querySelector(`#wkName-${weekNum}-${p.slug}`).replaceWith(nameCell);
@@ -1894,18 +1995,124 @@
       });
     }
 
-    /* ---------------- player card / season data ---------------- */
-    async function loadSeason(seasonNum){
-      if(seasonCache.has(seasonNum)) return seasonCache.get(seasonNum);
+    // interactions
+    teamsList.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-team]");
+      if(!btn) return;
+      const teamName = btn.getAttribute("data-team");
+      if(!teamName) return;
+
+      expandedTeams.has(teamName) ? expandedTeams.delete(teamName) : expandedTeams.add(teamName);
+      renderTeams();
+    });
+
+    playersList.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-player]");
+      if(!btn) return;
+      const playerName = btn.getAttribute("data-player");
+      if(!playerName) return;
+
+      expandedPlayers.has(playerName) ? expandedPlayers.delete(playerName) : expandedPlayers.add(playerName);
+      renderPlayers();
+    });
+
+    teamsView.addEventListener("click", (e)=>{
+      const cell = e.target.closest("td.clickable-player[data-player]");
+      if(!cell) return;
+      const name = cell.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    playersView.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.full-stats-btn[data-player]");
+      if(!btn) return;
+      const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    weeklyView.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-player]");
+      if(!btn) return;
+      const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    playerSearch.addEventListener("input", renderPlayers);
+
+    seasonSelect.addEventListener("change", ()=>{
+      expandedTeams.clear();
+      expandedPlayers.clear();
+      playerSearch.value = "";
+      update(true);
+    });
+
+    viewSelect.addEventListener("change", ()=>{
+      setTab(viewSelect.value);
+    });
+
+    /* ---------------- Player Modal + History ---------------- */
+    const seasonHistoryCache = new Map();
+
+    playerModalClose.addEventListener("click", closePlayerModal);
+    playerModal.addEventListener("click", (e)=>{
+      if (e.target === playerModal) closePlayerModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
+    });
+
+    function showPlayerLoading(){
+      playerModalContent.className = "modal-loading";
+      playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
+
+      const card = playerModal.querySelector(".modal-card");
+      if (card) card.scrollTop = 0;
+    }
+
+    function closePlayerModal(){
+      playerModal.classList.remove("show");
+      playerModal.setAttribute("aria-hidden", "true");
+      showPlayerLoading();
+    }
+
+    function trophyMeta(type){
+      switch(type){
+        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST", tier:"gold",  cat:"team" };
+        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND", tier:"silver",cat:"team" };
+        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD", tier:"bronze",cat:"team" };
+
+        case "IND_1":  return { icon:"🏆", main:"1ST OVERALL", tier:"gold",  cat:"individual" };
+        case "IND_2":  return { icon:"🥈", main:"2ND OVERALL", tier:"silver",cat:"individual" };
+        case "IND_3":  return { icon:"🥉", main:"3RD OVERALL", tier:"bronze",cat:"individual" };
+
+        case "TOP_10": return { icon:"⭐", main:"TOP 10", tier:"default", cat:"individual" };
+
+        default:       return { icon:"🏅", main:"AWARD", tier:"default", cat:"misc" };
+      }
+    }
+
+    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
+    const CAT_ORDER  = { team:0, individual:1, misc:2 };
+
+    function trophyCountLabel(n){
+      if (!n || n <= 1) return "";
+      return `x${n}`;
+    }
+
+    async function getSeasonHistoryData(seasonNum){
+      if (seasonHistoryCache.has(seasonNum)) return seasonHistoryCache.get(seasonNum);
 
       const cfg = SEASON_CONFIG[seasonNum];
       const sheet = cfg.sheet;
 
       const ranges = {
-        teamStandings: buildRange(sheet, cfg.teamRank),
-        rosters: buildRange(sheet, cfg.rosters),
-        lookup: buildRange(sheet, LOOKUP_RANGE_A1),
-        playerStandings: buildRange(sheet, PLAYER_RANK_RANGE_A1),
+        teamStandings: `'${sheet}'!${cfg.teamRank}`,
+        rosters: `'${sheet}'!${cfg.rosters}`,
+        lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+        playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
       };
 
       const [teamRows, rosterRows, lookupRows, playerRows] = await Promise.all([
@@ -1915,423 +2122,447 @@
         fetchRange(ranges.playerStandings),
       ]);
 
-      const teamS = normalizeStandingsGeneric(teamRows);
-      const playerS = normalizeStandingsGeneric(playerRows);
+      const teamList = normalizeStandingsGeneric(teamRows);
+      const playerList = normalizeStandingsGeneric(playerRows);
 
-      const roster = parseTeamRosters(rosterRows);
-      const lookup = parseLookupStats(lookupRows);
+      const teamMap = new Map(teamList.map(t => [t.name, t]));
+      const playerMap = new Map(playerList.map(p => [p.name, p]));
 
-      const seasonObj = {
+      const parsed = parseTeamRosters(rosterRows);
+      const lookupMap = parseLookupStats(lookupRows);
+
+      const playerStatsMap = new Map();
+      for (const [n, s] of lookupMap.entries()) playerStatsMap.set(n, s);
+      for (const [n, s] of parsed.byPlayer.entries()) playerStatsMap.set(n, s);
+
+      const data = {
         seasonNum,
         sheet,
-        teamStandings: teamS,
-        playerStandings: playerS,
-        rosterByTeam: roster.byTeam,
-        playerTeamByName: roster.playerTeamByName,
-        captains: roster.captains,
-        lookupByPlayer: lookup
+        teamMap,
+        playerMap,
+        playerToTeam: parsed.playerTeamByName,
+        playerStatsMap,
+        captains: parsed.captains
       };
 
-      seasonCache.set(seasonNum, seasonObj);
-      return seasonObj;
+      seasonHistoryCache.set(seasonNum, data);
+      return data;
     }
 
-    function medalForRank(rank){
-      if(rank === 1) return "🥇";
-      if(rank === 2) return "🥈";
-      if(rank === 3) return "🥉";
-      return "";
+    function buildRankChip(rank, isPrev){
+      if (rank == null || !Number.isFinite(Number(rank))){
+        return `<span class="chip rank">-</span>`;
+      }
+      const r = Number(rank);
+
+      let cls = "chip rank";
+      let emoji = "";
+      if (isPrev){
+        if (r === 1){ cls += " gold"; emoji = "🥇"; }
+        else if (r === 2){ cls += " silver"; emoji = "🥈"; }
+        else if (r === 3){ cls += " bronze"; emoji = "🥉"; }
+      }
+
+      return `<span class="${cls}">${emoji ? `${emoji} ` : ""}${escapeHtml(ordinal(r).toUpperCase())}</span>`;
     }
 
-    function tierForClub(name){
-      // order requested: -30/-80 gold, -25/-70 purple, -20/-60 blue, captain green
-      if(name === "-30 CLUB" || name === "-80 CLUB") return "tier-gold";
-      if(name === "-25 CLUB" || name === "-70 CLUB") return "tier-purple";
-      if(name === "-20 CLUB" || name === "-60 CLUB") return "tier-blue";
-      if(name === "TEAM CAPTAIN") return "tier-green";
-      return "";
+    function buildTeamChip(teamName){
+      if(!teamName){
+        return `<span class="chip solo">SOLO PLAYER</span>`;
+      }
+      const style = getTeamStyle(teamName) || {};
+      const bg = style.bg || "rgba(255,255,255,0.06)";
+      const fg = style.fg || "rgba(255,255,255,0.92)";
+      return `<span class="chip team" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">${escapeHtml(String(teamName).toUpperCase())}</span>`;
     }
 
-    function tierForPlace(rank){
-      if(rank === 1) return "tier-gold";
-      if(rank === 2) return "tier-silver";
-      if(rank === 3) return "tier-bronze";
-      return "";
+    function buildScoreChip(score){
+      return `<span class="chip score">${escapeHtml(fmtScore(score))}</span>`;
     }
 
-    function trophyTierOrder(cls){
-      // gold, silver, bronze, purple, blue, green, default
-      if(cls.includes("tier-gold")) return 0;
-      if(cls.includes("tier-silver")) return 1;
-      if(cls.includes("tier-bronze")) return 2;
-      if(cls.includes("tier-purple")) return 3;
-      if(cls.includes("tier-blue")) return 4;
-      if(cls.includes("tier-green")) return 5;
-      return 6;
+    function normalizeRoundValue(v){
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (s === "") return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
     }
 
-    async function renderPlayerCard(playerName){
-      const currentSeason = CURRENT_SEASON;
+    function buildRoundsTable(stat){
+      const roundsRaw = (stat && Array.isArray(stat.rounds)) ? stat.rounds.slice(0,8) : Array(8).fill(null);
+      const rounds = roundsRaw.map(normalizeRoundValue);
+      const hi = pickTop3RoundIndices(rounds);
 
-      // Load all seasons up through current season
-      const seasons = [];
-      for(let s=1; s<=currentSeason; s++) seasons.push(s);
-      const seasonData = await Promise.all(seasons.map(loadSeason));
+      const sepIdx = new Set([2,4,6]);
+      let tds = "";
+      for(let i=0;i<8;i++){
+        const v = rounds[i];
+        const cls = `${hi.has(i) ? "counted" : ""} ${sepIdx.has(i) ? "sep-left" : ""}`.trim();
+        tds += `<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`;
+      }
 
-      // Determine current team ONLY from current season roster
-      const cur = seasonData.find(d=>d.seasonNum === currentSeason);
-      const currentTeam = cur.playerTeamByName.get(playerName) || null;
+      return `<table class="mini-rounds" aria-label="Individual rounds"><tr>${tds}</tr></table>`;
+    }
 
-      const playerDisplay = playerName.toUpperCase();
-      const soloLabel = "SOLO PLAYER";
+    function trophySortKey(item){
+      const meta = item.meta;
+      const tierK = TIER_ORDER[meta.tier] ?? TIER_ORDER.default;
+      const catK  = CAT_ORDER[meta.cat] ?? CAT_ORDER.misc;
+      const seasonK = (item.season != null ? Number(item.season) : -1);
+      const kindK = item.kind === "stack" ? 1 : 0;
+      return [tierK, catK, kindK, -seasonK, item.order ?? 999];
+    }
 
-      // Gather past-season stats only (exclude current season)
-      const past = seasonData.filter(d=>d.seasonNum < currentSeason);
+    function cmpKey(a,b){
+      for(let i=0;i<a.length;i++){
+        if(a[i] < b[i]) return -1;
+        if(a[i] > b[i]) return 1;
+      }
+      return 0;
+    }
 
-      const playedRounds = [];
-      const seasonScores = [];
-      const teamFinishes = [];
-      const indivFinishes = [];
+    function buildTrophyItemHTML(item){
+      const meta = item.meta;
+      const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
 
-      for(const d of past){
-        const st = d.lookupByPlayer.get(playerName);
-        if(st?.rounds?.length){
-          for(const r of st.rounds){
-            if(Number.isFinite(r)) playedRounds.push(r);
+      const iconHtml =
+        item.iconType === "captain"
+          ? `<div class="trophy-icon captain" title="Captain"></div>`
+          : `<div class="trophy-icon">${escapeHtml(meta.icon)}</div>`;
+
+      const sub = item.sub ? `<div class="trophy-sub">${escapeHtml(item.sub)}</div>` : ``;
+      const count = item.count ? `<div class="trophy-count">${escapeHtml(item.count)}</div>` : ``;
+
+      return `
+        <div class="trophy${tierClass}">
+          <div class="trophy-left">
+            ${iconHtml}
+            <div class="trophy-text">
+              <div class="trophy-main">${escapeHtml(meta.main)}</div>
+              ${sub}
+            </div>
+          </div>
+          ${count}
+        </div>
+      `;
+    }
+
+    async function openPlayerModal(playerName){
+      const cleanName = String(playerName).trim();
+      if(!cleanName) return;
+
+      playerModal.classList.add("show");
+      playerModal.setAttribute("aria-hidden", "false");
+      showPlayerLoading();
+
+      const card = playerModal.querySelector(".modal-card");
+      if (card) card.scrollTop = 0;
+
+      try{
+        const seasons = [6,5,4,3,2,1];
+        const summaries = [];
+
+        // Past-season aggregates only
+        const allRoundsPrev = [];
+        const seasonTotalsPrev = [];
+
+        let bestTeamFinishPrev = null;
+        let bestIndFinishPrev  = null;
+
+        let season60 = 0, season70 = 0, season80 = 0;
+        let round20 = 0, round25 = 0, round30 = 0;
+        let captainCount = 0;
+
+        // CURRENT_SEASON roster membership ONLY (for header team)
+        const currentSeasonData = await getSeasonHistoryData(CURRENT_SEASON);
+        const currentTeamOnly = currentSeasonData.playerToTeam.get(cleanName) || null;
+
+        for (const s of seasons){
+          const data = (s === CURRENT_SEASON) ? currentSeasonData : await getSeasonHistoryData(s);
+
+          const teamName = data.playerToTeam.get(cleanName) || null;
+          const teamStanding = teamName ? (data.teamMap.get(teamName) || null) : null;
+
+          const playerStanding = data.playerMap.get(cleanName) || null;
+          const stats = data.playerStatsMap.get(cleanName) || null;
+
+          const hasAny = !!teamName || !!playerStanding || !!stats;
+          if(!hasAny) continue;
+
+          const isPrev = (s !== CURRENT_SEASON);
+
+          // round aggregates (prev only)
+          if (stats && Array.isArray(stats.rounds) && isPrev){
+            for (const v of stats.rounds){
+              const n = normalizeRoundValue(v);
+              if (Number.isFinite(n)){
+                allRoundsPrev.push(n);
+                if (n <= -20) round20++;
+                if (n <= -25) round25++;
+                if (n <= -30) round30++;
+              }
+            }
+          }
+
+          // season total aggregates (prev only)
+          if (isPrev){
+            const seasonTotal = (playerStanding?.score ?? stats?.stageScore);
+            if (Number.isFinite(seasonTotal)){
+              seasonTotalsPrev.push(Number(seasonTotal));
+              if (seasonTotal <= -60) season60++;
+              if (seasonTotal <= -70) season70++;
+              if (seasonTotal <= -80) season80++;
+            }
+            if (data.captains?.has(cleanName)) captainCount++;
+          }
+
+          // best finishes (prev only)
+          if (isPrev){
+            if (teamStanding?.rank != null){
+              bestTeamFinishPrev = bestTeamFinishPrev == null ? teamStanding.rank : Math.min(bestTeamFinishPrev, teamStanding.rank);
+            }
+            if (playerStanding?.rank != null){
+              bestIndFinishPrev = bestIndFinishPrev == null ? playerStanding.rank : Math.min(bestIndFinishPrev, playerStanding.rank);
+            }
+          }
+
+          summaries.push({
+            season: s,
+            teamName,
+            teamRank: teamStanding?.rank ?? null,
+            teamScore: teamStanding?.score ?? null,
+            playerRank: playerStanding?.rank ?? null,
+            playerScore: (playerStanding?.score ?? stats?.stageScore) ?? null,
+            stats: stats || null
+          });
+        }
+
+        // Header team from CURRENT_SEASON roster only (otherwise SOLO PLAYER)
+        const headerTeam = currentTeamOnly;
+
+        const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
+        const headerBg = headerStyle?.bg || "rgba(255,255,255,0.06)";
+        const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
+
+        // info buttons (prev only)
+        const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
+        const avgRoundPrev  = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
+
+        const bestSeasonPrev = seasonTotalsPrev.length ? Math.min(...seasonTotalsPrev) : null;
+        const avgSeasonPrev  = seasonTotalsPrev.length ? (seasonTotalsPrev.reduce((a,b)=>a+b,0) / seasonTotalsPrev.length) : null;
+
+        // trophies (exclude current season)
+        const trophyItems = [];
+
+        for (const sum of summaries){
+          if (sum.season === CURRENT_SEASON) continue;
+
+          if (sum.teamRank === 1) trophyItems.push({
+            kind:"season", season: sum.season, type:"TEAM_1",
+            meta: trophyMeta("TEAM_1"),
+            sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
+          });
+          if (sum.teamRank === 2) trophyItems.push({
+            kind:"season", season: sum.season, type:"TEAM_2",
+            meta: trophyMeta("TEAM_2"),
+            sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
+          });
+          if (sum.teamRank === 3) trophyItems.push({
+            kind:"season", season: sum.season, type:"TEAM_3",
+            meta: trophyMeta("TEAM_3"),
+            sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
+          });
+
+          if (sum.playerRank === 1) trophyItems.push({
+            kind:"season", season: sum.season, type:"IND_1",
+            meta: trophyMeta("IND_1"),
+            sub: `Season ${sum.season}`
+          });
+          if (sum.playerRank === 2) trophyItems.push({
+            kind:"season", season: sum.season, type:"IND_2",
+            meta: trophyMeta("IND_2"),
+            sub: `Season ${sum.season}`
+          });
+          if (sum.playerRank === 3) trophyItems.push({
+            kind:"season", season: sum.season, type:"IND_3",
+            meta: trophyMeta("IND_3"),
+            sub: `Season ${sum.season}`
+          });
+
+          if (sum.playerRank != null && Number(sum.playerRank) >= 4 && Number(sum.playerRank) <= 10) {
+            trophyItems.push({
+              kind:"season", season: sum.season, type:"TOP_10",
+              meta: trophyMeta("TOP_10"),
+              sub: `Season ${sum.season} | #${sum.playerRank}`
+            });
           }
         }
-        if(Number.isFinite(st?.stageScore)) seasonScores.push(st.stageScore);
 
-        const tName = d.playerTeamByName.get(playerName);
-        if(tName){
-          const tf = d.teamStandings.find(x=>x.name === tName);
-          if(tf?.rank) teamFinishes.push(tf.rank);
-        }
+        // stackables
+        const stackablesOrdered = [
+          { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
+          { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
+          { label:"-20 Club", icon:"⛳️", tier:"blue",   count: round20 },
 
-        const pf = d.playerStandings.find(x=>x.name === playerName);
-        if(pf?.rank) indivFinishes.push(pf.rank);
-      }
+          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: season80 },
+          { label:"-70 Club", icon:"🎖️", tier:"purple", count: season70 },
+          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: season60 },
 
-      const avgRound = playedRounds.length ? (playedRounds.reduce((a,b)=>a+b,0) / playedRounds.length) : null;
-      const bestRound = playedRounds.length ? Math.min(...playedRounds) : null;
-      const avgSeason = seasonScores.length ? (seasonScores.reduce((a,b)=>a+b,0) / seasonScores.length) : null;
-      const bestSeason = seasonScores.length ? Math.min(...seasonScores) : null;
+          { label:"Team Captain", icon:"CAPTAIN", tier:"green", count: captainCount },
+        ];
 
-      const bestTeamFinish = teamFinishes.length ? Math.min(...teamFinishes) : null;
-      const bestIndFinish  = indivFinishes.length ? Math.min(...indivFinishes) : null;
+        for (let i=0;i<stackablesOrdered.length;i++){
+          const t = stackablesOrdered[i];
+          if (!t.count || t.count <= 0) continue;
 
-      // Build trophies (exclude current season)
-      const trophies = [];
+          const meta = { icon: t.icon, main: t.label.toUpperCase(), tier: t.tier, cat: "misc" };
 
-      // Team place trophies (each season separately)
-      for(const d of past.slice().sort((a,b)=>b.seasonNum-a.seasonNum)){
-        const tName = d.playerTeamByName.get(playerName);
-        if(!tName) continue;
-        const tf = d.teamStandings.find(x=>x.name === tName);
-        if(tf && [1,2,3].includes(tf.rank)){
-          trophies.push({
-            tierClass: tierForPlace(tf.rank),
-            categoryOrder: 0, // team first
-            season: d.seasonNum,
-            main: `${ordinal(tf.rank).toUpperCase()} TEAM`,
-            sub: `${tName.toUpperCase()} | SEASON ${d.seasonNum}`,
-            icon: medalForRank(tf.rank),
-            count: null
+          trophyItems.push({
+            kind:"stack",
+            season: -1,
+            type: t.label,
+            meta,
+            iconType: (t.icon === "CAPTAIN") ? "captain" : "emoji",
+            count: trophyCountLabel(t.count),
+            order: i
           });
         }
-      }
 
-      // Individual trophies: separate 1/2/3 from top 10
-      for(const d of past.slice().sort((a,b)=>b.seasonNum-a.seasonNum)){
-        const pf = d.playerStandings.find(x=>x.name === playerName);
-        if(!pf) continue;
+        trophyItems.sort((a,b)=>cmpKey(trophySortKey(a), trophySortKey(b)));
 
-        if([1,2,3].includes(pf.rank)){
-          trophies.push({
-            tierClass: tierForPlace(pf.rank),
-            categoryOrder: 1,
-            season: d.seasonNum,
-            main: `${ordinal(pf.rank).toUpperCase()} OVERALL`,
-            sub: `SEASON ${d.seasonNum}`,
-            icon: medalForRank(pf.rank),
-            count: null
-          });
-        } else if(pf.rank <= 10){
-          trophies.push({
-            tierClass: "tier-gold", // top10 uses gold tier scheme
-            categoryOrder: 1,
-            season: d.seasonNum,
-            main: `TOP 10 OVERALL`,
-            sub: `SEASON ${d.seasonNum} | #${pf.rank}`,
-            icon: "🏆",
-            count: null
-          });
-        }
-      }
+        const trophyHtml = trophyItems.length
+          ? trophyItems.map(buildTrophyItemHTML).join("")
+          : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
 
-      // Clubs (stacked counts, lower priority; order requested: -30, -25, -20, -80, -70, -60, captain)
-      function addClub(name, icon, tierCls, count){
-        if(!count) return;
-        trophies.push({
-          tierClass: tierCls,
-          categoryOrder: 2, // misc third
-          season: 0,
-          main: name,
-          sub: "",
-          icon,
-          count
-        });
-      }
+        const seasonRowsHtml = summaries
+          .sort((a,b)=>b.season-a.season)
+          .map(sum=>{
+            const isPrev = (sum.season !== CURRENT_SEASON);
 
-      // round clubs: count seasons where achieved at least once
-      let c30=0,c25=0,c20=0;
-      for(const d of past){
-        const st = d.lookupByPlayer.get(playerName);
-        const rounds = st?.rounds || [];
-        const has30 = rounds.some(v=>Number.isFinite(v) && v <= -30);
-        const has25 = rounds.some(v=>Number.isFinite(v) && v <= -25);
-        const has20 = rounds.some(v=>Number.isFinite(v) && v <= -20);
-        if(has30) c30++;
-        if(has25) c25++;
-        if(has20) c20++;
-      }
+            const teamRow = (!sum.teamName)
+              ? `<div class="btn-row"><span class="chip solo">SOLO PLAYER</span></div>`
+              : `
+                <div class="btn-row">
+                  ${buildRankChip(sum.teamRank, isPrev)}
+                  ${buildTeamChip(sum.teamName)}
+                  ${buildScoreChip(sum.teamScore)}
+                </div>
+              `;
 
-      // season clubs: count seasons where stage score qualifies
-      let c80=0,c70=0,c60=0;
-      for(const d of past){
-        const st = d.lookupByPlayer.get(playerName);
-        if(!Number.isFinite(st?.stageScore)) continue;
-        if(st.stageScore <= -80) c80++;
-        if(st.stageScore <= -70) c70++;
-        if(st.stageScore <= -60) c60++;
-      }
-
-      // captain: count seasons where captain
-      let capCount = 0;
-      for(const d of past){
-        if(d.captains.has(playerName)) capCount++;
-      }
-
-      addClub("-30 CLUB", "⛳️", "tier-gold", c30);
-      addClub("-25 CLUB", "⛳️", "tier-purple", c25);
-      addClub("-20 CLUB", "⛳️", "tier-blue", c20);
-      addClub("-80 CLUB", "🎖️", "tier-gold", c80);
-      addClub("-70 CLUB", "🎖️", "tier-purple", c70);
-      addClub("-60 CLUB", "🎖️", "tier-blue", c60);
-      if(capCount){
-        trophies.push({
-          tierClass: "tier-green",
-          categoryOrder: 2,
-          season: 0,
-          main: "TEAM CAPTAIN",
-          sub: "",
-          icon: "CAPTAIN",
-          count: capCount
-        });
-      }
-
-      // Sort trophies: tier order, then team/indiv/misc, then season desc (stacked at end)
-      trophies.sort((a,b)=>{
-        const ta = trophyTierOrder(a.tierClass);
-        const tb = trophyTierOrder(b.tierClass);
-        if(ta !== tb) return ta - tb;
-        if(a.categoryOrder !== b.categoryOrder) return a.categoryOrder - b.categoryOrder;
-        return (b.season || 0) - (a.season || 0);
-      });
-
-      // Trophy HTML
-      const trophyHtml = trophies.map(t=>{
-        const iconHtml = (t.icon === "CAPTAIN")
-          ? `<span class="trophy-icon captain"></span>`
-          : `<span class="trophy-icon">${escapeHtml(t.icon || "🏆")}</span>`;
-
-        // Description text rules:
-        // - keep description ONLY for top10 and team-oriented entries
-        // - (clubs, captain) no sub text
-        const isTeamOriented = (t.categoryOrder === 0);
-        const isTop10 = (t.main === "TOP 10 OVERALL");
-        const showSub = (isTeamOriented || isTop10) && t.sub;
-
-        const subHtml = showSub ? `<div class="trophy-sub">${escapeHtml(t.sub)}</div>` : ``;
-
-        const countHtml = t.count ? `<span class="trophy-count">x${t.count}</span>` : ``;
-
-        return `
-          <div class="trophy ${t.tierClass}">
-            <div class="trophy-left">
-              ${iconHtml}
-              <div class="trophy-text">
-                <div class="trophy-main">${escapeHtml(t.main)}</div>
-                ${subHtml}
-              </div>
-            </div>
-            ${countHtml}
-          </div>
-        `;
-      }).join("");
-
-      // Season performances (include current season, but no accolades for current season)
-      const seasonPerfHtml = seasonData
-        .slice().sort((a,b)=>b.seasonNum-a.seasonNum)
-        .map(d=>{
-          const seasonNum = d.seasonNum;
-          const isCurrent = seasonNum === currentSeason;
-
-          const st = d.lookupByPlayer.get(playerName);
-          const rounds = st?.rounds || Array(8).fill(null);
-          const top3 = pickTop3RoundIndices(rounds);
-          const stageScore = st?.stageScore;
-
-          const teamName = d.playerTeamByName.get(playerName) || null;
-          const solo = !teamName;
-
-          // team row
-          let teamRowHtml = "";
-          if(solo){
-            teamRowHtml = `<div class="season-team-row"><span class="chip solo">SOLO PLAYER</span></div>`;
-          } else {
-            const tf = d.teamStandings.find(x=>x.name === teamName);
-            const teamRank = tf?.rank ?? null;
-            const teamScore = tf?.score ?? null;
-
-            const medal = (!isCurrent && [1,2,3].includes(teamRank)) ? medalForRank(teamRank) : "";
-            const rCls = (!isCurrent && [1,2,3].includes(teamRank)) ? rankClass(teamRank) : "";
-
-            const style = getTeamStyle(teamName) || {};
-            const bg = style.bg || "rgba(255,255,255,0.06)";
-            const fg = style.fg || "rgba(255,255,255,0.92)";
-
-            teamRowHtml = `
-              <div class="season-team-row">
-                <span class="chip rank ${rCls}">
-                  ${medal ? `<span>${medal}</span>` : ``}
-                  <span>${teamRank ? ordinal(teamRank).toUpperCase() : "—"}</span>
-                </span>
-                <span class="chip team" style="--team-bg:${escapeHtml(bg)}; --team-fg:${escapeHtml(fg)};">
-                  ${escapeHtml(teamName.toUpperCase())}
-                </span>
-                <span class="chip score">${escapeHtml(fmtScore(teamScore))}</span>
+            const playerRow = `
+              <div class="btn-row">
+                ${buildRankChip(sum.playerRank, isPrev)}
+                ${buildScoreChip(sum.playerScore)}
+                ${buildRoundsTable(sum.stats)}
               </div>
             `;
-          }
 
-          // individual row (rank chip + score chip + rounds table) — MUST fit without scroll
-          const pf = d.playerStandings.find(x=>x.name === playerName);
-          const indivRank = pf?.rank ?? null;
-          const indivMedal = (!isCurrent && [1,2,3].includes(indivRank)) ? medalForRank(indivRank) : "";
-          const indivCls = (!isCurrent && [1,2,3].includes(indivRank)) ? rankClass(indivRank) : "";
-
-          const roundCells = rounds.map((v, i)=>{
-            const played = (v !== null && v !== undefined && Number.isFinite(v));
-            const counted = played && top3.has(i);
-            const sep = (i % 2 === 0 && i !== 0) ? " sep-left" : "";
-            return `<td class="${counted ? "counted" : ""}${sep}">${escapeHtml(fmtScore(played ? v : ""))}</td>`;
-          }).join("");
-
-          const indivRow = `
-            <div class="season-player-row">
-              <span class="chip rank ${indivCls}">
-                ${indivMedal ? `<span>${indivMedal}</span>` : ``}
-                <span>${indivRank ? ordinal(indivRank).toUpperCase() : "—"}</span>
-              </span>
-              <span class="chip score">${escapeHtml(fmtScore(stageScore))}</span>
-              <table class="mini-rounds" aria-label="Individual rounds">
-                <tr>${roundCells}</tr>
-              </table>
-            </div>
-          `;
-
-          return `
-            <div class="season-entry">
-              <div class="season-entry-head">
-                <div class="season-entry-name">SEASON ${seasonNum}</div>
+            return `
+              <div class="season-entry">
+                <div class="season-entry-head">
+                  <div class="season-entry-name">Season ${sum.season}${sum.season === CURRENT_SEASON ? " (Current)" : ""}</div>
+                </div>
+                ${teamRow}
+                ${playerRow}
               </div>
-              ${teamRowHtml}
-              ${indivRow}
-            </div>
-          `;
-        }).join("");
+            `;
+          })
+          .join("");
 
-      // Hero logo uses current team logo if on team, otherwise generic blank
-      const heroLogo = currentTeam ? teamLogoSrc(currentTeam) : "";
-      const heroLogoHtml = currentTeam ? `
-        <div class="hero-team">
-          <img src="${escapeHtml(heroLogo)}" alt="${escapeHtml(currentTeam.toUpperCase())} logo"
-               loading="lazy" decoding="async"
-               onerror="this.style.display='none'; this.removeAttribute('src');" />
-        </div>` : `
-        <div class="hero-team"></div>`;
+        const nameCaps = cleanName.toUpperCase();
+        const teamLabel = headerTeam ? headerTeam.toUpperCase() : "SOLO PLAYER";
 
-      const heroSubText = currentTeam ? currentTeam.toUpperCase() : soloLabel;
+        const bestTeamFinishVal = (bestTeamFinishPrev != null && Number.isFinite(Number(bestTeamFinishPrev)))
+          ? ordinal(bestTeamFinishPrev).toUpperCase()
+          : "-";
+        const bestIndFinishVal = (bestIndFinishPrev != null && Number.isFinite(Number(bestIndFinishPrev)))
+          ? ordinal(bestIndFinishPrev).toUpperCase()
+          : "-";
 
-      // Info buttons: force two words split on new line
-      function twoWordLabel(lbl){
-        const parts = lbl.split(" ");
-        if(parts.length === 2) return `${parts[0]}<br>${parts[1]}`;
-        // fallback: split last space
-        const idx = lbl.lastIndexOf(" ");
-        if(idx > 0) return `${lbl.slice(0,idx)}<br>${lbl.slice(idx+1)}`;
-        return lbl;
-      }
-      function infoBtn(lbl, val){
-        return `
-          <div class="info-btn">
-            <div class="lbl">${twoWordLabel(lbl)}</div>
-            <div class="val">${escapeHtml(val)}</div>
-          </div>
-        `;
-      }
+        playerModalContent.className = "modal-body";
+        playerModalContent.innerHTML = `
+          <div class="modal-left">
+            <div class="modal-pane">
+              <div class="player-hero">
+                ${headerTeam ? `
+                  <div class="hero-team" style="background:${escapeHtml(headerBg)}; border-color: rgba(255,255,255,.18);">
+                    <img src="${escapeHtml(headerLogo)}"
+                         alt="${escapeHtml(teamLabel)} logo"
+                         loading="lazy"
+                         decoding="async"
+                         onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.background='${escapeHtml(headerBg)}';" />
+                  </div>
+                ` : `
+                  <div class="hero-team">
+                    <div style="font-weight:950; opacity:.9;">👤</div>
+                  </div>
+                `}
+                <div class="hero-text">
+                  <div class="hero-name">${escapeHtml(nameCaps)}</div>
+                  ${headerTeam
+                    ? `<div class="hero-sub">${escapeHtml(teamLabel)}</div>`
+                    : `<div class="hero-sub solo">SOLO PLAYER</div>`
+                  }
+                </div>
+              </div>
 
-      const infoRow1 = `
-        ${infoBtn("AVG. ROUND", avgRound === null ? "-" : fmtScore(avgRound.toFixed(1)))}
-        ${infoBtn("BEST ROUND", bestRound === null ? "-" : fmtScore(bestRound))}
-        ${infoBtn("AVG. SEASON", avgSeason === null ? "-" : fmtScore(avgSeason.toFixed(1)))}
-        ${infoBtn("BEST SEASON", bestSeason === null ? "-" : fmtScore(bestSeason))}
-      `;
-      const infoRow2 = `
-        <div class="info-btn span-2">
-          <div class="lbl">${twoWordLabel("BEST TEAM FINISH")}</div>
-          <div class="val">${bestTeamFinish === null ? "-" : ordinal(bestTeamFinish).toUpperCase()}</div>
-        </div>
-        <div class="info-btn span-2">
-          <div class="lbl">${twoWordLabel("BEST INDIV. FINISH")}</div>
-          <div class="val">${bestIndFinish === null ? "-" : ordinal(bestIndFinish).toUpperCase()}</div>
-        </div>
-      `;
+              <div class="info-btn-grid">
+                <div class="info-btn">
+                  <div class="lbl">AVG.<br>ROUND</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
+                </div>
+                <div class="info-btn">
+                  <div class="lbl">BEST<br>ROUND</div>
+                  <div class="val">${escapeHtml(fmtScore(bestRoundPrev))}</div>
+                </div>
+                <div class="info-btn">
+                  <div class="lbl">AVG.<br>SEASON</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgSeasonPrev))}</div>
+                </div>
+                <div class="info-btn">
+                  <div class="lbl">BEST<br>SEASON</div>
+                  <div class="val">${escapeHtml(fmtScore(bestSeasonPrev))}</div>
+                </div>
 
-      playerModalContent.innerHTML = `
-        <div class="modal-body">
-          <div class="modal-pane">
-            <div class="player-hero">
-              ${heroLogoHtml}
-              <div class="hero-text">
-                <div class="hero-name">${escapeHtml(playerDisplay)}</div>
-                <div class="hero-sub">${escapeHtml(heroSubText)}</div>
+                <div class="info-btn span-2">
+                  <div class="lbl">BEST TEAM FINISH</div>
+                  <div class="val">${escapeHtml(bestTeamFinishVal)}</div>
+                </div>
+                <div class="info-btn span-2">
+                  <div class="lbl">BEST INDIV. FINISH</div>
+                  <div class="val">${escapeHtml(bestIndFinishVal)}</div>
+                </div>
               </div>
             </div>
 
-            <div class="info-btn-grid">
-              ${infoRow1}
-              ${infoRow2}
+            <div class="modal-pane">
+              <div class="trophy-title">${escapeHtml(nameCaps)}'S TROPHY CASE</div>
+              <div class="trophy-grid">${trophyHtml}</div>
             </div>
           </div>
 
           <div class="modal-pane">
             <div class="season-title">Season Performance</div>
-            ${seasonPerfHtml}
-          </div>
-
-          <div class="modal-pane" style="grid-column: 1 / -1;">
-            <div class="trophy-title">${escapeHtml(playerDisplay)}'S TROPHY CASE</div>
-            <div class="trophy-grid">
-              ${trophyHtml || `<div class="status" style="padding:10px 0;">No trophies yet.</div>`}
+            <div>
+              ${seasonRowsHtml || `<div style="opacity:.8; font-weight:900; text-transform:uppercase; letter-spacing:.12em;">No history found.</div>`}
             </div>
           </div>
-        </div>
-      `;
+        `;
+
+        if (card) card.scrollTop = 0;
+
+      }catch(err){
+        playerModalContent.className = "modal-body";
+        playerModalContent.innerHTML = `
+          <div class="modal-pane" style="grid-column:1 / -1;">
+            <div class="error"><b>Couldn’t load player history</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load.")}</div></div>
+          </div>
+        `;
+        if (card) card.scrollTop = 0;
+      }
     }
 
-    /* ---------------- page update ---------------- */
+    /* ---------------- Data Update ---------------- */
     let updating = false;
 
     async function update(force=false){
@@ -2339,33 +2570,34 @@
       updating = true;
 
       try{
-        const seasonNum = Number(seasonSelect.value);
-        if(!SEASON_CONFIG[seasonNum]) throw new Error("Invalid season selected.");
-        CURRENT_SEASON = seasonNum;
-
-        // Clear per-season cache above current season
-        for(const k of Array.from(seasonCache.keys())){
-          if(k > CURRENT_SEASON) seasonCache.delete(k);
-        }
+        const seasonNum = (function(){
+          const n = Number(seasonSelect.value);
+          return SEASON_CONFIG[n] ? n : 6;
+        })();
 
         const cfg = SEASON_CONFIG[seasonNum];
         const sheet = cfg.sheet;
 
         const ranges = {
-          teamStandings: buildRange(sheet, cfg.teamRank),
-          rosters: buildRange(sheet, cfg.rosters),
-          lookup: buildRange(sheet, LOOKUP_RANGE_A1),
-          playerStandings: buildRange(sheet, PLAYER_RANK_RANGE_A1),
-          week1: buildRange(sheet, WEEK_RANGES[1]),
-          week2: buildRange(sheet, WEEK_RANGES[2]),
-          week3: buildRange(sheet, WEEK_RANGES[3]),
-          week4: buildRange(sheet, WEEK_RANGES[4]),
+          teamStandings: `'${sheet}'!${cfg.teamRank}`,
+          rosters: `'${sheet}'!${cfg.rosters}`,
+          lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+
+          playerStandings: `'${sheet}'!AE4:AH101`,
+          week1: `'${sheet}'!Z4:AC13`,
+          week2: `'${sheet}'!Z16:AC25`,
+          week3: `'${sheet}'!Z28:AC37`,
+          week4: `'${sheet}'!Z40:AC49`,
         };
 
-        const [teamRows, rosterRows, lookupRows, playerRows, wk1, wk2, wk3, wk4] = await Promise.all([
+        const [
+          teamRows, rosterRows, lookupRows,
+          playerRows, wk1, wk2, wk3, wk4
+        ] = await Promise.all([
           fetchRange(ranges.teamStandings),
           fetchRange(ranges.rosters),
           fetchRange(ranges.lookup),
+
           fetchRange(ranges.playerStandings),
           fetchRange(ranges.week1),
           fetchRange(ranges.week2),
@@ -2376,45 +2608,32 @@
         teamStandings = normalizeStandingsGeneric(teamRows);
         playerStandings = normalizeStandingsGeneric(playerRows);
 
-        const roster = parseTeamRosters(rosterRows);
-        rosterByTeam = roster.byTeam;
-        playerTeamByName = roster.playerTeamByName;
-        captainsSet = roster.captains;
+        const parsedTeams = parseTeamRosters(rosterRows);
+        rosterByTeam = parsedTeams.byTeam;
 
         const lookupMap = parseLookupStats(lookupRows);
+
         playerStatsByName = new Map();
         for (const [name, stat] of lookupMap.entries()) playerStatsByName.set(name, stat);
+        for (const [name, stat] of parsedTeams.byPlayer.entries()) playerStatsByName.set(name, stat);
 
         weeklyByWeek = new Map();
         const w1 = normalizeStandingsGeneric(wk1);
         const w2 = normalizeStandingsGeneric(wk2);
         const w3 = normalizeStandingsGeneric(wk3);
         const w4 = normalizeStandingsGeneric(wk4);
+
         if (w1.length) weeklyByWeek.set(1, w1);
         if (w2.length) weeklyByWeek.set(2, w2);
         if (w3.length) weeklyByWeek.set(3, w3);
         if (w4.length) weeklyByWeek.set(4, w4);
 
-        // (Re)render views
         renderTeams();
         renderPlayers();
         renderWeekly();
 
         statusCard.classList.add("hidden");
         contentEl.classList.remove("hidden");
-
-        // Warm cache for current season card usage
-        seasonCache.set(seasonNum, {
-          seasonNum,
-          sheet,
-          teamStandings,
-          playerStandings,
-          rosterByTeam,
-          playerTeamByName,
-          captains: captainsSet,
-          lookupByPlayer: lookupMap
-        });
-
       }catch(err){
         statusCard.classList.remove("hidden");
         contentEl.classList.add("hidden");
@@ -2427,20 +2646,7 @@
       }
     }
 
-    /* ---------------- events ---------------- */
-    seasonSelect.addEventListener("change", ()=> update(true));
-    viewSelect.addEventListener("change", ()=> setTab(viewSelect.value));
-
-    // Delegate player clicks inside team roster tables
-    document.addEventListener("click", (e)=>{
-      const target = e.target;
-      const cell = target?.closest?.(".clickable-player");
-      if(cell && cell.dataset.player){
-        openPlayerModal(cell.dataset.player);
-      }
-    });
-
-    /* ---------------- boot ---------------- */
+    // boot
     (function boot(){
       const params = new URLSearchParams(location.search);
       const seasonParam = Number(params.get("season"));
@@ -2450,6 +2656,7 @@
       if (["teams","players","weekly"].includes(viewParam)) viewSelect.value = viewParam;
 
       setTab(viewSelect.value);
+      showPlayerLoading();
       update(true);
       setInterval(()=>update(false), REFRESH_MS);
     })();
