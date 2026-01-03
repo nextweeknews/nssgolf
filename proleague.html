@@ -9,7 +9,6 @@
     :root{
       --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
 
-      /* Card palette */
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
       --header-bg: rgba(148,163,184,0.12);
@@ -28,7 +27,6 @@
       --silver:#c0c0c0;
       --bronze:#cd7f32;
 
-      /* Team row logo slot */
       --logo-slot: 40px;
     }
 
@@ -128,6 +126,7 @@
       padding: 18px 18px 48px;
     }
 
+    /* Cards */
     .card{
       background: var(--card-bg);
       border-radius: 20px;
@@ -153,7 +152,7 @@
       margin: 0;
     }
 
-    /* Standard header row + entries (Rank, Name, Score) */
+    /* Main header row + entries */
     .header-row, .entry{
       display:grid;
       grid-template-columns: 100px 1fr 120px;
@@ -220,7 +219,7 @@
     .silver{color:var(--silver);}
     .bronze{color:var(--bronze);}
 
-    /* Team/Player button cell */
+    /* Team/Player name button cell */
     .team-cell{
       position: relative;
       height: 100%;
@@ -311,7 +310,7 @@
       padding: 0 10px;
     }
 
-    /* Weekly Top 5 */
+    /* Weekly */
     .weekly-header-row, .weekly-entry{
       display:grid;
       grid-template-columns: 100px 1fr 88px 88px 120px;
@@ -504,8 +503,6 @@
       -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
-      position: relative;
-      top: 0;
     }
 
     .clickable-player{ cursor: pointer; }
@@ -700,44 +697,56 @@
       text-overflow: ellipsis;
     }
 
-    .info-stats{
+    /* Player info buttons (2 rows: 4 + 2) */
+    .info-btn-grid{
       margin-top: 12px;
       display:grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
+      grid-template-columns: repeat(4, minmax(0,1fr));
       gap: 8px;
     }
-    @media (max-width: 520px){
-      .info-stats{ grid-template-columns: 1fr; }
+    @media (max-width: 860px){
+      .info-btn-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .info-btn.span-2{ grid-column: span 2; }
     }
-    .statbox{
-      padding: 10px 10px;
-      border-radius: 14px;
+    .info-btn{
+      border: 1px solid rgba(255,255,255,0.10);
       background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      min-width: 0;
+      border-radius: 14px;
+      padding: 10px 10px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      min-height: 54px;
     }
-    .statlabel{
+    .info-btn .lbl{
       font-size: 10px;
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .16em;
       color: rgba(156,163,199,0.95);
+      line-height: 1.1;
       margin-bottom: 6px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      width: 100%;
     }
-    .statvalue{
-      font-size: 14px;
+    .info-btn .val{
+      font-size: 16px;
       font-weight: 950;
       text-transform: uppercase;
-      letter-spacing: .06em;
+      letter-spacing: .08em;
       color: rgba(255,255,255,0.92);
+      line-height: 1.05;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      width: 100%;
       font-variant-numeric: tabular-nums;
     }
+    .info-btn.span-2{ grid-column: span 2; }
 
     .trophy-title{
       font-size: 11px;
@@ -847,7 +856,7 @@
       margin-bottom: 10px;
     }
 
-    /* -------- Season performance: SIMPLE BUTTONS + INLINE ROUNDS TABLE -------- */
+    /* Season performance */
     .season-entry{
       padding: 10px 10px;
       border-radius: 14px;
@@ -872,6 +881,7 @@
       color: rgba(255,255,255,0.92);
     }
 
+    /* RIGHT-JUSTIFY buttons inside season performance cards */
     .btn-row{
       display:flex;
       align-items:center;
@@ -879,7 +889,7 @@
       flex-wrap: nowrap;
       overflow-x: auto;
       padding-bottom: 2px;
-      justify-content: flex-start; /* left-justify buttons within the card */
+      justify-content: flex-end;
     }
     .btn-row + .btn-row{ margin-top: 8px; }
 
@@ -938,7 +948,7 @@
       letter-spacing: .08em;
     }
 
-    /* Inline "simple table" for rounds (no gridlines between every column) */
+    /* Inline rounds table: continuous background, borders only between weeks */
     table.mini-rounds{
       border-collapse: separate;
       border-spacing: 0;
@@ -946,8 +956,7 @@
       width: 360px;
       max-width: 360px;
       background: transparent;
-
-      border: 1px solid rgba(255,255,255,0.10); /* outer border only */
+      border: 1px solid rgba(255,255,255,0.10);
       border-radius: 0;
       overflow: visible;
       flex: 0 0 auto;
@@ -963,12 +972,11 @@
       color: rgba(255,255,255,0.92);
       font-variant-numeric: tabular-nums;
       user-select: none;
-
-      border: none; /* no per-column borders */
+      border: none;
       background: rgba(255,255,255,0.03);
     }
     .mini-rounds td.sep-left{
-      border-left: 2px solid rgba(148,163,184,0.26); /* week separators only */
+      border-left: 2px solid rgba(148,163,184,0.26);
     }
     .mini-rounds td.counted{
       background: rgba(52,211,153,0.16);
@@ -976,10 +984,7 @@
     }
 
     @media (max-width: 860px){
-      table.mini-rounds{
-        width: 340px;
-        max-width: 340px;
-      }
+      table.mini-rounds{ width: 340px; max-width: 340px; }
     }
 
     .modal-loading{
@@ -1093,12 +1098,11 @@
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 15000;
 
+    // set via ?currentSeason=6
     let CURRENT_SEASON = 6;
     const qsBoot = new URLSearchParams(location.search);
     const qsCur = Number(qsBoot.get("currentSeason"));
     if (Number.isFinite(qsCur) && qsCur >= 1 && qsCur <= 6) CURRENT_SEASON = qsCur;
-
-    const COL = { overallRank:0, name:2, stage:3, bestStart:4, weekStart:7, roundsStart:11 };
 
     const SEASON_CONFIG = {
       6: { sheet: "Season 6, Stage 1", rosters: "A3:S63", teamRank: "U4:X15" },
@@ -1115,8 +1119,6 @@
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
     const LOOKUP_RANGE_A1 = "A3:S250";
-
-    function a1(sheetName, rangeA1){ return `'${sheetName}'!${rangeA1}`; }
 
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
@@ -1155,6 +1157,7 @@
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
 
+      // POST first
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -1164,6 +1167,7 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
+      // fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -1191,12 +1195,12 @@
     }
     function toNum(v){
       const s = String(v ?? "").trim();
-      if(!s) return null;            // BLANK -> null (NOT 0)
+      if(!s) return null;
       const n = Number(s);
       return Number.isFinite(n) ? n : null;
     }
 
-    // IMPORTANT: blanks/null => "-" ; 0 => "E"
+    // blanks => "-" ; 0 => "E"; positives => +N
     function fmtScore(v){
       if (v === null || v === undefined) return "-";
       const s = String(v).trim();
@@ -1285,7 +1289,7 @@
 
       if(!cleaned.length) return { byTeam, byPlayer, playerTeamByName, captains };
 
-      const rows = cleaned.slice(1);
+      const rows = cleaned.slice(1); // drop header row
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -1315,6 +1319,7 @@
           return stat;
         });
 
+        // captain is the first player row
         const capName = String(playerRows?.[0]?.[2] ?? "").trim();
         if (capName) captains.add(capName);
 
@@ -1324,6 +1329,7 @@
       return { byTeam, byPlayer, playerTeamByName, captains };
     }
 
+    // broader lookup for solo players etc
     function parseLookupStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byPlayer = new Map();
@@ -1335,7 +1341,7 @@
         if(!name) continue;
 
         const overallRank = toNum(r?.[0]);
-        if (overallRank === null) continue;
+        if (overallRank === null) continue; // skip team header rows
 
         byPlayer.set(name, {
           overallRank,
@@ -1356,6 +1362,7 @@
       return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
     }
 
+    // DOM refs
     const statusCard = document.getElementById("statusCard");
     const contentEl  = document.getElementById("content");
 
@@ -1375,6 +1382,7 @@
     const playerModalClose = document.getElementById("playerModalClose");
     const playerModalContent = document.getElementById("playerModalContent");
 
+    // state
     let teamStandings = [];
     let playerStandings = [];
     let weeklyByWeek = new Map();
@@ -1731,6 +1739,7 @@
       });
     }
 
+    // interactions
     teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-team]");
       if(!btn) return;
@@ -1805,11 +1814,11 @@
 
     function trophyMeta(type){
       switch(type){
-        case "TEAM_1": return { icon:"🏆", main:"Team 1st",  pr:1 };
-        case "TEAM_2": return { icon:"🥈", main:"Team 2nd",  pr:2 };
-        case "TEAM_3": return { icon:"🥉", main:"Team 3rd",  pr:3 };
-        case "TOP_10": return { icon:"⭐", main:"Top 10",    pr:4 };
-        default: return { icon:"🏅", main:"Award", pr:9 };
+        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST",  pr:1 };
+        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND",  pr:2 };
+        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD",  pr:3 };
+        case "TOP_10": return { icon:"⭐", main:"TOP 10",    pr:4 };
+        default: return { icon:"🏅", main:"AWARD", pr:9 };
       }
     }
 
@@ -1818,7 +1827,7 @@
     async function getSeasonHistoryData(seasonNum){
       if (seasonHistoryCache.has(seasonNum)) return seasonHistoryCache.get(seasonNum);
 
-      const cfg = (seasonNum === 6) ? SEASON_CONFIG[6] : SEASON_CONFIG[seasonNum];
+      const cfg = SEASON_CONFIG[seasonNum];
       const sheet = cfg.sheet;
 
       const ranges = {
@@ -1881,7 +1890,7 @@
         else if (r === 3){ cls += " bronze"; emoji = "🥉"; }
       }
 
-      return `<span class="${cls}">${emoji ? `${emoji} ` : ""}${escapeHtml(ordinal(r))}</span>`;
+      return `<span class="${cls}">${emoji ? `${emoji} ` : ""}${escapeHtml(ordinal(r).toUpperCase())}</span>`;
     }
 
     function buildTeamChip(teamName){
@@ -1933,7 +1942,10 @@
       try{
         const seasons = [6,5,4,3,2,1];
         const summaries = [];
+
+        // Past-season aggregates only
         const allRoundsPrev = [];
+        const seasonTotalsPrev = [];
 
         let bestTeamFinishPrev = null;
         let bestIndFinishPrev  = null;
@@ -1955,6 +1967,7 @@
 
           const isPrev = (s !== CURRENT_SEASON);
 
+          // round aggregates (prev only)
           if (stats && Array.isArray(stats.rounds) && isPrev){
             for (const v of stats.rounds){
               const n = normalizeRoundValue(v);
@@ -1967,9 +1980,11 @@
             }
           }
 
+          // season total aggregates (prev only)
           if (isPrev){
             const seasonTotal = (playerStanding?.score ?? stats?.stageScore);
             if (Number.isFinite(seasonTotal)){
+              seasonTotalsPrev.push(Number(seasonTotal));
               if (seasonTotal <= -60) season60++;
               if (seasonTotal <= -70) season70++;
               if (seasonTotal <= -80) season80++;
@@ -1977,6 +1992,7 @@
             if (data.captains?.has(cleanName)) captainCount++;
           }
 
+          // best finishes (prev only)
           if (isPrev){
             if (teamStanding?.rank != null){
               bestTeamFinishPrev = bestTeamFinishPrev == null ? teamStanding.rank : Math.min(bestTeamFinishPrev, teamStanding.rank);
@@ -1997,9 +2013,8 @@
           });
         }
 
-        let headerTeam = null;
-        const cur = summaries.find(x => x.season === CURRENT_SEASON);
-        headerTeam = cur?.teamName || null;
+        // header team (current season if possible, else most recent)
+        let headerTeam = summaries.find(x => x.season === CURRENT_SEASON)?.teamName || null;
         if(!headerTeam){
           headerTeam = summaries.find(x => !!x.teamName)?.teamName || null;
         }
@@ -2009,9 +2024,14 @@
         const headerFg = headerStyle?.fg || "#ffffff";
         const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
 
+        // info buttons (prev only)
         const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
-        const avgRoundPrev = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
+        const avgRoundPrev  = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
 
+        const bestSeasonPrev = seasonTotalsPrev.length ? Math.min(...seasonTotalsPrev) : null;
+        const avgSeasonPrev  = seasonTotalsPrev.length ? (seasonTotalsPrev.reduce((a,b)=>a+b,0) / seasonTotalsPrev.length) : null;
+
+        // trophies (exclude current season)
         const trophies = [];
         for (const sum of summaries){
           if (sum.season === CURRENT_SEASON) continue;
@@ -2024,7 +2044,6 @@
             trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName, playerRank: sum.playerRank });
           }
         }
-
         trophies.sort((a,b)=>{
           const pa = trophyMeta(a.type).pr;
           const pb = trophyMeta(b.type).pr;
@@ -2032,6 +2051,7 @@
           return b.season - a.season;
         });
 
+        // season performance list
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
@@ -2066,7 +2086,7 @@
           .join("");
 
         // Trophy descriptions rule:
-        // - Keep description ONLY for TOP_10 and TEAM_* trophies
+        // - Only TOP_10 and TEAM_* keep description
         // - TOP_10: "Season X | #X"
         // - TEAM trophies: "[TEAM NAME] | Season X"
         const trophyBaseHtml = trophies.length
@@ -2097,6 +2117,7 @@
             }).join("")
           : "";
 
+        // stackables (no description)
         const stackablesOrdered = [
           { label:"-30 Club", icon:"🎯", count: round30 },
           { label:"-25 Club", icon:"🎯", count: round25 },
@@ -2109,7 +2130,6 @@
           { label:"Team Captain", icon:"CAPTAIN", count: captainCount },
         ];
 
-        // Remove description text for stackables (and captain): no trophy-sub
         const trophyStackHtml = stackablesOrdered
           .filter(t => t.count && t.count > 0)
           .map(t=>{
@@ -2140,6 +2160,13 @@
         const nameCaps = cleanName.toUpperCase();
         const teamCaps = headerTeam ? headerTeam.toUpperCase() : "";
 
+        const bestTeamFinishVal = (bestTeamFinishPrev != null && Number.isFinite(Number(bestTeamFinishPrev)))
+          ? ordinal(bestTeamFinishPrev).toUpperCase()
+          : "-";
+        const bestIndFinishVal = (bestIndFinishPrev != null && Number.isFinite(Number(bestIndFinishPrev)))
+          ? ordinal(bestIndFinishPrev).toUpperCase()
+          : "-";
+
         playerModalContent.innerHTML = `
           <div class="modal-left">
             <div class="modal-pane">
@@ -2163,22 +2190,32 @@
                 </div>
               </div>
 
-              <div class="info-stats">
-                <div class="statbox">
-                  <div class="statlabel">Best Round</div>
-                  <div class="statvalue">${escapeHtml(fmtScore(bestRoundPrev))}</div>
+              <!-- NEW: two rows of centered "buttons" (prev seasons only) -->
+              <div class="info-btn-grid">
+                <div class="info-btn">
+                  <div class="lbl">AVG. ROUND</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
                 </div>
-                <div class="statbox">
-                  <div class="statlabel">Avg Round</div>
-                  <div class="statvalue">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
+                <div class="info-btn">
+                  <div class="lbl">BEST ROUND</div>
+                  <div class="val">${escapeHtml(fmtScore(bestRoundPrev))}</div>
                 </div>
-                <div class="statbox">
-                  <div class="statlabel">Best Team Finish</div>
-                  <div class="statvalue">${bestTeamFinishPrev != null ? "#" + escapeHtml(bestTeamFinishPrev) : "-"}</div>
+                <div class="info-btn">
+                  <div class="lbl">AVG. SEASON</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgSeasonPrev))}</div>
                 </div>
-                <div class="statbox">
-                  <div class="statlabel">Best Individual Finish</div>
-                  <div class="statvalue">${bestIndFinishPrev != null ? "#" + escapeHtml(bestIndFinishPrev) : "-"}</div>
+                <div class="info-btn">
+                  <div class="lbl">BEST SEASON</div>
+                  <div class="val">${escapeHtml(fmtScore(bestSeasonPrev))}</div>
+                </div>
+
+                <div class="info-btn span-2">
+                  <div class="lbl">BEST TEAM FINISH</div>
+                  <div class="val">${escapeHtml(bestTeamFinishVal)}</div>
+                </div>
+                <div class="info-btn span-2">
+                  <div class="lbl">BEST INDIV. FINISH</div>
+                  <div class="val">${escapeHtml(bestIndFinishVal)}</div>
                 </div>
               </div>
             </div>
@@ -2207,8 +2244,6 @@
 
     /* ---------------- Data Update ---------------- */
     let updating = false;
-
-    let rosterByTeam = new Map();
 
     async function update(force=false){
       if(updating && !force) return;
@@ -2291,6 +2326,7 @@
       }
     }
 
+    // boot
     (function boot(){
       const params = new URLSearchParams(location.search);
       const seasonParam = Number(params.get("season"));
