@@ -213,7 +213,7 @@
     .silver{color:#c0c0c0;}
     .bronze{color:#cd7f32;}
 
-    /* Name cell (teams/players) */
+    /* Team/Player button cell */
     .team-cell{
       position: relative;
       height: 100%;
@@ -231,6 +231,7 @@
       letter-spacing: .02em;
       overflow:hidden;
       border-radius: 0;
+      gap: 12px;
     }
     .team-cell:hover{ filter: brightness(1.04); }
     .team-cell .name-text{
@@ -240,10 +241,14 @@
       overflow:hidden;
       text-overflow:ellipsis;
       text-transform: uppercase; /* always caps */
+      position: relative;
+      z-index: 1;
     }
     @media (max-width: 640px){
       .team-cell .name-text{ font-size: 16px; }
     }
+
+    /* Background watermark (optional icons via CSS vars) */
     .team-cell::before{
       content:"";
       position:absolute;
@@ -254,6 +259,20 @@
       background-image: var(--icon, none);
       opacity: var(--icon-opacity, 0.20);
       pointer-events:none;
+    }
+
+    /* Inline square logo (fills row height) */
+    .team-logo{
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      width: auto;
+      display: block;
+      object-fit: cover;
+      flex: 0 0 auto;
+      border: none;
+      outline: none;
+      box-shadow: none;
+      margin-left: -14px; /* tuck into left padding so it feels flush */
     }
 
     /* Fix: buttons sometimes inherit UA/reset styles that override weight */
@@ -598,14 +617,13 @@
     const RANGE_W2_A1 = "Z16:AC25";
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
-
-    // NEW: wide lookup range to catch SOLO PLAYERS (and anyone outside the team blocks)
-    const LOOKUP_RANGE_A1 = "A3:S250"; // header + many rows
+    const LOOKUP_RANGE_A1 = "A3:S250";
 
     function a1(sheetName, rangeA1){
       return `'${sheetName}'!${rangeA1}`;
     }
 
+    // ✅ Updated TEAM_STYLES (your new source of truth)
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000" },
@@ -622,9 +640,9 @@
       "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-      "REVERIE":         { bg: "#e2a9f1", fg: "#00357a" }
-      
+      "REVERIE":         { bg: "#e2a9f1", fg: "#00357a" },
     };
+
     function getTeamStyle(name) {
       if (!name) return null;
       const key = String(name).trim().toUpperCase();
@@ -739,14 +757,13 @@
       return picked;
     }
 
-    // Parse the TEAM roster block (5 rows per team) for team sections + also captures player stats found there
     function parseTeamRosters(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
       const byPlayer = new Map();
       if(!cleaned.length) return { byTeam, byPlayer };
 
-      const rows = cleaned.slice(1); // ignore header formatting row
+      const rows = cleaned.slice(1);
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -779,22 +796,16 @@
       return { byTeam, byPlayer };
     }
 
-    // NEW: Parse a wide lookup table (A3:S250) to populate stats for solo players too.
-    // This is NOT used for rendering team rosters—only for player stats lookup.
     function parseLookupStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byPlayer = new Map();
       if(!cleaned.length) return byPlayer;
 
-      const rows = cleaned.slice(1); // ignore header
-
+      const rows = cleaned.slice(1);
       for (const r of rows){
         const name = String(r?.[COL.name] ?? "").trim();
         if(!name) continue;
 
-        // In the lookup table, team rows might exist too—ignore rows that look like team header rows.
-        // Team rows typically have the team name in column C but no player rank in column A.
-        // For solo players, column A (overall rank) is present.
         const overallRank = toNum(r?.[COL.overallRank]);
         if (overallRank === null) continue;
 
@@ -808,8 +819,15 @@
           rounds: Array.from({length:8}, (_,k)=> toNum(r?.[COL.roundsStart + k]))
         });
       }
-
       return byPlayer;
+    }
+
+    // Logos in your repo:
+    // Put square logos in /logos/ named by team slug: logos/terrific-tigers.png, logos/spocco-cows.png, etc.
+    const TEAM_LOGO_DIR = "logos";
+    const TEAM_LOGO_EXT = "png";
+    function teamLogoSrc(teamName){
+      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
     }
 
     const statusCard = document.getElementById("statusCard");
@@ -832,7 +850,7 @@
     let weeklyByWeek = new Map();
 
     let rosterByTeam = new Map();
-    let playerStatsByName = new Map(); // now includes solo players via lookup range
+    let playerStatsByName = new Map();
 
     const expandedTeams = new Set();
     const expandedPlayers = new Set();
@@ -1022,11 +1040,13 @@
         btn.style.color = fg;
 
         btn.style.setProperty("--icon", "none");
-        if(style.iconPos) btn.style.setProperty("--icon-pos", style.iconPos);
-        if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
-        if(style.iconOpacity != null) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
 
-        btn.innerHTML = `<span class="name-text">${escapeHtml(team.displayName || team.name.toUpperCase())}</span>`;
+        const logoSrc = teamLogoSrc(team.name);
+        btn.innerHTML = `
+          <img class="team-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(team.displayName)} logo"
+               onerror="this.style.display='none';" />
+          <span class="name-text">${escapeHtml(team.displayName)}</span>
+        `;
 
         row.innerHTML = `
           <div class="place ${rankClass(team.rank)}">${team.rank}</div>
@@ -1068,7 +1088,7 @@
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "#ffffff";
         btn.style.setProperty("--icon", "none");
-        btn.innerHTML = `<span class="name-text">${escapeHtml(p.displayName || p.name.toUpperCase())}</span>`;
+        btn.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
 
         const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
 
@@ -1139,7 +1159,7 @@
           nameCell.style.background = "rgba(255,255,255,0.08)";
           nameCell.style.color = "#ffffff";
           nameCell.style.setProperty("--icon", "none");
-          nameCell.innerHTML = `<span class="name-text">${escapeHtml((p.displayName || p.name || "").toUpperCase())}</span>`;
+          nameCell.innerHTML = `<span class="name-text">${escapeHtml(p.displayName)}</span>`;
 
           row.innerHTML = `
             <div class="place">${p.rank}</div>
@@ -1185,6 +1205,10 @@
       update(true);
     });
 
+    viewSelect.addEventListener("change", ()=>{
+      setTab(viewSelect.value);
+    });
+
     let updating = false;
 
     async function update(force=false){
@@ -1203,25 +1227,24 @@
         const ranges = {
           teamStandings: a1(sheet, cfg.teamRank),
           rosters: a1(sheet, cfg.rosters),
+          lookup: a1(sheet, LOOKUP_RANGE_A1),
+
           playerStandings: a1(sheet, RANGE_PLAYER_STANDINGS_A1),
           week1: a1(sheet, RANGE_W1_A1),
           week2: a1(sheet, RANGE_W2_A1),
           week3: a1(sheet, RANGE_W3_A1),
           week4: a1(sheet, RANGE_W4_A1),
-
-          // NEW: broad lookup range (for solo players)
-          lookup: a1(sheet, LOOKUP_RANGE_A1),
         };
 
         const [
-          teamRows, playerRows, rosterRows, lookupRows,
-          wk1, wk2, wk3, wk4
+          teamRows, rosterRows, lookupRows,
+          playerRows, wk1, wk2, wk3, wk4
         ] = await Promise.all([
           fetchRange(ranges.teamStandings),
-          fetchRange(ranges.playerStandings),
           fetchRange(ranges.rosters),
           fetchRange(ranges.lookup),
 
+          fetchRange(ranges.playerStandings),
           fetchRange(ranges.week1),
           fetchRange(ranges.week2),
           fetchRange(ranges.week3),
@@ -1231,14 +1254,11 @@
         teamStandings = normalizeStandingsGeneric(teamRows);
         playerStandings = normalizeStandingsGeneric(playerRows);
 
-        // Team roster parsing (for team collapsibles + also player stats found within team blocks)
         const parsedTeams = parseTeamRosters(rosterRows);
         rosterByTeam = parsedTeams.byTeam;
 
-        // Lookup stats parsing (for solos + everyone in A3:S250 that looks like a player row)
         const lookupMap = parseLookupStats(lookupRows);
 
-        // Merge: prefer roster stats when present, otherwise use lookup stats
         playerStatsByName = new Map();
         for (const [name, stat] of lookupMap.entries()) playerStatsByName.set(name, stat);
         for (const [name, stat] of parsedTeams.byPlayer.entries()) playerStatsByName.set(name, stat);
