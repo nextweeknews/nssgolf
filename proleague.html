@@ -30,12 +30,12 @@
       --logo-slot: 40px;
 
       /* Neon tier colors */
-      --neon-blue:   rgba(56,189,248,1);   /* sky-400 */
-      --neon-purple: rgba(168,85,247,1);   /* purple-500 */
-      --neon-gold:   rgba(253,224,71,1);   /* yellow-300 */
-      --neon-green:  rgba(34,197,94,1);    /* green-500 */
-      --neon-silver: rgba(226,232,240,1);  /* slate-200 */
-      --neon-bronze: rgba(251,146,60,1);   /* orange-400 */
+      --neon-blue:   rgba(56,189,248,1);
+      --neon-purple: rgba(168,85,247,1);
+      --neon-gold:   rgba(253,224,71,1);
+      --neon-green:  rgba(34,197,94,1);
+      --neon-silver: rgba(226,232,240,1);
+      --neon-bronze: rgba(251,146,60,1);
     }
 
     *{ box-sizing:border-box; }
@@ -704,6 +704,10 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .hero-sub.solo{
+      text-transform: none;
+      letter-spacing: .10em;
+    }
 
     /* Player info buttons (2 rows: 4 + 2) */
     .info-btn-grid{
@@ -729,7 +733,7 @@
       min-height: 58px;
     }
 
-    /* UPDATED: no ellipses; slightly smaller; allow wrap */
+    /* label: no ellipses; allow wrap */
     .info-btn .lbl{
       font-size: 9px;
       font-weight: 950;
@@ -1031,6 +1035,10 @@
       text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
       flex: 0 0 auto;
+    }
+    .chip.solo{
+      text-transform: none;
+      letter-spacing: .10em;
     }
 
     .chip.rank{
@@ -1921,13 +1929,23 @@
       playerModalContent.innerHTML = `<div class="modal-loading">Loading Player…</div>`;
     }
 
+    // Trophy ordering (tier -> team/individual/misc)
+    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
+    const CAT_ORDER  = { team:0, individual:1, misc:2 };
+
     function trophyMeta(type){
       switch(type){
-        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST",  pr:1, tier:"gold" };
-        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND",  pr:2, tier:"silver" };
-        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD",  pr:3, tier:"bronze" };
-        case "TOP_10": return { icon:"⭐", main:"TOP 10",    pr:4, tier:"default" };
-        default: return { icon:"🏅", main:"AWARD", pr:9, tier:"default" };
+        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST", tier:"gold",  cat:"team" };
+        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND", tier:"silver",cat:"team" };
+        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD", tier:"bronze",cat:"team" };
+
+        case "IND_1":  return { icon:"🏆", main:"INDIV 1ST", tier:"gold",  cat:"individual" };
+        case "IND_2":  return { icon:"🥈", main:"INDIV 2ND", tier:"silver",cat:"individual" };
+        case "IND_3":  return { icon:"🥉", main:"INDIV 3RD", tier:"bronze",cat:"individual" };
+
+        case "TOP_10": return { icon:"⭐", main:"TOP 10", tier:"default", cat:"individual" };
+
+        default:       return { icon:"🏅", main:"AWARD", tier:"default", cat:"misc" };
       }
     }
 
@@ -2004,7 +2022,7 @@
 
     function buildTeamChip(teamName){
       if(!teamName){
-        return `<span class="chip team" style="--team-bg: rgba(255,255,255,0.06); --team-fg: rgba(255,255,255,0.92);">SOLO</span>`;
+        return `<span class="chip solo">Solo Player</span>`;
       }
       const style = getTeamStyle(teamName) || {};
       const bg = style.bg || "rgba(255,255,255,0.06)";
@@ -2040,6 +2058,50 @@
       return `<table class="mini-rounds" aria-label="Individual rounds"><tr>${tds}</tr></table>`;
     }
 
+    function trophySortKey(item){
+      const meta = item.meta;
+      const tierK = TIER_ORDER[meta.tier] ?? TIER_ORDER.default;
+      const catK  = CAT_ORDER[meta.cat] ?? CAT_ORDER.misc;
+      const seasonK = (item.season != null ? Number(item.season) : -1);
+      // Per-season trophies should appear before stackables within same tier/category
+      const kindK = item.kind === "stack" ? 1 : 0;
+      return [tierK, catK, kindK, -seasonK, item.order ?? 999];
+    }
+
+    function cmpKey(a,b){
+      for(let i=0;i<a.length;i++){
+        if(a[i] < b[i]) return -1;
+        if(a[i] > b[i]) return 1;
+      }
+      return 0;
+    }
+
+    function buildTrophyItemHTML(item){
+      const meta = item.meta;
+      const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
+
+      const iconHtml =
+        item.iconType === "captain"
+          ? `<div class="trophy-icon captain" title="Captain"></div>`
+          : `<div class="trophy-icon">${escapeHtml(meta.icon)}</div>`;
+
+      const sub = item.sub ? `<div class="trophy-sub">${escapeHtml(item.sub)}</div>` : ``;
+      const count = item.count ? `<div class="trophy-count">${escapeHtml(item.count)}</div>` : ``;
+
+      return `
+        <div class="trophy${tierClass}">
+          <div class="trophy-left">
+            ${iconHtml}
+            <div class="trophy-text">
+              <div class="trophy-main">${escapeHtml(meta.main)}</div>
+              ${sub}
+            </div>
+          </div>
+          ${count}
+        </div>
+      `;
+    }
+
     async function openPlayerModal(playerName){
       const cleanName = String(playerName).trim();
       if(!cleanName) return;
@@ -2068,6 +2130,7 @@
 
           const teamName = data.playerToTeam.get(cleanName) || null;
           const teamStanding = teamName ? (data.teamMap.get(teamName) || null) : null;
+
           const playerStanding = data.playerMap.get(cleanName) || null;
           const stats = data.playerStatsMap.get(cleanName) || null;
 
@@ -2140,25 +2203,93 @@
         const bestSeasonPrev = seasonTotalsPrev.length ? Math.min(...seasonTotalsPrev) : null;
         const avgSeasonPrev  = seasonTotalsPrev.length ? (seasonTotalsPrev.reduce((a,b)=>a+b,0) / seasonTotalsPrev.length) : null;
 
-        // trophies (exclude current season)
-        const trophies = [];
+        // -------- trophies (exclude current season) --------
+        const trophyItems = [];
+
+        // Per-season trophies
         for (const sum of summaries){
           if (sum.season === CURRENT_SEASON) continue;
 
-          if (sum.teamRank === 1) trophies.push({ season: sum.season, type:"TEAM_1", team: sum.teamName });
-          if (sum.teamRank === 2) trophies.push({ season: sum.season, type:"TEAM_2", team: sum.teamName });
-          if (sum.teamRank === 3) trophies.push({ season: sum.season, type:"TEAM_3", team: sum.teamName });
+          // team podium
+          if (sum.teamRank === 1) trophyItems.push({
+            kind:"season", season: sum.season, type:"TEAM_1",
+            meta: trophyMeta("TEAM_1"),
+            sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
+          });
+          if (sum.teamRank === 2) trophyItems.push({
+            kind:"season", season: sum.season, type:"TEAM_2",
+            meta: trophyMeta("TEAM_2"),
+            sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
+          });
+          if (sum.teamRank === 3) trophyItems.push({
+            kind:"season", season: sum.season, type:"TEAM_3",
+            meta: trophyMeta("TEAM_3"),
+            sub: `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`
+          });
 
-          if (sum.playerRank != null && Number(sum.playerRank) <= 10) {
-            trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName, playerRank: sum.playerRank });
+          // individual podium separated from top10
+          if (sum.playerRank === 1) trophyItems.push({
+            kind:"season", season: sum.season, type:"IND_1",
+            meta: trophyMeta("IND_1"),
+            sub: `Season ${sum.season} | #${sum.playerRank}`
+          });
+          if (sum.playerRank === 2) trophyItems.push({
+            kind:"season", season: sum.season, type:"IND_2",
+            meta: trophyMeta("IND_2"),
+            sub: `Season ${sum.season} | #${sum.playerRank}`
+          });
+          if (sum.playerRank === 3) trophyItems.push({
+            kind:"season", season: sum.season, type:"IND_3",
+            meta: trophyMeta("IND_3"),
+            sub: `Season ${sum.season} | #${sum.playerRank}`
+          });
+
+          // top 10 finishes exclude 1/2/3
+          if (sum.playerRank != null && Number(sum.playerRank) >= 4 && Number(sum.playerRank) <= 10) {
+            trophyItems.push({
+              kind:"season", season: sum.season, type:"TOP_10",
+              meta: trophyMeta("TOP_10"),
+              sub: `Season ${sum.season} | #${sum.playerRank}`
+            });
           }
         }
-        trophies.sort((a,b)=>{
-          const pa = trophyMeta(a.type).pr;
-          const pb = trophyMeta(b.type).pr;
-          if (pa !== pb) return pa - pb;
-          return b.season - a.season;
-        });
+
+        // Stackables (misc, prioritized by tier/category rules)
+        const stackablesOrdered = [
+          { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
+          { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
+          { label:"-20 Club", icon:"⛳️", tier:"blue",   count: round20 },
+
+          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: season80 },
+          { label:"-70 Club", icon:"🎖️", tier:"purple", count: season70 },
+          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: season60 },
+
+          { label:"Team Captain", icon:"CAPTAIN", tier:"green", count: captainCount },
+        ];
+
+        for (let i=0;i<stackablesOrdered.length;i++){
+          const t = stackablesOrdered[i];
+          if (!t.count || t.count <= 0) continue;
+
+          const meta = { icon: t.icon, main: t.label.toUpperCase(), tier: t.tier, cat: "misc" };
+
+          trophyItems.push({
+            kind:"stack",
+            season: -1,
+            type: t.label,
+            meta,
+            iconType: (t.icon === "CAPTAIN") ? "captain" : "emoji",
+            count: trophyCountLabel(t.count),
+            order: i
+          });
+        }
+
+        // sort by tier color, then team/individual/misc, then season desc
+        trophyItems.sort((a,b)=>cmpKey(trophySortKey(a), trophySortKey(b)));
+
+        const trophyHtml = trophyItems.length
+          ? trophyItems.map(buildTrophyItemHTML).join("")
+          : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
 
         // season performance list
         const seasonRowsHtml = summaries
@@ -2166,13 +2297,16 @@
           .map(sum=>{
             const isPrev = (sum.season !== CURRENT_SEASON);
 
-            const teamRow = `
-              <div class="btn-row">
-                ${buildRankChip(sum.teamRank, isPrev)}
-                ${buildTeamChip(sum.teamName)}
-                ${buildScoreChip(sum.teamScore)}
-              </div>
-            `;
+            // If solo for that season: team row should be ONE default-theme button: "Solo Player"
+            const teamRow = (!sum.teamName)
+              ? `<div class="btn-row"><span class="chip solo">Solo Player</span></div>`
+              : `
+                <div class="btn-row">
+                  ${buildRankChip(sum.teamRank, isPrev)}
+                  ${buildTeamChip(sum.teamName)}
+                  ${buildScoreChip(sum.teamScore)}
+                </div>
+              `;
 
             const playerRow = `
               <div class="btn-row">
@@ -2194,82 +2328,8 @@
           })
           .join("");
 
-        // Trophy descriptions rule:
-        // - Only TOP_10 and TEAM_* keep description
-        // - TOP_10: "Season X | #X"
-        // - TEAM trophies: "[TEAM NAME] | Season X"
-        const trophyBaseHtml = trophies.length
-          ? trophies.map(t=>{
-              const meta = trophyMeta(t.type);
-
-              const isTeamTrophy = (t.type === "TEAM_1" || t.type === "TEAM_2" || t.type === "TEAM_3");
-              const isTop10 = (t.type === "TOP_10");
-
-              let sub = "";
-              if (isTop10){
-                sub = `Season ${t.season} | #${t.playerRank}`;
-              } else if (isTeamTrophy){
-                sub = `${String(t.team || "").toUpperCase()} | Season ${t.season}`;
-              }
-
-              const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
-              return `
-                <div class="trophy${tierClass}">
-                  <div class="trophy-left">
-                    <div class="trophy-icon">${escapeHtml(meta.icon)}</div>
-                    <div class="trophy-text">
-                      <div class="trophy-main">${escapeHtml(meta.main)}</div>
-                      ${sub ? `<div class="trophy-sub">${escapeHtml(sub)}</div>` : ``}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join("")
-          : "";
-
-        // stackables (icons + tiers)
-        const stackablesOrdered = [
-          { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
-          { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
-          { label:"-20 Club", icon:"⛳️", tier:"blue",   count: round20 },
-
-          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: season80 },
-          { label:"-70 Club", icon:"🎖️", tier:"purple", count: season70 },
-          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: season60 },
-
-          { label:"Team Captain", icon:"CAPTAIN", tier:"green", count: captainCount },
-        ];
-
-        const trophyStackHtml = stackablesOrdered
-          .filter(t => t.count && t.count > 0)
-          .map(t=>{
-            const countLabel = trophyCountLabel(t.count);
-            const iconHtml =
-              t.icon === "CAPTAIN"
-                ? `<div class="trophy-icon captain" title="Captain"></div>`
-                : `<div class="trophy-icon">${escapeHtml(t.icon)}</div>`;
-            const tierClass = t.tier ? ` tier-${t.tier}` : "";
-            return `
-              <div class="trophy${tierClass}">
-                <div class="trophy-left">
-                  ${iconHtml}
-                  <div class="trophy-text">
-                    <div class="trophy-main">${escapeHtml(t.label).toUpperCase()}</div>
-                  </div>
-                </div>
-                ${countLabel ? `<div class="trophy-count">${escapeHtml(countLabel)}</div>` : ``}
-              </div>
-            `;
-          })
-          .join("");
-
-        const trophyHtml =
-          (trophyBaseHtml || trophyStackHtml)
-            ? (trophyBaseHtml + trophyStackHtml)
-            : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
-
         const nameCaps = cleanName.toUpperCase();
-        const teamCaps = headerTeam ? headerTeam.toUpperCase() : "";
+        const teamLabel = headerTeam ? headerTeam.toUpperCase() : "Solo Player";
 
         const bestTeamFinishVal = (bestTeamFinishPrev != null && Number.isFinite(Number(bestTeamFinishPrev)))
           ? ordinal(bestTeamFinishPrev).toUpperCase()
@@ -2285,7 +2345,7 @@
                 ${headerTeam ? `
                   <div class="hero-team" style="background:${escapeHtml(headerBg)}; border-color: rgba(255,255,255,.18);">
                     <img src="${escapeHtml(headerLogo)}"
-                         alt="${escapeHtml(teamCaps)} logo"
+                         alt="${escapeHtml(teamLabel)} logo"
                          loading="lazy"
                          decoding="async"
                          onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.background='${escapeHtml(headerBg)}';" />
@@ -2297,13 +2357,16 @@
                 `}
                 <div class="hero-text">
                   <div class="hero-name">${escapeHtml(nameCaps)}</div>
-                  ${headerTeam ? `<div class="hero-sub" style="color:${escapeHtml(headerFg)};">${escapeHtml(teamCaps)}</div>` : `<div class="hero-sub">SOLO PLAYER</div>`}
+                  ${headerTeam
+                    ? `<div class="hero-sub" style="color:${escapeHtml(headerFg)};">${escapeHtml(teamLabel)}</div>`
+                    : `<div class="hero-sub solo">Solo Player</div>`
+                  }
                 </div>
               </div>
 
               <div class="info-btn-grid">
                 <div class="info-btn">
-                  <div class="lbl">AVG. ROUND</div>
+                  <div class="lbl">AVG.<br>ROUND</div>
                   <div class="val">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
                 </div>
                 <div class="info-btn">
