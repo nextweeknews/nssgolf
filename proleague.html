@@ -507,7 +507,6 @@
       -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
-      transform: none;
       position: relative;
       top: 0;
     }
@@ -809,9 +808,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .trophy-sub .medal-gold{ color: var(--gold); }
-    .trophy-sub .medal-silver{ color: var(--silver); }
-    .trophy-sub .medal-bronze{ color: var(--bronze); }
 
     .season-title{
       font-size: 11px;
@@ -940,21 +936,18 @@
       padding: 0;
       line-height: 0;
     }
-
-    /* FIX #1: make logo FIT the slot (not tiny-left) */
     .team-pill .mini-logo img{
       width: 100%;
       height: 100%;
       display: block;
-      object-fit: cover;    /* square logos, fill the square */
+      object-fit: cover;    /* square logos: fill the square */
       object-position: center;
     }
-
     .team-pill .team-text{
       font-weight: 950;
       letter-spacing: .10em;
       text-transform: uppercase;
-      color: inherit; /* uses team fg */
+      color: inherit;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1144,6 +1137,7 @@
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
 
+      // Try POST; if it doesn't work, fall back to GET
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -1337,6 +1331,11 @@
     const playersList= document.getElementById("playersList");
     const weeklyCards= document.getElementById("weeklyCards");
     const playerSearch = document.getElementById("playerSearch");
+
+    // Modal (declared ONCE)
+    const playerModal = document.getElementById("playerModal");
+    const playerModalClose = document.getElementById("playerModalClose");
+    const playerModalContent = document.getElementById("playerModalContent");
 
     let teamStandings = [];
     let playerStandings = [];
@@ -1756,10 +1755,6 @@
     });
 
     /* ---------------- Player Modal + History ---------------- */
-    const playerModal = document.getElementById("playerModal");
-    const playerModalClose = document.getElementById("playerModalClose");
-    const playerModalContent = document.getElementById("playerModalContent");
-
     playerModalClose.addEventListener("click", closePlayerModal);
     playerModal.addEventListener("click", (e)=>{
       if (e.target === playerModal) closePlayerModal();
@@ -1785,7 +1780,7 @@
     }
 
     // season data cache
-    const seasonHistoryCache = new Map(); // seasonNum -> { teamMap, playerMap, playerToTeam, playerStatsMap }
+    const seasonHistoryCache = new Map(); // seasonNum -> data
 
     async function getSeasonHistoryData(seasonNum){
       if (seasonHistoryCache.has(seasonNum)) return seasonHistoryCache.get(seasonNum);
@@ -1833,26 +1828,17 @@
       return data;
     }
 
-    /* FIX #2: team pill MUST use TEAM_STYLES bg + fg */
-    function buildTeamPill(teamName, forceMedalRank=null){
+    function buildTeamPill(teamName){
       if (!teamName) return "";
       const style = getTeamStyle(teamName) || {};
-      const baseBg = style.bg || "rgba(255,255,255,0.06)";
-      const baseFg = style.fg || "rgba(255,255,255,0.92)";
-
-      let pillBg = baseBg;
-      let pillFg = baseFg;
-
-      // If forced medal, override (for trophy case usage; optional)
-      if (forceMedalRank === 1){ pillBg = "rgba(255,215,0,0.18)"; pillFg = "var(--gold)"; }
-      if (forceMedalRank === 2){ pillBg = "rgba(192,192,192,0.16)"; pillFg = "var(--silver)"; }
-      if (forceMedalRank === 3){ pillBg = "rgba(205,127,50,0.18)"; pillFg = "var(--bronze)"; }
+      const bg = style.bg || "rgba(255,255,255,0.06)";
+      const fg = style.fg || "rgba(255,255,255,0.92)";
 
       const teamCaps = String(teamName).toUpperCase();
       const logo = teamLogoSrc(teamName);
 
       return `
-        <span class="team-pill" style="--team-bg:${escapeHtml(pillBg)};--team-fg:${escapeHtml(pillFg)};">
+        <span class="team-pill" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">
           <span class="mini-logo">
             <img src="${escapeHtml(logo)}"
                  alt="${escapeHtml(teamCaps)} logo"
@@ -1874,11 +1860,9 @@
       playerModalContent.innerHTML = `<div class="modal-loading">Loading ${escapeHtml(cleanName.toUpperCase())}…</div>`;
 
       try{
-        // Build season summaries (most recent first)
         const seasons = [6,5,4,3,2,1];
         const summaries = [];
-        const allRoundsAll = [];      // all seasons (for display if you want)
-        const allRoundsPrev = [];     // prev seasons only (for best/avg stats that exclude current)
+        const allRoundsPrev = [];
 
         let bestTeamFinishPrev = null;
         let bestIndFinishPrev  = null;
@@ -1891,24 +1875,15 @@
           const playerStanding = data.playerMap.get(cleanName) || null;
           const stats = data.playerStatsMap.get(cleanName) || null;
 
-          const hasAny =
-            !!teamName ||
-            !!playerStanding ||
-            !!stats;
-
+          const hasAny = !!teamName || !!playerStanding || !!stats;
           if(!hasAny) continue;
 
-          // accumulate rounds
-          if (stats && Array.isArray(stats.rounds)){
+          if (stats && Array.isArray(stats.rounds) && s !== CURRENT_SEASON){
             for (const v of stats.rounds){
-              if (Number.isFinite(v)) {
-                allRoundsAll.push(v);
-                if (s !== CURRENT_SEASON) allRoundsPrev.push(v);
-              }
+              if (Number.isFinite(v)) allRoundsPrev.push(v);
             }
           }
 
-          // Best finishes (PREVIOUS SEASONS ONLY)
           if (s !== CURRENT_SEASON){
             if (teamStanding?.rank != null){
               bestTeamFinishPrev = bestTeamFinishPrev == null ? teamStanding.rank : Math.min(bestTeamFinishPrev, teamStanding.rank);
@@ -1928,14 +1903,11 @@
           });
         }
 
-        // Determine header team (prefer CURRENT_SEASON, else most recent season with team)
         let headerTeam = null;
-        {
-          const cur = summaries.find(x => x.season === CURRENT_SEASON);
-          headerTeam = cur?.teamName || null;
-          if(!headerTeam){
-            headerTeam = summaries.find(x => !!x.teamName)?.teamName || null;
-          }
+        const cur = summaries.find(x => x.season === CURRENT_SEASON);
+        headerTeam = cur?.teamName || null;
+        if(!headerTeam){
+          headerTeam = summaries.find(x => !!x.teamName)?.teamName || null;
         }
 
         const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
@@ -1943,11 +1915,10 @@
         const headerFg = headerStyle?.fg || "#ffffff";
         const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
 
-        // Player info stats (PREVIOUS SEASONS ONLY)
         const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
         const avgRoundPrev = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
 
-        // Trophy case (EXCLUDE current season)
+        // Trophy case excludes current season
         const trophies = [];
         for (const sum of summaries){
           if (sum.season === CURRENT_SEASON) continue;
@@ -1960,30 +1931,24 @@
             trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName, playerRank: sum.playerRank });
           }
         }
-
         trophies.sort((a,b)=>{
           if (b.season !== a.season) return b.season - a.season;
           return trophyMeta(a.type).pr - trophyMeta(b.type).pr;
         });
 
-        // FIX #3: current season row shows NO badges/accolades
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
             const badges = [];
-
             if (sum.season !== CURRENT_SEASON){
-              // Team placement badges
               if (sum.teamRank === 1) badges.push({ text:"TEAM 1ST", cls:"medal-gold" });
               if (sum.teamRank === 2) badges.push({ text:"TEAM 2ND", cls:"medal-silver" });
               if (sum.teamRank === 3) badges.push({ text:"TEAM 3RD", cls:"medal-bronze" });
 
-              // Individual placement badges (1/2/3)
               if (sum.playerRank === 1) badges.push({ text:"IND 1ST", cls:"medal-gold" });
               if (sum.playerRank === 2) badges.push({ text:"IND 2ND", cls:"medal-silver" });
               if (sum.playerRank === 3) badges.push({ text:"IND 3RD", cls:"medal-bronze" });
 
-              // Top 10 badge (non-medal)
               if (sum.playerRank != null && Number(sum.playerRank) <= 10 && sum.playerRank > 3) {
                 badges.push({ text:"TOP 10", cls:"" });
               }
@@ -2022,15 +1987,9 @@
         const trophyHtml = trophies.length
           ? trophies.map(t=>{
               const meta = trophyMeta(t.type);
-              const medalRank =
-                t.type === "TEAM_1" ? 1 :
-                t.type === "TEAM_2" ? 2 :
-                t.type === "TEAM_3" ? 3 : null;
-
               let sub = `Season ${t.season}`;
               if (t.type === "TOP_10" && t.playerRank != null) sub += ` • #${t.playerRank}`;
               if (t.team) sub += ` • ${escapeHtml(String(t.team).toUpperCase())}`;
-
               return `
                 <div class="trophy">
                   <div class="trophy-icon">${meta.icon}</div>
@@ -2048,7 +2007,6 @@
 
         playerModalContent.innerHTML = `
           <div class="modal-left">
-            <!-- Player Info Card -->
             <div class="modal-pane">
               <div class="player-hero">
                 ${headerTeam ? `
@@ -2090,16 +2048,12 @@
               </div>
             </div>
 
-            <!-- Trophy Case Card -->
             <div class="modal-pane">
               <div class="trophy-title">Trophy Case</div>
-              <div class="trophy-grid">
-                ${trophyHtml}
-              </div>
+              <div class="trophy-grid">${trophyHtml}</div>
             </div>
           </div>
 
-          <!-- Season Performance -->
           <div class="modal-pane">
             <div class="season-title">Season Performance</div>
             <div class="season-list">
@@ -2199,25 +2153,6 @@
       }finally{
         updating = false;
       }
-    }
-
-    /* ---------------- Modal close handlers ---------------- */
-    const playerModal = document.getElementById("playerModal");
-    const playerModalClose = document.getElementById("playerModalClose");
-    const playerModalContent = document.getElementById("playerModalContent");
-
-    playerModalClose.addEventListener("click", closePlayerModal);
-    playerModal.addEventListener("click", (e)=>{
-      if (e.target === playerModal) closePlayerModal();
-    });
-    window.addEventListener("keydown", (e)=>{
-      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
-    });
-
-    function closePlayerModal(){
-      playerModal.classList.remove("show");
-      playerModal.setAttribute("aria-hidden", "true");
-      playerModalContent.innerHTML = `<div class="modal-loading">Loading Player…</div>`;
     }
 
     (function boot(){
