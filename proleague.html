@@ -937,40 +937,51 @@
       letter-spacing: .08em;
     }
 
-    /* Inline "simple table" for rounds (no pill / no rounding) */
-    table.mini-rounds{
-      border-collapse: collapse;
-      border-spacing: 0;
-      table-layout: fixed;
-      width: 360px;              /* compact; fits with chips */
-      max-width: 360px;
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 0;
-      overflow: visible;
-      flex: 0 0 auto;
-    }
-    .mini-rounds td{
-      padding: 6px 0;
-      text-align: center;
-      font-size: 11px;
-      font-weight: 950;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      line-height: 1;
-      color: rgba(255,255,255,0.92);
-      border: 1px solid rgba(255,255,255,0.08);
-      font-variant-numeric: tabular-nums;
-      background: rgba(255,255,255,0.03);
-      user-select: none;
-    }
-    .mini-rounds td.sep-left{
-      border-left: 2px solid rgba(148,163,184,0.26);
-    }
-    .mini-rounds td.counted{
-      background: rgba(52,211,153,0.16);
-      color: rgba(255,255,255,0.98);
-    }
+   /* Inline "simple table" for rounds (no gridlines between every column) */
+table.mini-rounds{
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 360px;
+  max-width: 360px;
+  background: transparent;
+
+  /* keep only the outer border */
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 0;
+  overflow: visible;
+  flex: 0 0 auto;
+}
+
+.mini-rounds td{
+  padding: 6px 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  line-height: 1;
+  color: rgba(255,255,255,0.92);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+
+  /* REMOVE per-column borders */
+  border: none;
+
+  /* continuous row background */
+  background: rgba(255,255,255,0.03);
+}
+
+/* keep ONLY the separators between weeks (every 2 columns) */
+.mini-rounds td.sep-left{
+  border-left: 2px solid rgba(148,163,184,0.26);
+}
+
+/* counted highlights still work */
+.mini-rounds td.counted{
+  background: rgba(52,211,153,0.16);
+  color: rgba(255,255,255,0.98);
+}
 
     @media (max-width: 860px){
       table.mini-rounds{
