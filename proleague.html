@@ -668,7 +668,6 @@
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,.10);
       overflow: hidden;
-      /* desktop: content is not scroll-clipped */
     }
 
     .modal-loading{
@@ -691,6 +690,7 @@
       display:grid;
       grid-template-columns: 1.25fr 1fr;
       gap: 12px;
+      min-width: 0;
     }
     @media (max-width: 860px){
       .modal-wrap{ padding-top: 52px; }
@@ -703,18 +703,21 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 12px;
+      min-width: 0;
     }
 
     .modal-left{
       display:flex;
       flex-direction:column;
       gap: 12px;
+      min-width: 0;
     }
 
     .player-hero{
       display:flex;
       align-items:center;
       gap: 12px;
+      min-width: 0;
     }
     .hero-team{
       width: 52px; height: 52px;
@@ -766,6 +769,7 @@
       display:grid;
       grid-template-columns: repeat(4, minmax(0,1fr));
       gap: 8px;
+      min-width: 0;
     }
     @media (max-width: 860px){
       .info-btn-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
@@ -782,6 +786,7 @@
       justify-content:center;
       text-align:center;
       min-height: 62px;
+      min-width: 0;
     }
     .info-btn .lbl{
       font-size: 9px;
@@ -807,6 +812,7 @@
       text-overflow: ellipsis;
       width: 100%;
       font-variant-numeric: tabular-nums;
+      min-width: 0;
     }
     .info-btn.span-2{ grid-column: span 2; }
 
@@ -817,12 +823,15 @@
       letter-spacing: .16em;
       color: rgba(255,255,255,.65);
       margin-bottom: 10px;
+      line-height: 1.2;
+      word-break: break-word;
     }
     .trophy-grid{
       display:flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: flex-start;
+      min-width: 0;
     }
 
     .trophy{
@@ -837,6 +846,7 @@
       width: fit-content;
       max-width: 100%;
       flex: 0 0 auto;
+      min-width: 0;
     }
     .trophy-left{
       display:flex;
@@ -888,6 +898,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      min-width: 0;
     }
     .trophy-sub{
       font-size: 10px;
@@ -898,6 +909,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      min-width: 0;
     }
 
     .trophy-count{
@@ -998,6 +1010,7 @@
       border-radius: 14px;
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.08);
+      min-width: 0;
     }
     .season-entry + .season-entry{ margin-top: 10px; }
 
@@ -1008,6 +1021,7 @@
       gap: 10px;
       margin-bottom: 8px;
       flex-wrap: wrap;
+      min-width: 0;
     }
     .season-entry-name{
       font-size: 12px;
@@ -1027,6 +1041,7 @@
       padding-bottom: 2px;
       justify-content: flex-end;
       -webkit-overflow-scrolling: touch;
+      min-width: 0;
     }
     .btn-row + .btn-row{ margin-top: 8px; }
 
@@ -1098,6 +1113,7 @@
       border-radius: 0;
       overflow: visible;
       flex: 0 0 auto;
+      min-width: 0;
     }
     .mini-rounds td{
       padding: 6px 0;
@@ -1112,6 +1128,7 @@
       user-select: none;
       border: none;
       background: rgba(255,255,255,0.03);
+      min-width: 0;
     }
     .mini-rounds td.sep-left{ border-left: 2px solid rgba(148,163,184,0.26); }
     .mini-rounds td.counted{
@@ -1119,12 +1136,11 @@
       color: rgba(255,255,255,0.98);
     }
 
-    /* ---------------- MOBILE OPTIMIZATION (shrink-to-fit; desktop unchanged) ---------------- */
+    /* ---------------- MOBILE OPTIMIZATION ---------------- */
     @media (max-width: 760px){
-      /* Narrow the row sections (team score column slightly narrower for name fit) */
       :root{
         --rank-col: 72px;
-        --score-col: 82px;      /* WAS 92px */
+        --score-col: 82px;      /* mobile narrower for PHANTOM TROUPE fit */
         --wk-rank-col: 72px;
         --wk-round-col: 64px;
         --wk-score-col: 92px;
@@ -1148,7 +1164,6 @@
 
       .weekly-round{ font-size: 14px; }
 
-      /* Search box fits */
       .search{ min-width: 0; width: 100%; }
 
       /* Make complex tables scrollable horizontally on mobile */
@@ -1162,7 +1177,7 @@
         min-width: 820px;
       }
 
-      /* --- Player modal: keep within screen, vertically scrollable, start at top --- */
+      /* Modal: fit to viewport horizontally + scale down content so it never overflows */
       .modal-backdrop{
         align-items: flex-start;
         justify-content: center;
@@ -1176,8 +1191,28 @@
       .modal-card{
         max-height: calc(100vh - 84px);
         overflow-y: auto;
+        overflow-x: hidden; /* critical: no horizontal overflow */
         -webkit-overflow-scrolling: touch;
       }
+
+      /* scale modal contents to fit narrow screens */
+      .modal-card{
+        --modal-scale: 1;
+      }
+      /* Use a slight scale-down on phones; keeps layout identical but shrunk */
+      @media (max-width: 520px){
+        .modal-card{ --modal-scale: .92; }
+      }
+      @media (max-width: 420px){
+        .modal-card{ --modal-scale: .86; }
+      }
+
+      .modal-body, .modal-loading{
+        transform: scale(var(--modal-scale));
+        transform-origin: top left;
+        width: calc(100% / var(--modal-scale));
+      }
+
       .modal-body{
         grid-template-columns: 1fr;
         padding: 12px;
@@ -1186,24 +1221,23 @@
         min-height: 300px;
       }
 
-      /* Trophy pills wrap well */
-      .trophy-text{ max-width: 220px; }
+      /* ensure season pills row can scroll within the card if needed */
+      .btn-row{
+        justify-content: flex-end;
+      }
 
-      /* Mini rounds table can scroll within row if needed */
+      /* mini rounds table shrinks a bit on mobile */
       table.mini-rounds{
         width: 300px;
         max-width: 300px;
       }
-      .btn-row{
-        justify-content: flex-end;
-      }
+      .trophy-text{ max-width: 220px; }
     }
 
     @media (max-width: 420px){
-      /* Even smaller phones */
       :root{
         --rank-col: 64px;
-        --score-col: 76px;      /* tighter still */
+        --score-col: 76px;
         --wk-rank-col: 64px;
         --wk-round-col: 58px;
         --wk-score-col: 84px;
@@ -2034,7 +2068,6 @@
       playerModalContent.className = "modal-loading";
       playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
 
-      // keep scroll position at top (modal-card is the scroll container on mobile)
       const card = playerModal.querySelector(".modal-card");
       if (card) card.scrollTop = 0;
     }
@@ -2222,7 +2255,6 @@
       playerModal.setAttribute("aria-hidden", "false");
       showPlayerLoading();
 
-      // ensure default view starts at top
       const card = playerModal.querySelector(".modal-card");
       if (card) card.scrollTop = 0;
 
@@ -2504,7 +2536,7 @@
             </div>
 
             <div class="modal-pane">
-              <div class="trophy-title">Trophy Case</div>
+              <div class="trophy-title">${escapeHtml(nameCaps)}'S TROPHY CASE</div>
               <div class="trophy-grid">${trophyHtml}</div>
             </div>
           </div>
@@ -2517,7 +2549,6 @@
           </div>
         `;
 
-        // after heavy DOM injection, ensure the modal scroll starts at the very top
         if (card) card.scrollTop = 0;
 
       }catch(err){
@@ -2529,12 +2560,6 @@
         `;
         if (card) card.scrollTop = 0;
       }
-    }
-
-    function closePlayerModal(){
-      playerModal.classList.remove("show");
-      playerModal.setAttribute("aria-hidden", "true");
-      showPlayerLoading();
     }
 
     /* ---------------- Data Update ---------------- */
