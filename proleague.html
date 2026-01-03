@@ -25,8 +25,8 @@
       --top10-bg: rgba(16,185,129,0.18);
 
       /* Logo layout */
-      --logo-gap: 10px;          /* small symmetric gap left/right of logo column */
-      --logo-slot: 44px;         /* fixed logo column width */
+      --logo-slot: 46px; /* fixed area between cell-left and left-justified name */
+      --logo-pad: 6px;   /* symmetric left/right padding inside slot */
     }
 
     *{ box-sizing:border-box; }
@@ -224,32 +224,33 @@
       width: 100%;
       display:flex;
       align-items:center;
-      justify-content:flex-start;
+      justify-content:flex-start; /* keep left-justified */
       padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
       cursor:pointer;
       font-weight: 900;
-      text-transform: uppercase; /* always caps */
+      text-transform: uppercase;
       letter-spacing: .02em;
       overflow:hidden;
       border-radius: 0;
-      gap: var(--logo-gap);
+      gap: 0; /* no gap; spacing controlled by logo slot */
     }
     .team-cell:hover{ filter: brightness(1.04); }
 
-    /* Fixed centered logo column between left edge and name */
-    .team-logo-wrap{
+    /* Fixed logo slot: centered image within slot; name starts after slot */
+    .team-logo-slot{
       width: var(--logo-slot);
       height: 100%;
       display:flex;
       align-items:center;
-      justify-content:center;
+      justify-content:center;   /* centers logo inside slot */
+      padding: 0 var(--logo-pad);
       flex: 0 0 auto;
     }
     .team-logo{
-      height: calc(100% - 10px); /* minimal symmetric padding top/bottom */
+      height: calc(100% - 10px);
       width: auto;
       aspect-ratio: 1 / 1;
       object-fit: cover;
@@ -270,14 +271,18 @@
       z-index: 1;
       flex: 1 1 auto;
       min-width: 0;
-    }
-    @media (max-width: 640px){
-      .team-cell{ padding: 0 10px; }
-      .team-cell .name-text{ font-size: 16px; }
-      :root{ --logo-slot: 38px; --logo-gap: 8px; }
+      text-align: left;          /* force left */
+      justify-content: flex-start;
+      padding-left: 10px;        /* minimal, consistent */
     }
 
-    /* Background watermark (optional icons via CSS vars) */
+    @media (max-width: 640px){
+      :root{ --logo-slot: 40px; --logo-pad: 5px; }
+      .team-cell{ padding: 0 10px; }
+      .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
+    }
+
+    /* Background watermark */
     .team-cell::before{
       content:"";
       position:absolute;
@@ -290,7 +295,6 @@
       pointer-events:none;
     }
 
-    /* Fix: buttons sometimes inherit UA/reset styles that override weight */
     button.team-cell{
       font-family: inherit !important;
       font-size: inherit !important;
@@ -473,7 +477,6 @@
       padding-left: 0;
     }
 
-    /* Body separators visible; header separators transparent (preserve spacing) */
     .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
     .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
 
@@ -836,8 +839,6 @@
       return byPlayer;
     }
 
-    // Logos in your repo:
-    // Put square logos in /logos/ named by team slug: logos/terrific-tigers.png, logos/spocco-cows.png, etc.
     const TEAM_LOGO_DIR = "logos";
     const TEAM_LOGO_EXT = "png";
     function teamLogoSrc(teamName){
@@ -1056,11 +1057,11 @@
 
         const logoSrc = teamLogoSrc(team.name);
         btn.innerHTML = `
-          <span class="team-logo-wrap">
+          <span class="team-logo-slot">
             <img class="team-logo"
                  src="${escapeHtml(logoSrc)}"
                  alt="${escapeHtml(team.displayName)} logo"
-                 onerror="this.style.display='none'; this.closest('.team-logo-wrap')?.style && (this.closest('.team-logo-wrap').style.display='none');" />
+                 onerror="this.style.display='none'; this.closest('.team-logo-slot') && (this.closest('.team-logo-slot').style.display='none');" />
           </span>
           <span class="name-text">${escapeHtml(team.displayName)}</span>
         `;
