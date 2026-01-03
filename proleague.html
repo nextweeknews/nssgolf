@@ -213,7 +213,7 @@
     .silver{color:#c0c0c0;}
     .bronze{color:#cd7f32;}
 
-    /* Name cell (teams/players): no arrows */
+    /* Name cell (teams/players) */
     .team-cell{
       position: relative;
       height: 100%;
@@ -227,7 +227,7 @@
       color:#fff;
       cursor:pointer;
       font-weight: 900;
-      text-transform: uppercase;
+      text-transform: uppercase; /* ensures ALL CAPS */
       letter-spacing: .02em;
       overflow:hidden;
       border-radius: 0;
@@ -239,6 +239,7 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      text-transform: uppercase; /* ensures ALL CAPS */
     }
     @media (max-width: 640px){
       .team-cell .name-text{ font-size: 16px; }
@@ -255,19 +256,28 @@
       pointer-events:none;
     }
 
-    /* FIX: buttons sometimes inherit UA/reset styles that override weight */
+    /* Fix: buttons sometimes inherit UA/reset styles that override weight */
     button.team-cell{
       font-family: inherit !important;
       font-size: inherit !important;
       font-weight: 900 !important;
       letter-spacing: inherit !important;
-      text-transform: inherit !important;
+      text-transform: uppercase !important; /* ensure caps even if overridden */
       line-height: 1 !important;
       -webkit-appearance: none;
       appearance: none;
     }
     button.team-cell .name-text{
       font-weight: 950 !important;
+      text-transform: uppercase !important;
+    }
+
+    /* Roster table player names always caps */
+    .cell-name{
+      text-transform: uppercase;
+      color: var(--title);
+      text-align: center;
+      padding-left: 0;
     }
 
     .score-col{
@@ -430,12 +440,6 @@
       letter-spacing: .10em;
       text-transform: uppercase;
     }
-    .cell-name{
-      text-transform: uppercase;
-      color: var(--title);
-      text-align: center;
-      padding-left: 0;
-    }
 
     /* Body separators visible; header separators transparent (preserve spacing) */
     .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
@@ -580,12 +584,8 @@
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 15000;
 
-    // Roster range columns (0-indexed):
-    // A=0 overall rank, C=2 name, D=3 stage score, E-G=4..6 best 3,
-    // H-K=7..10 weekly totals, L-S=11..18 rounds (8 cols)
     const COL = { overallRank:0, name:2, stage:3, bestStart:4, weekStart:7, roundsStart:11 };
 
-    // Season configs
     const SEASON_CONFIG = {
       6: { sheet: "Season 6, Stage 1", rosters: "A3:S63", teamRank: "U4:X15" },
       5: { sheet: "Season 5",         rosters: "A3:S63", teamRank: "U4:X15" },
@@ -595,7 +595,6 @@
       1: { sheet: "Season 1",         rosters: "A3:S38", teamRank: "U4:X10" },
     };
 
-    // Same ranges for all seasons
     const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
     const RANGE_W1_A1 = "Z4:AC13";
     const RANGE_W2_A1 = "Z16:AC25";
@@ -606,7 +605,6 @@
       return `'${sheetName}'!${rangeA1}`;
     }
 
-    // Team colors (extend as needed)
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#cd7f32", fg: "#ffffff" },
       "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000", iconPos: "0 47%" },
@@ -621,7 +619,6 @@
       return TEAM_STYLES[key] || null;
     }
 
-    // Worker fetch (POST first, GET fallback)
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -641,7 +638,7 @@
           body: JSON.stringify(payload),
         });
         if(r.ok) return normalizeValues(await r.json());
-      }catch(e){ /* fallback */ }
+      }catch(e){}
 
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
@@ -654,7 +651,6 @@
       return normalizeValues(await r2.json());
     }
 
-    // Helpers
     function rowHasAnyValue(row){
       return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
     }
@@ -675,8 +671,6 @@
       const n = Number(s);
       return Number.isFinite(n) ? n : null;
     }
-
-    // Golf-style display: +N / E / -N / —
     function fmtScore(v){
       if (v === null || v === undefined || v === "") return "—";
       const n = (typeof v === "number") ? v : Number(String(v).trim());
@@ -684,7 +678,6 @@
       if ((n === 0) || Object.is(n, -0)) return "E";
       return n > 0 ? `+${n}` : String(n);
     }
-
     function rankClass(rank){
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
@@ -700,7 +693,8 @@
           if(!rank || !name) return null;
           return {
             rank: Number(rank),
-            name: String(name).trim(),
+            name: String(name).trim(),           // keep original for keying
+            displayName: String(name).trim().toUpperCase(), // always show caps
             slug: slugify(name),
             score: (score !== "" && score != null) ? Number(score) : null
           };
@@ -708,17 +702,14 @@
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
     }
-
     function normalizeWeekly(rows){
       return normalizeStandingsGeneric(rows);
     }
 
-    // Pick EXACTLY up to 3 round indices to highlight (duplicates handled by first occurrences)
     function pickTop3RoundIndices(rounds){
       const played = (rounds || [])
         .map((v, idx) => ({ v, idx }))
         .filter(o => o.v !== null && o.v !== undefined && Number.isFinite(o.v));
-
       if (!played.length) return new Set();
 
       const sortedVals = played.map(o => o.v).slice().sort((a,b)=>a-b);
@@ -739,14 +730,13 @@
       return picked;
     }
 
-    // Parse rosters + build maps
     function parseRostersAndPlayerStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byTeam = new Map();
       const byPlayer = new Map();
       if(!cleaned.length) return { byTeam, byPlayer };
 
-      const rows = cleaned.slice(1); // ignore header in formatting
+      const rows = cleaned.slice(1);
 
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
@@ -762,6 +752,7 @@
           const stat = {
             overallRank: toNum(r[COL.overallRank]),
             name: pName,
+            displayName: pName ? pName.toUpperCase() : "",
             stageScore: toNum(r[COL.stage]),
             best: [toNum(r[COL.bestStart+0]), toNum(r[COL.bestStart+1]), toNum(r[COL.bestStart+2])],
             weekTotals: [toNum(r[COL.weekStart+0]), toNum(r[COL.weekStart+1]), toNum(r[COL.weekStart+2]), toNum(r[COL.weekStart+3])],
@@ -772,13 +763,12 @@
           return stat;
         });
 
-        byTeam.set(teamName, { teamName, players });
+        byTeam.set(teamName, { teamName, displayTeamName: teamName.toUpperCase(), players });
       }
 
       return { byTeam, byPlayer };
     }
 
-    // DOM refs + state
     const statusCard = document.getElementById("statusCard");
     const contentEl  = document.getElementById("content");
 
@@ -812,7 +802,6 @@
     }
     viewSelect.addEventListener("change", ()=> setTab(viewSelect.value));
 
-    // Render: Team roster
     function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -866,7 +855,7 @@
 
         const cells = [];
         cells.push(`<td class="cell-rank">${escapeHtml(String(p.overallRank ?? "—"))}</td>`);
-        cells.push(`<td class="cell-name">${escapeHtml(p.name || "")}</td>`);
+        cells.push(`<td class="cell-name">${escapeHtml((p.displayName || p.name || "").toUpperCase())}</td>`);
         cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
 
         for(let i=0;i<3;i++){
@@ -896,7 +885,6 @@
       return wrap;
     }
 
-    // Render: Player stats (abbreviated)
     function renderPlayerStatsTable(stat){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -968,7 +956,6 @@
       return wrap;
     }
 
-    // Render: Teams
     function renderTeams(){
       teamsList.innerHTML = "";
       if(!teamStandings.length){
@@ -996,7 +983,7 @@
         if(style.iconSize) btn.style.setProperty("--icon-size", style.iconSize);
         if(style.iconOpacity != null) btn.style.setProperty("--icon-opacity", String(style.iconOpacity));
 
-        btn.innerHTML = `<span class="name-text">${escapeHtml(team.name)}</span>`;
+        btn.innerHTML = `<span class="name-text">${escapeHtml(team.displayName || team.name.toUpperCase())}</span>`;
 
         row.innerHTML = `
           <div class="place ${rankClass(team.rank)}">${team.rank}</div>
@@ -1013,7 +1000,6 @@
       });
     }
 
-    // Render: Players
     function renderPlayers(){
       const q = playerSearch.value.trim().toLowerCase();
       playersList.innerHTML = "";
@@ -1039,7 +1025,7 @@
         btn.style.background = "rgba(255,255,255,0.08)";
         btn.style.color = "#ffffff";
         btn.style.setProperty("--icon", "none");
-        btn.innerHTML = `<span class="name-text">${escapeHtml(p.name)}</span>`;
+        btn.innerHTML = `<span class="name-text">${escapeHtml(p.displayName || p.name.toUpperCase())}</span>`;
 
         const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
 
@@ -1058,7 +1044,6 @@
       });
     }
 
-    // Render: Weekly
     function renderWeekly(){
       weeklyCards.innerHTML = "";
       const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
@@ -1111,7 +1096,7 @@
           nameCell.style.background = "rgba(255,255,255,0.08)";
           nameCell.style.color = "#ffffff";
           nameCell.style.setProperty("--icon", "none");
-          nameCell.innerHTML = `<span class="name-text">${escapeHtml(p.name)}</span>`;
+          nameCell.innerHTML = `<span class="name-text">${escapeHtml((p.displayName || p.name || "").toUpperCase())}</span>`;
 
           row.innerHTML = `
             <div class="place">${p.rank}</div>
@@ -1128,7 +1113,6 @@
       });
     }
 
-    // Interactions
     teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-team]");
       if(!btn) return;
@@ -1158,7 +1142,6 @@
       update(true);
     });
 
-    // Update loop
     let updating = false;
 
     async function update(force=false){
@@ -1205,10 +1188,10 @@
         playerStatsByName = parsed.byPlayer;
 
         weeklyByWeek = new Map();
-        const w1 = normalizeWeekly(wk1);
-        const w2 = normalizeWeekly(wk2);
-        const w3 = normalizeWeekly(wk3);
-        const w4 = normalizeWeekly(wk4);
+        const w1 = normalizeStandingsGeneric(wk1);
+        const w2 = normalizeStandingsGeneric(wk2);
+        const w3 = normalizeStandingsGeneric(wk3);
+        const w4 = normalizeStandingsGeneric(wk4);
 
         if (w1.length) weeklyByWeek.set(1, w1);
         if (w2.length) weeklyByWeek.set(2, w2);
@@ -1233,7 +1216,6 @@
       }
     }
 
-    // Boot: allow ?season=1..6 and ?view=teams|players|weekly
     (function boot(){
       const params = new URLSearchParams(location.search);
       const seasonParam = Number(params.get("season"));
