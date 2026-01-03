@@ -1174,11 +1174,44 @@
         padding-top: 52px;
         margin-top: 8px;
       }
+
       .modal-card{
         max-height: calc(100vh - 84px);
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        overflow-x: hidden;          /* prevent right-side cut-off */
       }
+      .modal-body,
+      .modal-pane{
+        max-width: 100%;
+        min-width: 0;               /* critical for flex/grid children to shrink */
+      }
+
+      /* --- Season Performance rows: allow content to wrap instead of overflowing --- */
+      .btn-row{
+        flex-wrap: wrap;            /* was nowrap */
+        overflow-x: visible;        /* was auto */
+        justify-content: flex-end;  /* keep the same alignment intent */
+        gap: 8px;                   /* slightly more breathing room when wrapping */
+      }
+
+      /* --- Make the "graphics" (mini rounds table) responsive --- */
+      table.mini-rounds{
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 100%;             /* forces it to drop to its own line if needed */
+      }
+
+      .mini-rounds td{
+        font-size: 10px;            /* slightly smaller so it fits comfortably */
+        padding: 6px 0;
+      }
+
+      /* Optional: ensure chips don't force overflow */
+      .chip{
+        max-width: 100%;
+      }
+
       .modal-body{
         grid-template-columns: 1fr;
         padding: 12px;
@@ -1190,14 +1223,6 @@
       /* Trophy pills wrap well */
       .trophy-text{ max-width: 220px; }
 
-      /* Mini rounds table can scroll within row if needed */
-      table.mini-rounds{
-        width: 300px;
-        max-width: 300px;
-      }
-      .btn-row{
-        justify-content: flex-end;
-      }
 
       /* ✅ Weekly Top 5: on mobile show only Rank | Player | Score */
       .wk-hide-mobile{ display:none !important; }
