@@ -25,8 +25,7 @@
       --top10-bg: rgba(16,185,129,0.18);
 
       /* Logo layout */
-      --logo-slot: 46px; /* fixed area between cell-left and left-justified name */
-      --logo-pad: 6px;   /* symmetric left/right padding inside slot */
+      --logo-slot: 46px; /* area between cell-left and name start */
     }
 
     *{ box-sizing:border-box; }
@@ -235,18 +234,18 @@
       letter-spacing: .02em;
       overflow:hidden;
       border-radius: 0;
-      gap: 0; /* no gap; spacing controlled by logo slot */
+      gap: 0;
     }
     .team-cell:hover{ filter: brightness(1.04); }
 
-    /* Fixed logo slot: centered image within slot; name starts after slot */
+    /* Fixed logo slot: no left/right padding */
     .team-logo-slot{
       width: var(--logo-slot);
       height: 100%;
       display:flex;
       align-items:center;
-      justify-content:center;   /* centers logo inside slot */
-      padding: 0 var(--logo-pad);
+      justify-content:center;
+      padding: 0;              /* ✅ removed padding */
       flex: 0 0 auto;
     }
     .team-logo{
@@ -271,13 +270,13 @@
       z-index: 1;
       flex: 1 1 auto;
       min-width: 0;
-      text-align: left;          /* force left */
+      text-align: left;
       justify-content: flex-start;
-      padding-left: 10px;        /* minimal, consistent */
+      padding-left: 10px; /* minimal gap between logo slot and text */
     }
 
     @media (max-width: 640px){
-      :root{ --logo-slot: 40px; --logo-pad: 5px; }
+      :root{ --logo-slot: 40px; }
       .team-cell{ padding: 0 10px; }
       .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
     }
