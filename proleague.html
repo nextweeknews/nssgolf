@@ -606,38 +606,60 @@
     }
     .modal-backdrop.show{ display:flex; }
 
-    .modal-card{
+    /* Wrapper allows close button OUTSIDE the card */
+    .modal-wrap{
+      position: relative;
       width: min(980px, 100%);
+    }
+
+    .modal-close-float{
+      position: absolute;
+      top: -14px;
+      right: -14px;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,0.75);
+      color: rgba(255,255,255,.92);
+      cursor: pointer;
+      font-weight: 950;
+      line-height: 1;
+      display:grid;
+      place-items:center;
+      box-shadow: 0 18px 24px rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px);
+    }
+    .modal-close-float:hover{
+      background: rgba(15,23,42,0.90);
+      border-color: rgba(255,255,255,.28);
+    }
+
+    .modal-card{
+      width: 100%;
       background: var(--card-bg);
       border-radius: 20px;
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,.10);
       overflow: hidden;
+      min-height: 520px;
     }
-    .modal-top{
+
+    /* Loading state centered in card */
+    .modal-loading{
+      height: 520px;
       display:flex;
-      justify-content:space-between;
       align-items:center;
-      padding: 14px 14px 0 14px;
-      gap: 10px;
+      justify-content:center;
+      text-align:center;
+      font-size: 16px;
+      font-weight: 950;
+      color: rgba(233,238,248,0.92);
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      padding: 20px;
     }
-    .modal-close{
-      border: 1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.85);
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: 900;
-      line-height: 1;
-      display:grid;
-      place-items:center;
-    }
-    .modal-close:hover{
-      background: rgba(255,255,255,.09);
-      border-color: rgba(255,255,255,.28);
-    }
+
     .modal-body{
       padding: 14px;
       display:grid;
@@ -646,6 +668,12 @@
     }
     @media (max-width: 860px){
       .modal-body{ grid-template-columns: 1fr; }
+      .modal-card{ min-height: 0; }
+      .modal-loading{ height: 420px; }
+      .modal-close-float{
+        top: -10px;
+        right: -10px;
+      }
     }
 
     .modal-pane{
@@ -730,10 +758,8 @@
       align-items:center;
       justify-content:center;
       text-align:center;
-      min-height: 58px;
+      min-height: 62px;
     }
-
-    /* label: no ellipses; allow wrap */
     .info-btn .lbl{
       font-size: 9px;
       font-weight: 950;
@@ -744,7 +770,6 @@
       margin-bottom: 6px;
       white-space: normal;
       overflow: visible;
-      text-overflow: unset;
       width: 100%;
     }
     .info-btn .val{
@@ -1103,16 +1128,6 @@
     @media (max-width: 860px){
       table.mini-rounds{ width: 340px; max-width: 340px; }
     }
-
-    .modal-loading{
-      padding: 18px 12px;
-      text-align:center;
-      font-size: 16px;
-      font-weight: 900;
-      color: rgba(233,238,248,0.90);
-      text-transform: uppercase;
-      letter-spacing: .12em;
-    }
   </style>
 </head>
 
@@ -1199,13 +1214,12 @@
 
   <!-- Player Modal -->
   <div id="playerModal" class="modal-backdrop" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Player details">
-      <div class="modal-top">
-        <div style="height:38px;"></div>
-        <button id="playerModalClose" class="modal-close" type="button" aria-label="Close">✕</button>
-      </div>
-      <div id="playerModalContent" class="modal-body">
-        <div class="modal-loading">Loading Player…</div>
+    <div class="modal-wrap">
+      <button id="playerModalClose" class="modal-close-float" type="button" aria-label="Close">✕</button>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Player details">
+        <div id="playerModalContent" class="modal-body">
+          <!-- content inserted by JS -->
+        </div>
       </div>
     </div>
   </div>
@@ -1915,6 +1929,8 @@
     });
 
     /* ---------------- Player Modal + History ---------------- */
+    const seasonHistoryCache = new Map();
+
     playerModalClose.addEventListener("click", closePlayerModal);
     playerModal.addEventListener("click", (e)=>{
       if (e.target === playerModal) closePlayerModal();
@@ -1926,12 +1942,8 @@
     function closePlayerModal(){
       playerModal.classList.remove("show");
       playerModal.setAttribute("aria-hidden", "true");
-      playerModalContent.innerHTML = `<div class="modal-loading">Loading Player…</div>`;
+      playerModalContent.innerHTML = `<div class="modal-loading">LOADING PLAYER DATA...</div>`;
     }
-
-    // Trophy ordering (tier -> team/individual/misc)
-    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
-    const CAT_ORDER  = { team:0, individual:1, misc:2 };
 
     function trophyMeta(type){
       switch(type){
@@ -1949,7 +1961,13 @@
       }
     }
 
-    const seasonHistoryCache = new Map();
+    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
+    const CAT_ORDER  = { team:0, individual:1, misc:2 };
+
+    function trophyCountLabel(n){
+      if (!n || n <= 1) return "";
+      return `x${n}`;
+    }
 
     async function getSeasonHistoryData(seasonNum){
       if (seasonHistoryCache.has(seasonNum)) return seasonHistoryCache.get(seasonNum);
@@ -1996,11 +2014,6 @@
 
       seasonHistoryCache.set(seasonNum, data);
       return data;
-    }
-
-    function trophyCountLabel(n){
-      if (!n || n <= 1) return "";
-      return `x${n}`;
     }
 
     function buildRankChip(rank, isPrev){
@@ -2063,7 +2076,6 @@
       const tierK = TIER_ORDER[meta.tier] ?? TIER_ORDER.default;
       const catK  = CAT_ORDER[meta.cat] ?? CAT_ORDER.misc;
       const seasonK = (item.season != null ? Number(item.season) : -1);
-      // Per-season trophies should appear before stackables within same tier/category
       const kindK = item.kind === "stack" ? 1 : 0;
       return [tierK, catK, kindK, -seasonK, item.order ?? 999];
     }
@@ -2108,7 +2120,7 @@
 
       playerModal.classList.add("show");
       playerModal.setAttribute("aria-hidden", "false");
-      playerModalContent.innerHTML = `<div class="modal-loading">Loading ${escapeHtml(cleanName.toUpperCase())}…</div>`;
+      playerModalContent.innerHTML = `<div class="modal-loading">LOADING PLAYER DATA...</div>`;
 
       try{
         const seasons = [6,5,4,3,2,1];
@@ -2254,7 +2266,7 @@
           }
         }
 
-        // Stackables (misc, prioritized by tier/category rules)
+        // Stackables (misc)
         const stackablesOrdered = [
           { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
           { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
@@ -2284,20 +2296,17 @@
           });
         }
 
-        // sort by tier color, then team/individual/misc, then season desc
         trophyItems.sort((a,b)=>cmpKey(trophySortKey(a), trophySortKey(b)));
 
         const trophyHtml = trophyItems.length
           ? trophyItems.map(buildTrophyItemHTML).join("")
           : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
 
-        // season performance list
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
             const isPrev = (sum.season !== CURRENT_SEASON);
 
-            // If solo for that season: team row should be ONE default-theme button: "Solo Player"
             const teamRow = (!sum.teamName)
               ? `<div class="btn-row"><span class="chip solo">Solo Player</span></div>`
               : `
