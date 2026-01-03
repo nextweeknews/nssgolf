@@ -432,7 +432,7 @@
       background: rgba(15,23,42,0.92);
       backdrop-filter: blur(6px);
       padding: 6px 6px;
-      border-bottom: none;
+      border-bottom: none; /* header bottom border removed */
       color: var(--muted);
       font-size: 10px;
       font-weight: 900;
@@ -476,11 +476,41 @@
       letter-spacing: .10em;
       text-transform: uppercase;
     }
+
+    /* Player cell is centered; captain icon inherits currentColor */
     .cell-name{
       text-transform: uppercase;
       color: var(--title);
       text-align: center;
       padding-left: 0;
+    }
+    .cell-name .name-inline{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .cell-name .name-inline span{
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Captain icon (same color as text via currentColor) */
+    .captain-icon{
+      width: 14px;
+      height: 14px;
+      display: inline-block;
+      flex: 0 0 auto;
+      color: currentColor;
+      background-color: currentColor; /* used for mask */
+      -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
+      mask: url("logos/Captain.svg") no-repeat center / contain;
+      opacity: 0.95;
+      transform: translateY(0.5px);
     }
 
     /* clickable player name in roster table */
@@ -493,6 +523,7 @@
     }
 
     .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
+    /* keep header separators present but invisible to preserve widths/centering */
     .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
 
     .stageScore{
@@ -934,7 +965,7 @@
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
 
-    // wider lookup for solo players / stat fetching
+    // broader lookup (includes solo players)
     const LOOKUP_RANGE_A1 = "A3:S250";
 
     function a1(sheetName, rangeA1){
@@ -978,6 +1009,7 @@
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
 
+      // POST first (better for custom domains / CORS setups)
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -987,6 +1019,7 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
+      // fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -1233,16 +1266,26 @@
 
       const tbody = table.querySelector("tbody");
 
-      roster.players.forEach(p=>{
+      roster.players.forEach((p, idxOnTeam)=>{
         const rounds = (p.rounds || Array(8).fill(null));
         const highlightIdx = pickTop3RoundIndices(rounds);
 
         const weekTotals = (p.weekTotals || [null,null,null,null]);
         const best = (p.best || [null,null,null]);
 
+        const isCaptain = (idxOnTeam === 0);
+        const captainMark = isCaptain ? `<span class="captain-icon" aria-label="Captain" title="Captain"></span>` : ``;
+
         const cells = [];
         cells.push(`<td class="cell-rank">${escapeHtml(String(p.overallRank ?? "—"))}</td>`);
-        cells.push(`<td class="cell-name clickable-player" data-player="${escapeHtml(p.name)}">${escapeHtml((p.displayName || p.name || "").toUpperCase())}</td>`);
+        cells.push(`
+          <td class="cell-name clickable-player" data-player="${escapeHtml(p.name)}">
+            <span class="name-inline">
+              <span>${escapeHtml((p.displayName || p.name || "").toUpperCase())}</span>
+              ${captainMark}
+            </span>
+          </td>
+        `);
         cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
 
         for(let i=0;i<3;i++){
@@ -1596,7 +1639,6 @@
     }
 
     function trophyMeta(type){
-      // priority list: 1st, 2nd, 3rd, top10
       switch(type){
         case "TEAM_1": return { icon:"🏆", main:"Team 1st",  pr:1 };
         case "TEAM_2": return { icon:"🥈", main:"Team 2nd",  pr:2 };
@@ -1720,13 +1762,11 @@
           if (sum.playerRank != null && Number(sum.playerRank) <= 10) trophies.push({ season: sum.season, type:"TOP_10", team: sum.teamName });
         }
 
-        // Sort: recent seasons first, then priority list
         trophies.sort((a,b)=>{
           if (b.season !== a.season) return b.season - a.season;
           return trophyMeta(a.type).pr - trophyMeta(b.type).pr;
         });
 
-        // Right column season summaries (recent seasons first already)
         const seasonRowsHtml = summaries
           .sort((a,b)=>b.season-a.season)
           .map(sum=>{
@@ -1776,7 +1816,6 @@
             }).join("")
           : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
 
-        // Build modal DOM
         const nameCaps = cleanName.toUpperCase();
         const teamCaps = headerTeam ? headerTeam.toUpperCase() : "";
 
