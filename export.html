@@ -36,9 +36,11 @@
       --wk-rank-col: 100px;
       --wk-round-col: 88px;
       --wk-score-col: 120px;
-      /* ✅ make weekly total width match the other cards:
-         rank + wk-name + r1 + r2 + score == rank + name + score */
+      /* desktop weekly name width so total equals other cards */
       --wk-name-col: calc(var(--name-col) - var(--wk-round-col) - var(--wk-round-col));
+
+      /* Mobile weekly: no rounds => name fills full name-col */
+      --wk-name-col-mobile: var(--name-col);
     }
 
     *{ box-sizing:border-box; }
@@ -131,7 +133,7 @@
       gap: 16px;
     }
 
-    /* ---------------- PNG PREVIEW GRID (right-click save image) ---------------- */
+    /* PNG previews (right-click save) */
     .png-grid{
       display:grid;
       gap: 16px;
@@ -154,7 +156,7 @@
       cursor: context-menu;
     }
 
-    /* ---------------- HIDDEN RENDER SURFACE ---------------- */
+    /* Hidden render surface */
     .render-surface{
       position:absolute;
       left:-10000px;
@@ -171,7 +173,7 @@
       padding: 18px 18px;
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,0.08);
-      width: fit-content; /* shrink-wrap content so no right gap */
+      width: fit-content;
     }
     .card-head{
       display:flex;
@@ -248,13 +250,12 @@
       padding: 0 10px;
       height: 100%;
       min-width: 0;
-      line-height: 1; /* ✅ helps vertical centering feel */
+      line-height: 1;
     }
     .gold{color:var(--gold);}
     .silver{color:var(--silver);}
     .bronze{color:var(--bronze);}
 
-    /* ✅ vertical centering fixes: force line-height + flex centering for text */
     .team-cell{
       height: 100%;
       width: 100%;
@@ -271,7 +272,7 @@
       overflow:hidden;
       gap: 0;
       min-width: 0;
-      line-height: 1; /* ✅ */
+      line-height: 1;
     }
     .team-logo-slot{
       width: var(--logo-slot);
@@ -299,11 +300,9 @@
       flex: 1 1 auto;
       min-width: 0;
       padding-left: 10px;
-
-      /* ✅ centers glyph box vertically */
       display:flex;
       align-items:center;
-      line-height: 1;   /* ✅ */
+      line-height: 1;
       height: 100%;
       white-space:nowrap;
       overflow:hidden;
@@ -322,10 +321,10 @@
       padding: 0 10px;
       min-width: 0;
       font-variant-numeric: tabular-nums;
-      line-height: 1; /* ✅ */
+      line-height: 1;
     }
 
-    /* Weekly */
+    /* Weekly (desktop default: includes rounds) */
     .weekly-header-row, .weekly-entry{
       display:grid;
       grid-template-columns: var(--wk-rank-col) minmax(0, var(--wk-name-col)) var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
@@ -376,7 +375,16 @@
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
-      line-height: 1; /* ✅ */
+      line-height: 1;
+    }
+
+    /* ✅ Mobile weekly: hide rounds; 3 columns only; keep width consistent */
+    @media (max-width: 760px){
+      .weekly-hide-mobile{ display:none !important; }
+
+      .weekly-header-row, .weekly-entry{
+        grid-template-columns: var(--wk-rank-col) minmax(0, var(--wk-name-col-mobile)) var(--wk-score-col);
+      }
     }
 
     .hidden{ display:none !important; }
@@ -427,7 +435,7 @@
       .lobby-grid{ grid-template-columns: 1fr; }
     }
 
-    /* ---- ROUND LOBBY (render card): single column rows matching full row width ---- */
+    /* Round Lobby render card */
     .lobby-card .lobby-list{
       width: calc(var(--rank-col) + var(--name-col) + var(--score-col));
     }
@@ -453,6 +461,7 @@
         --wk-round-col: 64px;
         --wk-score-col: 92px;
         --wk-name-col: calc(var(--name-col) - var(--wk-round-col) - var(--wk-round-col));
+        --wk-name-col-mobile: var(--name-col);
 
         --logo-slot: 34px;
       }
@@ -491,23 +500,11 @@
   </div>
 
   <div class="container">
-    <!-- ✅ These are the actual images you can right-click and Save Image As -->
     <div class="png-grid" id="pngGrid">
-      <div class="png-wrap">
-        <img id="pngTeams" class="png-img" alt="Team Rankings PNG" />
-      </div>
-
-      <div class="png-wrap">
-        <img id="pngPlayers" class="png-img" alt="Player Rankings PNG" />
-      </div>
-
-      <div class="png-wrap">
-        <img id="pngWeekly" class="png-img" alt="Weekly Top 5 PNG" />
-      </div>
-
-      <div class="png-wrap hidden" id="pngLobbyWrap">
-        <img id="pngLobby" class="png-img" alt="Round Lobby PNG" />
-      </div>
+      <div class="png-wrap"><img id="pngTeams" class="png-img" alt="Team Rankings PNG" /></div>
+      <div class="png-wrap"><img id="pngPlayers" class="png-img" alt="Player Rankings PNG" /></div>
+      <div class="png-wrap"><img id="pngWeekly" class="png-img" alt="Weekly Top 5 PNG" /></div>
+      <div class="png-wrap hidden" id="pngLobbyWrap"><img id="pngLobby" class="png-img" alt="Round Lobby PNG" /></div>
     </div>
 
     <!-- Round Lobby feature at bottom -->
@@ -522,7 +519,7 @@
       <div class="lobby-grid">
         <div class="lobby-box">
           <div class="lobby-label">Enter up to 8 player names</div>
-          <textarea id="lobbyInput" class="lobby-input" placeholder="One per line (or comma-separated)&#10;Example:&#10;Alex&#10;Brett&#10;Chris"></textarea>
+          <textarea id="lobbyInput" class="lobby-input" placeholder="One per line (or comma-separated)"></textarea>
         </div>
 
         <div class="lobby-box">
@@ -533,7 +530,7 @@
     </div>
   </div>
 
-  <!-- Hidden render surface used only for generating PNGs -->
+  <!-- Hidden render surface -->
   <div class="render-surface" aria-hidden="true">
     <div id="teamsCard" class="card">
       <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
@@ -549,13 +546,18 @@
 
     <div id="weeklyCard" class="card">
       <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
+
       <div class="weekly-header-row">
-        <span>Rank</span><span>Player</span><span id="wkR1">1-1</span><span id="wkR2">1-2</span><span>Score</span>
+        <span>Rank</span>
+        <span>Player</span>
+        <span class="weekly-hide-mobile" id="wkR1">1-1</span>
+        <span class="weekly-hide-mobile" id="wkR2">1-2</span>
+        <span>Score</span>
       </div>
+
       <div id="weeklyList" class="resultsList"></div>
     </div>
 
-    <!-- LOBBY RENDER CARD (NO HEADER ROW; ONLY TEAM-FORMATTED PLAYER COLUMN) -->
     <div id="lobbyCard" class="card lobby-card hidden">
       <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
       <div id="lobbyList" class="resultsList lobby-list"></div>
@@ -675,7 +677,7 @@
     }
     function teamLogoSrc(teamName){
       const rel = `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
-      return new URL(rel, location.href).href; // absolute for canvas safety
+      return new URL(rel, location.href).href;
     }
 
     function normalizeValues(resp){
@@ -781,7 +783,7 @@
     }
 
     // ---------------- RENDER ----------------
-    function makeRow({rank, label, score, bg, fg, logoSrc}){
+    function makeRow({rank, label, score, bg, fg, logoSrc, rankMedals=false}){
       const row = document.createElement("div");
       row.className = "entry";
 
@@ -809,7 +811,7 @@
       `;
 
       row.innerHTML = `
-        <div class="place ${rankClass(rank)}">${escapeHtml(rank)}</div>
+        <div class="place ${rankMedals ? rankClass(rank) : ""}">${escapeHtml(rank)}</div>
         <div class="mid"></div>
         <div class="score-col">${escapeHtml(fmtScore(score))}</div>
       `;
@@ -827,12 +829,13 @@
           score: t.score,
           bg: style.bg,
           fg: style.fg,
-          logoSrc: teamLogoSrc(t.name)
+          logoSrc: teamLogoSrc(t.name),
+          rankMedals: true
         }));
       });
     }
 
-    // ✅ top 10 ranks (including ties) => rank <= 10
+    // top 10 ranks (including ties) => rank <= 10
     function renderPlayers(playerStandings, playerToTeam){
       playersList.innerHTML = "";
       const top10 = (playerStandings || []).filter(p => Number(p.rank) <= 10);
@@ -845,7 +848,8 @@
           score: p.score,
           bg: style.bg,
           fg: style.fg,
-          logoSrc: teamName ? teamLogoSrc(teamName) : null
+          logoSrc: teamName ? teamLogoSrc(teamName) : null,
+          rankMedals: true
         }));
       });
     }
@@ -892,10 +896,10 @@
         `;
 
         row.innerHTML = `
-          <div class="place">${escapeHtml(p.rank)}</div>
+          <div class="place ${rankClass(p.rank)}">${escapeHtml(p.rank)}</div>
           <div class="mid"></div>
-          <div class="weekly-round">${escapeHtml(fmtScore(r1))}</div>
-          <div class="weekly-round">${escapeHtml(fmtScore(r2))}</div>
+          <div class="weekly-round weekly-hide-mobile">${escapeHtml(fmtScore(r1))}</div>
+          <div class="weekly-round weekly-hide-mobile">${escapeHtml(fmtScore(r2))}</div>
           <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
         `;
         row.querySelector(".mid").replaceWith(nameCell);
@@ -904,7 +908,7 @@
     }
 
     // ---------------- PNG GENERATION (preview images on page) ----------------
-    const EXPORT_SCALE = 4; // ✅ doubled-ish resolution
+    const EXPORT_SCALE = 4; // high-res
 
     const blobUrlByKey = new Map();
     function setPreviewImgSrc(key, imgEl, blobUrl){
@@ -944,9 +948,7 @@
       statusEl.textContent = "Generating PNG previews…";
 
       await renderCardToImg(teamsCard, pngTeams, "teams");
-      statusEl.textContent = "Generating PNG previews… (2/3)";
       await renderCardToImg(playersCard, pngPlayers, "players");
-      statusEl.textContent = "Generating PNG previews… (3/3)";
       await renderCardToImg(weeklyCard, pngWeekly, "weekly");
 
       if (hasLobby){
@@ -954,7 +956,7 @@
         await renderCardToImg(lobbyCard, pngLobby, "lobby");
       }
 
-      statusEl.textContent = "Ready — right-click any image above and Save Image As…";
+      statusEl.textContent = "Ready";
     }
 
     // ---------------- LOBBY ----------------
@@ -1064,12 +1066,11 @@
       if (skipped.length) msg.push(`Skipped: ${skipped.slice(0,6).join(", ")}${skipped.length>6 ? "…" : ""}`);
       lobbyStatus.textContent = msg.join(" ");
 
-      // refresh lobby PNG only (keep others)
       try{
         pngLobbyWrap.classList.remove("hidden");
         statusEl.textContent = "Generating lobby PNG…";
         await renderCardToImg(lobbyCard, pngLobby, "lobby");
-        statusEl.textContent = "Ready — right-click any image above and Save Image As…";
+        statusEl.textContent = "Ready";
       }catch(err){
         console.error(err);
         statusEl.textContent = "Lobby PNG failed (see console).";
@@ -1081,7 +1082,7 @@
       const cfg = SEASON_CONFIG[seasonNum] || SEASON_CONFIG[6];
       const sheet = cfg.sheet;
 
-      statusEl.textContent = "Fetching ranges…";
+      statusEl.textContent = "Loading…";
 
       const ranges = {
         teamStandings: `'${sheet}'!${cfg.teamRank}`,
@@ -1110,12 +1111,10 @@
       const teamStandings = normalizeStandingsGeneric(teamRows);
       const playerStandingsAll = normalizeStandingsGeneric(playerRows);
 
-      // state maps
       state_playerToTeam = parsePlayerTeamMap(rosterRows);
       const lookupRounds = parseLookupRounds(lookupRows);
       buildNameResolver(playerStandingsAll);
 
-      // weekly: latest posted week
       const weeklyByWeek = new Map();
       const w1 = normalizeStandingsGeneric(wk1);
       const w2 = normalizeStandingsGeneric(wk2);
@@ -1130,7 +1129,6 @@
       const latestWeek = weeks.length ? weeks[0] : 1;
       const latestList = weeklyByWeek.get(latestWeek) || [];
 
-      // render hidden cards
       renderTeams(teamStandings);
       renderPlayers(playerStandingsAll, state_playerToTeam);
 
@@ -1143,7 +1141,6 @@
         weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
       }
 
-      // regenerate previews (lobby optional)
       const hasLobby = !lobbyCard.classList.contains("hidden");
       await generateAllPreviews(hasLobby);
     }
