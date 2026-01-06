@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Shotgun Pro League — PNG Export</title>
+  <title>Shotgun Pro League — Export</title>
 
-  <!-- DOM → PNG -->
-  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+  <!-- More reliable DOM rasterizer than html-to-image for many setups -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     :root{
@@ -26,18 +26,18 @@
 
       --logo-slot: 40px;
 
-      /* Desktop-first sizing */
+      /* Columns */
       --rank-col: 100px;
       --score-col: 120px;
 
-      /* ✅ Team/Player column reduced (about half of prior feel) */
-      --name-col: 480px;
+      /* ✅ Reduced name column */
+      --name-col: 460px;
 
       /* Weekly */
       --wk-rank-col: 100px;
       --wk-round-col: 88px;
       --wk-score-col: 120px;
-      --wk-name-col: 480px;
+      --wk-name-col: 460px;
     }
 
     *{ box-sizing:border-box; }
@@ -65,15 +65,62 @@
       justify-content:space-between;
       flex-wrap:wrap;
     }
-    .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65); font-weight:900;}
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight:900;
+    }
     .status{
+      margin-top: 6px;
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .14em;
       color: rgba(255,255,255,0.75);
-      margin-top: 4px;
     }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .select{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 10px 38px 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      cursor:pointer;
+      outline:none;
+    }
+    .btn{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      cursor: pointer;
+      line-height: 1;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      user-select:none;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.28); }
 
     .container{
       max-width:1200px;
@@ -83,12 +130,30 @@
       gap: 16px;
     }
 
+    /* ✅ Render grid does NOT stretch items */
+    .render-grid{
+      display:grid;
+      gap: 16px;
+      justify-items: start;
+    }
+
     .card{
       background: var(--card-bg);
       border-radius: 20px;
       padding: 18px 18px;
       box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.08);
     }
+
+    /* ✅ Export targets shrink-wrap to content width (no right blank) */
+    .export-target{
+      display:inline-block;
+      width: -moz-fit-content;
+      width: fit-content;
+      max-width: 100%;
+      cursor: context-menu;
+    }
+    .export-target:active{ transform: translateY(1px); }
 
     .card-head{
       display:flex;
@@ -106,8 +171,26 @@
       text-transform: uppercase;
       margin: 0;
     }
+    .card-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .mini{
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 10px;
+    }
+    .hintline{
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+      font-weight: 700;
+      line-height: 1.35;
+    }
 
-    /* ✅ Rows with reduced name col */
+    /* Rows with reduced name col */
     .header-row, .entry{
       display:grid;
       grid-template-columns: var(--rank-col) minmax(0, var(--name-col)) var(--score-col);
@@ -184,7 +267,6 @@
       text-transform: uppercase;
       letter-spacing: .02em;
       overflow:hidden;
-      border-radius: 0;
       gap: 0;
       min-width: 0;
     }
@@ -235,7 +317,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ✅ Weekly with reduced name col */
+    /* Weekly */
     .weekly-header-row, .weekly-entry{
       display:grid;
       grid-template-columns: var(--wk-rank-col) minmax(0, var(--wk-name-col)) var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
@@ -288,80 +370,9 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ✅ Render grid: prevent stretching (removes right-side blank gap) */
-    .render-grid{
-      display:grid;
-      gap: 16px;
-      justify-items: start; /* critical */
-    }
-
-    /* ✅ Export targets shrink-wrap to content width (no blank right side in PNG) */
-    .card.export-target{
-      display: inline-block;
-      width: -moz-fit-content;
-      width: fit-content;
-      max-width: 100%;
-    }
-
-    /* Export output UI */
-    .exports{
-      display:grid;
-      gap: 16px;
-    }
-    .export-card{
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 18px;
-      padding: 12px;
-    }
-    .export-head{
-      display:flex;
-      justify-content:space-between;
-      gap: 12px;
-      align-items:center;
-      flex-wrap:wrap;
-      margin-bottom: 10px;
-    }
-    .export-title{
-      font-weight: 950;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      font-size: 12px;
-      color: rgba(255,255,255,0.85);
-    }
-
-    .btn{
-      border: 1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.92);
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-weight: 950;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      font-size: 11px;
-      cursor: pointer;
-      line-height: 1;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap: 8px;
-    }
-    .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.28); }
-
-    .export-img{
-      width: 100%;
-      height: auto;
-      display:block;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(0,0,0,0.25);
-    }
-
     .hidden{ display:none !important; }
 
-    /* Lobby input (✅ will be placed at bottom in markup) */
+    /* Lobby */
     .lobby-grid{
       display:grid;
       grid-template-columns: 1.1fr 0.9fr;
@@ -396,17 +407,12 @@
       letter-spacing: .02em;
       line-height: 1.35;
     }
-    .hint{
-      margin-top: 8px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.65);
-      font-weight: 700;
-    }
     .mini-status{
       margin-top: 10px;
       font-size: 12px;
       color: rgba(255,255,255,0.75);
       font-weight: 800;
+      line-height: 1.35;
     }
 
     @media (max-width: 860px){
@@ -441,32 +447,63 @@
   <div class="topbar">
     <div class="topbar-inner">
       <div>
-        <div class="kicker">Shotgun Pro League — PNG Export</div>
-        <div class="status" id="status">Loading data…</div>
+        <div class="kicker">Shotgun Pro League — Exports</div>
+        <div class="status" id="status">Loading…</div>
       </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <button class="btn" id="regenBtn" type="button">Regenerate PNGs</button>
+
+      <div class="controls">
+        <select id="seasonSelect" class="select" aria-label="Season">
+          <option value="6">Season 6, Stage 1</option>
+          <option value="5">Season 5</option>
+          <option value="4">Season 4</option>
+          <option value="3">Season 3</option>
+          <option value="2">Season 2</option>
+          <option value="1">Season 1</option>
+        </select>
+        <button id="reloadBtn" class="btn" type="button">Reload Data</button>
       </div>
     </div>
   </div>
 
   <div class="container">
-    <!-- Render targets (these are what get captured to PNG) -->
     <div class="render-grid" id="renderGrid">
-      <div id="teamsCard" class="card export-target">
-        <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
+      <!-- TEAMS -->
+      <div id="teamsCard" class="card export-target" data-export="team-rankings">
+        <div class="card-head">
+          <h2 class="h2">Team Rankings</h2>
+          <div class="card-actions">
+            <button class="btn mini" type="button" data-action="png">PNG</button>
+            <button class="btn mini" type="button" data-action="pdf">PDF</button>
+          </div>
+        </div>
         <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
         <div id="teamsList" class="resultsList"></div>
+        <div class="hintline">Right-click this card to open a PNG in a new tab (then right-click the image → Save image as…).</div>
       </div>
 
-      <div id="playersCard" class="card export-target">
-        <div class="card-head"><h2 class="h2">Player Rankings</h2></div>
+      <!-- PLAYERS -->
+      <div id="playersCard" class="card export-target" data-export="player-rankings">
+        <div class="card-head">
+          <h2 class="h2">Player Rankings</h2>
+          <div class="card-actions">
+            <button class="btn mini" type="button" data-action="png">PNG</button>
+            <button class="btn mini" type="button" data-action="pdf">PDF</button>
+          </div>
+        </div>
         <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
         <div id="playersList" class="resultsList"></div>
+        <div class="hintline">Right-click this card to open a PNG in a new tab.</div>
       </div>
 
-      <div id="weeklyCard" class="card export-target">
-        <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
+      <!-- WEEKLY -->
+      <div id="weeklyCard" class="card export-target" data-export="weekly-top-5">
+        <div class="card-head">
+          <h2 class="h2" id="weeklyTitle">Weekly Top 5</h2>
+          <div class="card-actions">
+            <button class="btn mini" type="button" data-action="png">PNG</button>
+            <button class="btn mini" type="button" data-action="pdf">PDF</button>
+          </div>
+        </div>
         <div class="weekly-header-row">
           <span>Rank</span>
           <span>Player</span>
@@ -475,69 +512,48 @@
           <span>Score</span>
         </div>
         <div id="weeklyList" class="resultsList"></div>
+        <div class="hintline">Right-click this card to open a PNG in a new tab.</div>
       </div>
 
-      <!-- Lobby render card (hidden until built) -->
-      <div id="lobbyCard" class="card export-target hidden">
-        <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
+      <!-- LOBBY RENDER CARD -->
+      <div id="lobbyCard" class="card export-target hidden" data-export="round-lobby">
+        <div class="card-head">
+          <h2 class="h2">ROUND LOBBY</h2>
+          <div class="card-actions">
+            <button class="btn mini" type="button" data-action="png">PNG</button>
+            <button class="btn mini" type="button" data-action="pdf">PDF</button>
+          </div>
+        </div>
         <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
         <div id="lobbyList" class="resultsList"></div>
+        <div class="hintline">Right-click this card to open a PNG in a new tab.</div>
       </div>
     </div>
 
-    <!-- Exported PNG previews (right-click save) + downloads (Blob URLs) -->
-    <div class="exports" id="exports">
-      <div class="export-card">
-        <div class="export-head">
-          <div class="export-title">TEAM RANKINGS PNG</div>
-          <a class="btn" id="dlTeams" download="team-rankings.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgTeams" alt="Team Rankings PNG preview" />
-      </div>
-
-      <div class="export-card">
-        <div class="export-head">
-          <div class="export-title">PLAYER RANKINGS PNG</div>
-          <a class="btn" id="dlPlayers" download="player-rankings.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgPlayers" alt="Player Rankings PNG preview" />
-      </div>
-
-      <div class="export-card">
-        <div class="export-head">
-          <div class="export-title" id="weeklyExportTitle">WEEKLY TOP 5 PNG</div>
-          <a class="btn" id="dlWeekly" download="weekly-top-5.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgWeekly" alt="Weekly Top 5 PNG preview" />
-      </div>
-
-      <div class="export-card hidden" id="exportLobbyBlock">
-        <div class="export-head">
-          <div class="export-title">ROUND LOBBY PNG</div>
-          <a class="btn" id="dlLobby" download="round-lobby.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgLobby" alt="Round Lobby PNG preview" />
-      </div>
-    </div>
-
-    <!-- ✅ ROUND LOBBY feature moved to bottom -->
+    <!-- ✅ Round Lobby feature at bottom -->
     <div class="card">
       <div class="card-head">
         <h2 class="h2">Round Lobby Builder</h2>
+        <div class="card-actions">
+          <button class="btn" id="buildLobbyBtn" type="button">Build Lobby Card</button>
+        </div>
       </div>
 
       <div class="lobby-grid">
         <div class="lobby-box">
           <div class="lobby-label">Enter up to 8 player names</div>
           <textarea id="lobbyInput" class="lobby-input" placeholder="One per line (or comma-separated)&#10;Example:&#10;Alex&#10;Brett&#10;Chris"></textarea>
-          <div class="hint">Matching is case-insensitive. Unknown names will be skipped.</div>
+          <div class="hintline" style="margin-top:10px;">
+            Matching is case-insensitive. Unknown names will be skipped. The lobby rows use team colors + logos like Player Rankings.
+          </div>
         </div>
 
         <div class="lobby-box">
-          <div class="lobby-label">Actions</div>
-          <button class="btn" id="buildLobbyBtn" type="button" style="width:100%; justify-content:center;">Build ROUND LOBBY Card</button>
-          <button class="btn hidden" id="exportLobbyBtn" type="button" style="width:100%; justify-content:center; margin-top:10px;">Export ROUND LOBBY PNG</button>
+          <div class="lobby-label">Status</div>
           <div class="mini-status" id="lobbyStatus">Waiting for input…</div>
+          <div class="hintline">
+            After building, the “ROUND LOBBY” card appears above with PNG/PDF options (and right-click export).
+          </div>
         </div>
       </div>
     </div>
@@ -548,19 +564,13 @@
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 
-    // URL params: ?season=6&limitTeams=20&limitPlayers=120
-    const qs = new URLSearchParams(location.search);
-    const CURRENT_SEASON = Number(qs.get("season") || 6);
-    const LIMIT_TEAMS   = Math.max(1, Number(qs.get("limitTeams")   || 50));
-    const LIMIT_PLAYERS = Math.max(1, Number(qs.get("limitPlayers") || 200));
-
     const SEASON_CONFIG = {
-      6: { sheet: "Season 6, Stage 1", teamRank: "U4:X15" },
-      5: { sheet: "Season 5",         teamRank: "U4:X15" },
-      4: { sheet: "Season 4",         teamRank: "U4:X13" },
-      3: { sheet: "Season 3",         teamRank: "U4:X12" },
-      2: { sheet: "Season 2",         teamRank: "U4:X11" },
-      1: { sheet: "Season 1",         teamRank: "U4:X10" },
+      6: { sheet: "Season 6, Stage 1", rosters: "A3:S250", teamRank: "U4:X15" },
+      5: { sheet: "Season 5",         rosters: "A3:S250", teamRank: "U4:X15" },
+      4: { sheet: "Season 4",         rosters: "A3:S250", teamRank: "U4:X13" },
+      3: { sheet: "Season 3",         rosters: "A3:S250", teamRank: "U4:X12" },
+      2: { sheet: "Season 2",         rosters: "A3:S250", teamRank: "U4:X11" },
+      1: { sheet: "Season 1",         rosters: "A3:S250", teamRank: "U4:X10" },
     };
 
     const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
@@ -569,7 +579,9 @@
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
     const LOOKUP_RANGE_A1 = "A3:S250";
-    const ROSTERS_A1 = "A3:S250";
+
+    const TEAM_LOGO_DIR = "logos";
+    const TEAM_LOGO_EXT = "png";
 
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
@@ -587,21 +599,71 @@
       "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-
-      /* ✅ Ensure REVERIE exactly */
+      /* ✅ Reverie exact */
       "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
     };
 
-    const TEAM_LOGO_DIR = "logos";
-    const TEAM_LOGO_EXT = "png";
+    // ---------------- DOM ----------------
+    const statusEl = document.getElementById("status");
+    const seasonSelect = document.getElementById("seasonSelect");
+    const reloadBtn = document.getElementById("reloadBtn");
+
+    const teamsList   = document.getElementById("teamsList");
+    const playersList = document.getElementById("playersList");
+    const weeklyList  = document.getElementById("weeklyList");
+
+    const weeklyTitle = document.getElementById("weeklyTitle");
+    const wkR1 = document.getElementById("wkR1");
+    const wkR2 = document.getElementById("wkR2");
+
+    const lobbyCard = document.getElementById("lobbyCard");
+    const lobbyList = document.getElementById("lobbyList");
+    const lobbyInput = document.getElementById("lobbyInput");
+    const buildLobbyBtn = document.getElementById("buildLobbyBtn");
+    const lobbyStatus = document.getElementById("lobbyStatus");
 
     // ---------------- HELPERS ----------------
-    const statusEl = document.getElementById("status");
-
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+    function rowHasAnyValue(row){
+      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
+    }
+    function slugify(name){
+      return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+    function toNum(v){
+      const s = String(v ?? "").trim();
+      if(!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+    function fmtScore(v){
+      if (v === null || v === undefined) return "-";
+      const s = String(v).trim();
+      if (s === "") return "-";
+      const n = Number(s);
+      if (!Number.isFinite(n)) return s;
+      if (n === 0 || Object.is(n, -0)) return "E";
+      return n > 0 ? `+${n}` : String(n);
+    }
+    function rankClass(rank){
+      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
     function getTeamStyle(name) {
       if (!name) return null;
       const key = String(name).trim().toUpperCase();
       return TEAM_STYLES[key] || null;
+    }
+    function teamLogoSrc(teamName){
+      // Use absolute URL to avoid path surprises when this page is in a subfolder
+      const rel = `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
+      return new URL(rel, location.href).href;
     }
 
     function normalizeValues(resp){
@@ -638,42 +700,6 @@
       return normalizeValues(await r2.json());
     }
 
-    function rowHasAnyValue(row){
-      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
-    }
-    function slugify(name){
-      return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    }
-    function escapeHtml(s){
-      return String(s ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#39;");
-    }
-    function toNum(v){
-      const s = String(v ?? "").trim();
-      if(!s) return null;
-      const n = Number(s);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    // blanks => "-" ; 0 => "E"; positives => +N
-    function fmtScore(v){
-      if (v === null || v === undefined) return "-";
-      const s = String(v).trim();
-      if (s === "") return "-";
-      const n = Number(s);
-      if (!Number.isFinite(n)) return s;
-      if (n === 0 || Object.is(n, -0)) return "E";
-      return n > 0 ? `+${n}` : String(n);
-    }
-
-    function rankClass(rank){
-      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
-    }
-
     function normalizeStandingsGeneric(rows){
       return (rows || [])
         .filter(rowHasAnyValue)
@@ -693,10 +719,6 @@
         })
         .filter(Boolean)
         .sort((a,b)=>a.rank-b.rank);
-    }
-
-    function teamLogoSrc(teamName){
-      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
     }
 
     function parsePlayerTeamMap(values){
@@ -719,7 +741,7 @@
       return playerToTeam;
     }
 
-    function parseLookupStats(values){
+    function parseLookupRounds(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byPlayer = new Map();
       if(!cleaned.length) return byPlayer;
@@ -728,21 +750,17 @@
       for (const r of rows){
         const name = String(r?.[2] ?? "").trim();
         if(!name) continue;
-
         const overallRank = toNum(r?.[0]);
         if (overallRank === null) continue;
-
-        byPlayer.set(name, {
-          rounds: Array.from({length:8}, (_,k)=> toNum(r?.[11 + k]))
-        });
+        byPlayer.set(name, { rounds: Array.from({length:8}, (_,k)=> toNum(r?.[11 + k])) });
       }
       return byPlayer;
     }
 
-    function waitForImages(rootEl){
+    async function waitForImages(rootEl){
       const imgs = Array.from(rootEl.querySelectorAll("img"));
-      return Promise.all(imgs.map(img => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      await Promise.all(imgs.map(img => {
+        if (img.complete) return Promise.resolve();
         return new Promise(res => {
           img.addEventListener("load", res, { once:true });
           img.addEventListener("error", res, { once:true });
@@ -750,67 +768,23 @@
       }));
     }
 
-    // ---------------- PNG (Blob URL) EXPORT ----------------
-    const _pngUrls = new Map(); // key -> objectURL (for cleanup)
-
-    function setPngOutput(key, objectUrl, imgEl, linkEl) {
-      const prev = _pngUrls.get(key);
-      if (prev) URL.revokeObjectURL(prev);
-
-      _pngUrls.set(key, objectUrl);
-      imgEl.src = objectUrl;
-      linkEl.href = objectUrl;
-    }
-
-    async function domToPngObjectUrl(node, bgColor){
-      const pixelRatio = 2;
-
-      const wrapper = document.createElement("div");
-      wrapper.style.padding = "16px";
-      wrapper.style.background = bgColor || "transparent";
-      wrapper.style.display = "inline-block";
-      wrapper.appendChild(node.cloneNode(true));
-
-      wrapper.style.position = "fixed";
-      wrapper.style.left = "-100000px";
-      wrapper.style.top = "0";
-      document.body.appendChild(wrapper);
-
-      await waitForImages(wrapper);
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-
-      const blob = await htmlToImage.toBlob(wrapper, {
-        cacheBust: true,
-        pixelRatio,
-        backgroundColor: bgColor || null,
-      });
-
-      wrapper.remove();
-
-      if (!blob) throw new Error("PNG blob generation failed.");
-      return URL.createObjectURL(blob);
-    }
-
-    // ---------------- RENDERERS ----------------
-    const teamsList   = document.getElementById("teamsList");
-    const playersList = document.getElementById("playersList");
-    const weeklyList  = document.getElementById("weeklyList");
-
-    const lobbyCard   = document.getElementById("lobbyCard");
-    const lobbyList   = document.getElementById("lobbyList");
-
+    // ---------------- RENDER ----------------
     function makeRow({rank, label, score, bg, fg, logoSrc}){
       const row = document.createElement("div");
       row.className = "entry";
 
+      const styleBg = bg || "rgba(255,255,255,0.08)";
+      const styleFg = fg || "#ffffff";
+
       const nameCell = document.createElement("div");
       nameCell.className = "team-cell";
-      nameCell.style.background = bg || "rgba(255,255,255,0.08)";
-      nameCell.style.color = fg || "#ffffff";
+      nameCell.style.background = styleBg;
+      nameCell.style.color = styleFg;
 
       const logo = logoSrc ? `
         <img class="team-logo"
              src="${escapeHtml(logoSrc)}"
+             crossorigin="anonymous"
              alt=""
              loading="eager"
              decoding="async"
@@ -831,9 +805,9 @@
       return row;
     }
 
-    function renderTeamsCard(teamStandings){
+    function renderTeams(teamStandings){
       teamsList.innerHTML = "";
-      teamStandings.slice(0, LIMIT_TEAMS).forEach(t=>{
+      teamStandings.forEach(t=>{
         const style = getTeamStyle(t.name) || {};
         teamsList.appendChild(makeRow({
           rank: t.rank,
@@ -846,9 +820,9 @@
       });
     }
 
-    function renderPlayersCard(playerStandings, playerToTeam){
+    function renderPlayers(playerStandings, playerToTeam){
       playersList.innerHTML = "";
-      playerStandings.slice(0, LIMIT_PLAYERS).forEach(p=>{
+      playerStandings.forEach(p=>{
         const teamName = playerToTeam.get(p.name) || null;
         const style = teamName ? (getTeamStyle(teamName) || {}) : {};
         playersList.appendChild(makeRow({
@@ -862,21 +836,14 @@
       });
     }
 
-    function renderWeeklyCard(weekNum, weekList, lookupStats, playerToTeam){
-      const weeklyTitle = document.getElementById("weeklyTitle");
-      const wkR1 = document.getElementById("wkR1");
-      const wkR2 = document.getElementById("wkR2");
-      const weeklyExportTitle = document.getElementById("weeklyExportTitle");
-
+    function renderWeekly(weekNum, weekList, lookupRounds, playerToTeam){
       weeklyTitle.textContent = `Week ${weekNum} Top 5`;
-      weeklyExportTitle.textContent = `WEEK ${weekNum} TOP 5 PNG`;
       wkR1.textContent = `${weekNum}-1`;
       wkR2.textContent = `${weekNum}-2`;
 
       weeklyList.innerHTML = "";
-
       weekList.slice(0,5).forEach(p=>{
-        const stat = lookupStats.get(p.name);
+        const stat = lookupRounds.get(p.name);
         const idx1 = (weekNum - 1) * 2;
         const idx2 = idx1 + 1;
         const r1 = stat?.rounds?.[idx1] ?? null;
@@ -898,6 +865,7 @@
         const logo = teamName ? `
           <img class="team-logo"
                src="${escapeHtml(teamLogoSrc(teamName))}"
+               crossorigin="anonymous"
                alt=""
                loading="eager"
                decoding="async"
@@ -921,22 +889,174 @@
       });
     }
 
-    // ---------------- LOBBY FEATURE ----------------
-    const lobbyInput = document.getElementById("lobbyInput");
-    const buildLobbyBtn = document.getElementById("buildLobbyBtn");
-    const exportLobbyBtn = document.getElementById("exportLobbyBtn");
-    const lobbyStatus = document.getElementById("lobbyStatus");
+    // ---------------- EXPORT (PNG + PDF) ----------------
+    async function buildPngBlob(cardEl){
+      // Ensure images/fonts are ready
+      await waitForImages(cardEl);
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-    const exportLobbyBlock = document.getElementById("exportLobbyBlock");
+      // Rasterize the card
+      const canvas = await html2canvas(cardEl, {
+        scale: 2,
+        backgroundColor: null,   // keep card background as-is
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        // Helps when there's transform or filtering in some browsers
+        foreignObjectRendering: false
+      });
 
-    // state from loaded data
-    let state_playerStandings = [];
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("PNG generation failed (canvas.toBlob returned null).");
+      return blob;
+    }
+
+    async function openPngInNewTab(cardEl, filenameBase){
+      const blob = await buildPngBlob(cardEl);
+      const url = URL.createObjectURL(blob);
+
+      // Open the PNG directly — then user right-clicks the image tab and saves
+      const w = window.open(url, "_blank");
+      if (!w) {
+        // Popup blocked -> fallback to download
+        downloadBlob(blob, `${filenameBase}.png`);
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      // Revoke later (give the new tab time to load it)
+      setTimeout(()=>URL.revokeObjectURL(url), 60_000);
+    }
+
+    function downloadBlob(blob, filename){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 10_000);
+    }
+
+    async function downloadPng(cardEl, filenameBase){
+      const blob = await buildPngBlob(cardEl);
+      downloadBlob(blob, `${filenameBase}.png`);
+    }
+
+    async function printToPdf(cardEl, title){
+      // Open a print window containing ONLY the card and the same style
+      const w = window.open("", "_blank");
+      if (!w) throw new Error("Popup blocked. Allow popups to export PDF.");
+
+      const styleText = Array.from(document.querySelectorAll("style"))
+        .map(s => s.textContent || "")
+        .join("\n");
+
+      const html = `
+        <!doctype html>
+        <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <title>${escapeHtml(title)}</title>
+          <style>${styleText}</style>
+          <style>
+            body{ margin:0; background: transparent !important; }
+            .print-wrap{
+              padding: 18px;
+              display:flex;
+              align-items:flex-start;
+              justify-content:flex-start;
+            }
+            /* Slightly safer printing */
+            @page { margin: 14mm; }
+            .export-target{ cursor: default; }
+            .hintline, .card-actions { display:none !important; }
+          </style>
+        </head>
+        <body>
+          <div class="print-wrap" id="mount"></div>
+          <script>
+            window.onload = () => {
+              setTimeout(() => { window.print(); }, 250);
+            };
+          <\/script>
+        </body>
+        </html>
+      `;
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+
+      // Mount cloned card after window is ready
+      const clone = cardEl.cloneNode(true);
+      clone.classList.remove("export-target");
+      const mount = () => {
+        const m = w.document.getElementById("mount");
+        if (!m) return false;
+        m.appendChild(clone);
+        return true;
+      };
+
+      // Wait a bit for DOM
+      let tries = 0;
+      const t = setInterval(()=>{
+        tries++;
+        if (mount() || tries > 40) clearInterval(t);
+      }, 50);
+    }
+
+    function setupCardExport(cardEl){
+      const filenameBase = cardEl.getAttribute("data-export") || "export";
+
+      // Right-click card: open PNG in new tab
+      cardEl.addEventListener("contextmenu", async (e)=>{
+        // If user right-clicked on a button, let it work normally
+        if (e.target && e.target.closest && e.target.closest("button")) return;
+        e.preventDefault();
+        try{
+          statusEl.textContent = `Generating PNG for ${filenameBase}…`;
+          await openPngInNewTab(cardEl, filenameBase);
+          statusEl.textContent = `PNG opened in a new tab (right-click image → Save image as…).`;
+        }catch(err){
+          console.error(err);
+          statusEl.textContent = `PNG failed for ${filenameBase}. Try PDF instead.`;
+          alert(`PNG export failed.\n\nMost common causes:\n- A logo image failed to load (404)\n- Browser blocked canvas capture\n\nTry the PDF button.\n\nDetails: ${err.message || err}`);
+        }
+      });
+
+      // Buttons in header
+      const actions = cardEl.querySelectorAll("button[data-action]");
+      actions.forEach(btn=>{
+        btn.addEventListener("click", async (e)=>{
+          e.stopPropagation();
+          const action = btn.getAttribute("data-action");
+          try{
+            if (action === "png"){
+              statusEl.textContent = `Downloading PNG for ${filenameBase}…`;
+              await downloadPng(cardEl, filenameBase);
+              statusEl.textContent = `PNG downloaded for ${filenameBase}.`;
+            } else if (action === "pdf"){
+              statusEl.textContent = `Opening PDF print for ${filenameBase}…`;
+              await printToPdf(cardEl, filenameBase.toUpperCase());
+              statusEl.textContent = `Print dialog opened (Save as PDF).`;
+            }
+          }catch(err){
+            console.error(err);
+            statusEl.textContent = `Export failed for ${filenameBase}.`;
+            alert(`Export failed: ${err.message || err}`);
+          }
+        });
+      });
+    }
+
+    // ---------------- LOBBY ----------------
     let state_playerStandingsByName = new Map();
     let state_playerToTeam = new Map();
-    let state_lookupStats = new Map();
-    let state_nameResolver = new Map(); // UPPER -> canonical
+    let state_nameResolver = new Map();
 
-    function buildNameResolver(){
+    function buildNameResolver(playerStandings){
       const m = new Map();
       const add = (n)=>{
         const s = String(n || "").trim();
@@ -944,9 +1064,8 @@
         const key = s.toUpperCase();
         if(!m.has(key)) m.set(key, s);
       };
-      for (const p of state_playerStandings) add(p.name);
+      for (const p of playerStandings) add(p.name);
       for (const [name] of state_playerToTeam.entries()) add(name);
-      for (const [name] of state_lookupStats.entries()) add(name);
       state_nameResolver = m;
     }
 
@@ -974,20 +1093,18 @@
       return state_nameResolver.get(key) || null;
     }
 
-    function renderLobbyCard(canonicalNames){
+    function renderLobbyCard(names){
       lobbyList.innerHTML = "";
-
-      canonicalNames.forEach((name, idx)=>{
+      names.forEach((name, idx)=>{
         const rank = idx + 1;
 
         const teamName = state_playerToTeam.get(name) || null;
         const style = teamName ? (getTeamStyle(teamName) || {}) : {};
         const bg = style.bg || "rgba(255,255,255,0.08)";
         const fg = style.fg || "#ffffff";
-        const logo = teamName ? teamLogoSrc(teamName) : null;
 
         const standing = state_playerStandingsByName.get(name) || null;
-        const score = (standing?.score ?? null);
+        const score = standing?.score ?? null;
 
         lobbyList.appendChild(makeRow({
           rank,
@@ -995,80 +1112,46 @@
           score,
           bg,
           fg,
-          logoSrc: logo
+          logoSrc: teamName ? teamLogoSrc(teamName) : null
         }));
       });
 
       lobbyCard.classList.remove("hidden");
+      // ensure export hooks also work after reveal
+      setupCardExport(lobbyCard);
     }
 
-    async function exportLobbyPNG(){
-      await waitForImages(document.getElementById("renderGrid"));
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-
-      const bgColor = null;
-      const objectUrl = await domToPngObjectUrl(lobbyCard, bgColor);
-
-      setPngOutput("lobby", objectUrl,
-        document.getElementById("imgLobby"),
-        document.getElementById("dlLobby")
-      );
-
-      exportLobbyBlock.classList.remove("hidden");
-    }
-
-    buildLobbyBtn.addEventListener("click", async ()=>{
-      try{
-        const requested = parseLobbyNames(lobbyInput.value);
-        if(!requested.length){
-          lobbyStatus.textContent = "Please enter at least 1 name.";
-          exportLobbyBtn.classList.add("hidden");
-          return;
-        }
-
-        const matched = [];
-        const skipped = [];
-        for (const n of requested){
-          const canonical = resolvePlayerName(n);
-          if (canonical) matched.push(canonical);
-          else skipped.push(n);
-        }
-
-        if(!matched.length){
-          lobbyStatus.textContent = "No matches found.";
-          exportLobbyBtn.classList.add("hidden");
-          return;
-        }
-
-        renderLobbyCard(matched);
-
-        const msg = [];
-        msg.push(`Built lobby with ${matched.length} player(s).`);
-        if (skipped.length) msg.push(`Skipped: ${skipped.slice(0,6).join(", ")}${skipped.length>6 ? "…" : ""}`);
-        lobbyStatus.textContent = msg.join(" ");
-
-        exportLobbyBtn.classList.remove("hidden");
-      }catch(e){
-        console.error(e);
-        lobbyStatus.textContent = "Failed to build lobby (see console).";
-        exportLobbyBtn.classList.add("hidden");
+    buildLobbyBtn.addEventListener("click", ()=>{
+      const requested = parseLobbyNames(lobbyInput.value);
+      if (!requested.length){
+        lobbyStatus.textContent = "Please enter at least 1 name.";
+        return;
       }
+
+      const matched = [];
+      const skipped = [];
+      for (const n of requested){
+        const canonical = resolvePlayerName(n);
+        if (canonical) matched.push(canonical);
+        else skipped.push(n);
+      }
+
+      if (!matched.length){
+        lobbyStatus.textContent = "No matches found.";
+        return;
+      }
+
+      renderLobbyCard(matched);
+
+      const msg = [];
+      msg.push(`Built lobby with ${matched.length} player(s).`);
+      if (skipped.length) msg.push(`Skipped: ${skipped.slice(0,6).join(", ")}${skipped.length>6 ? "…" : ""}`);
+      lobbyStatus.textContent = msg.join(" ");
     });
 
-    exportLobbyBtn.addEventListener("click", async ()=>{
-      try{
-        lobbyStatus.textContent = "Exporting ROUND LOBBY PNG…";
-        await exportLobbyPNG();
-        lobbyStatus.textContent = "Export complete — preview and download match exactly.";
-      }catch(e){
-        console.error(e);
-        lobbyStatus.textContent = "Export failed (see console).";
-      }
-    });
-
-    // ---------------- MAIN FLOW ----------------
-    async function loadAndRender(){
-      const cfg = SEASON_CONFIG[CURRENT_SEASON] || SEASON_CONFIG[6];
+    // ---------------- MAIN LOAD ----------------
+    async function loadSeason(seasonNum){
+      const cfg = SEASON_CONFIG[seasonNum] || SEASON_CONFIG[6];
       const sheet = cfg.sheet;
 
       statusEl.textContent = "Fetching ranges…";
@@ -1080,7 +1163,7 @@
         wk2: `'${sheet}'!${RANGE_W2_A1}`,
         wk3: `'${sheet}'!${RANGE_W3_A1}`,
         wk4: `'${sheet}'!${RANGE_W4_A1}`,
-        rosters: `'${sheet}'!${ROSTERS_A1}`,
+        rosters: `'${sheet}'!${cfg.rosters}`,
         lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
       };
 
@@ -1100,9 +1183,10 @@
       const teamStandings = normalizeStandingsGeneric(teamRows);
       const playerStandings = normalizeStandingsGeneric(playerRows);
 
-      const playerToTeam = parsePlayerTeamMap(rosterRows);
-      const lookupStats = parseLookupStats(lookupRows);
+      state_playerToTeam = parsePlayerTeamMap(rosterRows);
+      const lookupRounds = parseLookupRounds(lookupRows);
 
+      // Weekly pick latest week posted
       const weeklyByWeek = new Map();
       const w1 = normalizeStandingsGeneric(wk1);
       const w2 = normalizeStandingsGeneric(wk2);
@@ -1119,84 +1203,58 @@
 
       statusEl.textContent = "Rendering cards…";
 
-      renderTeamsCard(teamStandings);
-      renderPlayersCard(playerStandings, playerToTeam);
+      renderTeams(teamStandings);
+      renderPlayers(playerStandings, state_playerToTeam);
 
       if (latestList.length){
-        renderWeeklyCard(latestWeek, latestList, lookupStats, playerToTeam);
+        renderWeekly(latestWeek, latestList, lookupRounds, state_playerToTeam);
       } else {
-        document.getElementById("weeklyTitle").textContent = "Weekly Top 5";
-        document.getElementById("weeklyExportTitle").textContent = "WEEKLY TOP 5 PNG";
+        weeklyTitle.textContent = "Weekly Top 5";
+        wkR1.textContent = "1-1";
+        wkR2.textContent = "1-2";
         weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
       }
 
-      // Save state for lobby
-      state_playerStandings = playerStandings;
-      state_playerToTeam = playerToTeam;
-      state_lookupStats = lookupStats;
+      // Lobby name resolution
       state_playerStandingsByName = new Map(playerStandings.map(p => [p.name, p]));
-      buildNameResolver();
+      buildNameResolver(playerStandings);
 
-      statusEl.textContent = "Waiting for logos/fonts…";
-      await waitForImages(document.getElementById("renderGrid"));
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      // Setup export on the three top cards
+      setupCardExport(document.getElementById("teamsCard"));
+      setupCardExport(document.getElementById("playersCard"));
+      setupCardExport(document.getElementById("weeklyCard"));
 
-      statusEl.textContent = "Generating PNGs…";
-      await generatePNGs();
-      statusEl.textContent = "Done — right-click previews to save, or use Download.";
+      statusEl.textContent = "Ready — right-click a card to open PNG, or use PNG/PDF buttons.";
     }
-
-    async function generatePNGs(){
-      const bgColor = null;
-
-      const teamsCard   = document.getElementById("teamsCard");
-      const playersCard = document.getElementById("playersCard");
-      const weeklyCard  = document.getElementById("weeklyCard");
-
-      const [teamsUrl, playersUrl, weeklyUrl] = await Promise.all([
-        domToPngObjectUrl(teamsCard, bgColor),
-        domToPngObjectUrl(playersCard, bgColor),
-        domToPngObjectUrl(weeklyCard, bgColor),
-      ]);
-
-      setPngOutput("teams", teamsUrl,
-        document.getElementById("imgTeams"),
-        document.getElementById("dlTeams")
-      );
-
-      setPngOutput("players", playersUrl,
-        document.getElementById("imgPlayers"),
-        document.getElementById("dlPlayers")
-      );
-
-      setPngOutput("weekly", weeklyUrl,
-        document.getElementById("imgWeekly"),
-        document.getElementById("dlWeekly")
-      );
-    }
-
-    document.getElementById("regenBtn").addEventListener("click", async ()=>{
-      try{
-        statusEl.textContent = "Regenerating PNGs…";
-        await waitForImages(document.getElementById("renderGrid"));
-        if (document.fonts && document.fonts.ready) await document.fonts.ready;
-        await generatePNGs();
-        statusEl.textContent = "Done — previews and downloads match.";
-      }catch(e){
-        statusEl.textContent = "Export failed (see console).";
-        console.error(e);
-      }
-    });
 
     // boot
-    (async function(){
-      try{
-        await loadAndRender();
-      }catch(e){
-        statusEl.textContent = "Failed to load (see console).";
-        console.error(e);
-        alert(e.message || "Failed to load data.");
-      }
+    (function boot(){
+      // season from URL or default
+      const qs = new URLSearchParams(location.search);
+      const s = Number(qs.get("season") || 6);
+      if (SEASON_CONFIG[s]) seasonSelect.value = String(s);
+
+      reloadBtn.addEventListener("click", ()=>{
+        const seasonNum = Number(seasonSelect.value) || 6;
+        loadSeason(seasonNum).catch(err=>{
+          console.error(err);
+          statusEl.textContent = "Load failed (see console).";
+          alert(err.message || "Load failed.");
+        });
+      });
+
+      seasonSelect.addEventListener("change", ()=>{
+        // update URL for shareability
+        const u = new URL(location.href);
+        u.searchParams.set("season", seasonSelect.value);
+        history.replaceState(null, "", u.toString());
+      });
+
+      loadSeason(Number(seasonSelect.value) || 6).catch(err=>{
+        console.error(err);
+        statusEl.textContent = "Load failed (see console).";
+        alert(err.message || "Load failed.");
+      });
     })();
   </script>
 </body>
