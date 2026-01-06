@@ -495,6 +495,60 @@
       .weekly-round{ font-size: 14px; }
       .team-logo{ height: calc(100% - 8px); }
     }
+    /* =========================================================
+       UNIVERSAL TEXT BASELINE FIX (does NOT affect logos)
+       ========================================================= */
+    :root{
+      --text-nudge: -1px; /* try -1px first; if still low, use -1.5px */
+    }
+
+    /* Header rows: remove the 18px sub-height that biases text downward */
+    .header-row span,
+    .weekly-header-row span{
+      height: 100% !important;
+      line-height: 1 !important;
+      align-items: center !important;
+    }
+
+    /* Apply the nudge to TEXT elements only (not the logo slot/img) */
+    .kicker,
+    .status,
+    .h2,
+    .header-row span,
+    .weekly-header-row span,
+    .place,
+    .score-col,
+    .weekly-round,
+    .name-text,
+    .lobby-label,
+    .mini-status,
+    .btn,
+    .select{
+      position: relative;
+      top: var(--text-nudge);
+    }
+
+    /* Ensure row/cell containers remain true-center */
+    .place,
+    .score-col,
+    .weekly-round,
+    .team-cell{
+      display: flex !important;
+      align-items: center !important;
+      height: 100% !important;
+      line-height: 1 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    /* Keep name cell left aligned but vertically centered */
+    .team-cell{ justify-content: flex-start !important; }
+    .name-text{
+      display:flex !important;
+      align-items:center !important;
+      height:100% !important;
+      line-height: 1 !important;
+    }
   </style>
 </head>
 
