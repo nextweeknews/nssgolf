@@ -5,11 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shotgun Pro League — PNG Exports</title>
 
-  <!-- ✅ Load Inter (prevents per-glyph/system fallback metric shifts) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
-
   <!-- html2canvas for PNG rendering -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
@@ -45,23 +40,15 @@
 
       /* Mobile weekly: no rounds => name fills full name-col */
       --wk-name-col-mobile: var(--name-col);
-
-      /* ✅ Text-only nudge (inner spans only) */
-      --text-nudge: 0px;
-
-      /* Manual ellipsis (ASCII) */
-      --ellipsis: "...";
     }
 
     *{ box-sizing:border-box; }
-
     body{
       margin:0;
       min-height:100vh;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
-      font-synthesis: none; /* avoid weight synthesis differences */
     }
 
     .topbar{
@@ -115,8 +102,6 @@
       font-size: 12px;
       cursor:pointer;
       outline:none;
-      font-family: inherit;
-      font-synthesis: none;
     }
     .btn{
       border: 1px solid rgba(255,255,255,.15);
@@ -136,8 +121,6 @@
       justify-content:center;
       gap: 8px;
       user-select:none;
-      font-family: inherit;
-      font-synthesis: none;
     }
     .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.28); }
 
@@ -206,7 +189,6 @@
       letter-spacing: .035em;
       text-transform: uppercase;
       margin: 0;
-      font-synthesis: none;
     }
 
     /* Rows */
@@ -232,9 +214,9 @@
       align-items:center;
       justify-content:center;
       padding: 0 10px;
-      height: 18px;
+      height: 18px; /* restore original */
       min-width: 0;
-      line-height: 1;
+      line-height: 1; /* helps consistent vertical metrics */
     }
     .header-row span:nth-child(2){
       justify-content:flex-start;
@@ -248,7 +230,7 @@
     }
 
     .entry{
-      height: 48px;
+      height: 48px; /* restore original */
       background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
@@ -269,7 +251,6 @@
       justify-content:center;
       height: 100%;
       line-height: 1;
-      font-synthesis: none;
     }
     .gold{color:var(--gold);}
     .silver{color:var(--silver);}
@@ -291,7 +272,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      font-synthesis: none;
+      line-height: 1; /* keep consistent */
     }
     .team-logo-slot{
       width: var(--logo-slot);
@@ -312,8 +293,6 @@
       outline:none;
       box-shadow:none;
     }
-
-    /* ✅ Stop native ellipsis glyph; we manually ellipsize with ASCII '...' */
     .name-text{
       font-size: 20px;
       font-weight: 950;
@@ -323,12 +302,11 @@
       padding-left: 10px;
       white-space:nowrap;
       overflow:hidden;
-      text-overflow: clip;
+      text-overflow:ellipsis;
       display:flex;
       align-items:center;
       height: 100%;
       line-height: 1;
-      font-synthesis: none;
     }
 
     .score-col{
@@ -339,12 +317,13 @@
       padding: 0 10px;
       min-width: 0;
       font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      letter-spacing: 0.02em; /* ✅ spacing */
       display:flex;
       align-items:center;
       justify-content:center;
       height: 100%;
       line-height: 1;
-      font-synthesis: none;
     }
 
     /* Weekly (desktop default: includes rounds) */
@@ -370,7 +349,7 @@
       align-items:center;
       justify-content:center;
       padding: 0 10px;
-      height: 18px;
+      height: 18px; /* restore original */
       white-space: nowrap;
       min-width: 0;
       line-height: 1;
@@ -380,7 +359,7 @@
       padding-left: 18px;
     }
     .weekly-entry{
-      height: 48px;
+      height: 48px; /* restore original */
       background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
@@ -395,12 +374,13 @@
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      letter-spacing: 0.02em; /* ✅ spacing */
       display:flex;
       align-items:center;
       justify-content:center;
       height: 100%;
       line-height: 1;
-      font-synthesis: none;
     }
 
     /* ✅ Mobile weekly: hide rounds; 3 columns only; keep width consistent */
@@ -433,6 +413,7 @@
       letter-spacing: .14em;
       color: rgba(255,255,255,0.75);
       margin-bottom: 8px;
+      line-height: 1;
     }
     textarea.lobby-input{
       width: 100%;
@@ -447,8 +428,6 @@
       font-weight: 800;
       letter-spacing: .02em;
       line-height: 1.35;
-      font-family: inherit;
-      font-synthesis: none;
     }
     .mini-status{
       margin-top: 10px;
@@ -466,7 +445,7 @@
       width: calc(var(--rank-col) + var(--name-col) + var(--score-col));
     }
     .lobby-entry{
-      height: 48px;
+      height: 48px; /* match row height */
       border-radius: 10px;
       overflow: hidden;
       background: var(--row-bg);
@@ -497,20 +476,6 @@
       .weekly-round{ font-size: 14px; }
       .team-logo{ height: calc(100% - 8px); }
     }
-
-    /* =========================================================
-       ✅ TEXT NUDGE — stable 1em box so font metrics don't shift rows
-       (affects paint only; doesn't change row geometry)
-       ========================================================= */
-    .txt-nudge{
-      display: inline-flex;
-      align-items: center;
-      height: 1em;
-      line-height: 1;
-      transform: translateY(var(--text-nudge));
-      vertical-align: middle;
-      font-synthesis: none;
-    }
   </style>
 </head>
 
@@ -518,8 +483,8 @@
   <div class="topbar">
     <div class="topbar-inner">
       <div>
-        <div class="kicker"><span class="txt-nudge">Shotgun Pro League — PNG Exports</span></div>
-        <div class="status" id="status"><span class="txt-nudge">Loading…</span></div>
+        <div class="kicker">Shotgun Pro League — PNG Exports</div>
+        <div class="status" id="status">Loading…</div>
       </div>
 
       <div class="controls">
@@ -531,7 +496,7 @@
           <option value="2">Season 2</option>
           <option value="1">Season 1</option>
         </select>
-        <button id="reloadBtn" class="btn" type="button"><span class="txt-nudge">Reload Data</span></button>
+        <button id="reloadBtn" class="btn" type="button">Reload Data</button>
       </div>
     </div>
   </div>
@@ -547,21 +512,21 @@
     <!-- Round Lobby feature at bottom -->
     <div class="card">
       <div class="card-head">
-        <h2 class="h2"><span class="txt-nudge">Round Lobby Builder</span></h2>
+        <h2 class="h2">Round Lobby Builder</h2>
         <div class="controls" style="justify-content:flex-end;">
-          <button class="btn" id="buildLobbyBtn" type="button"><span class="txt-nudge">Build Lobby Card</span></button>
+          <button class="btn" id="buildLobbyBtn" type="button">Build Lobby Card</button>
         </div>
       </div>
 
       <div class="lobby-grid">
         <div class="lobby-box">
-          <div class="lobby-label"><span class="txt-nudge">Enter up to 8 player names</span></div>
+          <div class="lobby-label">Enter up to 8 player names</div>
           <textarea id="lobbyInput" class="lobby-input" placeholder="One per line (or comma-separated)"></textarea>
         </div>
 
         <div class="lobby-box">
-          <div class="lobby-label"><span class="txt-nudge">Status</span></div>
-          <div class="mini-status" id="lobbyStatus"><span class="txt-nudge">Waiting for input…</span></div>
+          <div class="lobby-label">Status</div>
+          <div class="mini-status" id="lobbyStatus">Waiting for input…</div>
         </div>
       </div>
     </div>
@@ -570,41 +535,41 @@
   <!-- Hidden render surface -->
   <div class="render-surface" aria-hidden="true">
     <div id="teamsCard" class="card">
-      <div class="card-head"><h2 class="h2"><span class="txt-nudge">Team Rankings</span></h2></div>
+      <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
       <div class="header-row">
-        <span><span class="txt-nudge">Rank</span></span>
-        <span><span class="txt-nudge">Team</span></span>
-        <span><span class="txt-nudge">Score</span></span>
+        <span>Rank</span>
+        <span>Team</span>
+        <span>Score</span>
       </div>
       <div id="teamsList" class="resultsList"></div>
     </div>
 
     <div id="playersCard" class="card">
-      <div class="card-head"><h2 class="h2"><span class="txt-nudge">Player Rankings</span></h2></div>
+      <div class="card-head"><h2 class="h2">Player Rankings</h2></div>
       <div class="header-row">
-        <span><span class="txt-nudge">Rank</span></span>
-        <span style="justify-content:center;padding-left:0;"><span class="txt-nudge">Player</span></span>
-        <span><span class="txt-nudge">Score</span></span>
+        <span>Rank</span>
+        <span style="justify-content:center;padding-left:0;">Player</span>
+        <span>Score</span>
       </div>
       <div id="playersList" class="resultsList"></div>
     </div>
 
     <div id="weeklyCard" class="card">
-      <div class="card-head"><h2 class="h2" id="weeklyTitle"><span class="txt-nudge">Weekly Top 5</span></h2></div>
+      <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
 
       <div class="weekly-header-row">
-        <span><span class="txt-nudge">Rank</span></span>
-        <span><span class="txt-nudge">Player</span></span>
-        <span class="weekly-hide-mobile"><span class="txt-nudge" id="wkR1">1-1</span></span>
-        <span class="weekly-hide-mobile"><span class="txt-nudge" id="wkR2">1-2</span></span>
-        <span><span class="txt-nudge">Score</span></span>
+        <span>Rank</span>
+        <span>Player</span>
+        <span class="weekly-hide-mobile" id="wkR1">1-1</span>
+        <span class="weekly-hide-mobile" id="wkR2">1-2</span>
+        <span>Score</span>
       </div>
 
       <div id="weeklyList" class="resultsList"></div>
     </div>
 
     <div id="lobbyCard" class="card lobby-card hidden">
-      <div class="card-head"><h2 class="h2"><span class="txt-nudge">ROUND LOBBY</span></h2></div>
+      <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
       <div id="lobbyList" class="resultsList lobby-list"></div>
     </div>
   </div>
@@ -649,7 +614,7 @@
       "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" }, // exact
+      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" }, // ✅ exact
     };
 
     // ---------------- DOM ----------------
@@ -703,15 +668,21 @@
       const n = Number(s);
       return Number.isFinite(n) ? n : null;
     }
+
+    // ✅ Better dash/minus consistency for Inter:
+    // - placeholder: en dash "–"
+    // - negatives: real minus "−"
     function fmtScore(v){
-      if (v === null || v === undefined) return "-";
+      if (v === null || v === undefined) return "–";
       const s = String(v).trim();
-      if (s === "") return "-";
+      if (s === "") return "–";
       const n = Number(s);
       if (!Number.isFinite(n)) return s;
       if (n === 0 || Object.is(n, -0)) return "E";
-      return n > 0 ? `+${n}` : String(n);
+      if (n > 0) return `+${n}`;
+      return `−${Math.abs(n)}`;
     }
+
     function rankClass(rank){
       return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
     }
@@ -723,15 +694,6 @@
     function teamLogoSrc(teamName){
       const rel = `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
       return new URL(rel, location.href).href;
-    }
-
-    // ✅ Normalize to avoid “smart punctuation” triggering fallback in some environments
-    function normalizeLabel(s){
-      return String(s ?? "")
-        .normalize("NFKC")
-        .replace(/[“”]/g, '"')
-        .replace(/[‘’]/g, "'")
-        .replace(/[–—]/g, "-");
     }
 
     function normalizeValues(resp){
@@ -777,12 +739,11 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
-          const clean = normalizeLabel(String(name).trim());
           return {
             rank: Number(rank),
-            name: clean,
-            displayName: clean.toUpperCase(),
-            slug: slugify(clean),
+            name: String(name).trim(),
+            displayName: String(name).trim().toUpperCase(),
+            slug: slugify(name),
             score: (String(score ?? "").trim() !== "") ? Number(score) : null
           };
         })
@@ -798,12 +759,12 @@
       const rows = cleaned.slice(1);
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
-        const teamName = normalizeLabel(String(teamRow[2] ?? "").trim());
+        const teamName = String(teamRow[2] ?? "").trim();
         if(!teamName) continue;
 
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
         for (const pr of playerRows){
-          const pName = normalizeLabel(String(pr?.[2] ?? "").trim());
+          const pName = String(pr?.[2] ?? "").trim();
           if(pName) playerToTeam.set(pName, teamName);
         }
       }
@@ -817,7 +778,7 @@
 
       const rows = cleaned.slice(1);
       for (const r of rows){
-        const name = normalizeLabel(String(r?.[2] ?? "").trim());
+        const name = String(r?.[2] ?? "").trim();
         if(!name) continue;
         const overallRank = toNum(r?.[0]);
         if (overallRank === null) continue;
@@ -837,63 +798,22 @@
       }));
     }
 
-    // ✅ ensure layout settled before capture
-    async function nextPaint(){
+    // ✅ Ensure Inter is fully loaded + layout has settled BEFORE FIRST capture
+    async function ensureInterReady(){
+      if (!document.fonts) return;
+
+      const sizes = [12, 14, 16, 18, 20, 22];
+      const weights = [700, 800, 900];
+
+      await Promise.all(
+        weights.flatMap(w => sizes.map(sz => document.fonts.load(`${w} ${sz}px "Inter"`)))
+      );
+
+      await document.fonts.ready;
+
+      // allow layout/paint to settle with the final font metrics
       await new Promise(r => requestAnimationFrame(r));
       await new Promise(r => requestAnimationFrame(r));
-    }
-
-    // ---------------- MANUAL ASCII ELLIPSIS ----------------
-    const _fitCanvas = document.createElement("canvas");
-    const _fitCtx = _fitCanvas.getContext("2d");
-
-    function canvasFontFrom(el){
-      const cs = getComputedStyle(el);
-      // include style/weight/size/family for accurate measurement
-      return `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
-    }
-
-    function getInnerTextWidth(nameEl){
-      const cs = getComputedStyle(nameEl);
-      const pl = parseFloat(cs.paddingLeft) || 0;
-      const pr = parseFloat(cs.paddingRight) || 0;
-      return Math.max(0, nameEl.clientWidth - pl - pr);
-    }
-
-    function applyAsciiEllipsis(root){
-      // For every .name-text, we trim the inner .txt-nudge to fit using "..."
-      root.querySelectorAll(".name-text").forEach(nameEl=>{
-        const span = nameEl.querySelector(".txt-nudge");
-        if (!span) return;
-
-        const full = nameEl.getAttribute("data-full") || span.textContent || "";
-        nameEl.setAttribute("data-full", full);
-
-        const maxW = getInnerTextWidth(nameEl);
-        if (!maxW) return;
-
-        _fitCtx.font = canvasFontFrom(nameEl);
-
-        if (_fitCtx.measureText(full).width <= maxW){
-          span.textContent = full;
-          return;
-        }
-
-        const dots = getComputedStyle(document.documentElement).getPropertyValue("--ellipsis").trim() || "...";
-        const dotsW = _fitCtx.measureText(dots).width;
-
-        // binary search best cut
-        let lo = 0, hi = full.length;
-        while (lo < hi){
-          const mid = Math.ceil((lo + hi) / 2);
-          const s = full.slice(0, mid);
-          if (_fitCtx.measureText(s).width + dotsW <= maxW) lo = mid;
-          else hi = mid - 1;
-        }
-
-        const cut = full.slice(0, Math.max(0, lo));
-        span.textContent = cut + dots;
-      });
     }
 
     // ---------------- RENDER ----------------
@@ -919,23 +839,15 @@
              onerror="this.style.display='none'; this.removeAttribute('src');" />
       ` : "";
 
-      const cleanLabel = normalizeLabel(label);
-
       nameCell.innerHTML = `
         <span class="team-logo-slot">${logo}</span>
-        <span class="name-text" data-full="${escapeHtml(cleanLabel)}">
-          <span class="txt-nudge">${escapeHtml(cleanLabel)}</span>
-        </span>
+        <span class="name-text">${escapeHtml(label)}</span>
       `;
 
       row.innerHTML = `
-        <div class="place ${rankMedals ? rankClass(rank) : ""}">
-          <span class="txt-nudge">${escapeHtml(rank)}</span>
-        </div>
+        <div class="place ${rankMedals ? rankClass(rank) : ""}">${escapeHtml(rank)}</div>
         <div class="mid"></div>
-        <div class="score-col">
-          <span class="txt-nudge">${escapeHtml(fmtScore(score))}</span>
-        </div>
+        <div class="score-col">${escapeHtml(fmtScore(score))}</div>
       `;
       row.querySelector(".mid").replaceWith(nameCell);
       return row;
@@ -955,7 +867,6 @@
           rankMedals: true
         }));
       });
-      applyAsciiEllipsis(teamsCard);
     }
 
     // top 10 ranks (including ties) => rank <= 10
@@ -975,13 +886,12 @@
           rankMedals: true
         }));
       });
-      applyAsciiEllipsis(playersCard);
     }
 
     function renderWeekly(weekNum, weekList, lookupRounds, playerToTeam){
-      weeklyTitleEl.innerHTML = `<span class="txt-nudge">Week ${escapeHtml(weekNum)} Top 5</span>`;
-      wkR1.innerHTML = `<span class="txt-nudge">${escapeHtml(weekNum)}-1</span>`;
-      wkR2.innerHTML = `<span class="txt-nudge">${escapeHtml(weekNum)}-2</span>`;
+      weeklyTitleEl.textContent = `Week ${weekNum} Top 5`;
+      wkR1.textContent = `${weekNum}-1`;
+      wkR2.textContent = `${weekNum}-2`;
 
       weeklyList.innerHTML = "";
       weekList.slice(0,5).forEach(p=>{
@@ -1014,38 +924,24 @@
                onerror="this.style.display='none'; this.removeAttribute('src');" />
         ` : "";
 
-        const cleanLabel = normalizeLabel(p.displayName);
-
         nameCell.innerHTML = `
           <span class="team-logo-slot">${logo}</span>
-          <span class="name-text" data-full="${escapeHtml(cleanLabel)}">
-            <span class="txt-nudge">${escapeHtml(cleanLabel)}</span>
-          </span>
+          <span class="name-text">${escapeHtml(p.displayName)}</span>
         `;
 
         row.innerHTML = `
-          <div class="place ${rankClass(p.rank)}">
-            <span class="txt-nudge">${escapeHtml(p.rank)}</span>
-          </div>
+          <div class="place ${rankClass(p.rank)}">${escapeHtml(p.rank)}</div>
           <div class="mid"></div>
-          <div class="weekly-round weekly-hide-mobile">
-            <span class="txt-nudge">${escapeHtml(fmtScore(r1))}</span>
-          </div>
-          <div class="weekly-round weekly-hide-mobile">
-            <span class="txt-nudge">${escapeHtml(fmtScore(r2))}</span>
-          </div>
-          <div class="score-col">
-            <span class="txt-nudge">${escapeHtml(fmtScore(p.score))}</span>
-          </div>
+          <div class="weekly-round weekly-hide-mobile">${escapeHtml(fmtScore(r1))}</div>
+          <div class="weekly-round weekly-hide-mobile">${escapeHtml(fmtScore(r2))}</div>
+          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
         `;
         row.querySelector(".mid").replaceWith(nameCell);
         weeklyList.appendChild(row);
       });
-
-      applyAsciiEllipsis(weeklyCard);
     }
 
-    // ---------------- PNG GENERATION ----------------
+    // ---------------- PNG GENERATION (preview images on page) ----------------
     const EXPORT_SCALE = 4; // high-res
 
     const blobUrlByKey = new Map();
@@ -1060,8 +956,7 @@
 
     async function buildPngBlob(cardEl){
       await waitForImages(cardEl);
-      if (document.fonts && document.fonts.ready) await document.fonts.ready;
-      await nextPaint(); // ✅ ensures line boxes settle
+      await ensureInterReady();
 
       const canvas = await html2canvas(cardEl, {
         scale: EXPORT_SCALE,
@@ -1084,7 +979,10 @@
     }
 
     async function generateAllPreviews(hasLobby){
-      statusEl.innerHTML = `<span class="txt-nudge">Generating PNG previews…</span>`;
+      statusEl.textContent = "Generating PNG previews…";
+
+      // ✅ Critical: ensure fonts are ready BEFORE the first capture
+      await ensureInterReady();
 
       await renderCardToImg(teamsCard, pngTeams, "teams");
       await renderCardToImg(playersCard, pngPlayers, "players");
@@ -1095,7 +993,7 @@
         await renderCardToImg(lobbyCard, pngLobby, "lobby");
       }
 
-      statusEl.innerHTML = `<span class="txt-nudge">Ready</span>`;
+      statusEl.textContent = "Ready";
     }
 
     // ---------------- LOBBY ----------------
@@ -1105,7 +1003,7 @@
     function buildNameResolver(playerStandings){
       const m = new Map();
       const add = (n)=>{
-        const s = normalizeLabel(String(n || "").trim());
+        const s = String(n || "").trim();
         if(!s) return;
         const key = s.toUpperCase();
         if(!m.has(key)) m.set(key, s);
@@ -1135,7 +1033,7 @@
     }
 
     function resolvePlayerName(input){
-      const key = normalizeLabel(String(input || "").trim()).toUpperCase();
+      const key = String(input || "").trim().toUpperCase();
       return state_nameResolver.get(key) || null;
     }
 
@@ -1158,8 +1056,6 @@
                onerror="this.style.display='none'; this.removeAttribute('src');" />
         ` : "";
 
-        const cleanLabel = normalizeLabel(String(name).toUpperCase());
-
         const row = document.createElement("div");
         row.className = "lobby-entry";
 
@@ -1170,9 +1066,7 @@
 
         cell.innerHTML = `
           <span class="team-logo-slot">${logo}</span>
-          <span class="name-text" data-full="${escapeHtml(cleanLabel)}">
-            <span class="txt-nudge">${escapeHtml(cleanLabel)}</span>
-          </span>
+          <span class="name-text">${escapeHtml(String(name).toUpperCase())}</span>
         `;
 
         row.appendChild(cell);
@@ -1180,13 +1074,12 @@
       });
 
       lobbyCard.classList.remove("hidden");
-      applyAsciiEllipsis(lobbyCard);
     }
 
     buildLobbyBtn.addEventListener("click", async ()=>{
       const requested = parseLobbyNames(lobbyInput.value);
       if (!requested.length){
-        lobbyStatus.innerHTML = `<span class="txt-nudge">Please enter at least 1 name.</span>`;
+        lobbyStatus.textContent = "Please enter at least 1 name.";
         return;
       }
 
@@ -1199,7 +1092,7 @@
       }
 
       if (!matched.length){
-        lobbyStatus.innerHTML = `<span class="txt-nudge">No matches found.</span>`;
+        lobbyStatus.textContent = "No matches found.";
         return;
       }
 
@@ -1208,16 +1101,16 @@
       const msg = [];
       msg.push(`Built lobby with ${matched.length} player(s).`);
       if (skipped.length) msg.push(`Skipped: ${skipped.slice(0,6).join(", ")}${skipped.length>6 ? "…" : ""}`);
-      lobbyStatus.innerHTML = `<span class="txt-nudge">${escapeHtml(msg.join(" "))}</span>`;
+      lobbyStatus.textContent = msg.join(" ");
 
       try{
         pngLobbyWrap.classList.remove("hidden");
-        statusEl.innerHTML = `<span class="txt-nudge">Generating lobby PNG…</span>`;
+        statusEl.textContent = "Generating lobby PNG…";
         await renderCardToImg(lobbyCard, pngLobby, "lobby");
-        statusEl.innerHTML = `<span class="txt-nudge">Ready</span>`;
+        statusEl.textContent = "Ready";
       }catch(err){
         console.error(err);
-        statusEl.innerHTML = `<span class="txt-nudge">Lobby PNG failed (see console).</span>`;
+        statusEl.textContent = "Lobby PNG failed (see console).";
       }
     });
 
@@ -1226,7 +1119,7 @@
       const cfg = SEASON_CONFIG[seasonNum] || SEASON_CONFIG[6];
       const sheet = cfg.sheet;
 
-      statusEl.innerHTML = `<span class="txt-nudge">Loading…</span>`;
+      statusEl.textContent = "Loading…";
 
       const ranges = {
         teamStandings: `'${sheet}'!${cfg.teamRank}`,
@@ -1279,10 +1172,10 @@
       if (latestList.length){
         renderWeekly(latestWeek, latestList, lookupRounds, state_playerToTeam);
       } else {
-        weeklyTitleEl.innerHTML = `<span class="txt-nudge">Weekly Top 5</span>`;
-        wkR1.innerHTML = `<span class="txt-nudge">1-1</span>`;
-        wkR2.innerHTML = `<span class="txt-nudge">1-2</span>`;
-        weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;"><span class="txt-nudge">Not posted yet.</span></div>`;
+        weeklyTitleEl.textContent = "Weekly Top 5";
+        wkR1.textContent = "1-1";
+        wkR2.textContent = "1-2";
+        weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
       }
 
       const hasLobby = !lobbyCard.classList.contains("hidden");
@@ -1299,7 +1192,7 @@
         const seasonNum = Number(seasonSelect.value) || 6;
         loadSeason(seasonNum).catch(err=>{
           console.error(err);
-          statusEl.innerHTML = `<span class="txt-nudge">Load failed (see console).</span>`;
+          statusEl.textContent = "Load failed (see console).";
           alert(err.message || "Load failed.");
         });
       });
@@ -1312,7 +1205,7 @@
 
       loadSeason(Number(seasonSelect.value) || 6).catch(err=>{
         console.error(err);
-        statusEl.innerHTML = `<span class="txt-nudge">Load failed (see console).</span>`;
+        statusEl.textContent = "Load failed (see console).";
         alert(err.message || "Load failed.");
       });
     })();
