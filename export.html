@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shotgun Pro League — Export</title>
 
+  <!-- html2canvas for PNG rendering -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
@@ -29,7 +30,7 @@
       --rank-col: 100px;
       --score-col: 120px;
 
-      /* Reduced name column */
+      /* Reduced name column (about half-ish vs prior wide layouts) */
       --name-col: 460px;
 
       /* Weekly */
@@ -129,7 +130,7 @@
       gap: 16px;
     }
 
-    /* Render grid does NOT stretch items */
+    /* Render grid does NOT stretch items (so export targets shrink-wrap) */
     .render-grid{
       display:grid;
       gap: 16px;
@@ -353,7 +354,7 @@
 
     .hidden{ display:none !important; }
 
-    /* Lobby */
+    /* Lobby Builder UI */
     .lobby-grid{
       display:grid;
       grid-template-columns: 1.1fr 0.9fr;
@@ -400,6 +401,22 @@
       .lobby-grid{ grid-template-columns: 1fr; }
     }
 
+    /* ---- ROUND LOBBY: single column rows that match full-row width ---- */
+    .lobby-card .lobby-list{
+      width: calc(var(--rank-col) + var(--name-col) + var(--score-col));
+    }
+    .lobby-entry{
+      height: 48px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+    }
+    .lobby-entry .team-cell{
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+    }
+
     @media (max-width: 760px){
       :root{
         --rank-col: 72px;
@@ -420,6 +437,7 @@
       .score-col{ font-size: 16px; padding: 0 6px; }
       .name-text{ font-size: 16px; }
       .weekly-round{ font-size: 14px; }
+      .lobby-entry{ height: 44px; }
     }
   </style>
 </head>
@@ -481,13 +499,12 @@
         <div id="weeklyList" class="resultsList"></div>
       </div>
 
-      <!-- LOBBY RENDER CARD -->
-      <div id="lobbyCard" class="card export-target hidden" data-export="round-lobby">
+      <!-- LOBBY RENDER CARD (NO HEADER ROW; ONLY TEAM-FORMATTED PLAYER COLUMN) -->
+      <div id="lobbyCard" class="card export-target lobby-card hidden" data-export="round-lobby">
         <div class="card-head">
           <h2 class="h2">ROUND LOBBY</h2>
         </div>
-        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
-        <div id="lobbyList" class="resultsList"></div>
+        <div id="lobbyList" class="resultsList lobby-list"></div>
       </div>
     </div>
 
@@ -846,7 +863,7 @@
     }
 
     // ---------------- EXPORT (RIGHT-CLICK -> OPEN PNG TAB) ----------------
-    const EXPORT_SCALE = 4; // ✅ doubled resolution vs prior (was 2)
+    const EXPORT_SCALE = 4; // ✅ doubled resolution vs the common default 2
 
     async function buildPngBlob(cardEl){
       await waitForImages(cardEl);
@@ -945,27 +962,41 @@
       return state_nameResolver.get(key) || null;
     }
 
+    // ✅ New: lobby rows are ONLY the team-formatted player cell, full-row width
     function renderLobbyCard(names){
       lobbyList.innerHTML = "";
-      names.forEach((name, idx)=>{
-        const rank = idx + 1;
 
+      names.forEach((name)=>{
         const teamName = state_playerToTeam.get(name) || null;
         const style = teamName ? (getTeamStyle(teamName) || {}) : {};
         const bg = style.bg || "rgba(255,255,255,0.08)";
         const fg = style.fg || "#ffffff";
 
-        const standing = state_playerStandingsByName.get(name) || null;
-        const score = standing?.score ?? null;
+        const logo = teamName ? `
+          <img class="team-logo"
+               src="${escapeHtml(teamLogoSrc(teamName))}"
+               crossorigin="anonymous"
+               alt=""
+               loading="eager"
+               decoding="async"
+               onerror="this.style.display='none'; this.removeAttribute('src');" />
+        ` : "";
 
-        lobbyList.appendChild(makeRow({
-          rank,
-          label: String(name).toUpperCase(),
-          score,
-          bg,
-          fg,
-          logoSrc: teamName ? teamLogoSrc(teamName) : null
-        }));
+        const row = document.createElement("div");
+        row.className = "lobby-entry";
+
+        const cell = document.createElement("div");
+        cell.className = "team-cell";
+        cell.style.background = bg;
+        cell.style.color = fg;
+
+        cell.innerHTML = `
+          <span class="team-logo-slot">${logo}</span>
+          <span class="name-text">${escapeHtml(String(name).toUpperCase())}</span>
+        `;
+
+        row.appendChild(cell);
+        lobbyList.appendChild(row);
       });
 
       lobbyCard.classList.remove("hidden");
