@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shotgun Pro League — PNG Export</title>
+
+  <!-- Uses html-to-image for DOM → PNG -->
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+
+      --gold:  #ffd700;
+      --silver:#c0c0c0;
+      --bronze:#cd7f32;
+
+      --logo-slot: 40px;
+      --rank-col: 100px;
+      --score-col: 120px;
+
+      --wk-rank-col: 100px;
+      --wk-round-col: 88px;
+      --wk-score-col: 120px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1200px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65); font-weight:900;}
+
+    .container{
+      max-width:1200px;
+      margin:0 auto;
+      padding: 18px 18px 48px;
+      display:grid;
+      gap: 16px;
+    }
+
+    .card{
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 18px 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .card-head{
+      display:flex;
+      gap:14px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom: 12px;
+    }
+    .h2{
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    /* Main header row + entries */
+    .header-row, .entry{
+      display:grid;
+      grid-template-columns: var(--rank-col) 1fr var(--score-col);
+      align-items:center;
+      min-width: 0;
+    }
+    .header-row{
+      height: 40px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 18px;
+      min-width: 0;
+    }
+    .header-row span:nth-child(2){
+      justify-content:flex-start;
+      padding-left: 18px;
+    }
+
+    .resultsList{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .entry{
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 0;
+    }
+
+    .place{
+      font-size: 22px;
+      font-weight: 900;
+      text-align:center;
+      color: var(--title);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 100%;
+      min-width: 0;
+    }
+    .gold{color:var(--gold);}
+    .silver{color:var(--silver);}
+    .bronze{color:var(--bronze);}
+
+    .team-cell{
+      height: 100%;
+      width: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      padding: 0 12px;
+      border:none;
+      background: rgba(255,255,255,0.08);
+      color:#fff;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      overflow:hidden;
+      border-radius: 0;
+      gap: 0;
+      min-width: 0;
+    }
+
+    .team-logo-slot{
+      width: var(--logo-slot);
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+    .team-logo{
+      height: calc(100% - 10px);
+      width: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: contain;
+      display:block;
+      border:none;
+      outline:none;
+      box-shadow:none;
+    }
+    .name-text{
+      font-size: 20px;
+      font-weight: 950;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-transform: uppercase;
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: left;
+      padding-left: 10px;
+    }
+
+    .score-col{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#d9d9d9;
+      color:#000;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 0 10px;
+      min-width: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Weekly card */
+    .weekly-header-row, .weekly-entry{
+      display:grid;
+      grid-template-columns: var(--wk-rank-col) 1fr var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
+      align-items:center;
+      min-width: 0;
+    }
+    .weekly-header-row{
+      height: 40px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .weekly-header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 18px;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .weekly-header-row span:nth-child(2){
+      justify-content:flex-start;
+      padding-left: 18px;
+    }
+    .weekly-entry{
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 0;
+    }
+    .weekly-round{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,0.06);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 900;
+      min-width: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Export output UI */
+    .exports{
+      display:grid;
+      gap: 16px;
+    }
+    .export-card{
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 12px;
+    }
+    .export-head{
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      align-items:center;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
+    .export-title{
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+    }
+    .btn{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      cursor: pointer;
+      line-height: 1;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.28); }
+
+    .export-img{
+      width: 100%;
+      height: auto;
+      display:block;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.25);
+    }
+
+    .status{
+      font-size: 14px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* The render targets live here; we keep them visible (so layout is exact),
+       but you could also move them offscreen if you want. */
+    .render-grid{
+      display:grid;
+      gap: 16px;
+    }
+
+    @media (max-width: 760px){
+      :root{
+        --rank-col: 72px;
+        --score-col: 82px;
+        --wk-rank-col: 72px;
+        --wk-round-col: 64px;
+        --wk-score-col: 92px;
+        --logo-slot: 34px;
+      }
+      .h2{ font-size: 18px; }
+      .header-row, .weekly-header-row{ height: 36px; font-size: 12px; }
+      .entry, .weekly-entry{ height: 44px; }
+      .place{ font-size: 18px; padding: 0 6px; }
+      .score-col{ font-size: 16px; padding: 0 6px; }
+      .name-text{ font-size: 16px; }
+      .weekly-round{ font-size: 14px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="kicker">Shotgun Pro League — PNG Export</div>
+        <div class="status" id="status">Loading data…</div>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button class="btn" id="regenBtn" type="button">Regenerate PNGs</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- 1) These are the actual DOM cards we render from data -->
+    <div class="render-grid" id="renderGrid">
+      <div id="teamsCard" class="card">
+        <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
+        <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
+        <div id="teamsList" class="resultsList"></div>
+      </div>
+
+      <div id="playersCard" class="card">
+        <div class="card-head"><h2 class="h2">Player Rankings</h2></div>
+        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
+        <div id="playersList" class="resultsList"></div>
+      </div>
+
+      <div id="weeklyCard" class="card">
+        <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
+
+        <div class="weekly-header-row">
+          <span>Rank</span>
+          <span>Player</span>
+          <span id="wkR1">1-1</span>
+          <span id="wkR2">1-2</span>
+          <span>Score</span>
+        </div>
+
+        <div id="weeklyList" class="resultsList"></div>
+      </div>
+    </div>
+
+    <!-- 2) Exported images (right-click save works here) -->
+    <div class="exports" id="exports">
+      <div class="export-card">
+        <div class="export-head">
+          <div class="export-title">TEAM RANKINGS PNG</div>
+          <a class="btn" id="dlTeams" download="team-rankings.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgTeams" alt="Team Rankings PNG" />
+      </div>
+
+      <div class="export-card">
+        <div class="export-head">
+          <div class="export-title">PLAYER RANKINGS PNG</div>
+          <a class="btn" id="dlPlayers" download="player-rankings.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgPlayers" alt="Player Rankings PNG" />
+      </div>
+
+      <div class="export-card">
+        <div class="export-head">
+          <div class="export-title" id="weeklyExportTitle">WEEKLY TOP 5 PNG</div>
+          <a class="btn" id="dlWeekly" download="weekly-top-5.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgWeekly" alt="Weekly Top 5 PNG" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------------- CONFIG ----------------
+    const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+
+    // URL params:
+    // ?season=6&limitTeams=20&limitPlayers=100
+    const qs = new URLSearchParams(location.search);
+    const CURRENT_SEASON = Number(qs.get("season") || 6);
+
+    const LIMIT_TEAMS   = Math.max(1, Number(qs.get("limitTeams")   || 50));
+    const LIMIT_PLAYERS = Math.max(1, Number(qs.get("limitPlayers") || 200));
+
+    const SEASON_CONFIG = {
+      6: { sheet: "Season 6, Stage 1", teamRank: "U4:X15" },
+      5: { sheet: "Season 5",         teamRank: "U4:X15" },
+      4: { sheet: "Season 4",         teamRank: "U4:X13" },
+      3: { sheet: "Season 3",         teamRank: "U4:X12" },
+      2: { sheet: "Season 2",         teamRank: "U4:X11" },
+      1: { sheet: "Season 1",         teamRank: "U4:X10" },
+    };
+
+    const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
+    const RANGE_W1_A1 = "Z4:AC13";
+    const RANGE_W2_A1 = "Z16:AC25";
+    const RANGE_W3_A1 = "Z28:AC37";
+    const RANGE_W4_A1 = "Z40:AC49";
+    const LOOKUP_RANGE_A1 = "A3:S250"; // used to map players -> teams + rounds
+    const ROSTERS_A1 = "A3:S250";      // we’ll parse similarly for team membership
+
+    const TEAM_STYLES = {
+      "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
+      "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000" },
+      "BREAKERS":        { bg: "#f1c232", fg: "#1c4487" },
+      "DAGGERS":         { bg: "#ea9999", fg: "#1d2244" },
+      "SNIPERS":         { bg: "#275318", fg: "#ffe6cd" },
+      "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff" },
+      "INFERNIX":        { bg: "#f6b26b", fg: "#000000" },
+      "INFERNIX*":       { bg: "#f6b26b", fg: "#000000" },
+      "DOUBLE-EAGLES":   { bg: "#1c4487", fg: "#ffffff" },
+      "PHANTOM TROUPE":  { bg: "#674ea7", fg: "#ffffff" },
+      "ASTERISM":        { bg: "#ba2636", fg: "#ffffff" },
+      "CARROTS":         { bg: "#ff9966", fg: "#000000" },
+      "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
+      "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
+      "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
+      "REVERIE":         { bg: "#e2a9f1", fg: "#00357a" },
+    };
+
+    const TEAM_LOGO_DIR = "logos";
+    const TEAM_LOGO_EXT = "png";
+
+    // ---------------- HELPERS ----------------
+    const statusEl = document.getElementById("status");
+
+    function getTeamStyle(name) {
+      if (!name) return null;
+      const key = String(name).trim().toUpperCase();
+      return TEAM_STYLES[key] || null;
+    }
+
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function fetchRange(range){
+      const payload = { sheetId: SHEET_ID, range };
+      // POST first
+      try{
+        const r = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){}
+
+      // fallback GET
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(()=>"");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    function rowHasAnyValue(row){
+      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
+    }
+    function slugify(name){
+      return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+    function toNum(v){
+      const s = String(v ?? "").trim();
+      if(!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // blanks => "-" ; 0 => "E"; positives => +N
+    function fmtScore(v){
+      if (v === null || v === undefined) return "-";
+      const s = String(v).trim();
+      if (s === "") return "-";
+      const n = Number(s);
+      if (!Number.isFinite(n)) return s;
+      if (n === 0 || Object.is(n, -0)) return "E";
+      return n > 0 ? `+${n}` : String(n);
+    }
+
+    function rankClass(rank){
+      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
+
+    function normalizeStandingsGeneric(rows){
+      return (rows || [])
+        .filter(rowHasAnyValue)
+        .map(r=>{
+          const arr = Array.isArray(r) ? r : [];
+          const rank = arr[0];
+          const name = arr.length >= 2 ? arr[arr.length - 2] : "";
+          const score = arr.length >= 1 ? arr[arr.length - 1] : "";
+          if(!rank || !name) return null;
+          return {
+            rank: Number(rank),
+            name: String(name).trim(),
+            displayName: String(name).trim().toUpperCase(),
+            slug: slugify(name),
+            score: (String(score ?? "").trim() !== "") ? Number(score) : null
+          };
+        })
+        .filter(Boolean)
+        .sort((a,b)=>a.rank-b.rank);
+    }
+
+    function teamLogoSrc(teamName){
+      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
+    }
+
+    // Parse roster blocks to map player -> team (good enough for player styling)
+    function parsePlayerTeamMap(values){
+      const cleaned = (values || []).filter(rowHasAnyValue);
+      const playerToTeam = new Map();
+      if (!cleaned.length) return playerToTeam;
+
+      const rows = cleaned.slice(1); // drop header row (like your original)
+      for(let i=0; i<rows.length; i+=5){
+        const teamRow = rows[i] || [];
+        const teamName = String(teamRow[2] ?? "").trim();
+        if(!teamName) continue;
+
+        const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
+        for (const pr of playerRows){
+          const pName = String(pr?.[2] ?? "").trim();
+          if(pName) playerToTeam.set(pName, teamName);
+        }
+      }
+      return playerToTeam;
+    }
+
+    // Parse lookup to get rounds so weekly card can show round1/round2
+    function parseLookupStats(values){
+      const cleaned = (values || []).filter(rowHasAnyValue);
+      const byPlayer = new Map();
+      if(!cleaned.length) return byPlayer;
+
+      const rows = cleaned.slice(1);
+      for (const r of rows){
+        const name = String(r?.[2] ?? "").trim();
+        if(!name) continue;
+
+        const overallRank = toNum(r?.[0]);
+        if (overallRank === null) continue; // skip team header rows
+
+        byPlayer.set(name, {
+          rounds: Array.from({length:8}, (_,k)=> toNum(r?.[11 + k]))
+        });
+      }
+      return byPlayer;
+    }
+
+    function waitForImages(rootEl){
+      const imgs = Array.from(rootEl.querySelectorAll("img"));
+      return Promise.all(imgs.map(img => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise(res => {
+          img.addEventListener("load", res, { once:true });
+          img.addEventListener("error", res, { once:true }); // still resolve so we export something
+        });
+      }));
+    }
+
+    async function domToPngDataUrl(node, bgColor){
+      // Ensure crisp export; bump ratio if you want even higher res.
+      const pixelRatio = 2;
+
+      // html-to-image sometimes misses box-shadow edges; adding a small padding wrapper helps.
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "16px";
+      wrapper.style.background = bgColor || "transparent";
+      wrapper.style.display = "inline-block";
+      wrapper.appendChild(node.cloneNode(true));
+
+      // Put wrapper offscreen for export
+      wrapper.style.position = "fixed";
+      wrapper.style.left = "-100000px";
+      wrapper.style.top = "0";
+      document.body.appendChild(wrapper);
+
+      // Wait for cloned images to load
+      await waitForImages(wrapper);
+
+      const dataUrl = await htmlToImage.toPng(wrapper, {
+        cacheBust: true,
+        pixelRatio,
+        backgroundColor: bgColor || null
+      });
+
+      wrapper.remove();
+      return dataUrl;
+    }
+
+    // ---------------- RENDERERS ----------------
+    const teamsList   = document.getElementById("teamsList");
+    const playersList = document.getElementById("playersList");
+    const weeklyList  = document.getElementById("weeklyList");
+
+    function makeRow({rank, label, score, bg, fg, logoSrc}){
+      const row = document.createElement("div");
+      row.className = "entry";
+
+      const nameCell = document.createElement("div");
+      nameCell.className = "team-cell";
+      nameCell.style.background = bg || "rgba(255,255,255,0.08)";
+      nameCell.style.color = fg || "#ffffff";
+
+      const logo = logoSrc ? `
+        <img class="team-logo"
+             src="${escapeHtml(logoSrc)}"
+             alt=""
+             loading="eager"
+             decoding="async"
+             onerror="this.style.display='none'; this.removeAttribute('src');" />
+      ` : "";
+
+      nameCell.innerHTML = `
+        <span class="team-logo-slot">${logo}</span>
+        <span class="name-text">${escapeHtml(label)}</span>
+      `;
+
+      row.innerHTML = `
+        <div class="place ${rankClass(rank)}">${escapeHtml(rank)}</div>
+        <div class="mid"></div>
+        <div class="score-col">${escapeHtml(fmtScore(score))}</div>
+      `;
+      row.querySelector(".mid").replaceWith(nameCell);
+      return row;
+    }
+
+    function renderTeamsCard(teamStandings){
+      teamsList.innerHTML = "";
+      teamStandings.slice(0, LIMIT_TEAMS).forEach(t=>{
+        const style = getTeamStyle(t.name) || {};
+        teamsList.appendChild(makeRow({
+          rank: t.rank,
+          label: t.displayName,
+          score: t.score,
+          bg: style.bg,
+          fg: style.fg,
+          logoSrc: teamLogoSrc(t.name)
+        }));
+      });
+    }
+
+    function renderPlayersCard(playerStandings, playerToTeam){
+      playersList.innerHTML = "";
+      playerStandings.slice(0, LIMIT_PLAYERS).forEach(p=>{
+        const teamName = playerToTeam.get(p.name) || null;
+        const style = teamName ? (getTeamStyle(teamName) || {}) : {};
+        playersList.appendChild(makeRow({
+          rank: p.rank,
+          label: p.displayName,
+          score: p.score,
+          bg: style.bg,
+          fg: style.fg,
+          logoSrc: teamName ? teamLogoSrc(teamName) : null
+        }));
+      });
+    }
+
+    function renderWeeklyCard(weekNum, weekList, lookupStats, playerToTeam){
+      const weeklyTitle = document.getElementById("weeklyTitle");
+      const wkR1 = document.getElementById("wkR1");
+      const wkR2 = document.getElementById("wkR2");
+      const weeklyExportTitle = document.getElementById("weeklyExportTitle");
+
+      weeklyTitle.textContent = `Week ${weekNum} Top 5`;
+      weeklyExportTitle.textContent = `WEEK ${weekNum} TOP 5 PNG`;
+      wkR1.textContent = `${weekNum}-1`;
+      wkR2.textContent = `${weekNum}-2`;
+
+      weeklyList.innerHTML = "";
+
+      // We draw weekly entries with rounds shown in their own columns.
+      weekList.slice(0,5).forEach(p=>{
+        const stat = lookupStats.get(p.name);
+        const idx1 = (weekNum - 1) * 2;
+        const idx2 = idx1 + 1;
+        const r1 = stat?.rounds?.[idx1] ?? null;
+        const r2 = stat?.rounds?.[idx2] ?? null;
+
+        const teamName = playerToTeam.get(p.name) || null;
+        const style = teamName ? (getTeamStyle(teamName) || {}) : {};
+        const bg = style.bg || "rgba(255,255,255,0.08)";
+        const fg = style.fg || "#ffffff";
+
+        const row = document.createElement("div");
+        row.className = "weekly-entry";
+
+        const nameCell = document.createElement("div");
+        nameCell.className = "team-cell";
+        nameCell.style.background = bg;
+        nameCell.style.color = fg;
+
+        const logo = teamName ? `
+          <img class="team-logo"
+               src="${escapeHtml(teamLogoSrc(teamName))}"
+               alt=""
+               loading="eager"
+               decoding="async"
+               onerror="this.style.display='none'; this.removeAttribute('src');" />
+        ` : "";
+
+        nameCell.innerHTML = `
+          <span class="team-logo-slot">${logo}</span>
+          <span class="name-text">${escapeHtml(p.displayName)}</span>
+        `;
+
+        row.innerHTML = `
+          <div class="place">${escapeHtml(p.rank)}</div>
+          <div class="mid"></div>
+          <div class="weekly-round">${escapeHtml(fmtScore(r1))}</div>
+          <div class="weekly-round">${escapeHtml(fmtScore(r2))}</div>
+          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+        `;
+        row.querySelector(".mid").replaceWith(nameCell);
+        weeklyList.appendChild(row);
+      });
+    }
+
+    // ---------------- MAIN FLOW ----------------
+    async function loadAndRender(){
+      const cfg = SEASON_CONFIG[CURRENT_SEASON] || SEASON_CONFIG[6];
+      const sheet = cfg.sheet;
+
+      statusEl.textContent = "Fetching ranges…";
+
+      const ranges = {
+        teamStandings: `'${sheet}'!${cfg.teamRank}`,
+        playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
+        wk1: `'${sheet}'!${RANGE_W1_A1}`,
+        wk2: `'${sheet}'!${RANGE_W2_A1}`,
+        wk3: `'${sheet}'!${RANGE_W3_A1}`,
+        wk4: `'${sheet}'!${RANGE_W4_A1}`,
+        rosters: `'${sheet}'!${ROSTERS_A1}`,
+        lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+      };
+
+      const [
+        teamRows, playerRows, wk1, wk2, wk3, wk4, rosterRows, lookupRows
+      ] = await Promise.all([
+        fetchRange(ranges.teamStandings),
+        fetchRange(ranges.playerStandings),
+        fetchRange(ranges.wk1),
+        fetchRange(ranges.wk2),
+        fetchRange(ranges.wk3),
+        fetchRange(ranges.wk4),
+        fetchRange(ranges.rosters),
+        fetchRange(ranges.lookup),
+      ]);
+
+      const teamStandings = normalizeStandingsGeneric(teamRows);
+      const playerStandings = normalizeStandingsGeneric(playerRows);
+
+      const playerToTeam = parsePlayerTeamMap(rosterRows);
+      const lookupStats = parseLookupStats(lookupRows);
+
+      const weeklyByWeek = new Map();
+      const w1 = normalizeStandingsGeneric(wk1);
+      const w2 = normalizeStandingsGeneric(wk2);
+      const w3 = normalizeStandingsGeneric(wk3);
+      const w4 = normalizeStandingsGeneric(wk4);
+      if (w1.length) weeklyByWeek.set(1, w1);
+      if (w2.length) weeklyByWeek.set(2, w2);
+      if (w3.length) weeklyByWeek.set(3, w3);
+      if (w4.length) weeklyByWeek.set(4, w4);
+
+      // Choose the "main" weekly: latest week with data
+      const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
+      const latestWeek = weeks.length ? weeks[0] : 1;
+      const latestList = weeklyByWeek.get(latestWeek) || [];
+
+      statusEl.textContent = "Rendering cards…";
+
+      renderTeamsCard(teamStandings);
+      renderPlayersCard(playerStandings, playerToTeam);
+
+      if (latestList.length){
+        renderWeeklyCard(latestWeek, latestList, lookupStats, playerToTeam);
+      } else {
+        // If nothing posted, still render an empty state
+        document.getElementById("weeklyTitle").textContent = "Weekly Top 5";
+        weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
+      }
+
+      // ensure logos loaded before export
+      statusEl.textContent = "Waiting for logos…";
+      await waitForImages(document.getElementById("renderGrid"));
+
+      statusEl.textContent = "Generating PNGs…";
+      await generatePNGs();
+      statusEl.textContent = "Done — right-click images to save.";
+    }
+
+    async function generatePNGs(){
+      const bgColor = null; // set to "#061C3B" if you want a solid background baked into PNG
+
+      const teamsCard   = document.getElementById("teamsCard");
+      const playersCard = document.getElementById("playersCard");
+      const weeklyCard  = document.getElementById("weeklyCard");
+
+      // Export
+      const [teamsUrl, playersUrl, weeklyUrl] = await Promise.all([
+        domToPngDataUrl(teamsCard, bgColor),
+        domToPngDataUrl(playersCard, bgColor),
+        domToPngDataUrl(weeklyCard, bgColor),
+      ]);
+
+      // Set images + download links
+      document.getElementById("imgTeams").src = teamsUrl;
+      document.getElementById("imgPlayers").src = playersUrl;
+      document.getElementById("imgWeekly").src = weeklyUrl;
+
+      document.getElementById("dlTeams").href = teamsUrl;
+      document.getElementById("dlPlayers").href = playersUrl;
+      document.getElementById("dlWeekly").href = weeklyUrl;
+    }
+
+    document.getElementById("regenBtn").addEventListener("click", async ()=>{
+      try{
+        statusEl.textContent = "Regenerating PNGs…";
+        await waitForImages(document.getElementById("renderGrid"));
+        await generatePNGs();
+        statusEl.textContent = "Done — right-click images to save.";
+      }catch(e){
+        statusEl.textContent = "Export failed (see console).";
+        console.error(e);
+      }
+    });
+
+    // boot
+    (async function(){
+      try{
+        await loadAndRender();
+      }catch(e){
+        statusEl.textContent = "Failed to load (see console).";
+        console.error(e);
+        alert(e.message || "Failed to load data.");
+      }
+    })();
+  </script>
+</body>
+</html>
