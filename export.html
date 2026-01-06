@@ -30,7 +30,7 @@
       --rank-col: 100px;
       --score-col: 120px;
 
-      /* ✅ Name column half-width (was 1fr) */
+      /* ✅ Team/Player column reduced (about half of prior feel) */
       --name-col: 480px;
 
       /* Weekly */
@@ -107,7 +107,7 @@
       margin: 0;
     }
 
-    /* ✅ Main header row + entries (name col now fixed width) */
+    /* ✅ Rows with reduced name col */
     .header-row, .entry{
       display:grid;
       grid-template-columns: var(--rank-col) minmax(0, var(--name-col)) var(--score-col);
@@ -235,7 +235,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* ✅ Weekly card (name col now fixed width too) */
+    /* ✅ Weekly with reduced name col */
     .weekly-header-row, .weekly-entry{
       display:grid;
       grid-template-columns: var(--wk-rank-col) minmax(0, var(--wk-name-col)) var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
@@ -288,6 +288,21 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* ✅ Render grid: prevent stretching (removes right-side blank gap) */
+    .render-grid{
+      display:grid;
+      gap: 16px;
+      justify-items: start; /* critical */
+    }
+
+    /* ✅ Export targets shrink-wrap to content width (no blank right side in PNG) */
+    .card.export-target{
+      display: inline-block;
+      width: -moz-fit-content;
+      width: fit-content;
+      max-width: 100%;
+    }
+
     /* Export output UI */
     .exports{
       display:grid;
@@ -314,6 +329,7 @@
       font-size: 12px;
       color: rgba(255,255,255,0.85);
     }
+
     .btn{
       border: 1px solid rgba(255,255,255,.15);
       background: rgba(255,255,255,.06);
@@ -343,12 +359,9 @@
       background: rgba(0,0,0,0.25);
     }
 
-    .render-grid{
-      display:grid;
-      gap: 16px;
-    }
+    .hidden{ display:none !important; }
 
-    /* Lobby input */
+    /* Lobby input (✅ will be placed at bottom in markup) */
     .lobby-grid{
       display:grid;
       grid-template-columns: 1.1fr 0.9fr;
@@ -395,7 +408,6 @@
       color: rgba(255,255,255,0.75);
       font-weight: 800;
     }
-    .hidden{ display:none !important; }
 
     @media (max-width: 860px){
       .lobby-grid{ grid-template-columns: 1fr; }
@@ -432,7 +444,6 @@
         <div class="kicker">Shotgun Pro League — PNG Export</div>
         <div class="status" id="status">Loading data…</div>
       </div>
-
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <button class="btn" id="regenBtn" type="button">Regenerate PNGs</button>
       </div>
@@ -440,8 +451,76 @@
   </div>
 
   <div class="container">
+    <!-- Render targets (these are what get captured to PNG) -->
+    <div class="render-grid" id="renderGrid">
+      <div id="teamsCard" class="card export-target">
+        <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
+        <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
+        <div id="teamsList" class="resultsList"></div>
+      </div>
 
-    <!-- Lobby builder -->
+      <div id="playersCard" class="card export-target">
+        <div class="card-head"><h2 class="h2">Player Rankings</h2></div>
+        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
+        <div id="playersList" class="resultsList"></div>
+      </div>
+
+      <div id="weeklyCard" class="card export-target">
+        <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
+        <div class="weekly-header-row">
+          <span>Rank</span>
+          <span>Player</span>
+          <span id="wkR1">1-1</span>
+          <span id="wkR2">1-2</span>
+          <span>Score</span>
+        </div>
+        <div id="weeklyList" class="resultsList"></div>
+      </div>
+
+      <!-- Lobby render card (hidden until built) -->
+      <div id="lobbyCard" class="card export-target hidden">
+        <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
+        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
+        <div id="lobbyList" class="resultsList"></div>
+      </div>
+    </div>
+
+    <!-- Exported PNG previews (right-click save) + downloads (Blob URLs) -->
+    <div class="exports" id="exports">
+      <div class="export-card">
+        <div class="export-head">
+          <div class="export-title">TEAM RANKINGS PNG</div>
+          <a class="btn" id="dlTeams" download="team-rankings.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgTeams" alt="Team Rankings PNG preview" />
+      </div>
+
+      <div class="export-card">
+        <div class="export-head">
+          <div class="export-title">PLAYER RANKINGS PNG</div>
+          <a class="btn" id="dlPlayers" download="player-rankings.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgPlayers" alt="Player Rankings PNG preview" />
+      </div>
+
+      <div class="export-card">
+        <div class="export-head">
+          <div class="export-title" id="weeklyExportTitle">WEEKLY TOP 5 PNG</div>
+          <a class="btn" id="dlWeekly" download="weekly-top-5.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgWeekly" alt="Weekly Top 5 PNG preview" />
+      </div>
+
+      <div class="export-card hidden" id="exportLobbyBlock">
+        <div class="export-head">
+          <div class="export-title">ROUND LOBBY PNG</div>
+          <a class="btn" id="dlLobby" download="round-lobby.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgLobby" alt="Round Lobby PNG preview" />
+      </div>
+    </div>
+
+    <!-- ✅ ROUND LOBBY feature moved to bottom -->
     <div class="card">
       <div class="card-head">
         <h2 class="h2">Round Lobby Builder</h2>
@@ -460,78 +539,6 @@
           <button class="btn hidden" id="exportLobbyBtn" type="button" style="width:100%; justify-content:center; margin-top:10px;">Export ROUND LOBBY PNG</button>
           <div class="mini-status" id="lobbyStatus">Waiting for input…</div>
         </div>
-      </div>
-    </div>
-
-    <!-- Render targets -->
-    <div class="render-grid" id="renderGrid">
-      <div id="teamsCard" class="card">
-        <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
-        <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
-        <div id="teamsList" class="resultsList"></div>
-      </div>
-
-      <div id="playersCard" class="card">
-        <div class="card-head"><h2 class="h2">Player Rankings</h2></div>
-        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
-        <div id="playersList" class="resultsList"></div>
-      </div>
-
-      <div id="weeklyCard" class="card">
-        <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
-
-        <div class="weekly-header-row">
-          <span>Rank</span>
-          <span>Player</span>
-          <span id="wkR1">1-1</span>
-          <span id="wkR2">1-2</span>
-          <span>Score</span>
-        </div>
-
-        <div id="weeklyList" class="resultsList"></div>
-      </div>
-
-      <!-- ✅ NEW: Lobby render card -->
-      <div id="lobbyCard" class="card hidden">
-        <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
-        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
-        <div id="lobbyList" class="resultsList"></div>
-      </div>
-    </div>
-
-    <!-- Exported images -->
-    <div class="exports" id="exports">
-      <div class="export-card">
-        <div class="export-head">
-          <div class="export-title">TEAM RANKINGS PNG</div>
-          <a class="btn" id="dlTeams" download="team-rankings.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgTeams" alt="Team Rankings PNG" />
-      </div>
-
-      <div class="export-card">
-        <div class="export-head">
-          <div class="export-title">PLAYER RANKINGS PNG</div>
-          <a class="btn" id="dlPlayers" download="player-rankings.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgPlayers" alt="Player Rankings PNG" />
-      </div>
-
-      <div class="export-card">
-        <div class="export-head">
-          <div class="export-title" id="weeklyExportTitle">WEEKLY TOP 5 PNG</div>
-          <a class="btn" id="dlWeekly" download="weekly-top-5.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgWeekly" alt="Weekly Top 5 PNG" />
-      </div>
-
-      <!-- ✅ NEW: Lobby export block -->
-      <div class="export-card hidden" id="exportLobbyBlock">
-        <div class="export-head">
-          <div class="export-title">ROUND LOBBY PNG</div>
-          <a class="btn" id="dlLobby" download="round-lobby.png" href="#">Download</a>
-        </div>
-        <img class="export-img" id="imgLobby" alt="Round Lobby PNG" />
       </div>
     </div>
   </div>
@@ -581,7 +588,7 @@
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
 
-      /* ✅ Ensure REVERIE colors exactly as requested */
+      /* ✅ Ensure REVERIE exactly */
       "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
     };
 
@@ -608,6 +615,7 @@
 
     async function fetchRange(range){
       const payload = { sheetId: SHEET_ID, range };
+
       // POST first
       try{
         const r = await fetch(WORKER_URL, {
@@ -742,7 +750,19 @@
       }));
     }
 
-    async function domToPngDataUrl(node, bgColor){
+    // ---------------- PNG (Blob URL) EXPORT ----------------
+    const _pngUrls = new Map(); // key -> objectURL (for cleanup)
+
+    function setPngOutput(key, objectUrl, imgEl, linkEl) {
+      const prev = _pngUrls.get(key);
+      if (prev) URL.revokeObjectURL(prev);
+
+      _pngUrls.set(key, objectUrl);
+      imgEl.src = objectUrl;
+      linkEl.href = objectUrl;
+    }
+
+    async function domToPngObjectUrl(node, bgColor){
       const pixelRatio = 2;
 
       const wrapper = document.createElement("div");
@@ -757,15 +777,18 @@
       document.body.appendChild(wrapper);
 
       await waitForImages(wrapper);
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      const dataUrl = await htmlToImage.toPng(wrapper, {
+      const blob = await htmlToImage.toBlob(wrapper, {
         cacheBust: true,
         pixelRatio,
-        backgroundColor: bgColor || null
+        backgroundColor: bgColor || null,
       });
 
       wrapper.remove();
-      return dataUrl;
+
+      if (!blob) throw new Error("PNG blob generation failed.");
+      return URL.createObjectURL(blob);
     }
 
     // ---------------- RENDERERS ----------------
@@ -905,16 +928,12 @@
     const lobbyStatus = document.getElementById("lobbyStatus");
 
     const exportLobbyBlock = document.getElementById("exportLobbyBlock");
-    const imgLobby = document.getElementById("imgLobby");
-    const dlLobby = document.getElementById("dlLobby");
 
     // state from loaded data
     let state_playerStandings = [];
     let state_playerStandingsByName = new Map();
     let state_playerToTeam = new Map();
     let state_lookupStats = new Map();
-
-    // case-insensitive resolver
     let state_nameResolver = new Map(); // UPPER -> canonical
 
     function buildNameResolver(){
@@ -925,23 +944,19 @@
         const key = s.toUpperCase();
         if(!m.has(key)) m.set(key, s);
       };
-
       for (const p of state_playerStandings) add(p.name);
       for (const [name] of state_playerToTeam.entries()) add(name);
       for (const [name] of state_lookupStats.entries()) add(name);
-
       state_nameResolver = m;
     }
 
     function parseLobbyNames(text){
       const raw = String(text || "");
-      // split on newlines or commas
       const parts = raw
         .split(/\n|,/g)
         .map(s => s.trim())
         .filter(Boolean);
 
-      // preserve order, remove duplicates (case-insensitive), cap 8
       const seen = new Set();
       const out = [];
       for (const p of parts){
@@ -962,7 +977,6 @@
     function renderLobbyCard(canonicalNames){
       lobbyList.innerHTML = "";
 
-      // Use input order as lobby order (rank = 1..n).
       canonicalNames.forEach((name, idx)=>{
         const rank = idx + 1;
 
@@ -989,14 +1003,16 @@
     }
 
     async function exportLobbyPNG(){
-      // ensure visible + images loaded
       await waitForImages(document.getElementById("renderGrid"));
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      const bgColor = null; // set to "#061C3B" if you want solid background baked in
-      const url = await domToPngDataUrl(lobbyCard, bgColor);
+      const bgColor = null;
+      const objectUrl = await domToPngObjectUrl(lobbyCard, bgColor);
 
-      imgLobby.src = url;
-      dlLobby.href = url;
+      setPngOutput("lobby", objectUrl,
+        document.getElementById("imgLobby"),
+        document.getElementById("dlLobby")
+      );
 
       exportLobbyBlock.classList.remove("hidden");
     }
@@ -1019,7 +1035,7 @@
         }
 
         if(!matched.length){
-          lobbyStatus.textContent = `No matches found.`;
+          lobbyStatus.textContent = "No matches found.";
           exportLobbyBtn.classList.add("hidden");
           return;
         }
@@ -1043,7 +1059,7 @@
       try{
         lobbyStatus.textContent = "Exporting ROUND LOBBY PNG…";
         await exportLobbyPNG();
-        lobbyStatus.textContent = "Export complete — right-click the image to save.";
+        lobbyStatus.textContent = "Export complete — preview and download match exactly.";
       }catch(e){
         console.error(e);
         lobbyStatus.textContent = "Export failed (see console).";
@@ -1097,7 +1113,6 @@
       if (w3.length) weeklyByWeek.set(3, w3);
       if (w4.length) weeklyByWeek.set(4, w4);
 
-      // Pick latest week with data
       const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
       const latestWeek = weeks.length ? weeks[0] : 1;
       const latestList = weeklyByWeek.get(latestWeek) || [];
@@ -1111,6 +1126,7 @@
         renderWeeklyCard(latestWeek, latestList, lookupStats, playerToTeam);
       } else {
         document.getElementById("weeklyTitle").textContent = "Weekly Top 5";
+        document.getElementById("weeklyExportTitle").textContent = "WEEKLY TOP 5 PNG";
         weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
       }
 
@@ -1121,12 +1137,13 @@
       state_playerStandingsByName = new Map(playerStandings.map(p => [p.name, p]));
       buildNameResolver();
 
-      statusEl.textContent = "Waiting for logos…";
+      statusEl.textContent = "Waiting for logos/fonts…";
       await waitForImages(document.getElementById("renderGrid"));
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
       statusEl.textContent = "Generating PNGs…";
       await generatePNGs();
-      statusEl.textContent = "Done — right-click images to save.";
+      statusEl.textContent = "Done — right-click previews to save, or use Download.";
     }
 
     async function generatePNGs(){
@@ -1137,26 +1154,34 @@
       const weeklyCard  = document.getElementById("weeklyCard");
 
       const [teamsUrl, playersUrl, weeklyUrl] = await Promise.all([
-        domToPngDataUrl(teamsCard, bgColor),
-        domToPngDataUrl(playersCard, bgColor),
-        domToPngDataUrl(weeklyCard, bgColor),
+        domToPngObjectUrl(teamsCard, bgColor),
+        domToPngObjectUrl(playersCard, bgColor),
+        domToPngObjectUrl(weeklyCard, bgColor),
       ]);
 
-      document.getElementById("imgTeams").src = teamsUrl;
-      document.getElementById("imgPlayers").src = playersUrl;
-      document.getElementById("imgWeekly").src = weeklyUrl;
+      setPngOutput("teams", teamsUrl,
+        document.getElementById("imgTeams"),
+        document.getElementById("dlTeams")
+      );
 
-      document.getElementById("dlTeams").href = teamsUrl;
-      document.getElementById("dlPlayers").href = playersUrl;
-      document.getElementById("dlWeekly").href = weeklyUrl;
+      setPngOutput("players", playersUrl,
+        document.getElementById("imgPlayers"),
+        document.getElementById("dlPlayers")
+      );
+
+      setPngOutput("weekly", weeklyUrl,
+        document.getElementById("imgWeekly"),
+        document.getElementById("dlWeekly")
+      );
     }
 
     document.getElementById("regenBtn").addEventListener("click", async ()=>{
       try{
         statusEl.textContent = "Regenerating PNGs…";
         await waitForImages(document.getElementById("renderGrid"));
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
         await generatePNGs();
-        statusEl.textContent = "Done — right-click images to save.";
+        statusEl.textContent = "Done — previews and downloads match.";
       }catch(e){
         statusEl.textContent = "Export failed (see console).";
         console.error(e);
