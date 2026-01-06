@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Shotgun Pro League — Export</title>
+  <title>Shotgun Pro League — PNG Exports</title>
 
   <!-- html2canvas for PNG rendering -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -16,6 +16,7 @@
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
       --header-bg: rgba(148,163,184,0.12);
       --row-bg: rgba(255,255,255,0.06);
+
       --text: #e9eef8;
       --title: #c7d7ff;
       --muted: #9ca3c7;
@@ -26,18 +27,18 @@
 
       --logo-slot: 40px;
 
-      /* Columns */
+      /* Columns (reduced name column) */
       --rank-col: 100px;
       --score-col: 120px;
-
-      /* Reduced name column (about half-ish vs prior wide layouts) */
       --name-col: 460px;
 
       /* Weekly */
       --wk-rank-col: 100px;
       --wk-round-col: 88px;
       --wk-score-col: 120px;
-      --wk-name-col: 460px;
+      /* ✅ make weekly total width match the other cards:
+         rank + wk-name + r1 + r2 + score == rank + name + score */
+      --wk-name-col: calc(var(--name-col) - var(--wk-round-col) - var(--wk-round-col));
     }
 
     *{ box-sizing:border-box; }
@@ -130,11 +131,38 @@
       gap: 16px;
     }
 
-    /* Render grid does NOT stretch items (so export targets shrink-wrap) */
-    .render-grid{
+    /* ---------------- PNG PREVIEW GRID (right-click save image) ---------------- */
+    .png-grid{
       display:grid;
       gap: 16px;
       justify-items: start;
+    }
+    .png-wrap{
+      display:inline-block;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .png-img{
+      display:block;
+      width: auto;
+      max-width: 100%;
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+      user-select: none;
+      -webkit-user-drag: none;
+      cursor: context-menu;
+    }
+
+    /* ---------------- HIDDEN RENDER SURFACE ---------------- */
+    .render-surface{
+      position:absolute;
+      left:-10000px;
+      top:0;
+      width: max-content;
+      height: max-content;
+      opacity: 0;
+      pointer-events:none;
     }
 
     .card{
@@ -143,18 +171,8 @@
       padding: 18px 18px;
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,0.08);
+      width: fit-content; /* shrink-wrap content so no right gap */
     }
-
-    /* Export targets shrink-wrap to content width (no right blank) */
-    .export-target{
-      display:inline-block;
-      width: -moz-fit-content;
-      width: fit-content;
-      max-width: 100%;
-      cursor: context-menu;
-    }
-    .export-target:active{ transform: translateY(1px); }
-
     .card-head{
       display:flex;
       gap:14px;
@@ -172,7 +190,7 @@
       margin: 0;
     }
 
-    /* Rows with reduced name col */
+    /* Rows */
     .header-row, .entry{
       display:grid;
       grid-template-columns: var(--rank-col) minmax(0, var(--name-col)) var(--score-col);
@@ -211,7 +229,7 @@
 
     .entry{
       height: 48px;
-      background: rgba(255,255,255,0.06);
+      background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
       font-size: 18px;
@@ -230,11 +248,13 @@
       padding: 0 10px;
       height: 100%;
       min-width: 0;
+      line-height: 1; /* ✅ helps vertical centering feel */
     }
     .gold{color:var(--gold);}
     .silver{color:var(--silver);}
     .bronze{color:var(--bronze);}
 
+    /* ✅ vertical centering fixes: force line-height + flex centering for text */
     .team-cell{
       height: 100%;
       width: 100%;
@@ -251,8 +271,8 @@
       overflow:hidden;
       gap: 0;
       min-width: 0;
+      line-height: 1; /* ✅ */
     }
-
     .team-logo-slot{
       width: var(--logo-slot);
       height: 100%;
@@ -275,14 +295,19 @@
     .name-text{
       font-size: 20px;
       font-weight: 950;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
       text-transform: uppercase;
       flex: 1 1 auto;
       min-width: 0;
-      text-align: left;
       padding-left: 10px;
+
+      /* ✅ centers glyph box vertically */
+      display:flex;
+      align-items:center;
+      line-height: 1;   /* ✅ */
+      height: 100%;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
     }
 
     .score-col{
@@ -297,6 +322,7 @@
       padding: 0 10px;
       min-width: 0;
       font-variant-numeric: tabular-nums;
+      line-height: 1; /* ✅ */
     }
 
     /* Weekly */
@@ -332,7 +358,7 @@
     }
     .weekly-entry{
       height: 48px;
-      background: rgba(255,255,255,0.06);
+      background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
       font-size: 18px;
@@ -350,6 +376,7 @@
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
+      line-height: 1; /* ✅ */
     }
 
     .hidden{ display:none !important; }
@@ -396,12 +423,11 @@
       font-weight: 800;
       line-height: 1.35;
     }
-
     @media (max-width: 860px){
       .lobby-grid{ grid-template-columns: 1fr; }
     }
 
-    /* ---- ROUND LOBBY: single column rows that match full-row width ---- */
+    /* ---- ROUND LOBBY (render card): single column rows matching full row width ---- */
     .lobby-card .lobby-list{
       width: calc(var(--rank-col) + var(--name-col) + var(--score-col));
     }
@@ -409,7 +435,7 @@
       height: 48px;
       border-radius: 10px;
       overflow: hidden;
-      background: rgba(255,255,255,0.06);
+      background: var(--row-bg);
     }
     .lobby-entry .team-cell{
       width: 100%;
@@ -426,7 +452,7 @@
         --wk-rank-col: 72px;
         --wk-round-col: 64px;
         --wk-score-col: 92px;
-        --wk-name-col: 240px;
+        --wk-name-col: calc(var(--name-col) - var(--wk-round-col) - var(--wk-round-col));
 
         --logo-slot: 34px;
       }
@@ -446,7 +472,7 @@
   <div class="topbar">
     <div class="topbar-inner">
       <div>
-        <div class="kicker">Shotgun Pro League — Exports</div>
+        <div class="kicker">Shotgun Pro League — PNG Exports</div>
         <div class="status" id="status">Loading…</div>
       </div>
 
@@ -465,46 +491,22 @@
   </div>
 
   <div class="container">
-    <div class="render-grid" id="renderGrid">
-      <!-- TEAMS -->
-      <div id="teamsCard" class="card export-target" data-export="team-rankings">
-        <div class="card-head">
-          <h2 class="h2">Team Rankings</h2>
-        </div>
-        <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
-        <div id="teamsList" class="resultsList"></div>
+    <!-- ✅ These are the actual images you can right-click and Save Image As -->
+    <div class="png-grid" id="pngGrid">
+      <div class="png-wrap">
+        <img id="pngTeams" class="png-img" alt="Team Rankings PNG" />
       </div>
 
-      <!-- PLAYERS -->
-      <div id="playersCard" class="card export-target" data-export="player-rankings">
-        <div class="card-head">
-          <h2 class="h2">Player Rankings</h2>
-        </div>
-        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
-        <div id="playersList" class="resultsList"></div>
+      <div class="png-wrap">
+        <img id="pngPlayers" class="png-img" alt="Player Rankings PNG" />
       </div>
 
-      <!-- WEEKLY -->
-      <div id="weeklyCard" class="card export-target" data-export="weekly-top-5">
-        <div class="card-head">
-          <h2 class="h2" id="weeklyTitle">Weekly Top 5</h2>
-        </div>
-        <div class="weekly-header-row">
-          <span>Rank</span>
-          <span>Player</span>
-          <span id="wkR1">1-1</span>
-          <span id="wkR2">1-2</span>
-          <span>Score</span>
-        </div>
-        <div id="weeklyList" class="resultsList"></div>
+      <div class="png-wrap">
+        <img id="pngWeekly" class="png-img" alt="Weekly Top 5 PNG" />
       </div>
 
-      <!-- LOBBY RENDER CARD (NO HEADER ROW; ONLY TEAM-FORMATTED PLAYER COLUMN) -->
-      <div id="lobbyCard" class="card export-target lobby-card hidden" data-export="round-lobby">
-        <div class="card-head">
-          <h2 class="h2">ROUND LOBBY</h2>
-        </div>
-        <div id="lobbyList" class="resultsList lobby-list"></div>
+      <div class="png-wrap hidden" id="pngLobbyWrap">
+        <img id="pngLobby" class="png-img" alt="Round Lobby PNG" />
       </div>
     </div>
 
@@ -526,11 +528,37 @@
         <div class="lobby-box">
           <div class="lobby-label">Status</div>
           <div class="mini-status" id="lobbyStatus">Waiting for input…</div>
-          <div class="mini-status" style="opacity:.8;">
-            Tip: Right-click the ROUND LOBBY card after it appears to open a high-res PNG.
-          </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Hidden render surface used only for generating PNGs -->
+  <div class="render-surface" aria-hidden="true">
+    <div id="teamsCard" class="card">
+      <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
+      <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
+      <div id="teamsList" class="resultsList"></div>
+    </div>
+
+    <div id="playersCard" class="card">
+      <div class="card-head"><h2 class="h2">Player Rankings</h2></div>
+      <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
+      <div id="playersList" class="resultsList"></div>
+    </div>
+
+    <div id="weeklyCard" class="card">
+      <div class="card-head"><h2 class="h2" id="weeklyTitle">Weekly Top 5</h2></div>
+      <div class="weekly-header-row">
+        <span>Rank</span><span>Player</span><span id="wkR1">1-1</span><span id="wkR2">1-2</span><span>Score</span>
+      </div>
+      <div id="weeklyList" class="resultsList"></div>
+    </div>
+
+    <!-- LOBBY RENDER CARD (NO HEADER ROW; ONLY TEAM-FORMATTED PLAYER COLUMN) -->
+    <div id="lobbyCard" class="card lobby-card hidden">
+      <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
+      <div id="lobbyList" class="resultsList lobby-list"></div>
     </div>
   </div>
 
@@ -582,19 +610,30 @@
     const seasonSelect = document.getElementById("seasonSelect");
     const reloadBtn = document.getElementById("reloadBtn");
 
+    // render targets (hidden)
+    const teamsCard   = document.getElementById("teamsCard");
+    const playersCard = document.getElementById("playersCard");
+    const weeklyCard  = document.getElementById("weeklyCard");
+    const lobbyCard   = document.getElementById("lobbyCard");
+
     const teamsList   = document.getElementById("teamsList");
     const playersList = document.getElementById("playersList");
     const weeklyList  = document.getElementById("weeklyList");
-
     const weeklyTitle = document.getElementById("weeklyTitle");
     const wkR1 = document.getElementById("wkR1");
     const wkR2 = document.getElementById("wkR2");
 
-    const lobbyCard = document.getElementById("lobbyCard");
     const lobbyList = document.getElementById("lobbyList");
     const lobbyInput = document.getElementById("lobbyInput");
     const buildLobbyBtn = document.getElementById("buildLobbyBtn");
     const lobbyStatus = document.getElementById("lobbyStatus");
+
+    // png previews (visible)
+    const pngTeams  = document.getElementById("pngTeams");
+    const pngPlayers= document.getElementById("pngPlayers");
+    const pngWeekly = document.getElementById("pngWeekly");
+    const pngLobbyWrap = document.getElementById("pngLobbyWrap");
+    const pngLobby  = document.getElementById("pngLobby");
 
     // ---------------- HELPERS ----------------
     function escapeHtml(s){
@@ -636,7 +675,7 @@
     }
     function teamLogoSrc(teamName){
       const rel = `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
-      return new URL(rel, location.href).href;
+      return new URL(rel, location.href).href; // absolute for canvas safety
     }
 
     function normalizeValues(resp){
@@ -793,9 +832,11 @@
       });
     }
 
+    // ✅ top 10 ranks (including ties) => rank <= 10
     function renderPlayers(playerStandings, playerToTeam){
       playersList.innerHTML = "";
-      playerStandings.forEach(p=>{
+      const top10 = (playerStandings || []).filter(p => Number(p.rank) <= 10);
+      top10.forEach(p=>{
         const teamName = playerToTeam.get(p.name) || null;
         const style = teamName ? (getTeamStyle(teamName) || {}) : {};
         playersList.appendChild(makeRow({
@@ -862,8 +903,18 @@
       });
     }
 
-    // ---------------- EXPORT (RIGHT-CLICK -> OPEN PNG TAB) ----------------
-    const EXPORT_SCALE = 4; // ✅ doubled resolution vs the common default 2
+    // ---------------- PNG GENERATION (preview images on page) ----------------
+    const EXPORT_SCALE = 4; // ✅ doubled-ish resolution
+
+    const blobUrlByKey = new Map();
+    function setPreviewImgSrc(key, imgEl, blobUrl){
+      const prev = blobUrlByKey.get(key);
+      if (prev && prev !== blobUrl){
+        try{ URL.revokeObjectURL(prev); }catch(e){}
+      }
+      blobUrlByKey.set(key, blobUrl);
+      imgEl.src = blobUrl;
+    }
 
     async function buildPngBlob(cardEl){
       await waitForImages(cardEl);
@@ -883,45 +934,30 @@
       return blob;
     }
 
-    async function openPngInNewTab(cardEl, filenameBase){
+    async function renderCardToImg(cardEl, imgEl, key){
       const blob = await buildPngBlob(cardEl);
       const url = URL.createObjectURL(blob);
-
-      const w = window.open(url, "_blank");
-      if (!w) {
-        // popup blocked -> fallback download
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${filenameBase}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(()=>URL.revokeObjectURL(url), 10_000);
-        return;
-      }
-
-      setTimeout(()=>URL.revokeObjectURL(url), 60_000);
+      setPreviewImgSrc(key, imgEl, url);
     }
 
-    function setupCardExport(cardEl){
-      const filenameBase = cardEl.getAttribute("data-export") || "export";
+    async function generateAllPreviews(hasLobby){
+      statusEl.textContent = "Generating PNG previews…";
 
-      cardEl.addEventListener("contextmenu", async (e)=>{
-        e.preventDefault();
-        try{
-          statusEl.textContent = `Generating PNG (${filenameBase})…`;
-          await openPngInNewTab(cardEl, filenameBase);
-          statusEl.textContent = `PNG ready (${filenameBase}).`;
-        }catch(err){
-          console.error(err);
-          statusEl.textContent = `PNG failed (${filenameBase}).`;
-          alert(`PNG export failed.\n\nDetails: ${err.message || err}`);
-        }
-      });
+      await renderCardToImg(teamsCard, pngTeams, "teams");
+      statusEl.textContent = "Generating PNG previews… (2/3)";
+      await renderCardToImg(playersCard, pngPlayers, "players");
+      statusEl.textContent = "Generating PNG previews… (3/3)";
+      await renderCardToImg(weeklyCard, pngWeekly, "weekly");
+
+      if (hasLobby){
+        pngLobbyWrap.classList.remove("hidden");
+        await renderCardToImg(lobbyCard, pngLobby, "lobby");
+      }
+
+      statusEl.textContent = "Ready — right-click any image above and Save Image As…";
     }
 
     // ---------------- LOBBY ----------------
-    let state_playerStandingsByName = new Map();
     let state_playerToTeam = new Map();
     let state_nameResolver = new Map();
 
@@ -962,7 +998,6 @@
       return state_nameResolver.get(key) || null;
     }
 
-    // ✅ New: lobby rows are ONLY the team-formatted player cell, full-row width
     function renderLobbyCard(names){
       lobbyList.innerHTML = "";
 
@@ -1000,10 +1035,9 @@
       });
 
       lobbyCard.classList.remove("hidden");
-      setupCardExport(lobbyCard);
     }
 
-    buildLobbyBtn.addEventListener("click", ()=>{
+    buildLobbyBtn.addEventListener("click", async ()=>{
       const requested = parseLobbyNames(lobbyInput.value);
       if (!requested.length){
         lobbyStatus.textContent = "Please enter at least 1 name.";
@@ -1029,6 +1063,17 @@
       msg.push(`Built lobby with ${matched.length} player(s).`);
       if (skipped.length) msg.push(`Skipped: ${skipped.slice(0,6).join(", ")}${skipped.length>6 ? "…" : ""}`);
       lobbyStatus.textContent = msg.join(" ");
+
+      // refresh lobby PNG only (keep others)
+      try{
+        pngLobbyWrap.classList.remove("hidden");
+        statusEl.textContent = "Generating lobby PNG…";
+        await renderCardToImg(lobbyCard, pngLobby, "lobby");
+        statusEl.textContent = "Ready — right-click any image above and Save Image As…";
+      }catch(err){
+        console.error(err);
+        statusEl.textContent = "Lobby PNG failed (see console).";
+      }
     });
 
     // ---------------- MAIN LOAD ----------------
@@ -1063,12 +1108,14 @@
       ]);
 
       const teamStandings = normalizeStandingsGeneric(teamRows);
-      const playerStandings = normalizeStandingsGeneric(playerRows);
+      const playerStandingsAll = normalizeStandingsGeneric(playerRows);
 
+      // state maps
       state_playerToTeam = parsePlayerTeamMap(rosterRows);
       const lookupRounds = parseLookupRounds(lookupRows);
+      buildNameResolver(playerStandingsAll);
 
-      // Weekly: pick latest posted week
+      // weekly: latest posted week
       const weeklyByWeek = new Map();
       const w1 = normalizeStandingsGeneric(wk1);
       const w2 = normalizeStandingsGeneric(wk2);
@@ -1083,10 +1130,9 @@
       const latestWeek = weeks.length ? weeks[0] : 1;
       const latestList = weeklyByWeek.get(latestWeek) || [];
 
-      statusEl.textContent = "Rendering cards…";
-
+      // render hidden cards
       renderTeams(teamStandings);
-      renderPlayers(playerStandings, state_playerToTeam);
+      renderPlayers(playerStandingsAll, state_playerToTeam);
 
       if (latestList.length){
         renderWeekly(latestWeek, latestList, lookupRounds, state_playerToTeam);
@@ -1097,16 +1143,9 @@
         weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
       }
 
-      // Lobby name resolution
-      state_playerStandingsByName = new Map(playerStandings.map(p => [p.name, p]));
-      buildNameResolver(playerStandings);
-
-      // Setup export on top cards
-      setupCardExport(document.getElementById("teamsCard"));
-      setupCardExport(document.getElementById("playersCard"));
-      setupCardExport(document.getElementById("weeklyCard"));
-
-      statusEl.textContent = `Ready — right-click any rankings card to open a ${EXPORT_SCALE}x PNG.`;
+      // regenerate previews (lobby optional)
+      const hasLobby = !lobbyCard.classList.contains("hidden");
+      await generateAllPreviews(hasLobby);
     }
 
     // boot
