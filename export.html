@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shotgun Pro League — PNG Exports</title>
 
+  <!-- ✅ Load Inter (prevents per-glyph/system fallback metric shifts) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+
   <!-- html2canvas for PNG rendering -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
@@ -41,17 +46,22 @@
       /* Mobile weekly: no rounds => name fills full name-col */
       --wk-name-col-mobile: var(--name-col);
 
-      /* ✅ Text-only nudge (applied to inner span only) */
-      --text-nudge: -2px; /* tweak: -1px, -1.25px, -1.75px */
+      /* ✅ Text-only nudge (inner spans only) */
+      --text-nudge: -2px;
+
+      /* Manual ellipsis (ASCII) */
+      --ellipsis: "...";
     }
 
     *{ box-sizing:border-box; }
+
     body{
       margin:0;
       min-height:100vh;
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+      font-synthesis: none; /* avoid weight synthesis differences */
     }
 
     .topbar{
@@ -105,6 +115,8 @@
       font-size: 12px;
       cursor:pointer;
       outline:none;
+      font-family: inherit;
+      font-synthesis: none;
     }
     .btn{
       border: 1px solid rgba(255,255,255,.15);
@@ -124,6 +136,8 @@
       justify-content:center;
       gap: 8px;
       user-select:none;
+      font-family: inherit;
+      font-synthesis: none;
     }
     .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.28); }
 
@@ -192,6 +206,7 @@
       letter-spacing: .035em;
       text-transform: uppercase;
       margin: 0;
+      font-synthesis: none;
     }
 
     /* Rows */
@@ -217,8 +232,9 @@
       align-items:center;
       justify-content:center;
       padding: 0 10px;
-      height: 18px; /* restore original */
+      height: 18px;
       min-width: 0;
+      line-height: 1;
     }
     .header-row span:nth-child(2){
       justify-content:flex-start;
@@ -232,7 +248,7 @@
     }
 
     .entry{
-      height: 48px; /* restore original */
+      height: 48px;
       background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
@@ -253,6 +269,7 @@
       justify-content:center;
       height: 100%;
       line-height: 1;
+      font-synthesis: none;
     }
     .gold{color:var(--gold);}
     .silver{color:var(--silver);}
@@ -274,6 +291,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
+      font-synthesis: none;
     }
     .team-logo-slot{
       width: var(--logo-slot);
@@ -294,6 +312,8 @@
       outline:none;
       box-shadow:none;
     }
+
+    /* ✅ Stop native ellipsis glyph; we manually ellipsize with ASCII '...' */
     .name-text{
       font-size: 20px;
       font-weight: 950;
@@ -303,11 +323,12 @@
       padding-left: 10px;
       white-space:nowrap;
       overflow:hidden;
-      text-overflow:ellipsis;
+      text-overflow: clip;
       display:flex;
       align-items:center;
       height: 100%;
       line-height: 1;
+      font-synthesis: none;
     }
 
     .score-col{
@@ -323,6 +344,7 @@
       justify-content:center;
       height: 100%;
       line-height: 1;
+      font-synthesis: none;
     }
 
     /* Weekly (desktop default: includes rounds) */
@@ -348,16 +370,17 @@
       align-items:center;
       justify-content:center;
       padding: 0 10px;
-      height: 18px; /* restore original */
+      height: 18px;
       white-space: nowrap;
       min-width: 0;
+      line-height: 1;
     }
     .weekly-header-row span:nth-child(2){
       justify-content:flex-start;
       padding-left: 18px;
     }
     .weekly-entry{
-      height: 48px; /* restore original */
+      height: 48px;
       background: var(--row-bg);
       border-radius: 10px;
       overflow:hidden;
@@ -377,6 +400,7 @@
       justify-content:center;
       height: 100%;
       line-height: 1;
+      font-synthesis: none;
     }
 
     /* ✅ Mobile weekly: hide rounds; 3 columns only; keep width consistent */
@@ -423,6 +447,8 @@
       font-weight: 800;
       letter-spacing: .02em;
       line-height: 1.35;
+      font-family: inherit;
+      font-synthesis: none;
     }
     .mini-status{
       margin-top: 10px;
@@ -440,7 +466,7 @@
       width: calc(var(--rank-col) + var(--name-col) + var(--score-col));
     }
     .lobby-entry{
-      height: 48px; /* match row height */
+      height: 48px;
       border-radius: 10px;
       overflow: hidden;
       background: var(--row-bg);
@@ -473,11 +499,17 @@
     }
 
     /* =========================================================
-       TEXT NUDGE — APPLY TO INNER TEXT ONLY (NO CLIPPING)
+       ✅ TEXT NUDGE — stable 1em box so font metrics don't shift rows
+       (affects paint only; doesn't change row geometry)
        ========================================================= */
     .txt-nudge{
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      height: 1em;
+      line-height: 1;
       transform: translateY(var(--text-nudge));
+      vertical-align: middle;
+      font-synthesis: none;
     }
   </style>
 </head>
@@ -617,7 +649,7 @@
       "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" }, // ✅ exact
+      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" }, // exact
     };
 
     // ---------------- DOM ----------------
@@ -693,6 +725,15 @@
       return new URL(rel, location.href).href;
     }
 
+    // ✅ Normalize to avoid “smart punctuation” triggering fallback in some environments
+    function normalizeLabel(s){
+      return String(s ?? "")
+        .normalize("NFKC")
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/[–—]/g, "-");
+    }
+
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -736,11 +777,12 @@
           const name = arr.length >= 2 ? arr[arr.length - 2] : "";
           const score = arr.length >= 1 ? arr[arr.length - 1] : "";
           if(!rank || !name) return null;
+          const clean = normalizeLabel(String(name).trim());
           return {
             rank: Number(rank),
-            name: String(name).trim(),
-            displayName: String(name).trim().toUpperCase(),
-            slug: slugify(name),
+            name: clean,
+            displayName: clean.toUpperCase(),
+            slug: slugify(clean),
             score: (String(score ?? "").trim() !== "") ? Number(score) : null
           };
         })
@@ -756,12 +798,12 @@
       const rows = cleaned.slice(1);
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
-        const teamName = String(teamRow[2] ?? "").trim();
+        const teamName = normalizeLabel(String(teamRow[2] ?? "").trim());
         if(!teamName) continue;
 
         const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
         for (const pr of playerRows){
-          const pName = String(pr?.[2] ?? "").trim();
+          const pName = normalizeLabel(String(pr?.[2] ?? "").trim());
           if(pName) playerToTeam.set(pName, teamName);
         }
       }
@@ -775,7 +817,7 @@
 
       const rows = cleaned.slice(1);
       for (const r of rows){
-        const name = String(r?.[2] ?? "").trim();
+        const name = normalizeLabel(String(r?.[2] ?? "").trim());
         if(!name) continue;
         const overallRank = toNum(r?.[0]);
         if (overallRank === null) continue;
@@ -793,6 +835,65 @@
           img.addEventListener("error", res, { once:true });
         });
       }));
+    }
+
+    // ✅ ensure layout settled before capture
+    async function nextPaint(){
+      await new Promise(r => requestAnimationFrame(r));
+      await new Promise(r => requestAnimationFrame(r));
+    }
+
+    // ---------------- MANUAL ASCII ELLIPSIS ----------------
+    const _fitCanvas = document.createElement("canvas");
+    const _fitCtx = _fitCanvas.getContext("2d");
+
+    function canvasFontFrom(el){
+      const cs = getComputedStyle(el);
+      // include style/weight/size/family for accurate measurement
+      return `${cs.fontStyle} ${cs.fontVariant} ${cs.fontWeight} ${cs.fontSize} / ${cs.lineHeight} ${cs.fontFamily}`;
+    }
+
+    function getInnerTextWidth(nameEl){
+      const cs = getComputedStyle(nameEl);
+      const pl = parseFloat(cs.paddingLeft) || 0;
+      const pr = parseFloat(cs.paddingRight) || 0;
+      return Math.max(0, nameEl.clientWidth - pl - pr);
+    }
+
+    function applyAsciiEllipsis(root){
+      // For every .name-text, we trim the inner .txt-nudge to fit using "..."
+      root.querySelectorAll(".name-text").forEach(nameEl=>{
+        const span = nameEl.querySelector(".txt-nudge");
+        if (!span) return;
+
+        const full = nameEl.getAttribute("data-full") || span.textContent || "";
+        nameEl.setAttribute("data-full", full);
+
+        const maxW = getInnerTextWidth(nameEl);
+        if (!maxW) return;
+
+        _fitCtx.font = canvasFontFrom(nameEl);
+
+        if (_fitCtx.measureText(full).width <= maxW){
+          span.textContent = full;
+          return;
+        }
+
+        const dots = getComputedStyle(document.documentElement).getPropertyValue("--ellipsis").trim() || "...";
+        const dotsW = _fitCtx.measureText(dots).width;
+
+        // binary search best cut
+        let lo = 0, hi = full.length;
+        while (lo < hi){
+          const mid = Math.ceil((lo + hi) / 2);
+          const s = full.slice(0, mid);
+          if (_fitCtx.measureText(s).width + dotsW <= maxW) lo = mid;
+          else hi = mid - 1;
+        }
+
+        const cut = full.slice(0, Math.max(0, lo));
+        span.textContent = cut + dots;
+      });
     }
 
     // ---------------- RENDER ----------------
@@ -818,9 +919,13 @@
              onerror="this.style.display='none'; this.removeAttribute('src');" />
       ` : "";
 
+      const cleanLabel = normalizeLabel(label);
+
       nameCell.innerHTML = `
         <span class="team-logo-slot">${logo}</span>
-        <span class="name-text"><span class="txt-nudge">${escapeHtml(label)}</span></span>
+        <span class="name-text" data-full="${escapeHtml(cleanLabel)}">
+          <span class="txt-nudge">${escapeHtml(cleanLabel)}</span>
+        </span>
       `;
 
       row.innerHTML = `
@@ -850,6 +955,7 @@
           rankMedals: true
         }));
       });
+      applyAsciiEllipsis(teamsCard);
     }
 
     // top 10 ranks (including ties) => rank <= 10
@@ -869,10 +975,10 @@
           rankMedals: true
         }));
       });
+      applyAsciiEllipsis(playersCard);
     }
 
     function renderWeekly(weekNum, weekList, lookupRounds, playerToTeam){
-      // weekly title has inner span; update that for nudge consistency
       weeklyTitleEl.innerHTML = `<span class="txt-nudge">Week ${escapeHtml(weekNum)} Top 5</span>`;
       wkR1.innerHTML = `<span class="txt-nudge">${escapeHtml(weekNum)}-1</span>`;
       wkR2.innerHTML = `<span class="txt-nudge">${escapeHtml(weekNum)}-2</span>`;
@@ -908,9 +1014,13 @@
                onerror="this.style.display='none'; this.removeAttribute('src');" />
         ` : "";
 
+        const cleanLabel = normalizeLabel(p.displayName);
+
         nameCell.innerHTML = `
           <span class="team-logo-slot">${logo}</span>
-          <span class="name-text"><span class="txt-nudge">${escapeHtml(p.displayName)}</span></span>
+          <span class="name-text" data-full="${escapeHtml(cleanLabel)}">
+            <span class="txt-nudge">${escapeHtml(cleanLabel)}</span>
+          </span>
         `;
 
         row.innerHTML = `
@@ -931,9 +1041,11 @@
         row.querySelector(".mid").replaceWith(nameCell);
         weeklyList.appendChild(row);
       });
+
+      applyAsciiEllipsis(weeklyCard);
     }
 
-    // ---------------- PNG GENERATION (preview images on page) ----------------
+    // ---------------- PNG GENERATION ----------------
     const EXPORT_SCALE = 4; // high-res
 
     const blobUrlByKey = new Map();
@@ -949,6 +1061,7 @@
     async function buildPngBlob(cardEl){
       await waitForImages(cardEl);
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      await nextPaint(); // ✅ ensures line boxes settle
 
       const canvas = await html2canvas(cardEl, {
         scale: EXPORT_SCALE,
@@ -992,7 +1105,7 @@
     function buildNameResolver(playerStandings){
       const m = new Map();
       const add = (n)=>{
-        const s = String(n || "").trim();
+        const s = normalizeLabel(String(n || "").trim());
         if(!s) return;
         const key = s.toUpperCase();
         if(!m.has(key)) m.set(key, s);
@@ -1022,7 +1135,7 @@
     }
 
     function resolvePlayerName(input){
-      const key = String(input || "").trim().toUpperCase();
+      const key = normalizeLabel(String(input || "").trim()).toUpperCase();
       return state_nameResolver.get(key) || null;
     }
 
@@ -1045,6 +1158,8 @@
                onerror="this.style.display='none'; this.removeAttribute('src');" />
         ` : "";
 
+        const cleanLabel = normalizeLabel(String(name).toUpperCase());
+
         const row = document.createElement("div");
         row.className = "lobby-entry";
 
@@ -1055,7 +1170,9 @@
 
         cell.innerHTML = `
           <span class="team-logo-slot">${logo}</span>
-          <span class="name-text"><span class="txt-nudge">${escapeHtml(String(name).toUpperCase())}</span></span>
+          <span class="name-text" data-full="${escapeHtml(cleanLabel)}">
+            <span class="txt-nudge">${escapeHtml(cleanLabel)}</span>
+          </span>
         `;
 
         row.appendChild(cell);
@@ -1063,6 +1180,7 @@
       });
 
       lobbyCard.classList.remove("hidden");
+      applyAsciiEllipsis(lobbyCard);
     }
 
     buildLobbyBtn.addEventListener("click", async ()=>{
