@@ -41,6 +41,9 @@
 
       /* Mobile weekly: no rounds => name fills full name-col */
       --wk-name-col-mobile: var(--name-col);
+
+      /* ✅ Text-only visual nudge for better vertical optical centering */
+      --text-nudge: -2px; /* tweak if needed: -1px, -1.25px, -1.75px */
     }
 
     *{ box-sizing:border-box; }
@@ -253,6 +256,7 @@
 
     .team-cell{
       width: 100%;
+      height: 100%;
       padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
@@ -263,6 +267,9 @@
       overflow:hidden;
       gap: 0;
       min-width: 0;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
     }
     .team-logo-slot{
       width: var(--logo-slot);
@@ -293,6 +300,10 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      display:flex;
+      align-items:center;
+      height: 100%;
+      line-height: 1;
     }
 
     .score-col{
@@ -303,6 +314,11 @@
       padding: 0 10px;
       min-width: 0;
       font-variant-numeric: tabular-nums;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height: 100%;
+      line-height: 1;
     }
 
     /* Weekly (desktop default: includes rounds) */
@@ -352,6 +368,11 @@
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height: 100%;
+      line-height: 1;
     }
 
     /* ✅ Mobile weekly: hide rounds; 3 columns only; keep width consistent */
@@ -421,54 +442,6 @@
       overflow: hidden;
       background: var(--row-bg);
     }
-    .lobby-entry .team-cell{
-      width: 100%;
-      height: 100%;
-      border-radius: 0;
-    }
-
-    /* ---------------- PERFECT VERTICAL CENTERING FIX ---------------- */
-    .entry,
-    .weekly-entry,
-    .lobby-entry{
-      align-items: stretch; /* let children fill full height */
-    }
-
-    .place,
-    .score-col,
-    .weekly-round,
-    .team-cell{
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-
-    .team-cell{
-      justify-content: flex-start; /* keep names left aligned */
-      gap: 0;
-    }
-
-    .name-text{
-      height: 100%;
-      display:flex;
-      align-items:center;
-      line-height: 1;
-      padding-top: 0;
-      padding-bottom: 0;
-    }
-
-    /* If you still see a hair of drift in some browsers, set -0.5px */
-    .place,
-    .score-col,
-    .weekly-round,
-    .name-text{
-      transform: translateY(0);
-    }
-    /* -------------------------------------------------------------- */
 
     @media (max-width: 760px){
       :root{
@@ -495,22 +468,11 @@
       .weekly-round{ font-size: 14px; }
       .team-logo{ height: calc(100% - 8px); }
     }
+
     /* =========================================================
-       UNIVERSAL TEXT BASELINE FIX (does NOT affect logos)
+       TEXT-ONLY VISUAL NUDGE (NO LAYOUT CHANGES)
+       - uses transform so it does not affect sizing/layout
        ========================================================= */
-    :root{
-      --text-nudge: -4px;
-    }
-
-    /* Header rows: remove the 18px sub-height that biases text downward */
-    .header-row span,
-    .weekly-header-row span{
-      height: 100% !important;
-      line-height: 1 !important;
-      align-items: center !important;
-    }
-
-    /* Apply the nudge to TEXT elements only (not the logo slot/img) */
     .kicker,
     .status,
     .h2,
@@ -521,33 +483,8 @@
     .weekly-round,
     .name-text,
     .lobby-label,
-    .mini-status,
-    .btn,
-    .select{
-      position: relative;
-      top: var(--text-nudge);
-    }
-
-    /* Ensure row/cell containers remain true-center */
-    .place,
-    .score-col,
-    .weekly-round,
-    .team-cell{
-      display: flex !important;
-      align-items: center !important;
-      height: 100% !important;
-      line-height: 1 !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-    }
-
-    /* Keep name cell left aligned but vertically centered */
-    .team-cell{ justify-content: flex-start !important; }
-    .name-text{
-      display:flex !important;
-      align-items:center !important;
-      height:100% !important;
-      line-height: 1 !important;
+    .mini-status{
+      transform: translateY(var(--text-nudge));
     }
   </style>
 </head>
