@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shotgun Pro League — PNG Export</title>
 
-  <!-- Uses html-to-image for DOM → PNG -->
+  <!-- DOM → PNG -->
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
 
   <style>
@@ -25,12 +25,19 @@
       --bronze:#cd7f32;
 
       --logo-slot: 40px;
+
+      /* Desktop-first sizing */
       --rank-col: 100px;
       --score-col: 120px;
 
+      /* ✅ Name column half-width (was 1fr) */
+      --name-col: 480px;
+
+      /* Weekly */
       --wk-rank-col: 100px;
       --wk-round-col: 88px;
       --wk-score-col: 120px;
+      --wk-name-col: 480px;
     }
 
     *{ box-sizing:border-box; }
@@ -59,6 +66,14 @@
       flex-wrap:wrap;
     }
     .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65); font-weight:900;}
+    .status{
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255,255,255,0.75);
+      margin-top: 4px;
+    }
 
     .container{
       max-width:1200px;
@@ -74,6 +89,7 @@
       padding: 18px 18px;
       box-shadow: var(--card-shadow);
     }
+
     .card-head{
       display:flex;
       gap:14px;
@@ -91,10 +107,10 @@
       margin: 0;
     }
 
-    /* Main header row + entries */
+    /* ✅ Main header row + entries (name col now fixed width) */
     .header-row, .entry{
       display:grid;
-      grid-template-columns: var(--rank-col) 1fr var(--score-col);
+      grid-template-columns: var(--rank-col) minmax(0, var(--name-col)) var(--score-col);
       align-items:center;
       min-width: 0;
     }
@@ -219,10 +235,10 @@
       font-variant-numeric: tabular-nums;
     }
 
-    /* Weekly card */
+    /* ✅ Weekly card (name col now fixed width too) */
     .weekly-header-row, .weekly-entry{
       display:grid;
-      grid-template-columns: var(--wk-rank-col) 1fr var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
+      grid-template-columns: var(--wk-rank-col) minmax(0, var(--wk-name-col)) var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
       align-items:center;
       min-width: 0;
     }
@@ -327,28 +343,75 @@
       background: rgba(0,0,0,0.25);
     }
 
-    .status{
-      font-size: 14px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .14em;
-      color: rgba(255,255,255,0.75);
-    }
-
-    /* The render targets live here; we keep them visible (so layout is exact),
-       but you could also move them offscreen if you want. */
     .render-grid{
       display:grid;
       gap: 16px;
+    }
+
+    /* Lobby input */
+    .lobby-grid{
+      display:grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 12px;
+      align-items:start;
+    }
+    .lobby-box{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .lobby-label{
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255,255,255,0.75);
+      margin-bottom: 8px;
+    }
+    textarea.lobby-input{
+      width: 100%;
+      min-height: 140px;
+      resize: vertical;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.20);
+      color: rgba(255,255,255,0.92);
+      padding: 10px 12px;
+      outline: none;
+      font-weight: 800;
+      letter-spacing: .02em;
+      line-height: 1.35;
+    }
+    .hint{
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.65);
+      font-weight: 700;
+    }
+    .mini-status{
+      margin-top: 10px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      font-weight: 800;
+    }
+    .hidden{ display:none !important; }
+
+    @media (max-width: 860px){
+      .lobby-grid{ grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px){
       :root{
         --rank-col: 72px;
         --score-col: 82px;
+        --name-col: 240px;
+
         --wk-rank-col: 72px;
         --wk-round-col: 64px;
         --wk-score-col: 92px;
+        --wk-name-col: 240px;
+
         --logo-slot: 34px;
       }
       .h2{ font-size: 18px; }
@@ -377,7 +440,30 @@
   </div>
 
   <div class="container">
-    <!-- 1) These are the actual DOM cards we render from data -->
+
+    <!-- Lobby builder -->
+    <div class="card">
+      <div class="card-head">
+        <h2 class="h2">Round Lobby Builder</h2>
+      </div>
+
+      <div class="lobby-grid">
+        <div class="lobby-box">
+          <div class="lobby-label">Enter up to 8 player names</div>
+          <textarea id="lobbyInput" class="lobby-input" placeholder="One per line (or comma-separated)&#10;Example:&#10;Alex&#10;Brett&#10;Chris"></textarea>
+          <div class="hint">Matching is case-insensitive. Unknown names will be skipped.</div>
+        </div>
+
+        <div class="lobby-box">
+          <div class="lobby-label">Actions</div>
+          <button class="btn" id="buildLobbyBtn" type="button" style="width:100%; justify-content:center;">Build ROUND LOBBY Card</button>
+          <button class="btn hidden" id="exportLobbyBtn" type="button" style="width:100%; justify-content:center; margin-top:10px;">Export ROUND LOBBY PNG</button>
+          <div class="mini-status" id="lobbyStatus">Waiting for input…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Render targets -->
     <div class="render-grid" id="renderGrid">
       <div id="teamsCard" class="card">
         <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
@@ -404,9 +490,16 @@
 
         <div id="weeklyList" class="resultsList"></div>
       </div>
+
+      <!-- ✅ NEW: Lobby render card -->
+      <div id="lobbyCard" class="card hidden">
+        <div class="card-head"><h2 class="h2">ROUND LOBBY</h2></div>
+        <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
+        <div id="lobbyList" class="resultsList"></div>
+      </div>
     </div>
 
-    <!-- 2) Exported images (right-click save works here) -->
+    <!-- Exported images -->
     <div class="exports" id="exports">
       <div class="export-card">
         <div class="export-head">
@@ -431,6 +524,15 @@
         </div>
         <img class="export-img" id="imgWeekly" alt="Weekly Top 5 PNG" />
       </div>
+
+      <!-- ✅ NEW: Lobby export block -->
+      <div class="export-card hidden" id="exportLobbyBlock">
+        <div class="export-head">
+          <div class="export-title">ROUND LOBBY PNG</div>
+          <a class="btn" id="dlLobby" download="round-lobby.png" href="#">Download</a>
+        </div>
+        <img class="export-img" id="imgLobby" alt="Round Lobby PNG" />
+      </div>
     </div>
   </div>
 
@@ -439,11 +541,9 @@
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 
-    // URL params:
-    // ?season=6&limitTeams=20&limitPlayers=100
+    // URL params: ?season=6&limitTeams=20&limitPlayers=120
     const qs = new URLSearchParams(location.search);
     const CURRENT_SEASON = Number(qs.get("season") || 6);
-
     const LIMIT_TEAMS   = Math.max(1, Number(qs.get("limitTeams")   || 50));
     const LIMIT_PLAYERS = Math.max(1, Number(qs.get("limitPlayers") || 200));
 
@@ -461,8 +561,8 @@
     const RANGE_W2_A1 = "Z16:AC25";
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
-    const LOOKUP_RANGE_A1 = "A3:S250"; // used to map players -> teams + rounds
-    const ROSTERS_A1 = "A3:S250";      // we’ll parse similarly for team membership
+    const LOOKUP_RANGE_A1 = "A3:S250";
+    const ROSTERS_A1 = "A3:S250";
 
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
@@ -480,7 +580,9 @@
       "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-      "REVERIE":         { bg: "#e2a9f1", fg: "#00357a" },
+
+      /* ✅ Ensure REVERIE colors exactly as requested */
+      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
     };
 
     const TEAM_LOGO_DIR = "logos";
@@ -589,13 +691,12 @@
       return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
     }
 
-    // Parse roster blocks to map player -> team (good enough for player styling)
     function parsePlayerTeamMap(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const playerToTeam = new Map();
       if (!cleaned.length) return playerToTeam;
 
-      const rows = cleaned.slice(1); // drop header row (like your original)
+      const rows = cleaned.slice(1);
       for(let i=0; i<rows.length; i+=5){
         const teamRow = rows[i] || [];
         const teamName = String(teamRow[2] ?? "").trim();
@@ -610,7 +711,6 @@
       return playerToTeam;
     }
 
-    // Parse lookup to get rounds so weekly card can show round1/round2
     function parseLookupStats(values){
       const cleaned = (values || []).filter(rowHasAnyValue);
       const byPlayer = new Map();
@@ -622,7 +722,7 @@
         if(!name) continue;
 
         const overallRank = toNum(r?.[0]);
-        if (overallRank === null) continue; // skip team header rows
+        if (overallRank === null) continue;
 
         byPlayer.set(name, {
           rounds: Array.from({length:8}, (_,k)=> toNum(r?.[11 + k]))
@@ -637,29 +737,25 @@
         if (img.complete && img.naturalWidth > 0) return Promise.resolve();
         return new Promise(res => {
           img.addEventListener("load", res, { once:true });
-          img.addEventListener("error", res, { once:true }); // still resolve so we export something
+          img.addEventListener("error", res, { once:true });
         });
       }));
     }
 
     async function domToPngDataUrl(node, bgColor){
-      // Ensure crisp export; bump ratio if you want even higher res.
       const pixelRatio = 2;
 
-      // html-to-image sometimes misses box-shadow edges; adding a small padding wrapper helps.
       const wrapper = document.createElement("div");
       wrapper.style.padding = "16px";
       wrapper.style.background = bgColor || "transparent";
       wrapper.style.display = "inline-block";
       wrapper.appendChild(node.cloneNode(true));
 
-      // Put wrapper offscreen for export
       wrapper.style.position = "fixed";
       wrapper.style.left = "-100000px";
       wrapper.style.top = "0";
       document.body.appendChild(wrapper);
 
-      // Wait for cloned images to load
       await waitForImages(wrapper);
 
       const dataUrl = await htmlToImage.toPng(wrapper, {
@@ -676,6 +772,9 @@
     const teamsList   = document.getElementById("teamsList");
     const playersList = document.getElementById("playersList");
     const weeklyList  = document.getElementById("weeklyList");
+
+    const lobbyCard   = document.getElementById("lobbyCard");
+    const lobbyList   = document.getElementById("lobbyList");
 
     function makeRow({rank, label, score, bg, fg, logoSrc}){
       const row = document.createElement("div");
@@ -753,7 +852,6 @@
 
       weeklyList.innerHTML = "";
 
-      // We draw weekly entries with rounds shown in their own columns.
       weekList.slice(0,5).forEach(p=>{
         const stat = lookupStats.get(p.name);
         const idx1 = (weekNum - 1) * 2;
@@ -799,6 +897,158 @@
         weeklyList.appendChild(row);
       });
     }
+
+    // ---------------- LOBBY FEATURE ----------------
+    const lobbyInput = document.getElementById("lobbyInput");
+    const buildLobbyBtn = document.getElementById("buildLobbyBtn");
+    const exportLobbyBtn = document.getElementById("exportLobbyBtn");
+    const lobbyStatus = document.getElementById("lobbyStatus");
+
+    const exportLobbyBlock = document.getElementById("exportLobbyBlock");
+    const imgLobby = document.getElementById("imgLobby");
+    const dlLobby = document.getElementById("dlLobby");
+
+    // state from loaded data
+    let state_playerStandings = [];
+    let state_playerStandingsByName = new Map();
+    let state_playerToTeam = new Map();
+    let state_lookupStats = new Map();
+
+    // case-insensitive resolver
+    let state_nameResolver = new Map(); // UPPER -> canonical
+
+    function buildNameResolver(){
+      const m = new Map();
+      const add = (n)=>{
+        const s = String(n || "").trim();
+        if(!s) return;
+        const key = s.toUpperCase();
+        if(!m.has(key)) m.set(key, s);
+      };
+
+      for (const p of state_playerStandings) add(p.name);
+      for (const [name] of state_playerToTeam.entries()) add(name);
+      for (const [name] of state_lookupStats.entries()) add(name);
+
+      state_nameResolver = m;
+    }
+
+    function parseLobbyNames(text){
+      const raw = String(text || "");
+      // split on newlines or commas
+      const parts = raw
+        .split(/\n|,/g)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      // preserve order, remove duplicates (case-insensitive), cap 8
+      const seen = new Set();
+      const out = [];
+      for (const p of parts){
+        const key = p.toUpperCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(p);
+        if (out.length >= 8) break;
+      }
+      return out;
+    }
+
+    function resolvePlayerName(input){
+      const key = String(input || "").trim().toUpperCase();
+      return state_nameResolver.get(key) || null;
+    }
+
+    function renderLobbyCard(canonicalNames){
+      lobbyList.innerHTML = "";
+
+      // Use input order as lobby order (rank = 1..n).
+      canonicalNames.forEach((name, idx)=>{
+        const rank = idx + 1;
+
+        const teamName = state_playerToTeam.get(name) || null;
+        const style = teamName ? (getTeamStyle(teamName) || {}) : {};
+        const bg = style.bg || "rgba(255,255,255,0.08)";
+        const fg = style.fg || "#ffffff";
+        const logo = teamName ? teamLogoSrc(teamName) : null;
+
+        const standing = state_playerStandingsByName.get(name) || null;
+        const score = (standing?.score ?? null);
+
+        lobbyList.appendChild(makeRow({
+          rank,
+          label: String(name).toUpperCase(),
+          score,
+          bg,
+          fg,
+          logoSrc: logo
+        }));
+      });
+
+      lobbyCard.classList.remove("hidden");
+    }
+
+    async function exportLobbyPNG(){
+      // ensure visible + images loaded
+      await waitForImages(document.getElementById("renderGrid"));
+
+      const bgColor = null; // set to "#061C3B" if you want solid background baked in
+      const url = await domToPngDataUrl(lobbyCard, bgColor);
+
+      imgLobby.src = url;
+      dlLobby.href = url;
+
+      exportLobbyBlock.classList.remove("hidden");
+    }
+
+    buildLobbyBtn.addEventListener("click", async ()=>{
+      try{
+        const requested = parseLobbyNames(lobbyInput.value);
+        if(!requested.length){
+          lobbyStatus.textContent = "Please enter at least 1 name.";
+          exportLobbyBtn.classList.add("hidden");
+          return;
+        }
+
+        const matched = [];
+        const skipped = [];
+        for (const n of requested){
+          const canonical = resolvePlayerName(n);
+          if (canonical) matched.push(canonical);
+          else skipped.push(n);
+        }
+
+        if(!matched.length){
+          lobbyStatus.textContent = `No matches found.`;
+          exportLobbyBtn.classList.add("hidden");
+          return;
+        }
+
+        renderLobbyCard(matched);
+
+        const msg = [];
+        msg.push(`Built lobby with ${matched.length} player(s).`);
+        if (skipped.length) msg.push(`Skipped: ${skipped.slice(0,6).join(", ")}${skipped.length>6 ? "…" : ""}`);
+        lobbyStatus.textContent = msg.join(" ");
+
+        exportLobbyBtn.classList.remove("hidden");
+      }catch(e){
+        console.error(e);
+        lobbyStatus.textContent = "Failed to build lobby (see console).";
+        exportLobbyBtn.classList.add("hidden");
+      }
+    });
+
+    exportLobbyBtn.addEventListener("click", async ()=>{
+      try{
+        lobbyStatus.textContent = "Exporting ROUND LOBBY PNG…";
+        await exportLobbyPNG();
+        lobbyStatus.textContent = "Export complete — right-click the image to save.";
+      }catch(e){
+        console.error(e);
+        lobbyStatus.textContent = "Export failed (see console).";
+      }
+    });
 
     // ---------------- MAIN FLOW ----------------
     async function loadAndRender(){
@@ -847,7 +1097,7 @@
       if (w3.length) weeklyByWeek.set(3, w3);
       if (w4.length) weeklyByWeek.set(4, w4);
 
-      // Choose the "main" weekly: latest week with data
+      // Pick latest week with data
       const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
       const latestWeek = weeks.length ? weeks[0] : 1;
       const latestList = weeklyByWeek.get(latestWeek) || [];
@@ -860,12 +1110,17 @@
       if (latestList.length){
         renderWeeklyCard(latestWeek, latestList, lookupStats, playerToTeam);
       } else {
-        // If nothing posted, still render an empty state
         document.getElementById("weeklyTitle").textContent = "Weekly Top 5";
         weeklyList.innerHTML = `<div style="padding:14px; font-weight:900; opacity:.8; text-transform:uppercase; letter-spacing:.12em;">Not posted yet.</div>`;
       }
 
-      // ensure logos loaded before export
+      // Save state for lobby
+      state_playerStandings = playerStandings;
+      state_playerToTeam = playerToTeam;
+      state_lookupStats = lookupStats;
+      state_playerStandingsByName = new Map(playerStandings.map(p => [p.name, p]));
+      buildNameResolver();
+
       statusEl.textContent = "Waiting for logos…";
       await waitForImages(document.getElementById("renderGrid"));
 
@@ -875,20 +1130,18 @@
     }
 
     async function generatePNGs(){
-      const bgColor = null; // set to "#061C3B" if you want a solid background baked into PNG
+      const bgColor = null;
 
       const teamsCard   = document.getElementById("teamsCard");
       const playersCard = document.getElementById("playersCard");
       const weeklyCard  = document.getElementById("weeklyCard");
 
-      // Export
       const [teamsUrl, playersUrl, weeklyUrl] = await Promise.all([
         domToPngDataUrl(teamsCard, bgColor),
         domToPngDataUrl(playersCard, bgColor),
         domToPngDataUrl(weeklyCard, bgColor),
       ]);
 
-      // Set images + download links
       document.getElementById("imgTeams").src = teamsUrl;
       document.getElementById("imgPlayers").src = playersUrl;
       document.getElementById("imgWeekly").src = weeklyUrl;
