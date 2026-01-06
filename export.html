@@ -244,24 +244,15 @@
       font-weight: 900;
       text-align:center;
       color: var(--title);
-      display:flex;
-      align-items:center;
-      justify-content:center;
       padding: 0 10px;
-      height: 100%;
       min-width: 0;
-      line-height: 1;
     }
     .gold{color:var(--gold);}
     .silver{color:var(--silver);}
     .bronze{color:var(--bronze);}
 
     .team-cell{
-      height: 100%;
       width: 100%;
-      display:flex;
-      align-items:center;
-      justify-content:flex-start;
       padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
@@ -272,7 +263,6 @@
       overflow:hidden;
       gap: 0;
       min-width: 0;
-      line-height: 1;
     }
     .team-logo-slot{
       width: var(--logo-slot);
@@ -300,20 +290,12 @@
       flex: 1 1 auto;
       min-width: 0;
       padding-left: 10px;
-      display:flex;
-      align-items:center;
-      line-height: 1;
-      height: 100%;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
     }
 
     .score-col{
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
       background:#d9d9d9;
       color:#000;
       font-size: 20px;
@@ -321,7 +303,6 @@
       padding: 0 10px;
       min-width: 0;
       font-variant-numeric: tabular-nums;
-      line-height: 1;
     }
 
     /* Weekly (desktop default: includes rounds) */
@@ -365,17 +346,12 @@
       min-width: 0;
     }
     .weekly-round{
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
       background: rgba(255,255,255,0.06);
       color: #ffffff;
       font-size: 16px;
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
-      line-height: 1;
     }
 
     /* ✅ Mobile weekly: hide rounds; 3 columns only; keep width consistent */
@@ -451,6 +427,49 @@
       border-radius: 0;
     }
 
+    /* ---------------- PERFECT VERTICAL CENTERING FIX ---------------- */
+    .entry,
+    .weekly-entry,
+    .lobby-entry{
+      align-items: stretch; /* let children fill full height */
+    }
+
+    .place,
+    .score-col,
+    .weekly-round,
+    .team-cell{
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .team-cell{
+      justify-content: flex-start; /* keep names left aligned */
+      gap: 0;
+    }
+
+    .name-text{
+      height: 100%;
+      display:flex;
+      align-items:center;
+      line-height: 1;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* If you still see a hair of drift in some browsers, set -0.5px */
+    .place,
+    .score-col,
+    .weekly-round,
+    .name-text{
+      transform: translateY(0);
+    }
+    /* -------------------------------------------------------------- */
+
     @media (max-width: 760px){
       :root{
         --rank-col: 72px;
@@ -468,11 +487,13 @@
       .h2{ font-size: 18px; }
       .header-row, .weekly-header-row{ height: 36px; font-size: 12px; }
       .entry, .weekly-entry{ height: 44px; }
+      .lobby-entry{ height: 44px; }
+
       .place{ font-size: 18px; padding: 0 6px; }
       .score-col{ font-size: 16px; padding: 0 6px; }
-      .name-text{ font-size: 16px; }
+      .name-text{ font-size: 16px; padding-left: 8px; }
       .weekly-round{ font-size: 14px; }
-      .lobby-entry{ height: 44px; }
+      .team-logo{ height: calc(100% - 8px); }
     }
   </style>
 </head>
