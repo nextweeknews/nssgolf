@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Shotgun Pro League — Export</title>
 
-  <!-- More reliable DOM rasterizer than html-to-image for many setups -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
@@ -30,7 +29,7 @@
       --rank-col: 100px;
       --score-col: 120px;
 
-      /* ✅ Reduced name column */
+      /* Reduced name column */
       --name-col: 460px;
 
       /* Weekly */
@@ -130,7 +129,7 @@
       gap: 16px;
     }
 
-    /* ✅ Render grid does NOT stretch items */
+    /* Render grid does NOT stretch items */
     .render-grid{
       display:grid;
       gap: 16px;
@@ -145,7 +144,7 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
-    /* ✅ Export targets shrink-wrap to content width (no right blank) */
+    /* Export targets shrink-wrap to content width (no right blank) */
     .export-target{
       display:inline-block;
       width: -moz-fit-content;
@@ -170,24 +169,6 @@
       letter-spacing: .035em;
       text-transform: uppercase;
       margin: 0;
-    }
-    .card-actions{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-    .mini{
-      padding: 8px 10px;
-      border-radius: 12px;
-      font-size: 10px;
-    }
-    .hintline{
-      margin-top: 10px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.65);
-      font-weight: 700;
-      line-height: 1.35;
     }
 
     /* Rows with reduced name col */
@@ -229,7 +210,7 @@
 
     .entry{
       height: 48px;
-      background: var(--row-bg);
+      background: rgba(255,255,255,0.06);
       border-radius: 10px;
       overflow:hidden;
       font-size: 18px;
@@ -350,7 +331,7 @@
     }
     .weekly-entry{
       height: 48px;
-      background: var(--row-bg);
+      background: rgba(255,255,255,0.06);
       border-radius: 10px;
       overflow:hidden;
       font-size: 18px;
@@ -471,38 +452,24 @@
       <div id="teamsCard" class="card export-target" data-export="team-rankings">
         <div class="card-head">
           <h2 class="h2">Team Rankings</h2>
-          <div class="card-actions">
-            <button class="btn mini" type="button" data-action="png">PNG</button>
-            <button class="btn mini" type="button" data-action="pdf">PDF</button>
-          </div>
         </div>
         <div class="header-row"><span>Rank</span><span>Team</span><span>Score</span></div>
         <div id="teamsList" class="resultsList"></div>
-        <div class="hintline">Right-click this card to open a PNG in a new tab (then right-click the image → Save image as…).</div>
       </div>
 
       <!-- PLAYERS -->
       <div id="playersCard" class="card export-target" data-export="player-rankings">
         <div class="card-head">
           <h2 class="h2">Player Rankings</h2>
-          <div class="card-actions">
-            <button class="btn mini" type="button" data-action="png">PNG</button>
-            <button class="btn mini" type="button" data-action="pdf">PDF</button>
-          </div>
         </div>
         <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
         <div id="playersList" class="resultsList"></div>
-        <div class="hintline">Right-click this card to open a PNG in a new tab.</div>
       </div>
 
       <!-- WEEKLY -->
       <div id="weeklyCard" class="card export-target" data-export="weekly-top-5">
         <div class="card-head">
           <h2 class="h2" id="weeklyTitle">Weekly Top 5</h2>
-          <div class="card-actions">
-            <button class="btn mini" type="button" data-action="png">PNG</button>
-            <button class="btn mini" type="button" data-action="pdf">PDF</button>
-          </div>
         </div>
         <div class="weekly-header-row">
           <span>Rank</span>
@@ -512,29 +479,23 @@
           <span>Score</span>
         </div>
         <div id="weeklyList" class="resultsList"></div>
-        <div class="hintline">Right-click this card to open a PNG in a new tab.</div>
       </div>
 
       <!-- LOBBY RENDER CARD -->
       <div id="lobbyCard" class="card export-target hidden" data-export="round-lobby">
         <div class="card-head">
           <h2 class="h2">ROUND LOBBY</h2>
-          <div class="card-actions">
-            <button class="btn mini" type="button" data-action="png">PNG</button>
-            <button class="btn mini" type="button" data-action="pdf">PDF</button>
-          </div>
         </div>
         <div class="header-row"><span>Rank</span><span style="justify-content:center;padding-left:0;">Player</span><span>Score</span></div>
         <div id="lobbyList" class="resultsList"></div>
-        <div class="hintline">Right-click this card to open a PNG in a new tab.</div>
       </div>
     </div>
 
-    <!-- ✅ Round Lobby feature at bottom -->
+    <!-- Round Lobby feature at bottom -->
     <div class="card">
       <div class="card-head">
         <h2 class="h2">Round Lobby Builder</h2>
-        <div class="card-actions">
+        <div class="controls" style="justify-content:flex-end;">
           <button class="btn" id="buildLobbyBtn" type="button">Build Lobby Card</button>
         </div>
       </div>
@@ -543,16 +504,13 @@
         <div class="lobby-box">
           <div class="lobby-label">Enter up to 8 player names</div>
           <textarea id="lobbyInput" class="lobby-input" placeholder="One per line (or comma-separated)&#10;Example:&#10;Alex&#10;Brett&#10;Chris"></textarea>
-          <div class="hintline" style="margin-top:10px;">
-            Matching is case-insensitive. Unknown names will be skipped. The lobby rows use team colors + logos like Player Rankings.
-          </div>
         </div>
 
         <div class="lobby-box">
           <div class="lobby-label">Status</div>
           <div class="mini-status" id="lobbyStatus">Waiting for input…</div>
-          <div class="hintline">
-            After building, the “ROUND LOBBY” card appears above with PNG/PDF options (and right-click export).
+          <div class="mini-status" style="opacity:.8;">
+            Tip: Right-click the ROUND LOBBY card after it appears to open a high-res PNG.
           </div>
         </div>
       </div>
@@ -599,8 +557,7 @@
       "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
       "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
       "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-      /* ✅ Reverie exact */
-      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
+      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" }, // ✅ exact
     };
 
     // ---------------- DOM ----------------
@@ -661,7 +618,6 @@
       return TEAM_STYLES[key] || null;
     }
     function teamLogoSrc(teamName){
-      // Use absolute URL to avoid path surprises when this page is in a subfolder
       const rel = `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
       return new URL(rel, location.href).href;
     }
@@ -889,20 +845,19 @@
       });
     }
 
-    // ---------------- EXPORT (PNG + PDF) ----------------
+    // ---------------- EXPORT (RIGHT-CLICK -> OPEN PNG TAB) ----------------
+    const EXPORT_SCALE = 4; // ✅ doubled resolution vs prior (was 2)
+
     async function buildPngBlob(cardEl){
-      // Ensure images/fonts are ready
       await waitForImages(cardEl);
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-      // Rasterize the card
       const canvas = await html2canvas(cardEl, {
-        scale: 2,
-        backgroundColor: null,   // keep card background as-is
+        scale: EXPORT_SCALE,
+        backgroundColor: null,
         useCORS: true,
         allowTaint: false,
         logging: false,
-        // Helps when there's transform or filtering in some browsers
         foreignObjectRendering: false
       });
 
@@ -915,139 +870,36 @@
       const blob = await buildPngBlob(cardEl);
       const url = URL.createObjectURL(blob);
 
-      // Open the PNG directly — then user right-clicks the image tab and saves
       const w = window.open(url, "_blank");
       if (!w) {
-        // Popup blocked -> fallback to download
-        downloadBlob(blob, `${filenameBase}.png`);
-        URL.revokeObjectURL(url);
+        // popup blocked -> fallback download
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${filenameBase}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 10_000);
         return;
       }
 
-      // Revoke later (give the new tab time to load it)
       setTimeout(()=>URL.revokeObjectURL(url), 60_000);
-    }
-
-    function downloadBlob(blob, filename){
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url), 10_000);
-    }
-
-    async function downloadPng(cardEl, filenameBase){
-      const blob = await buildPngBlob(cardEl);
-      downloadBlob(blob, `${filenameBase}.png`);
-    }
-
-    async function printToPdf(cardEl, title){
-      // Open a print window containing ONLY the card and the same style
-      const w = window.open("", "_blank");
-      if (!w) throw new Error("Popup blocked. Allow popups to export PDF.");
-
-      const styleText = Array.from(document.querySelectorAll("style"))
-        .map(s => s.textContent || "")
-        .join("\n");
-
-      const html = `
-        <!doctype html>
-        <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width,initial-scale=1" />
-          <title>${escapeHtml(title)}</title>
-          <style>${styleText}</style>
-          <style>
-            body{ margin:0; background: transparent !important; }
-            .print-wrap{
-              padding: 18px;
-              display:flex;
-              align-items:flex-start;
-              justify-content:flex-start;
-            }
-            /* Slightly safer printing */
-            @page { margin: 14mm; }
-            .export-target{ cursor: default; }
-            .hintline, .card-actions { display:none !important; }
-          </style>
-        </head>
-        <body>
-          <div class="print-wrap" id="mount"></div>
-          <script>
-            window.onload = () => {
-              setTimeout(() => { window.print(); }, 250);
-            };
-          <\/script>
-        </body>
-        </html>
-      `;
-      w.document.open();
-      w.document.write(html);
-      w.document.close();
-
-      // Mount cloned card after window is ready
-      const clone = cardEl.cloneNode(true);
-      clone.classList.remove("export-target");
-      const mount = () => {
-        const m = w.document.getElementById("mount");
-        if (!m) return false;
-        m.appendChild(clone);
-        return true;
-      };
-
-      // Wait a bit for DOM
-      let tries = 0;
-      const t = setInterval(()=>{
-        tries++;
-        if (mount() || tries > 40) clearInterval(t);
-      }, 50);
     }
 
     function setupCardExport(cardEl){
       const filenameBase = cardEl.getAttribute("data-export") || "export";
 
-      // Right-click card: open PNG in new tab
       cardEl.addEventListener("contextmenu", async (e)=>{
-        // If user right-clicked on a button, let it work normally
-        if (e.target && e.target.closest && e.target.closest("button")) return;
         e.preventDefault();
         try{
-          statusEl.textContent = `Generating PNG for ${filenameBase}…`;
+          statusEl.textContent = `Generating PNG (${filenameBase})…`;
           await openPngInNewTab(cardEl, filenameBase);
-          statusEl.textContent = `PNG opened in a new tab (right-click image → Save image as…).`;
+          statusEl.textContent = `PNG ready (${filenameBase}).`;
         }catch(err){
           console.error(err);
-          statusEl.textContent = `PNG failed for ${filenameBase}. Try PDF instead.`;
-          alert(`PNG export failed.\n\nMost common causes:\n- A logo image failed to load (404)\n- Browser blocked canvas capture\n\nTry the PDF button.\n\nDetails: ${err.message || err}`);
+          statusEl.textContent = `PNG failed (${filenameBase}).`;
+          alert(`PNG export failed.\n\nDetails: ${err.message || err}`);
         }
-      });
-
-      // Buttons in header
-      const actions = cardEl.querySelectorAll("button[data-action]");
-      actions.forEach(btn=>{
-        btn.addEventListener("click", async (e)=>{
-          e.stopPropagation();
-          const action = btn.getAttribute("data-action");
-          try{
-            if (action === "png"){
-              statusEl.textContent = `Downloading PNG for ${filenameBase}…`;
-              await downloadPng(cardEl, filenameBase);
-              statusEl.textContent = `PNG downloaded for ${filenameBase}.`;
-            } else if (action === "pdf"){
-              statusEl.textContent = `Opening PDF print for ${filenameBase}…`;
-              await printToPdf(cardEl, filenameBase.toUpperCase());
-              statusEl.textContent = `Print dialog opened (Save as PDF).`;
-            }
-          }catch(err){
-            console.error(err);
-            statusEl.textContent = `Export failed for ${filenameBase}.`;
-            alert(`Export failed: ${err.message || err}`);
-          }
-        });
       });
     }
 
@@ -1117,7 +969,6 @@
       });
 
       lobbyCard.classList.remove("hidden");
-      // ensure export hooks also work after reveal
       setupCardExport(lobbyCard);
     }
 
@@ -1186,7 +1037,7 @@
       state_playerToTeam = parsePlayerTeamMap(rosterRows);
       const lookupRounds = parseLookupRounds(lookupRows);
 
-      // Weekly pick latest week posted
+      // Weekly: pick latest posted week
       const weeklyByWeek = new Map();
       const w1 = normalizeStandingsGeneric(wk1);
       const w2 = normalizeStandingsGeneric(wk2);
@@ -1219,17 +1070,16 @@
       state_playerStandingsByName = new Map(playerStandings.map(p => [p.name, p]));
       buildNameResolver(playerStandings);
 
-      // Setup export on the three top cards
+      // Setup export on top cards
       setupCardExport(document.getElementById("teamsCard"));
       setupCardExport(document.getElementById("playersCard"));
       setupCardExport(document.getElementById("weeklyCard"));
 
-      statusEl.textContent = "Ready — right-click a card to open PNG, or use PNG/PDF buttons.";
+      statusEl.textContent = `Ready — right-click any rankings card to open a ${EXPORT_SCALE}x PNG.`;
     }
 
     // boot
     (function boot(){
-      // season from URL or default
       const qs = new URLSearchParams(location.search);
       const s = Number(qs.get("season") || 6);
       if (SEASON_CONFIG[s]) seasonSelect.value = String(s);
@@ -1244,7 +1094,6 @@
       });
 
       seasonSelect.addEventListener("change", ()=>{
-        // update URL for shareability
         const u = new URL(location.href);
         u.searchParams.set("season", seasonSelect.value);
         history.replaceState(null, "", u.toString());
