@@ -2020,7 +2020,7 @@
           `;
 
           row.innerHTML = `
-            <div class="place">${p.rank}</div>
+            <div class="place ${rankClass(p.rank)}">${p.rank}</div>
             <div id="wkName-${weekNum}-${p.slug}"></div>
             <div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(round1))}</div>
             <div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(round2))}</div>
