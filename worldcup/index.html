@@ -22,10 +22,17 @@
       --row-pad-y: 10px;
       --row-pad-x: 10px;
       --name-fs: 14px;
-      --score-fs: 12px;
+
+      /* score: bigger text, narrower column */
+      --score-fs: 16px;
+      --score-col: 44px;
 
       --score-bg: #d9d9d9;
       --score-fg: #000000;
+
+      /* winner glow */
+      --win-glow: rgba(34,197,94,0.55);
+      --win-fill: rgba(34,197,94,0.12);
     }
 
     *{ box-sizing:border-box; }
@@ -82,34 +89,6 @@
       font-size:11px; letter-spacing:.25em; text-transform:uppercase;
       color: rgba(255,255,255,.65); font-weight:900;
     }
-    .subtitle{
-      margin-top: 4px;
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      color: rgba(199,215,255,.92);
-    }
-
-    .header-controls{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
-    .pill{
-      border:1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.06);
-      padding: 10px 12px;
-      border-radius: 12px;
-      font-weight: 950;
-      text-transform: uppercase;
-      letter-spacing: .10em;
-      font-size: 11px;
-      color: rgba(255,255,255,.88);
-      white-space: nowrap;
-    }
 
     .container{
       max-width:1100px;
@@ -145,7 +124,6 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 10px;
       margin-bottom: 12px;
       padding: 4px 0;
       min-height: 44px;
@@ -154,20 +132,12 @@
       font-size: 18px;
       font-weight: 950;
       color: var(--title);
-      letter-spacing: .06em;
+      letter-spacing: .08em;
       text-transform: uppercase;
       text-align:center;
       padding: 0 56px;
       line-height: 1.1;
-    }
-    .round-sub{
-      margin-top: 6px;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.65);
-      text-align:center;
+      width:100%;
     }
 
     .nav-btn{
@@ -370,17 +340,19 @@
       opacity: .96;
       display:flex;
       align-items:center;
+      position: relative;
+      z-index: 0;
     }
     .p-name.empty{ opacity: .35; }
 
-    /* ✅ Winner highlight (name span only) */
+    /* ✅ Winner highlight: consistent green glow, no hard outline, respects rounding */
     .p-name.winner{
-      background: rgba(34,197,94,0.14);
-      box-shadow: 0 0 0 1px rgba(34,197,94,0.14) inset;
+      background: var(--win-fill);
+      box-shadow: inset 0 0 0 1px rgba(34,197,94,0.10), 0 0 14px var(--win-glow);
     }
 
     .p-score{
-      flex: 0 0 84px;
+      flex: 0 0 var(--score-col);
       background: var(--score-bg);
       color: var(--score-fg);
       display:flex;
@@ -435,13 +407,14 @@
       color: rgba(233,238,248,0.55);
     }
 
-    /* ===== Compact rounds (Round 1 -> Sweet 16) ===== */
+    /* ===== Compact rounds (Round 1 -> Round of 16) ===== */
     #roundCard.compact{
       --row-minh: 28px;
       --row-pad-y: 6px;
       --row-pad-x: 8px;
       --name-fs: 12px;
-      --score-fs: 11px;
+      --score-fs: 15px;
+      --score-col: 40px;
     }
 
     /* Mobile tweaks */
@@ -451,7 +424,7 @@
       .card{ padding: 14px 12px; border-radius: 18px; }
       .round-title{ font-size: 16px; padding: 0 52px; }
       .nav-btn{ width: 40px; height: 40px; border-radius: 14px; }
-      .p-score{ flex-basis: 72px; }
+      :root{ --score-col: 38px; }
     }
   </style>
 </head>
@@ -463,13 +436,9 @@
         <a class="home-btn" href="index.html" aria-label="Home"><span>⌂</span></a>
         <div>
           <div class="kicker">2026 World Open</div>
-          <div class="subtitle">Live Bracket</div>
         </div>
       </div>
-
-      <div class="header-controls">
-        <div class="pill" id="lastUpdated">Updating…</div>
-      </div>
+      <!-- Removed timestamp pill entirely -->
     </div>
   </div>
 
@@ -481,12 +450,7 @@
     <div id="roundCard" class="card" style="display:none;">
       <div class="round-head">
         <button id="prevRound" class="nav-btn nav-left" type="button" aria-label="Previous round">‹</button>
-
-        <div style="width:100%;">
-          <div class="round-title" id="roundTitle">Round</div>
-          <div class="round-sub" id="roundSub">Use arrows to navigate rounds</div>
-        </div>
-
+        <div class="round-title" id="roundTitle">ROUND</div>
         <button id="nextRound" class="nav-btn nav-right" type="button" aria-label="Next round">›</button>
       </div>
 
@@ -513,7 +477,7 @@
         <!-- Matchups -->
         <div class="pane matchups-pane" id="matchupsPane">
           <div class="pane-title">
-            <span>Matchups</span>
+            <span id="matchupsTitle">Matchups</span>
           </div>
           <div class="match-grid" id="matchGrid"></div>
         </div>
@@ -538,16 +502,18 @@
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID   = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
     const SHEET_NAME = "2026 Results";
-    const REFRESH_MS = 15000;
+    const REFRESH_MS = 60000;
 
+    // Titles must follow exactly this progression:
+    // FIRST ROUND, SECOND ROUND, ROUND OF 32, ROUND OF 16, QUARTERFINALS, SEMI-FINALS, FINALS
     const ROUNDS = [
-      { key:"r1", title:"Round 1", sub:"Round of 64", field:"A2:A65", fieldSize:64, matchups:"C2:F33", matchSize:32 },
-      { key:"r2", title:"Round 2", sub:"Round of 32", field:"H2:H33", fieldSize:32, matchups:"J2:M17", matchSize:16 },
-      { key:"r3", title:"Round 3", sub:"Round of 32 (Byes Added)", field:"O2:O17", fieldSize:16, byes:"O18:O33", byesSize:16, matchups:"Q2:T17", matchSize:16 },
-      { key:"r4", title:"Round 4", sub:"Sweet 16", field:"V2:V17", fieldSize:16, matchups:"X2:AA9", matchSize:8 },
-      { key:"r5", title:"Round 5", sub:"Elite 8", field:"AC2:AC9", fieldSize:8, matchups:"AE2:AH5", matchSize:4 },
-      { key:"r6", title:"Round 6", sub:"Final 4", field:"AJ2:AJ5", fieldSize:4, matchups:"AL2:AO3", matchSize:2 },
-      { key:"r7", title:"Final",  sub:"Championship Match", field:"AQ2:AQ3", fieldSize:2, matchups:"AS2:AV2", matchSize:1, champion:"AX2:AX2" },
+      { key:"r1", title:"FIRST ROUND",      field:"A2:A65", fieldSize:64, matchups:"C2:F33",  matchSize:32 },
+      { key:"r2", title:"SECOND ROUND",     field:"H2:H33", fieldSize:32, matchups:"J2:M17",  matchSize:16 },
+      { key:"r3", title:"ROUND OF 32",      field:"O2:O17", fieldSize:16, byes:"O18:O33", byesSize:16, matchups:"Q2:T17", matchSize:16 },
+      { key:"r4", title:"ROUND OF 16",      field:"V2:V17", fieldSize:16, matchups:"X2:AA9",  matchSize:8 },
+      { key:"r5", title:"QUARTERFINALS",    field:"AC2:AC9",fieldSize:8,  matchups:"AE2:AH5", matchSize:4 },
+      { key:"r6", title:"SEMI-FINALS",      field:"AJ2:AJ5",fieldSize:4,  matchups:"AL2:AO3", matchSize:2 },
+      { key:"r7", title:"FINALS",           field:"AQ2:AQ3",fieldSize:2,  matchups:"AS2:AV2", matchSize:1, champion:"AX2:AX2" },
     ];
 
     function normalizeValues(resp){
@@ -630,16 +596,18 @@
       return out;
     }
 
-    function setLastUpdated(){
-      const d = new Date();
-      const hh = String(d.getHours()).padStart(2,"0");
-      const mm = String(d.getMinutes()).padStart(2,"0");
-      const ss = String(d.getSeconds()).padStart(2,"0");
-      document.getElementById("lastUpdated").textContent = `Updated ${hh}:${mm}:${ss}`;
-    }
-
     function nonEmptyTrim(list){
       return (list || []).map(x => String(x ?? "").trim()).filter(Boolean);
+    }
+
+    // Advanced players should display first; TBD last
+    function reorderAdvancedFirst(list, expected){
+      const fixed = [];
+      for(let i=0;i<expected;i++) fixed.push(String(list?.[i] ?? ""));
+
+      const advanced = fixed.filter(v => String(v ?? "").trim() !== "");
+      const blanks   = fixed.filter(v => String(v ?? "").trim() === "");
+      return advanced.concat(blanks);
     }
 
     const statusCard = document.getElementById("statusCard");
@@ -649,7 +617,6 @@
     const nextRoundBtn = document.getElementById("nextRound");
 
     const roundTitle = document.getElementById("roundTitle");
-    const roundSub   = document.getElementById("roundSub");
 
     const rangePane  = document.getElementById("rangePane");
     const rangeTitle = document.getElementById("rangeTitle");
@@ -660,6 +627,8 @@
     const byesCount = document.getElementById("byesCount");
     const byesList  = document.getElementById("byesList");
 
+    const matchupsPane  = document.getElementById("matchupsPane");
+    const matchupsTitle = document.getElementById("matchupsTitle");
     const matchGrid = document.getElementById("matchGrid");
 
     const championPane = document.getElementById("championPane");
@@ -669,7 +638,8 @@
     const roundCache = new Map();
 
     function isBigRound(idx){
-      return idx >= 4; // Elite 8+ (r5)
+      // Big rounds: Quarterfinals and later
+      return idx >= 4;
     }
 
     function applyRoundSizing(){
@@ -683,6 +653,9 @@
       // Finals: hide range pane entirely, show champion pane
       rangePane.classList.toggle("hidden", isFinal);
       championPane.classList.toggle("hidden", !isFinal);
+
+      // Finals: "matchup" singular
+      matchupsTitle.textContent = isFinal ? "MATCHUP" : "MATCHUPS";
     }
 
     function setRoundIndex(idx){
@@ -736,9 +709,11 @@
       rangeTitle.textContent = titleText.toUpperCase();
       rangeCount.classList.add("hidden");
 
+      const ordered = reorderAdvancedFirst(namesRaw, expected);
+
       fieldList.innerHTML = "";
       for(let i=0;i<expected;i++){
-        const name = String(namesRaw?.[i] ?? "").trim();
+        const name = String(ordered?.[i] ?? "").trim();
         const isEmpty = !name;
 
         const div = document.createElement("div");
@@ -767,7 +742,7 @@
       }
     }
 
-    // ✅ Winner highlight: compare numeric points, highlight higher score's NAME area only
+    // Winner highlight: compare numeric points, highlight higher score's NAME area only
     function renderMatchupsGrid(matchups, expected){
       matchGrid.innerHTML = "";
 
@@ -832,8 +807,7 @@
 
     async function renderRoundFromCacheOrFetch(){
       const round = ROUNDS[currentRoundIndex];
-      roundTitle.textContent = round.title.toUpperCase();
-      roundSub.textContent   = round.sub.toUpperCase();
+      roundTitle.textContent = round.title;
 
       try{
         const data = await fetchRoundData(round);
@@ -845,10 +819,10 @@
         if(round.key === "r1"){
           renderRangeRound1(data.field); // Round 1: no blanks + show count
         }else if(round.key !== "r7"){
-          renderRangeFixed("Field", data.field, round.fieldSize); // other rounds: fixed placeholders
+          renderRangeFixed("Field", data.field, round.fieldSize); // other rounds: advanced first, then TBD
         }
 
-        // Byes (round 3 only)
+        // Byes (round 3 only) — keep listed order ranking (1..16)
         if(round.key === "r3"){
           renderByesFixed(data.byes, round.byesSize || 16);
         }else{
@@ -863,7 +837,6 @@
 
         statusCard.style.display = "none";
         roundCard.style.display = "";
-        setLastUpdated();
       }catch(err){
         statusCard.style.display = "";
         roundCard.style.display = "none";
