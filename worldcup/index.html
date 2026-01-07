@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2026 World Open</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
+      --row-bg-2: rgba(255,255,255,0.045);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+
+      --border-lite: rgba(148,163,184,0.20);
+      --sep: rgba(148,163,184,0.26);
+
+      --gold:  #ffd700;
+      --silver:#c0c0c0;
+      --bronze:#cd7f32;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    /* Topbar */
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+    .home-btn{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      text-decoration:none;
+      cursor:pointer;
+      flex: 0 0 auto;
+    }
+    .home-btn:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.25);
+    }
+    .home-btn span{
+      font-weight: 950;
+      color: rgba(255,255,255,.92);
+      letter-spacing: .02em;
+      font-size: 16px;
+      line-height: 1;
+      user-select:none;
+    }
+    .kicker{
+      font-size:11px; letter-spacing:.25em; text-transform:uppercase;
+      color: rgba(255,255,255,.65); font-weight:900;
+    }
+    .subtitle{
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: rgba(199,215,255,.92);
+    }
+
+    .header-controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .pill{
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      font-size: 11px;
+      color: rgba(255,255,255,.88);
+      white-space: nowrap;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 18px 18px 48px;
+    }
+
+    /* Cards */
+    .card{
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 18px 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .card + .card{ margin-top: 16px; }
+
+    .status{
+      color: rgba(233,238,248,0.92);
+      font-size: 18px;
+      font-weight: 800;
+      text-align:center;
+      padding: 24px 0;
+    }
+    .error{
+      color: rgba(233,238,248,0.92);
+      font-size: 16px;
+      text-align:center;
+      padding: 24px 12px;
+    }
+
+    /* Round “graphic” header */
+    .round-head{
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 4px 0;
+      min-height: 44px;
+    }
+    .round-title{
+      font-size: 18px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-align:center;
+      padding: 0 56px; /* leaves room for arrow buttons */
+      line-height: 1.1;
+    }
+    .round-sub{
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.65);
+      text-align:center;
+    }
+
+    .nav-btn{
+      position:absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      cursor: pointer;
+      font-weight: 950;
+      display:grid;
+      place-items:center;
+      user-select:none;
+    }
+    .nav-btn:hover{
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.28);
+    }
+    .nav-btn:disabled{
+      opacity: .35;
+      cursor: not-allowed;
+    }
+    .nav-left{ left: 0; }
+    .nav-right{ right: 0; }
+
+    /* Two-pane content */
+    .round-body{
+      display:grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 12px;
+    }
+    @media (max-width: 860px){
+      .round-body{ grid-template-columns: 1fr; }
+    }
+
+    .pane{
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px;
+      overflow:hidden;
+    }
+    .pane-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .count{
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      color: rgba(156,163,199,0.95);
+      text-transform: uppercase;
+    }
+
+    /* Lists */
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      background: var(--row-bg);
+      border-radius: 12px;
+      padding: 10px 10px;
+      min-height: 44px;
+      overflow:hidden;
+    }
+    .row:nth-child(even){ background: var(--row-bg-2); }
+
+    .name{
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+    .mini{
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(156,163,199,0.95);
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    /* Matchup row */
+    .match{
+      display:grid;
+      grid-template-columns: 1fr 76px 24px 1fr 76px;
+      gap: 8px;
+      align-items:center;
+      background: var(--row-bg);
+      border-radius: 12px;
+      padding: 10px 10px;
+      min-height: 44px;
+      overflow:hidden;
+    }
+    .match:nth-child(even){ background: var(--row-bg-2); }
+
+    .score{
+      background:#d9d9d9;
+      color:#000;
+      border-radius: 10px;
+      text-align:center;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 8px 6px;
+      font-variant-numeric: tabular-nums;
+      user-select:none;
+    }
+    .vs{
+      text-align:center;
+      font-weight: 950;
+      color: rgba(255,255,255,.70);
+      letter-spacing: .20em;
+      text-transform: uppercase;
+      user-select:none;
+    }
+
+    /* Byes block */
+    .byes{
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(148,163,184,0.20);
+    }
+    .bye-row{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      background: rgba(168,85,247,0.08);
+      border: 1px solid rgba(168,85,247,0.25);
+      border-radius: 12px;
+      padding: 10px 10px;
+    }
+    .bye-rank{
+      width: 40px;
+      height: 30px;
+      display:grid;
+      place-items:center;
+      border-radius: 10px;
+      background: rgba(168,85,247,0.14);
+      color: rgba(233,213,255,0.95);
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+
+    /* Champion */
+    .champion{
+      margin-top: 12px;
+      border: 1px solid rgba(253,224,71,0.26);
+      background: rgba(253,224,71,0.10);
+      border-radius: 16px;
+      padding: 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+      box-shadow: 0 0 18px rgba(253,224,71,0.18);
+    }
+    .champion .lbl{
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.75);
+    }
+    .champion .val{
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(254,240,138,0.98);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
+    }
+
+    .footer{
+      margin-top: 18px;
+      text-align:center;
+      font-size:12px;
+      color: rgba(233,238,248,0.55);
+    }
+
+    /* Mobile tweaks */
+    @media (max-width: 760px){
+      .container{ padding: 14px 12px 40px; }
+      .topbar-inner{ padding: 12px 12px; }
+      .card{ padding: 14px 12px; border-radius: 18px; }
+      .round-title{ font-size: 16px; padding: 0 52px; }
+      .nav-btn{ width: 40px; height: 40px; border-radius: 14px; }
+      .match{ grid-template-columns: 1fr 66px 18px 1fr 66px; }
+      .score{ padding: 7px 6px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="index.html" aria-label="Home"><span>⌂</span></a>
+        <div>
+          <div class="kicker">2026 World Open</div>
+          <div class="subtitle">Live Bracket</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="pill" id="lastUpdated">Updating…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="statusCard" class="card">
+      <div class="status">Loading bracket…</div>
+    </div>
+
+    <div id="roundCard" class="card" style="display:none;">
+      <div class="round-head">
+        <button id="prevRound" class="nav-btn nav-left" type="button" aria-label="Previous round">‹</button>
+
+        <div style="width:100%;">
+          <div class="round-title" id="roundTitle">Round</div>
+          <div class="round-sub" id="roundSub">Use arrows to navigate rounds</div>
+        </div>
+
+        <button id="nextRound" class="nav-btn nav-right" type="button" aria-label="Next round">›</button>
+      </div>
+
+      <div class="round-body">
+        <div class="pane">
+          <div class="pane-title">
+            <span>Field</span>
+            <span class="count" id="fieldCount">0</span>
+          </div>
+          <div class="list" id="fieldList"></div>
+
+          <!-- Only shown on Round 3 -->
+          <div class="byes" id="byesBlock" style="display:none;">
+            <div class="pane-title" style="margin-bottom:8px;">
+              <span>Season 10 Top 16</span>
+              <span class="count" id="byesCount">0</span>
+            </div>
+            <div class="list" id="byesList"></div>
+          </div>
+        </div>
+
+        <div class="pane">
+          <div class="pane-title">
+            <span>Matchups</span>
+            <span class="count" id="matchCount">0</span>
+          </div>
+          <div class="list" id="matchList"></div>
+
+          <div class="champion" id="championBlock" style="display:none;">
+            <div class="lbl">Champion</div>
+            <div class="val" id="championName">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">2026 World Open</div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= CONFIG =========
+       Uses the same Worker pattern as your SPL page.
+       If your Worker URL differs for this project, update WORKER_URL.
+    */
+    const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID   = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
+    const SHEET_NAME = "2026 Results";
+    const REFRESH_MS = 15000;
+
+    // Round blocks are 7 columns wide: Field | Sep | P1 | S1 | P2 | S2 | Sep
+    // Based on your description:
+    // Round 1 starts at A (Field A, Matchups C-F)
+    // Round 2 starts at H (Field H, Matchups J-M)
+    // Round 3 starts at O (Field O, Matchups Q-T) + byes in O18:O33
+    // Round 4 starts at V (Field V, Matchups X-AA)
+    // Round 5 starts at AC (Field AC, Matchups AE-AH)
+    // Round 6 starts at AJ (Field AJ, Matchups AL-AO)
+    // Round 7 starts at AQ (Field AQ, Matchups AS-AV)
+    // Champion in AX2
+    const ROUNDS = [
+      {
+        key: "r1",
+        title: "Round 1",
+        sub: "Round of 64",
+        field: "A2:A65",
+        matchups: "C2:F33",
+      },
+      {
+        key: "r2",
+        title: "Round 2",
+        sub: "Round of 32",
+        field: "H2:H33",
+        matchups: "J2:M17",
+      },
+      {
+        key: "r3",
+        title: "Round 3",
+        sub: "Round of 32 (Byes Added)",
+        field: "O2:O33",
+        byes: "O18:O33", // special visual indicator
+        matchups: "Q2:T17",
+      },
+      {
+        key: "r4",
+        title: "Round 4",
+        sub: "Sweet 16",
+        field: "V2:V17",
+        matchups: "X2:AA9",
+      },
+      {
+        key: "r5",
+        title: "Round 5",
+        sub: "Elite 8",
+        field: "AC2:AC9",
+        matchups: "AE2:AH5",
+      },
+      {
+        key: "r6",
+        title: "Round 6",
+        sub: "Final 4",
+        field: "AJ2:AJ5",
+        matchups: "AL2:AO3",
+      },
+      {
+        key: "r7",
+        title: "Round 7",
+        sub: "Final",
+        field: "AQ2:AQ3",
+        matchups: "AS2:AV2",
+        champion: "AX2:AX2",
+      },
+    ];
+
+    /* ========= HELPERS ========= */
+    function rowHasAnyValue(row){
+      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
+    }
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+    async function fetchRange(a1){
+      const range = `'${SHEET_NAME}'!${a1}`;
+      const payload = { sheetId: SHEET_ID, range };
+
+      // POST first
+      try{
+        const r = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){}
+
+      // fallback GET
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(()=> "");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+
+    function fmtScore(v){
+      if (v === null || v === undefined) return "—";
+      const s = String(v).trim();
+      if (s === "") return "—";
+      const n = Number(s);
+      if (!Number.isFinite(n)) return s.toUpperCase();
+      if (n === 0 || Object.is(n, -0)) return "E";
+      return n > 0 ? `+${n}` : String(n);
+    }
+
+    function toNameList(values){
+      // values is Nx1
+      return (values || [])
+        .filter(rowHasAnyValue)
+        .map(r => String((r && r[0]) ?? "").trim())
+        .filter(Boolean);
+    }
+
+    function toMatchups(values){
+      // each row: [p1, s1, p2, s2]
+      return (values || [])
+        .filter(rowHasAnyValue)
+        .map(r => {
+          const p1 = String(r?.[0] ?? "").trim();
+          const s1 = r?.[1];
+          const p2 = String(r?.[2] ?? "").trim();
+          const s2 = r?.[3];
+          if (!p1 && !p2) return null;
+          return { p1, s1, p2, s2 };
+        })
+        .filter(Boolean);
+    }
+
+    function setLastUpdated(){
+      const d = new Date();
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mm = String(d.getMinutes()).padStart(2,"0");
+      const ss = String(d.getSeconds()).padStart(2,"0");
+      document.getElementById("lastUpdated").textContent = `Updated ${hh}:${mm}:${ss}`;
+    }
+
+    /* ========= STATE ========= */
+    const statusCard = document.getElementById("statusCard");
+    const roundCard  = document.getElementById("roundCard");
+
+    const prevRoundBtn = document.getElementById("prevRound");
+    const nextRoundBtn = document.getElementById("nextRound");
+
+    const roundTitle = document.getElementById("roundTitle");
+    const roundSub   = document.getElementById("roundSub");
+
+    const fieldCount = document.getElementById("fieldCount");
+    const fieldList  = document.getElementById("fieldList");
+
+    const matchCount = document.getElementById("matchCount");
+    const matchList  = document.getElementById("matchList");
+
+    const byesBlock = document.getElementById("byesBlock");
+    const byesCount = document.getElementById("byesCount");
+    const byesList  = document.getElementById("byesList");
+
+    const championBlock = document.getElementById("championBlock");
+    const championName  = document.getElementById("championName");
+
+    let currentRoundIndex = 0;
+
+    // cache per-round so navigation is instant
+    const roundCache = new Map(); // key -> {field, matchups, byes, champion}
+
+    function setRoundIndex(idx){
+      currentRoundIndex = Math.max(0, Math.min(ROUNDS.length - 1, idx));
+      renderRoundFromCacheOrFetch();
+      syncNavButtons();
+      const params = new URLSearchParams(location.search);
+      params.set("round", String(currentRoundIndex + 1));
+      history.replaceState(null, "", `${location.pathname}?${params.toString()}`);
+    }
+
+    function syncNavButtons(){
+      prevRoundBtn.disabled = (currentRoundIndex <= 0);
+      nextRoundBtn.disabled = (currentRoundIndex >= ROUNDS.length - 1);
+    }
+
+    prevRoundBtn.addEventListener("click", ()=> setRoundIndex(currentRoundIndex - 1));
+    nextRoundBtn.addEventListener("click", ()=> setRoundIndex(currentRoundIndex + 1));
+
+    window.addEventListener("keydown", (e)=>{
+      // nice-to-have keyboard support
+      if (e.key === "ArrowLeft") setRoundIndex(currentRoundIndex - 1);
+      if (e.key === "ArrowRight") setRoundIndex(currentRoundIndex + 1);
+    });
+
+    function renderField(names){
+      fieldList.innerHTML = "";
+      const list = (names || []);
+      fieldCount.textContent = `${list.length} players`;
+
+      if(!list.length){
+        fieldList.innerHTML = `<div class="error" style="padding:10px 0;">No players posted yet.</div>`;
+        return;
+      }
+
+      list.forEach((name, i)=>{
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `
+          <div class="name">${escapeHtml(String(name).toUpperCase())}</div>
+          <div class="mini">#${i+1}</div>
+        `;
+        fieldList.appendChild(div);
+      });
+    }
+
+    function renderMatchups(matchups){
+      matchList.innerHTML = "";
+      const list = (matchups || []);
+      matchCount.textContent = `${list.length} matchups`;
+
+      if(!list.length){
+        matchList.innerHTML = `<div class="error" style="padding:10px 0;">Matchups not posted yet.</div>`;
+        return;
+      }
+
+      list.forEach(m=>{
+        const div = document.createElement("div");
+        div.className = "match";
+        div.innerHTML = `
+          <div class="name" title="${escapeHtml(m.p1)}">${escapeHtml(String(m.p1 || "—").toUpperCase())}</div>
+          <div class="score">${escapeHtml(fmtScore(m.s1))}</div>
+          <div class="vs">VS</div>
+          <div class="name" title="${escapeHtml(m.p2)}" style="text-align:right;">${escapeHtml(String(m.p2 || "—").toUpperCase())}</div>
+          <div class="score">${escapeHtml(fmtScore(m.s2))}</div>
+        `;
+        matchList.appendChild(div);
+      });
+    }
+
+    function renderByes(byes){
+      const list = (byes || []);
+      if(!list.length){
+        byesBlock.style.display = "none";
+        byesList.innerHTML = "";
+        byesCount.textContent = "0";
+        return;
+      }
+
+      byesBlock.style.display = "";
+      byesCount.textContent = `${list.length} players`;
+
+      byesList.innerHTML = "";
+      list.forEach((name, i)=>{
+        const row = document.createElement("div");
+        row.className = "bye-row";
+        row.innerHTML = `
+          <div class="bye-rank">${i+1}</div>
+          <div class="name">${escapeHtml(String(name).toUpperCase())}</div>
+        `;
+        byesList.appendChild(row);
+      });
+    }
+
+    function renderChampion(name){
+      const clean = String(name ?? "").trim();
+      if(!clean){
+        championBlock.style.display = "none";
+        championName.textContent = "—";
+        return;
+      }
+      championBlock.style.display = "";
+      championName.textContent = clean.toUpperCase();
+    }
+
+    async function fetchRoundData(round){
+      if(roundCache.has(round.key)) return roundCache.get(round.key);
+
+      const [fieldVals, matchupVals, byesVals, champVals] = await Promise.all([
+        fetchRange(round.field),
+        fetchRange(round.matchups),
+        round.byes ? fetchRange(round.byes) : Promise.resolve([]),
+        round.champion ? fetchRange(round.champion) : Promise.resolve([]),
+      ]);
+
+      const data = {
+        field: toNameList(fieldVals),
+        matchups: toMatchups(matchupVals),
+        byes: round.byes ? toNameList(byesVals) : [],
+        champion: round.champion ? (champVals?.[0]?.[0] ?? "") : "",
+      };
+
+      roundCache.set(round.key, data);
+      return data;
+    }
+
+    async function renderRoundFromCacheOrFetch(){
+      const round = ROUNDS[currentRoundIndex];
+
+      roundTitle.textContent = round.title.toUpperCase();
+      roundSub.textContent = round.sub.toUpperCase();
+
+      try{
+        const data = await fetchRoundData(round);
+
+        renderField(data.field);
+        renderMatchups(data.matchups);
+        renderByes(round.key === "r3" ? data.byes : []); // only show on round 3
+        renderChampion(round.key === "r7" ? data.champion : "");
+
+        statusCard.style.display = "none";
+        roundCard.style.display = "";
+        setLastUpdated();
+      }catch(err){
+        statusCard.style.display = "";
+        roundCard.style.display = "none";
+        statusCard.innerHTML =
+          `<div class="error"><b>Couldn’t load bracket</b>` +
+          `<div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load.")}</div></div>`;
+        console.error(err);
+      }
+    }
+
+    async function refreshVisibleRoundOnly(){
+      // re-fetch visible round (and clear cache for it) so data stays fresh without hammering all ranges
+      const round = ROUNDS[currentRoundIndex];
+      roundCache.delete(round.key);
+      await renderRoundFromCacheOrFetch();
+    }
+
+    /* ========= BOOT ========= */
+    (function boot(){
+      const params = new URLSearchParams(location.search);
+      const roundParam = Number(params.get("round"));
+      if (Number.isFinite(roundParam) && roundParam >= 1 && roundParam <= ROUNDS.length){
+        currentRoundIndex = roundParam - 1;
+      }
+      syncNavButtons();
+      renderRoundFromCacheOrFetch();
+      setInterval(refreshVisibleRoundOnly, REFRESH_MS);
+    })();
+  </script>
+</body>
+</html>
