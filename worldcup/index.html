@@ -15,6 +15,7 @@
       --row-bg-2: rgba(255,255,255,0.045);
       --text: #e9eef8;
       --title: #c7d7ff;
+      --muted: rgba(255,255,255,.72);
 
       /* defaults = "big" (Quarterfinals and later) */
       --row-minh: 44px;
@@ -41,6 +42,9 @@
       color: var(--text);
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
     }
+
+    a{ color: inherit; text-decoration: none; }
+    a:hover{ text-decoration: underline; text-underline-offset: 3px; }
 
     /* Topbar */
     .topbar{
@@ -95,6 +99,88 @@
       margin:0 auto;
       padding: 18px 18px 48px;
     }
+
+    /* Signup banner above the graphics */
+    .signup-banner{
+      text-align:center;
+      margin-bottom: 14px;
+    }
+    .signup-head{
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255,255,255,.86);
+      line-height: 1.35;
+    }
+    .signup-head a{
+      color: rgba(199,215,255,0.98);
+      text-decoration: none;
+    }
+    .signup-head a:hover{ text-decoration: underline; text-underline-offset: 3px; }
+
+    .countdown{
+      display:inline-flex;
+      gap: 10px;
+      align-items:center;
+      justify-content:center;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 18px 24px rgba(0,0,0,0.25);
+      font-variant-numeric: tabular-nums;
+      flex-wrap: wrap;
+    }
+    .cd-item{
+      display:flex;
+      flex-direction:column;
+      gap: 3px;
+      min-width: 70px;
+      padding: 6px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .cd-val{
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      color: rgba(255,255,255,.92);
+      line-height: 1;
+    }
+    .cd-lbl{
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: rgba(156,163,199,0.95);
+      line-height: 1.1;
+    }
+    .cd-ended{
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.78);
+      padding: 4px 2px;
+    }
+
+    .signup-sub{
+      margin-top: 10px;
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.70);
+      line-height: 1.45;
+    }
+    .signup-sub a{
+      color: rgba(199,215,255,0.98);
+      text-decoration: none;
+    }
+    .signup-sub a:hover{ text-decoration: underline; text-underline-offset: 3px; }
 
     /* Card */
     .card{
@@ -355,30 +441,39 @@
     }
     .p-score.empty{ opacity: .55; }
 
-    /* Finals champion area (no pane header; custom label inside) */
-    .champion{
+    /* Finals champion block (centered vertically like the old "winner" row) */
+    .champion-row{
+      display:flex;
+      align-items:center;           /* ✅ vertically centered */
+      justify-content:center;       /* ✅ centered horizontally */
+      min-height: calc(var(--row-minh) * 2 + 10px); /* visually similar height to a matchup card */
       border: 1px solid rgba(253,224,71,0.26);
       background: rgba(253,224,71,0.10);
       border-radius: 16px;
       padding: 14px 12px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 10px;
-      flex-wrap:wrap;
       box-shadow: 0 0 18px rgba(253,224,71,0.18);
+      overflow:hidden;
+      text-align:center;
     }
-    .champion .lbl{
+    .champion-stack{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      width: 100%;
+      min-width: 0;
+    }
+    .champion-label{
       font-size: 10px;
       font-weight: 950;
       letter-spacing: .16em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.78);
+      color: rgba(255,255,255,.82);
       line-height: 1.15;
-      max-width: 210px;
     }
-    .champion .val{
-      font-size: 16px;
+    .champion-name{
+      font-size: 18px;
       font-weight: 950;
       letter-spacing: .06em;
       text-transform: uppercase;
@@ -389,7 +484,7 @@
       max-width: 100%;
       line-height: 1.15;
     }
-    .champion .val.empty{ opacity: .55; }
+    .champion-name.empty{ opacity: .55; color: rgba(255,255,255,.82); }
 
     .footer{
       margin-top: 18px;
@@ -416,6 +511,10 @@
       .round-title{ font-size: 16px; padding: 0 52px; }
       .nav-btn{ width: 40px; height: 40px; border-radius: 14px; }
       :root{ --score-col: 38px; }
+
+      .countdown{ gap: 8px; padding: 10px 10px; }
+      .cd-item{ min-width: 64px; padding: 6px 8px; }
+      .cd-val{ font-size: 16px; }
     }
   </style>
 </head>
@@ -435,6 +534,31 @@
   </div>
 
   <div class="container">
+    <!-- ✅ Signup header above the graphics, centered -->
+    <div class="signup-banner" aria-label="World Open sign-up countdown">
+      <div class="signup-head">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKIVmjQGoQWBE_tVCnExxVu4nw6yoXa0y79skDscjTmLEkZQ/viewform?usp=header" target="_blank" rel="noopener noreferrer">
+          WORLD OPEN SIGN-UPS
+        </a>
+        CLOSE IN <span id="countdownInline">—</span>
+      </div>
+
+      <div class="countdown" id="countdownPills" aria-live="polite">
+        <div class="cd-item"><div class="cd-val" id="cdDays">—</div><div class="cd-lbl">Days</div></div>
+        <div class="cd-item"><div class="cd-val" id="cdHours">—</div><div class="cd-lbl">Hours</div></div>
+        <div class="cd-item"><div class="cd-val" id="cdMins">—</div><div class="cd-lbl">Mins</div></div>
+        <div class="cd-item"><div class="cd-val" id="cdSecs">—</div><div class="cd-lbl">Secs</div></div>
+      </div>
+
+      <div class="signup-sub">
+        JOIN THE NSS GOLF
+        <a href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer">
+          DISCORD SERVER
+        </a>
+        FOR MORE INFORMATION
+      </div>
+    </div>
+
     <div id="statusCard" class="card">
       <div class="status">Loading bracket…</div>
     </div>
@@ -476,9 +600,11 @@
 
         <!-- Champion pane (finals only; sits side-by-side with matchup) -->
         <div class="pane hidden" id="championPane">
-          <div class="champion">
-            <div class="lbl">2026 WORLD OPEN CHAMPION</div>
-            <div class="val empty" id="championName">—</div>
+          <div class="champion-row">
+            <div class="champion-stack">
+              <div class="champion-label">2026 WORLD OPEN CHAMPION</div>
+              <div class="champion-name empty" id="championName">—</div>
+            </div>
           </div>
         </div>
       </div>
@@ -492,6 +618,11 @@
     const SHEET_ID   = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
     const SHEET_NAME = "2026 Results";
     const REFRESH_MS = 60000;
+
+    // Signup closes: January 15, 2026 at 10:30 AM US Central
+    // Use fixed offset for CST (-06:00). (Jan 15 is standard time.)
+    const SIGNUP_CLOSE_ISO = "2026-01-15T10:30:00-06:00";
+    const SIGNUP_CLOSE_MS  = Date.parse(SIGNUP_CLOSE_ISO);
 
     // Round 1 matchups gated by F1, Round 2 matchups gated by M1.
     const ROUNDS = [
@@ -606,6 +737,44 @@
       return String(flagText ?? "").trim().toLowerCase() === "yes";
     }
 
+    /* ===== Countdown ===== */
+    const countdownInline = document.getElementById("countdownInline");
+    const countdownPills  = document.getElementById("countdownPills");
+    const cdDays  = document.getElementById("cdDays");
+    const cdHours = document.getElementById("cdHours");
+    const cdMins  = document.getElementById("cdMins");
+    const cdSecs  = document.getElementById("cdSecs");
+
+    function pad2(n){ return String(Math.max(0, n|0)).padStart(2, "0"); }
+
+    function setCountdownEnded(){
+      countdownInline.textContent = "CLOSED";
+      countdownPills.innerHTML = `<div class="cd-ended">SIGN-UPS ARE CLOSED</div>`;
+    }
+
+    function tickCountdown(){
+      const now = Date.now();
+      let diff = SIGNUP_CLOSE_MS - now;
+
+      if (!Number.isFinite(diff) || diff <= 0){
+        setCountdownEnded();
+        return;
+      }
+
+      const totalSeconds = Math.floor(diff / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const mins  = Math.floor((totalSeconds % 3600) / 60);
+      const secs  = totalSeconds % 60;
+
+      countdownInline.textContent = `${days}D ${pad2(hours)}H ${pad2(mins)}M ${pad2(secs)}S`;
+      cdDays.textContent  = String(days);
+      cdHours.textContent = pad2(hours);
+      cdMins.textContent  = pad2(mins);
+      cdSecs.textContent  = pad2(secs);
+    }
+
+    /* ===== App ===== */
     const statusCard = document.getElementById("statusCard");
     const roundCard  = document.getElementById("roundCard");
 
@@ -847,11 +1016,17 @@
     }
 
     (function boot(){
+      // countdown
+      tickCountdown();
+      setInterval(tickCountdown, 1000);
+
+      // round selection via ?round=#
       const params = new URLSearchParams(location.search);
       const roundParam = Number(params.get("round"));
       if (Number.isFinite(roundParam) && roundParam >= 1 && roundParam <= ROUNDS.length){
         currentRoundIndex = roundParam - 1;
       }
+
       applyRoundSizing();
       applyFinalsLayout();
       syncNavButtons();
