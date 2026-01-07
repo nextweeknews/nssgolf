@@ -15,23 +15,21 @@
       --row-bg-2: rgba(255,255,255,0.045);
       --text: #e9eef8;
       --title: #c7d7ff;
-      --muted: #9ca3c7;
 
-      /* defaults = "big" (Elite 8 and later) */
+      /* defaults = "big" (Quarterfinals and later) */
       --row-minh: 44px;
       --row-pad-y: 10px;
       --row-pad-x: 10px;
       --name-fs: 14px;
 
-      /* score: bigger text, narrower column */
+      /* score: bigger text, narrower column (single digit) */
       --score-fs: 16px;
       --score-col: 44px;
 
       --score-bg: #d9d9d9;
       --score-fg: #000000;
 
-      /* winner glow */
-      --win-glow: rgba(34,197,94,0.55);
+      /* winner highlight: contained fill, no outline, no bleed */
       --win-fill: rgba(34,197,94,0.12);
     }
 
@@ -296,7 +294,7 @@
     .match-grid{
       display:grid;
       grid-template-columns: 1fr 1fr; /* two columns of matchup graphics */
-      gap: 10px; /* separation */
+      gap: 10px;
       align-items: start;
     }
 
@@ -340,15 +338,18 @@
       opacity: .96;
       display:flex;
       align-items:center;
-      position: relative;
-      z-index: 0;
+
+      /* ensure the highlight cannot appear like an "outline" */
+      border: none;
+      outline: none;
+      box-shadow: none;
     }
     .p-name.empty{ opacity: .35; }
 
-    /* ✅ Winner highlight: consistent green glow, no hard outline, respects rounding */
+    /* ✅ Winner highlight: contained fill only (no outline, no bleed) */
     .p-name.winner{
       background: var(--win-fill);
-      box-shadow: inset 0 0 0 1px rgba(34,197,94,0.10), 0 0 14px var(--win-glow);
+      box-shadow: none;
     }
 
     .p-score{
@@ -438,7 +439,6 @@
           <div class="kicker">2026 World Open</div>
         </div>
       </div>
-      <!-- Removed timestamp pill entirely -->
     </div>
   </div>
 
@@ -506,9 +506,10 @@
 
     // Titles must follow exactly this progression:
     // FIRST ROUND, SECOND ROUND, ROUND OF 32, ROUND OF 16, QUARTERFINALS, SEMI-FINALS, FINALS
+    // Also: Round 1 matchups gated by F1, Round 2 matchups gated by M1.
     const ROUNDS = [
-      { key:"r1", title:"FIRST ROUND",      field:"A2:A65", fieldSize:64, matchups:"C2:F33",  matchSize:32 },
-      { key:"r2", title:"SECOND ROUND",     field:"H2:H33", fieldSize:32, matchups:"J2:M17",  matchSize:16 },
+      { key:"r1", title:"FIRST ROUND",      field:"A2:A65", fieldSize:64, matchups:"C2:F33",  matchSize:32, showFlag:"F1:F1" },
+      { key:"r2", title:"SECOND ROUND",     field:"H2:H33", fieldSize:32, matchups:"J2:M17",  matchSize:16, showFlag:"M1:M1" },
       { key:"r3", title:"ROUND OF 32",      field:"O2:O17", fieldSize:16, byes:"O18:O33", byesSize:16, matchups:"Q2:T17", matchSize:16 },
       { key:"r4", title:"ROUND OF 16",      field:"V2:V17", fieldSize:16, matchups:"X2:AA9",  matchSize:8 },
       { key:"r5", title:"QUARTERFINALS",    field:"AC2:AC9",fieldSize:8,  matchups:"AE2:AH5", matchSize:4 },
@@ -560,7 +561,7 @@
         .replace(/'/g,"&#39;");
     }
 
-    // Points scoring: display EXACTLY what is in the sheet (no + / E conversions).
+    // Points scoring: display EXACTLY what is in the sheet (no transformations).
     function fmtPoints(v){
       const s = String(v ?? "").trim();
       return s === "" ? "—" : s;
@@ -596,11 +597,16 @@
       return out;
     }
 
+    function readSingleCell(values){
+      // values is array-of-rows; cell is values[0][0]
+      return String(values?.[0]?.[0] ?? "").trim();
+    }
+
     function nonEmptyTrim(list){
       return (list || []).map(x => String(x ?? "").trim()).filter(Boolean);
     }
 
-    // Advanced players should display first; TBD last
+    // Advanced players first; TBD last (keeps count fixed)
     function reorderAdvancedFirst(list, expected){
       const fixed = [];
       for(let i=0;i<expected;i++) fixed.push(String(list?.[i] ?? ""));
@@ -627,7 +633,6 @@
     const byesCount = document.getElementById("byesCount");
     const byesList  = document.getElementById("byesList");
 
-    const matchupsPane  = document.getElementById("matchupsPane");
     const matchupsTitle = document.getElementById("matchupsTitle");
     const matchGrid = document.getElementById("matchGrid");
 
@@ -742,12 +747,17 @@
       }
     }
 
-    // Winner highlight: compare numeric points, highlight higher score's NAME area only
-    function renderMatchupsGrid(matchups, expected){
+    // Winner highlight: compare numeric points, highlight higher score's NAME area only.
+    // If matchups are gated off (not public), treat them as blank (TBD for both players).
+    function renderMatchupsGrid(matchups, expected, allowMatchups){
       matchGrid.innerHTML = "";
 
       for(let i=0;i<expected;i++){
-        const m = matchups?.[i] ?? { p1:"", s1:"", p2:"", s2:"" };
+        let m = matchups?.[i] ?? { p1:"", s1:"", p2:"", s2:"" };
+
+        if (!allowMatchups){
+          m = { p1:"", s1:"", p2:"", s2:"" };
+        }
 
         const p1 = String(m.p1 ?? "").trim();
         const p2 = String(m.p2 ?? "").trim();
@@ -757,8 +767,8 @@
         const n1 = toNum(s1);
         const n2 = toNum(s2);
 
-        const p1Wins = (n1 != null && n2 != null && n1 > n2);
-        const p2Wins = (n1 != null && n2 != null && n2 > n1);
+        const p1Wins = (allowMatchups && n1 != null && n2 != null && n1 > n2);
+        const p2Wins = (allowMatchups && n1 != null && n2 != null && n2 > n1);
 
         const card = document.createElement("div");
         card.className = "match-card";
@@ -784,21 +794,33 @@
       championName.classList.toggle("empty", !clean);
     }
 
+    function allowMatchupsFromFlag(flagText){
+      // Anything other than "yes" => NOT public
+      return String(flagText ?? "").trim().toLowerCase() === "yes";
+    }
+
     async function fetchRoundData(round){
       if(roundCache.has(round.key)) return roundCache.get(round.key);
 
-      const [fieldVals, matchupVals, byesVals, champVals] = await Promise.all([
+      const tasks = [
         fetchRange(round.field),
         fetchRange(round.matchups),
         round.byes ? fetchRange(round.byes) : Promise.resolve([]),
         round.champion ? fetchRange(round.champion) : Promise.resolve([]),
-      ]);
+        round.showFlag ? fetchRange(round.showFlag) : Promise.resolve([]),
+      ];
+
+      const [fieldVals, matchupVals, byesVals, champVals, flagVals] = await Promise.all(tasks);
+
+      const flagText = round.showFlag ? readSingleCell(flagVals) : "yes";
+      const allowMatchups = round.showFlag ? allowMatchupsFromFlag(flagText) : true;
 
       const data = {
         field: extractColumnFixed(fieldVals, round.fieldSize),
         matchups: extractMatchupsFixed(matchupVals, round.matchSize),
         byes: round.byes ? extractColumnFixed(byesVals, round.byesSize || 0) : [],
         champion: round.champion ? (champVals?.[0]?.[0] ?? "") : "",
+        allowMatchups,
       };
 
       roundCache.set(round.key, data);
@@ -812,8 +834,9 @@
       try{
         const data = await fetchRoundData(round);
 
-        // Always render matchups (even if blank) so users see future format
-        renderMatchupsGrid(data.matchups, round.matchSize);
+        // Always render matchups so users see the future format,
+        // but round 1 & 2 can be gated by F1 / M1.
+        renderMatchupsGrid(data.matchups, round.matchSize, data.allowMatchups);
 
         // Range: skip entirely on finals (pane is hidden in applyFinalsLayout)
         if(round.key === "r1"){
