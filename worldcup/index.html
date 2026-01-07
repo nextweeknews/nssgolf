@@ -15,7 +15,9 @@
       --row-bg-2: rgba(255,255,255,0.045);
       --text: #e9eef8;
       --title: #c7d7ff;
+
       --muted: rgba(255,255,255,.72);
+      --link-blue: rgba(147,197,253,0.98); /* vibrant pastel blue */
 
       /* defaults = "big" (Quarterfinals and later) */
       --row-minh: 44px;
@@ -113,11 +115,14 @@
       color: rgba(255,255,255,.86);
       line-height: 1.35;
     }
-    .signup-head a{
-      color: rgba(199,215,255,0.98);
+    .signup-head .link{
+      color: var(--link-blue);
       text-decoration: none;
     }
-    .signup-head a:hover{ text-decoration: underline; text-underline-offset: 3px; }
+    .signup-head .link:hover{
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
 
     .countdown{
       display:inline-flex;
@@ -158,14 +163,6 @@
       color: rgba(156,163,199,0.95);
       line-height: 1.1;
     }
-    .cd-ended{
-      font-size: 12px;
-      font-weight: 950;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.78);
-      padding: 4px 2px;
-    }
 
     .signup-sub{
       margin-top: 10px;
@@ -176,11 +173,14 @@
       color: rgba(255,255,255,.70);
       line-height: 1.45;
     }
-    .signup-sub a{
-      color: rgba(199,215,255,0.98);
+    .signup-sub .link{
+      color: var(--link-blue);
       text-decoration: none;
     }
-    .signup-sub a:hover{ text-decoration: underline; text-underline-offset: 3px; }
+    .signup-sub .link:hover{
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
 
     /* Card */
     .card{
@@ -427,26 +427,25 @@
 
     .p-score{
       flex: 0 0 var(--score-col);
-      background: var(--score-bg);
-      color: var(--score-fg);
+      background: #d9d9d9;
+      color: #000000;
       display:flex;
       align-items:center;
       justify-content:center;
       font-weight: 950;
       letter-spacing: .02em;
-      text-transform: none;
       font-variant-numeric: tabular-nums;
       font-size: var(--score-fs);
       user-select:none;
     }
     .p-score.empty{ opacity: .55; }
 
-    /* Finals champion block (centered vertically like the old "winner" row) */
+    /* Finals champion block (centered vertically) */
     .champion-row{
       display:flex;
-      align-items:center;           /* ✅ vertically centered */
-      justify-content:center;       /* ✅ centered horizontally */
-      min-height: calc(var(--row-minh) * 2 + 10px); /* visually similar height to a matchup card */
+      align-items:center;
+      justify-content:center;
+      min-height: calc(var(--row-minh) * 2 + 10px);
       border: 1px solid rgba(253,224,71,0.26);
       background: rgba(253,224,71,0.10);
       border-radius: 16px;
@@ -534,13 +533,10 @@
   </div>
 
   <div class="container">
-    <!-- ✅ Signup header above the graphics, centered -->
-    <div class="signup-banner" aria-label="World Open sign-up countdown">
+    <!-- ✅ Signup header above the graphics, centered, auto-hides after deadline -->
+    <div class="signup-banner" id="signupBanner" aria-label="World Open sign-up countdown">
       <div class="signup-head">
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSdKIVmjQGoQWBE_tVCnExxVu4nw6yoXa0y79skDscjTmLEkZQ/viewform?usp=header" target="_blank" rel="noopener noreferrer">
-          WORLD OPEN SIGN-UPS
-        </a>
-        CLOSE IN <span id="countdownInline">—</span>
+        <a class="link" href="https://docs.google.com/forms/d/e/1FAIpQLSdKIVmjQGoQWBE_tVCnExxVu4nw6yoXa0y79skDscjTmLEkZQ/viewform?usp=header" target="_blank" rel="noopener noreferrer">WORLD OPEN SIGN-UPS</a> CLOSES IN
       </div>
 
       <div class="countdown" id="countdownPills" aria-live="polite">
@@ -551,11 +547,7 @@
       </div>
 
       <div class="signup-sub">
-        JOIN THE NSS GOLF
-        <a href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer">
-          DISCORD SERVER
-        </a>
-        FOR MORE INFORMATION
+        JOIN THE NSS GOLF <a class="link" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer">DISCORD SERVER</a> FOR MORE INFORMATION
       </div>
     </div>
 
@@ -737,9 +729,8 @@
       return String(flagText ?? "").trim().toLowerCase() === "yes";
     }
 
-    /* ===== Countdown ===== */
-    const countdownInline = document.getElementById("countdownInline");
-    const countdownPills  = document.getElementById("countdownPills");
+    /* ===== Countdown (auto-hide banner after deadline) ===== */
+    const signupBanner  = document.getElementById("signupBanner");
     const cdDays  = document.getElementById("cdDays");
     const cdHours = document.getElementById("cdHours");
     const cdMins  = document.getElementById("cdMins");
@@ -747,27 +738,22 @@
 
     function pad2(n){ return String(Math.max(0, n|0)).padStart(2, "0"); }
 
-    function setCountdownEnded(){
-      countdownInline.textContent = "CLOSED";
-      countdownPills.innerHTML = `<div class="cd-ended">SIGN-UPS ARE CLOSED</div>`;
-    }
-
     function tickCountdown(){
       const now = Date.now();
-      let diff = SIGNUP_CLOSE_MS - now;
+      const diff = SIGNUP_CLOSE_MS - now;
 
       if (!Number.isFinite(diff) || diff <= 0){
-        setCountdownEnded();
+        // ✅ auto-hide header once in the past
+        signupBanner.style.display = "none";
         return;
       }
 
       const totalSeconds = Math.floor(diff / 1000);
-      const days = Math.floor(totalSeconds / 86400);
+      const days  = Math.floor(totalSeconds / 86400);
       const hours = Math.floor((totalSeconds % 86400) / 3600);
       const mins  = Math.floor((totalSeconds % 3600) / 60);
       const secs  = totalSeconds % 60;
 
-      countdownInline.textContent = `${days}D ${pad2(hours)}H ${pad2(mins)}M ${pad2(secs)}S`;
       cdDays.textContent  = String(days);
       cdHours.textContent = pad2(hours);
       cdMins.textContent  = pad2(mins);
