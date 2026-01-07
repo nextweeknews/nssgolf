@@ -3352,10 +3352,12 @@
           const stageBlock = document.createElement("div");
           stageBlock.className = "stage-block";
 
-          const hdr = document.createElement("div");
-          hdr.className = "stage-header";
-          hdr.textContent = stageHeaderText(season, e.stage);
-          stageBlock.appendChild(hdr);
+          if (isStagedSeason(season)){
+            const hdr = document.createElement("div");
+            hdr.className = "stage-header";
+            hdr.textContent = stageHeaderText(season, e.stage);
+            stageBlock.appendChild(hdr);
+          }
 
           // TEAM PERFORMANCE ROW
           const row1 = document.createElement("div");
