@@ -66,6 +66,7 @@
     }
     .brand{display:flex; gap:12px; align-items:center;}
 
+    /* Home button icon */
     .home-btn{
       width:40px; height:40px;
       border-radius:16px;
@@ -388,23 +389,6 @@
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
-    }
-
-    /* Weekly section subcards (avoid nested heavy shadows) */
-    .weekly-subcard{
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 12px 12px;
-    }
-    .weekly-subcard + .weekly-subcard{ margin-top: 12px; }
-    .weekly-subcard .h2{
-      font-size: 18px;
-      font-weight: 950;
-      color: var(--title);
-      letter-spacing: .035em;
-      text-transform: uppercase;
-      margin: 0 0 10px 0;
     }
 
     /* Collapsible roster / stats */
@@ -1128,7 +1112,170 @@
       color: rgba(255,255,255,0.98);
     }
 
-    /* ---------------- MOBILE OPTIMIZATION (shrink-to-fit; desktop unchanged) ---------------- */
+    /* ---------------- CHAMPIONSHIP LAYOUT ---------------- */
+    .champ-grid{
+      display:grid;
+      grid-template-columns: 1fr 1.45fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 860px){
+      .champ-grid{ grid-template-columns: 1fr; }
+    }
+
+    .mini-header-row, .mini-entry{
+      display:grid;
+      grid-template-columns: 1fr var(--score-col);
+      align-items:center;
+      min-width: 0;
+    }
+    .mini-header-row{
+      height: 40px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .mini-header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 18px;
+      min-width: 0;
+    }
+    .mini-header-row span:first-child{
+      justify-content:flex-start;
+      padding-left: 18px;
+    }
+    .mini-entry{
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 0;
+    }
+
+    .team-cell.compact .name-text{ font-size: 18px; }
+    .team-cell.compact .team-logo{ height: calc(100% - 12px); }
+
+    .chip.in{
+      background: rgba(34,197,94,0.14);
+      border-color: rgba(34,197,94,0.28);
+      color: rgba(187,247,208,0.96);
+    }
+    .chip.out{
+      background: rgba(148,163,184,0.10);
+      border-color: rgba(148,163,184,0.18);
+      color: rgba(233,238,248,0.85);
+    }
+
+    .bracket-wrap{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+    .bracket-card{
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .bracket-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+    }
+    .bracket-list{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+    .bracket-entry{
+      display:grid;
+      grid-template-columns: 1fr var(--score-col);
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      align-items:center;
+      min-width:0;
+    }
+    .bracket-score{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#d9d9d9;
+      color:#000;
+      font-size: 16px;
+      font-weight: 950;
+      padding: 0 10px;
+      font-variant-numeric: tabular-nums;
+    }
+    .winner-glow{
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.22) inset, 0 0 18px rgba(34,197,94,0.18);
+      border: 1px solid rgba(34,197,94,0.28);
+    }
+
+    /* Championship roster table (abbreviated) */
+    table.champ-roster{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      table-layout: fixed;
+    }
+    .champ-roster thead th{
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: rgba(15,23,42,0.92);
+      backdrop-filter: blur(6px);
+      padding: 6px 6px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .champ-roster td{
+      padding: 8px 6px;
+      font-size: 11px;
+      color: rgba(233,238,248,0.92);
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-top: 1px solid rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      background-clip: padding-box;
+      font-weight: 900;
+      line-height: 1.05;
+      background: var(--row-bg);
+    }
+    .champ-roster tr:nth-child(even) td{ background: var(--row-bg-2); }
+
+    .champ-roster .pname{
+      text-align: left;
+      color: var(--title);
+      text-transform: uppercase;
+      padding-left: 10px;
+    }
+
+    /* ---------------- MOBILE OPTIMIZATION ---------------- */
     @media (max-width: 760px){
       :root{
         --rank-col: 72px;
@@ -1145,10 +1292,10 @@
       .card{ padding: 14px 12px; border-radius: 18px; }
       .card-head .h2{ font-size: 18px; }
 
-      .header-row, .weekly-header-row{ height: 36px; font-size: 12px; }
-      .entry, .weekly-entry{ height: 44px; }
+      .header-row, .weekly-header-row, .mini-header-row{ height: 36px; font-size: 12px; }
+      .entry, .weekly-entry, .mini-entry{ height: 44px; }
       .place{ font-size: 18px; padding: 0 6px; }
-      .score-col{ font-size: 16px; padding: 0 6px; }
+      .score-col, .bracket-score{ font-size: 14px; padding: 0 6px; }
 
       .team-cell{ padding: 0 8px; }
       .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
@@ -1209,9 +1356,7 @@
         padding: 6px 0;
       }
 
-      .chip{
-        max-width: 100%;
-      }
+      .chip{ max-width: 100%; }
 
       .modal-body{
         grid-template-columns: 1fr;
@@ -1244,7 +1389,7 @@
       .select-label{ font-size: 10px; }
       .kicker{ font-size: 10px; }
 
-      .entry, .weekly-entry{ height: 42px; }
+      .entry, .weekly-entry, .mini-entry{ height: 42px; }
       .team-cell .name-text{ font-size: 15px; }
 
       table.mini-rounds{ width: 280px; max-width: 280px; }
@@ -1268,26 +1413,12 @@
       <div class="header-controls">
         <div class="select-wrap" aria-label="Season selector">
           <label class="select-label" for="seasonSelect">Season</label>
-          <!-- Options will be rebuilt at boot based on detected current season -->
-          <select id="seasonSelect" class="select">
-            <option value="6">Season 6</option>
-            <option value="5">Season 5</option>
-            <option value="4">Season 4</option>
-            <option value="3">Season 3</option>
-            <option value="2">Season 2</option>
-            <option value="1">Season 1</option>
-          </select>
+          <select id="seasonSelect" class="select"></select>
         </div>
 
-        <!-- Stage selector shown for Season 6+; options rebuilt based on detected current stage -->
         <div id="stageWrap" class="select-wrap hidden" aria-label="Stage selector">
           <label class="select-label" for="stageSelect">Stage</label>
-          <select id="stageSelect" class="select">
-            <option value="1">Stage 1</option>
-            <option value="2">Stage 2</option>
-            <option value="3">Stage 3</option>
-            <option value="championship">Championship</option>
-          </select>
+          <select id="stageSelect" class="select"></select>
         </div>
       </div>
     </div>
@@ -1299,46 +1430,80 @@
     </div>
 
     <div id="content" class="hidden">
-      <!-- 1) TEAM RANKINGS -->
-      <div id="teamsView" class="card">
-        <div class="card-head">
-          <h2 class="h2">Team Rankings</h2>
+      <!-- Normal (non-championship) stacked sections -->
+      <div id="normalStack">
+        <div id="teamsView" class="card">
+          <div class="card-head">
+            <h2 class="h2">Team Rankings</h2>
+          </div>
+
+          <div class="header-row">
+            <span>Rank</span>
+            <span>Team</span>
+            <span>Score</span>
+          </div>
+
+          <div id="teamsList" class="resultsList"></div>
         </div>
 
-        <div class="header-row">
-          <span>Rank</span>
-          <span>Team</span>
-          <span>Score</span>
+        <div id="weeklyView" class="card">
+          <div class="card-head">
+            <h2 class="h2">Weekly Top 5</h2>
+          </div>
+          <div id="weeklyCards"></div>
         </div>
 
-        <div id="teamsList" class="resultsList"></div>
+        <div id="playersView" class="card">
+          <div class="card-head">
+            <h2 class="h2">Player Rankings</h2>
+            <div class="search">
+              <span>⌕</span>
+              <input id="playerSearch" type="text" placeholder="Search…" />
+            </div>
+          </div>
+
+          <div class="header-row">
+            <span>Rank</span>
+            <span>Player</span>
+            <span>Score</span>
+          </div>
+
+          <div id="playersList" class="resultsList"></div>
+        </div>
       </div>
 
-      <!-- 2) WEEKLY TOP 5 -->
-      <div id="weeklySection" class="card" style="margin-top:16px;">
+      <!-- Championship view -->
+      <div id="champView" class="card hidden">
         <div class="card-head">
-          <h2 class="h2">Weekly Top 5</h2>
+          <h2 class="h2">Championship</h2>
         </div>
-        <div id="weeklyCards"></div>
-      </div>
 
-      <!-- 3) PLAYER RANKINGS -->
-      <div id="playersView" class="card" style="margin-top:16px;">
-        <div class="card-head">
-          <h2 class="h2">Player Rankings</h2>
-          <div class="search">
-            <span>⌕</span>
-            <input id="playerSearch" type="text" placeholder="Search…" />
+        <div class="champ-grid">
+          <div>
+            <div class="bracket-card" style="margin-bottom:12px;">
+              <div class="bracket-title">Stage Winners</div>
+              <div class="mini-header-row">
+                <span>Team</span>
+                <span>Best</span>
+              </div>
+              <div id="stageWinnersList" class="resultsList"></div>
+            </div>
+
+            <div class="bracket-card">
+              <div class="bracket-title">Wildcard Standings</div>
+              <div class="mini-header-row">
+                <span>Team</span>
+                <span>Best</span>
+              </div>
+              <div id="wildcardList" class="resultsList"></div>
+            </div>
+          </div>
+
+          <div class="bracket-card">
+            <div class="bracket-title">Bracket</div>
+            <div id="bracketWrap" class="bracket-wrap"></div>
           </div>
         </div>
-
-        <div class="header-row">
-          <span>Rank</span>
-          <span>Player</span>
-          <span>Score</span>
-        </div>
-
-        <div id="playersList" class="resultsList"></div>
       </div>
 
       <div class="footer">Shotgun Pro League</div>
@@ -1360,58 +1525,38 @@
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 60000;
 
-    // ---- Round-data detection: must check BOTH ranges (header content between them is always present) ----
-    const ROUND_DATA_RANGES = ["L5:S63", "L66:S101"];
+    // detection (future-proof ceiling)
+    const MAX_SEASON_TO_CHECK = 25;
 
-    // ---- Legacy configs (Seasons 1-5), staged configs (Season 6+) ----
-    const LEGACY_CONFIG = {
-      5: { sheet: "Season 5", rosters: "A3:S63", teamRank: "U4:X15" },
-      4: { sheet: "Season 4", rosters: "A3:S53", teamRank: "U4:X13" },
-      3: { sheet: "Season 3", rosters: "A3:S48", teamRank: "U4:X12" },
-      2: { sheet: "Season 2", rosters: "A3:S43", teamRank: "U4:X11" },
-      1: { sheet: "Season 1", rosters: "A3:S38", teamRank: "U4:X10" },
-    };
-    const STAGED_CONFIG = { rosters: "A3:S63", teamRank: "U4:X15" };
-
-    function isStagedSeason(seasonNum){
-      return Number(seasonNum) >= 6;
-    }
-    function getCfg(seasonNum){
-      if (!isStagedSeason(seasonNum)) return LEGACY_CONFIG[seasonNum];
-      return STAGED_CONFIG;
-    }
-    function sheetNameFor(seasonNum, stageVal){
-      if (!isStagedSeason(seasonNum)) return `Season ${seasonNum}`;
-      const s = String(stageVal).toLowerCase();
-      if (s === "championship") return `Season ${seasonNum}, Championship`;
-      return `Season ${seasonNum}, Stage ${Number(s)}`;
-    }
-
-    // Chronological next period (championship excluded from detection)
-    function nextPeriod(seasonNum, stageVal){
-      const s = Number(seasonNum);
-
-      if (s < 6){
-        if (s < 5) return { season: s + 1, stage: null };
-        return { season: 6, stage: "1" };
-      }
-
-      const st = Number(stageVal);
-      if (st < 3) return { season: s, stage: String(st + 1) };
-      return { season: s + 1, stage: "1" };
-    }
-
-    // Detected current season/stage (auto)
-    let DETECTED_CURRENT_SEASON = 5;
-    let DETECTED_CURRENT_STAGE  = null; // null for seasons 1-5; "1"-"3" for staged
-
-    // Ranges (common)
+    // Sheet ranges
     const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
     const RANGE_W1_A1 = "Z4:AC13";
     const RANGE_W2_A1 = "Z16:AC25";
     const RANGE_W3_A1 = "Z28:AC37";
     const RANGE_W4_A1 = "Z40:AC49";
     const LOOKUP_RANGE_A1 = "A3:S250";
+
+    // Detection ranges (must remain separate due to header rows between)
+    const DETECT_R1 = "L5:S63";
+    const DETECT_R2 = "L66:S101";
+
+    // Championship ranges
+    const CH_STAGE_WINNERS = "J4:L6";
+    const CH_WILDCARDS     = "J13:L24";
+    const CH_WILDCARD_SLOTS= "L10:L10";
+    const CH_ROSTER        = "B3:H23"; // seed order, header row at 3
+
+    // Seasons 1-5 varying roster/teamRank sizes (same as your original)
+    const LEGACY_SEASON_CONFIG = {
+      5: { sheet: "Season 5", rosters: "A3:S63", teamRank: "U4:X15" },
+      4: { sheet: "Season 4", rosters: "A3:S53", teamRank: "U4:X13" },
+      3: { sheet: "Season 3", rosters: "A3:S48", teamRank: "U4:X12" },
+      2: { sheet: "Season 2", rosters: "A3:S43", teamRank: "U4:X11" },
+      1: { sheet: "Season 1", rosters: "A3:S38", teamRank: "U4:X10" },
+    };
+
+    // Seasons 6+ stage sheets (Stage 1/2/3) share the same format as season 6 stage 1
+    const STAGED_FORMAT = { rosters: "A3:S63", teamRank: "U4:X15" };
 
     const TEAM_STYLES = {
       "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
@@ -1648,118 +1793,71 @@
       return byPlayer;
     }
 
-    // ---- round-data detection helpers ----
-    function hasAnyNonBlankCell(values){
-      if (!Array.isArray(values)) return false;
-      for (const row of values){
-        if (!Array.isArray(row)) continue;
-        for (const cell of row){
-          if (String(cell ?? "").trim() !== "") return true;
-        }
-      }
-      return false;
-    }
-
-    async function periodHasRoundData(sheetName){
-      const [a, b] = await Promise.all(
-        ROUND_DATA_RANGES.map(r => fetchRange(`'${sheetName}'!${r}`).catch(()=>[]))
-      );
-      return hasAnyNonBlankCell(a) || hasAnyNonBlankCell(b);
-    }
-
-    async function detectCurrentSeasonStage(){
-      // Past seasons/stages always have data; future periods are blank.
-      // Start at Season 5 and probe forward in chronological order; stop at first missing period.
-      let cur = { season: 5, stage: null };
-
-      while (true){
-        const nxt = nextPeriod(cur.season, cur.stage);
-        const sheet = sheetNameFor(nxt.season, nxt.stage);
-        const hasData = await periodHasRoundData(sheet);
-        if (!hasData) break;
-        cur = nxt;
-      }
-
-      DETECTED_CURRENT_SEASON = cur.season;
-      DETECTED_CURRENT_STAGE  = cur.stage; // null or "1"-"3"
-    }
-
-    async function checkAdvanceIfNewPeriodStarted(){
-      const cur = { season: DETECTED_CURRENT_SEASON, stage: DETECTED_CURRENT_STAGE };
-      const nxt = nextPeriod(cur.season, cur.stage);
-
-      const sheet = sheetNameFor(nxt.season, nxt.stage);
-      const hasData = await periodHasRoundData(sheet);
-      if (!hasData) return false;
-
-      // Advance forward as far as new data exists (usually just one step)
-      let now = nxt;
-      while (true){
-        const after = nextPeriod(now.season, now.stage);
-        const afterSheet = sheetNameFor(after.season, after.stage);
-        const ok = await periodHasRoundData(afterSheet);
-        if (!ok) break;
-        now = after;
-      }
-
-      DETECTED_CURRENT_SEASON = now.season;
-      DETECTED_CURRENT_STAGE  = now.stage;
-      return true;
-    }
-
-    function buildSeasonOptions(){
-      // show seasons 1..detected current season
-      const maxS = Number(DETECTED_CURRENT_SEASON);
-      let html = "";
-      for (let s = maxS; s >= 1; s--){
-        html += `<option value="${s}">Season ${s}</option>`;
-      }
-      seasonSelect.innerHTML = html;
-    }
-
-    function stageLimitForSeason(seasonNum){
-      const s = Number(seasonNum);
-      if (!isStagedSeason(s)) return 0;
-      if (s < DETECTED_CURRENT_SEASON) return 3;
-      return Number(DETECTED_CURRENT_STAGE || "1");
-    }
-
-    function syncStageDropdown(){
-      const seasonNum = Number(seasonSelect.value);
-
-      if (!isStagedSeason(seasonNum)){
-        stageWrap.classList.add("hidden");
-        return;
-      }
-
-      stageWrap.classList.remove("hidden");
-
-      const lim = stageLimitForSeason(seasonNum);
-
-      let html = "";
-      for (let st = 1; st <= lim; st++){
-        html += `<option value="${st}">Stage ${st}</option>`;
-      }
-
-      // Championship always visible for the CURRENT season (regardless of current stage)
-      if (seasonNum === DETECTED_CURRENT_SEASON){
-        html += `<option value="championship">Championship</option>`;
-      }
-
-      stageSelect.innerHTML = html;
-
-      // Ensure selection is valid; default to latest available stage for that season
-      const allowed = new Set(Array.from(stageSelect.options).map(o => String(o.value).toLowerCase()));
-      const curVal = String(stageSelect.value || "1").toLowerCase();
-      if (!allowed.has(curVal)){
-        stageSelect.value = String(lim);
-      }
-    }
-
     const TEAM_LOGO_DIR = "logos";
     const TEAM_LOGO_EXT = "png";
     function teamLogoSrc(teamName){
       return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
+    }
+
+    function isStagedSeason(seasonNum){
+      return Number(seasonNum) >= 6;
+    }
+    function stageLabel(stage){
+      if (stage === "championship") return "CHAMPIONSHIP";
+      const n = Number(stage);
+      return Number.isFinite(n) ? `STAGE ${n}` : String(stage || "").toUpperCase();
+    }
+    function periodDisplayLabel(season, stage){
+      const s = Number(season);
+      if (!isStagedSeason(s)) return `Season ${s}`;
+      if (stage === "championship") return `Season ${s}, Championship`;
+      return `Season ${s}, Stage ${Number(stage)}`;
+    }
+    function sheetNameForPeriod(season, stage){
+      const s = Number(season);
+      if (!isStagedSeason(s)) return `Season ${s}`;
+      if (stage === "championship") return `Season ${s}, Championship`;
+      return `Season ${s}, Stage ${Number(stage)}`;
+    }
+
+    function getPeriodConfig(season, stage){
+      const s = Number(season);
+      if (!isStagedSeason(s)){
+        const legacy = LEGACY_SEASON_CONFIG[s];
+        return legacy ? { sheet: legacy.sheet, rosters: legacy.rosters, teamRank: legacy.teamRank } : null;
+      }
+      if (stage === "championship"){
+        return { sheet: sheetNameForPeriod(s, "championship") };
+      }
+      return { sheet: sheetNameForPeriod(s, stage), rosters: STAGED_FORMAT.rosters, teamRank: STAGED_FORMAT.teamRank };
+    }
+
+    function normalizeRoundValue(v){
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (s === "") return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // Determine if a stage/season period is concluded (for placement trophies / best finishes)
+    // Rule: any prior season is concluded; within current season (staged), stages < currentStage are concluded.
+    // Championship is treated separately (concluded only when a winner is determinable).
+    let DETECTED_CURRENT_SEASON = 5;
+    let DETECTED_CURRENT_STAGE = 1; // only meaningful for seasons >= 6
+    function isPeriodConcluded(seasonNum, stageVal){
+      const s = Number(seasonNum);
+      if (s < DETECTED_CURRENT_SEASON) return true;
+      if (s > DETECTED_CURRENT_SEASON) return false;
+
+      if (s < 6) return false; // current legacy season still in progress
+
+      if (stageVal === "championship") return false;
+
+      const curStage = Number(DETECTED_CURRENT_STAGE || "1");
+      const st = Number(stageVal);
+      if (!Number.isFinite(st)) return false;
+      return st < curStage;
     }
 
     // DOM refs
@@ -1770,15 +1868,20 @@
     const stageWrap   = document.getElementById("stageWrap");
     const stageSelect = document.getElementById("stageSelect");
 
-    const teamsView  = document.getElementById("teamsView");
-    const playersView= document.getElementById("playersView");
-    const weeklySection = document.getElementById("weeklySection");
+    const normalStack = document.getElementById("normalStack");
+    const champView   = document.getElementById("champView");
 
-    const teamsList  = document.getElementById("teamsList");
-    const playersList= document.getElementById("playersList");
-    const weeklyCards= document.getElementById("weeklyCards");
-    const playerSearch = document.getElementById("playerSearch");
+    const teamsList   = document.getElementById("teamsList");
+    const playersList = document.getElementById("playersList");
+    const weeklyCards = document.getElementById("weeklyCards");
+    const playerSearch= document.getElementById("playerSearch");
 
+    // Championship DOM
+    const stageWinnersList = document.getElementById("stageWinnersList");
+    const wildcardList     = document.getElementById("wildcardList");
+    const bracketWrap      = document.getElementById("bracketWrap");
+
+    // Player modal refs
     const playerModal = document.getElementById("playerModal");
     const playerModalClose = document.getElementById("playerModalClose");
     const playerModalContent = document.getElementById("playerModalContent");
@@ -1791,10 +1894,178 @@
     let rosterByTeam = new Map();
     let playerStatsByName = new Map();
     let playerTeamByName = new Map();
+    let captainsSet = new Set();
 
     const expandedTeams = new Set();
     const expandedPlayers = new Set();
 
+    // Championship state
+    let champStageWinners = []; // [{stage, team, best}]
+    let champWildcards = [];    // [{rank, team, best}]
+    let champWildcardSlots = 0;
+    let champTeams = [];        // parsed roster/seed teams
+    let champChampionTeam = null;
+    const expandedChampTeams = new Set(); // seed keys like "seed-1"
+
+    // availability
+    let AVAILABLE_SEASONS = [1,2,3,4,5];
+    // staged periods with data (stage 1-3) by season
+    // map season -> maxStageWithData (1-3)
+    let STAGE_DATA_BY_SEASON = new Map();
+
+    function currentSelectedSeason(){
+      const n = Number(seasonSelect.value);
+      return Number.isFinite(n) ? n : DETECTED_CURRENT_SEASON;
+    }
+    function currentSelectedStage(){
+      const s = currentSelectedSeason();
+      if (!isStagedSeason(s)) return null;
+      const v = (stageSelect.value || "1").toLowerCase();
+      if (v === "championship") return "championship";
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 1;
+    }
+
+    function showPlayerLoading(){
+      playerModalContent.className = "modal-loading";
+      playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
+      const card = playerModal.querySelector(".modal-card");
+      if (card) card.scrollTop = 0;
+    }
+
+    function closePlayerModal(){
+      playerModal.classList.remove("show");
+      playerModal.setAttribute("aria-hidden", "true");
+      showPlayerLoading();
+    }
+
+    playerModalClose.addEventListener("click", closePlayerModal);
+    playerModal.addEventListener("click", (e)=>{
+      if (e.target === playerModal) closePlayerModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
+    });
+
+    // score + rounds table helpers (modal)
+    function buildRankChip(rank, isPrev){
+      if (rank == null || !Number.isFinite(Number(rank))){
+        return `<span class="chip rank">-</span>`;
+      }
+      const r = Number(rank);
+
+      let cls = "chip rank";
+      let emoji = "";
+      if (isPrev){
+        if (r === 1){ cls += " gold"; emoji = "🥇"; }
+        else if (r === 2){ cls += " silver"; emoji = "🥈"; }
+        else if (r === 3){ cls += " bronze"; emoji = "🥉"; }
+      }
+
+      return `<span class="${cls}">${emoji ? `${emoji} ` : ""}${escapeHtml(ordinal(r).toUpperCase())}</span>`;
+    }
+
+    function buildTeamChip(teamName){
+      if(!teamName){
+        return `<span class="chip solo">SOLO PLAYER</span>`;
+      }
+      const style = getTeamStyle(teamName) || {};
+      const bg = style.bg || "rgba(255,255,255,0.06)";
+      const fg = style.fg || "rgba(255,255,255,0.92)";
+      return `<span class="chip team" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">${escapeHtml(String(teamName).toUpperCase())}</span>`;
+    }
+
+    function buildScoreChip(score){
+      return `<span class="chip score">${escapeHtml(fmtScore(score))}</span>`;
+    }
+
+    function buildRoundsTable(stat){
+      const roundsRaw = (stat && Array.isArray(stat.rounds)) ? stat.rounds.slice(0,8) : Array(8).fill(null);
+      const rounds = roundsRaw.map(normalizeRoundValue);
+      const hi = pickTop3RoundIndices(rounds);
+
+      const sepIdx = new Set([2,4,6]);
+      let tds = "";
+      for(let i=0;i<8;i++){
+        const v = rounds[i];
+        const cls = `${hi.has(i) ? "counted" : ""} ${sepIdx.has(i) ? "sep-left" : ""}`.trim();
+        tds += `<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`;
+      }
+
+      return `<table class="mini-rounds" aria-label="Individual rounds"><tr>${tds}</tr></table>`;
+    }
+
+    // Trophy helpers (modal)
+    function trophyMeta(type){
+      switch(type){
+        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST", tier:"gold",  cat:"team" };
+        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND", tier:"silver",cat:"team" };
+        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD", tier:"bronze",cat:"team" };
+
+        case "IND_1":  return { icon:"🏆", main:"1ST OVERALL", tier:"gold",  cat:"individual" };
+        case "IND_2":  return { icon:"🥈", main:"2ND OVERALL", tier:"silver",cat:"individual" };
+        case "IND_3":  return { icon:"🥉", main:"3RD OVERALL", tier:"bronze",cat:"individual" };
+
+        case "TOP_10": return { icon:"⭐", main:"TOP 10", tier:"default", cat:"individual" };
+
+        case "SEASON_CHAMP": return { icon:"🏆", main:"SEASON CHAMPION", tier:"gold", cat:"team" };
+
+        default:       return { icon:"🏅", main:"AWARD", tier:"default", cat:"misc" };
+      }
+    }
+
+    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
+    const CAT_ORDER  = { team:0, individual:1, misc:2 };
+
+    function trophyCountLabel(n){
+      if (!n || n <= 1) return "";
+      return `x${n}`;
+    }
+
+    function trophySortKey(item){
+      const meta = item.meta;
+      const tierK = TIER_ORDER[meta.tier] ?? TIER_ORDER.default;
+      const catK  = CAT_ORDER[meta.cat] ?? CAT_ORDER.misc;
+      const seasonK = (item.season != null ? Number(item.season) : -1);
+      const kindK = item.kind === "stack" ? 1 : 0;
+      return [tierK, catK, kindK, -seasonK, item.order ?? 999];
+    }
+
+    function cmpKey(a,b){
+      for(let i=0;i<a.length;i++){
+        if(a[i] < b[i]) return -1;
+        if(a[i] > b[i]) return 1;
+      }
+      return 0;
+    }
+
+    function buildTrophyItemHTML(item){
+      const meta = item.meta;
+      const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
+
+      const iconHtml =
+        item.iconType === "captain"
+          ? `<div class="trophy-icon captain" title="Captain"></div>`
+          : `<div class="trophy-icon">${escapeHtml(meta.icon)}</div>`;
+
+      const sub = item.sub ? `<div class="trophy-sub">${escapeHtml(item.sub)}</div>` : ``;
+      const count = item.count ? `<div class="trophy-count">${escapeHtml(item.count)}</div>` : ``;
+
+      return `
+        <div class="trophy${tierClass}">
+          <div class="trophy-left">
+            ${iconHtml}
+            <div class="trophy-text">
+              <div class="trophy-main">${escapeHtml(meta.main)}</div>
+              ${sub}
+            </div>
+          </div>
+          ${count}
+        </div>
+      `;
+    }
+
+    // -------------------- Rendering (non-championship) --------------------
     function renderTeamRosterTable(roster){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
@@ -2053,11 +2324,11 @@
         const logoHtml = teamName
           ? `
             <img class="team-logo"
-             src="${escapeHtml(teamLogoSrc(teamName))}"
-             alt="${escapeHtml(String(teamName).toUpperCase())} logo"
-             loading="lazy"
-             decoding="async"
-             onerror="this.style.display='none'; this.removeAttribute('src');" />
+                 src="${escapeHtml(teamLogoSrc(teamName))}"
+                 alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+                 loading="lazy"
+                 decoding="async"
+                 onerror="this.style.display='none'; this.removeAttribute('src');" />
           `
           : "";
 
@@ -2096,14 +2367,16 @@
         const list = weeklyByWeek.get(weekNum) || [];
         if(!list.length) return;
 
-        const block = document.createElement("div");
-        block.className = "weekly-subcard";
+        const card = document.createElement("div");
+        card.className = "card";
 
         const r1Label = `${weekNum}-1`;
         const r2Label = `${weekNum}-2`;
 
-        block.innerHTML = `
-          <h3 class="h2">Week ${weekNum} Top 5</h3>
+        card.innerHTML = `
+          <div class="card-head">
+            <h2 class="h2">Week ${weekNum} Top 5</h2>
+          </div>
 
           <div class="weekly-header-row">
             <span>Rank</span>
@@ -2116,7 +2389,7 @@
           <div class="resultsList" id="weekList-${weekNum}"></div>
         `;
 
-        const holder = block.querySelector(`#weekList-${weekNum}`);
+        const holder = card.querySelector(`#weekList-${weekNum}`);
         list.forEach(p=>{
           const row = document.createElement("div");
           row.className = "weekly-entry";
@@ -2167,11 +2440,302 @@
           holder.appendChild(row);
         });
 
-        weeklyCards.appendChild(block);
+        weeklyCards.appendChild(card);
       });
     }
 
-    // interactions
+    // -------------------- Championship parsing + rendering --------------------
+    function parseChampionshipRoster(values){
+      const cleaned = (values || []);
+      if (!cleaned.length) return { teams: [], champion: null };
+
+      const rows = cleaned.slice(1); // drop header row at B3
+      const teams = [];
+      for (let i=0; i<rows.length; i+=5){
+        const teamRow = rows[i] || [];
+        const teamName = String(teamRow?.[0] ?? "").trim(); // column B
+        const semiTotal = toNum(teamRow?.[1]); // column C
+        const finalTotal= toNum(teamRow?.[2]); // column D
+
+        const players = [];
+        for (let k=1; k<=4; k++){
+          const r = rows[i+k] || [];
+          players.push({
+            name: String(r?.[0] ?? "").trim(),
+            semiBest: toNum(r?.[1]),
+            finalBest: toNum(r?.[2]),
+            semi1: toNum(r?.[3]), // E
+            semi2: toNum(r?.[4]), // F
+            fin1:  toNum(r?.[5]), // G
+            fin2:  toNum(r?.[6]), // H
+          });
+        }
+
+        teams.push({
+          seed: teams.length + 1,
+          key: `seed-${teams.length + 1}`,
+          name: teamName,
+          displayName: teamName ? teamName.toUpperCase() : "",
+          semiTotal,
+          finalTotal,
+          players
+        });
+      }
+
+      // Determine champion if exactly 2 teams have numeric finalTotal and one is better (lower)
+      const finalists = teams.filter(t => Number.isFinite(t.finalTotal));
+      let champion = null;
+      if (finalists.length >= 2){
+        // pick best (lowest)
+        finalists.sort((a,b)=>a.finalTotal-b.finalTotal);
+        champion = finalists[0]?.name || null;
+      }
+
+      return { teams, champion };
+    }
+
+    function renderChampRowTeam(teamName, leftLabel, rightVal, extraRightHtml=""){
+      const row = document.createElement("div");
+      row.className = "mini-entry";
+
+      const style = teamName ? (getTeamStyle(teamName) || {}) : null;
+      const bg = style?.bg || "rgba(255,255,255,0.08)";
+      const fg = style?.fg || "#ffffff";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "team-cell compact";
+      btn.style.background = bg;
+      btn.style.color = fg;
+      btn.disabled = true; // these left-side rows are informational only
+
+      const logoHtml = teamName
+        ? `
+          <img class="team-logo"
+               src="${escapeHtml(teamLogoSrc(teamName))}"
+               alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+               loading="lazy"
+               decoding="async"
+               onerror="this.style.display='none'; this.removeAttribute('src');" />
+        `
+        : "";
+
+      btn.innerHTML = `
+        <span class="team-logo-slot">${logoHtml}</span>
+        <span class="name-text">
+          ${escapeHtml(leftLabel || (teamName ? teamName.toUpperCase() : "-"))}
+        </span>
+      `;
+
+      row.innerHTML = `
+        <div id="champTeamCell-${Math.random().toString(16).slice(2)}"></div>
+        <div class="score-col" style="font-size:16px;">
+          ${escapeHtml(fmtScore(rightVal))}
+          ${extraRightHtml || ""}
+        </div>
+      `;
+      row.children[0].replaceWith(btn);
+      return row;
+    }
+
+    function renderChampionship(){
+      // Stage winners: always show 3 rows
+      stageWinnersList.innerHTML = "";
+      const winners = (champStageWinners || []);
+      for (let i=0;i<3;i++){
+        const w = winners[i] || { stage: (i+1), team: "", best: null };
+        const label = w.team
+          ? `STAGE ${w.stage} • ${String(w.team).toUpperCase()}`
+          : `STAGE ${i+1} • -`;
+        stageWinnersList.appendChild(renderChampRowTeam(w.team, label, w.best));
+      }
+
+      // Wildcards: show all 12 rows; mark "IN" by slots
+      wildcardList.innerHTML = "";
+      const slots = Number(champWildcardSlots) || 0;
+      const wc = (champWildcards || []);
+      for (let i=0;i<12;i++){
+        const r = wc[i] || { rank: i+1, team: "", best: null };
+        const inSpot = r.team && (i < slots);
+        const tag = r.team ? `<span class="chip ${inSpot ? "in" : "out"}" style="margin-left:8px;">${inSpot ? "IN" : "OUT"}</span>` : "";
+        const label = r.team
+          ? `#${r.rank} • ${String(r.team).toUpperCase()}`
+          : `#${i+1} • -`;
+        wildcardList.appendChild(renderChampRowTeam(r.team, label, r.best, tag));
+      }
+
+      // Bracket
+      bracketWrap.innerHTML = "";
+
+      const teams = champTeams || [];
+      const t1 = teams[0] || { key:"seed-1", seed:1, name:"", semiTotal:null, finalTotal:null, players:[] };
+      const t2 = teams[1] || { key:"seed-2", seed:2, name:"", semiTotal:null, finalTotal:null, players:[] };
+      const t3 = teams[2] || { key:"seed-3", seed:3, name:"", semiTotal:null, finalTotal:null, players:[] };
+      const t4 = teams[3] || { key:"seed-4", seed:4, name:"", semiTotal:null, finalTotal:null, players:[] };
+
+      // SF winners by semiTotal (lower is better)
+      function betterTeam(a,b, field){
+        const va = a && Number.isFinite(a[field]) ? a[field] : null;
+        const vb = b && Number.isFinite(b[field]) ? b[field] : null;
+        if (va == null || vb == null) return null;
+        return va <= vb ? a : b;
+      }
+      const sf1Winner = betterTeam(t1, t4, "semiTotal");
+      const sf2Winner = betterTeam(t2, t3, "semiTotal");
+
+      // Finalists: prefer teams with finalTotal filled, else use SF winners
+      const finalistsFilled = teams.filter(t => Number.isFinite(t.finalTotal));
+      let fA = null, fB = null;
+      if (finalistsFilled.length >= 2){
+        fA = finalistsFilled[0];
+        fB = finalistsFilled[1];
+      } else if (sf1Winner && sf2Winner){
+        fA = sf1Winner;
+        fB = sf2Winner;
+      } else {
+        fA = { key:"final-a", name:"", finalTotal:null, players:[] };
+        fB = { key:"final-b", name:"", finalTotal:null, players:[] };
+      }
+
+      const champWinner = betterTeam(fA, fB, "finalTotal");
+      const champName = champWinner?.name || null;
+
+      function bracketTeamRow(team, scoreField, labelPrefix, showExpand=true){
+        const row = document.createElement("div");
+        row.className = "bracket-entry";
+
+        const teamName = team?.name || "";
+        const style = teamName ? (getTeamStyle(teamName) || {}) : null;
+        const bg = style?.bg || "rgba(255,255,255,0.08)";
+        const fg = style?.fg || "#ffffff";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "team-cell compact";
+        btn.style.background = bg;
+        btn.style.color = fg;
+        btn.style.cursor = showExpand && teamName ? "pointer" : "default";
+        btn.disabled = !(showExpand && teamName);
+
+        const logoHtml = teamName
+          ? `
+            <img class="team-logo"
+                 src="${escapeHtml(teamLogoSrc(teamName))}"
+                 alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+                 loading="lazy"
+                 decoding="async"
+                 onerror="this.style.display='none'; this.removeAttribute('src');" />
+          `
+          : "";
+
+        const prefix = labelPrefix ? `${labelPrefix} • ` : "";
+        btn.innerHTML = `
+          <span class="team-logo-slot">${logoHtml}</span>
+          <span class="name-text">${escapeHtml(prefix + (teamName ? teamName.toUpperCase() : "-"))}</span>
+        `;
+
+        const scoreVal = team && scoreField ? team[scoreField] : null;
+
+        row.innerHTML = `
+          <div id="bt-${Math.random().toString(16).slice(2)}"></div>
+          <div class="bracket-score">${escapeHtml(fmtScore(scoreVal))}</div>
+        `;
+        row.children[0].replaceWith(btn);
+
+        if (showExpand && teamName){
+          btn.addEventListener("click", ()=>{
+            const key = team.key || teamName;
+            expandedChampTeams.has(key) ? expandedChampTeams.delete(key) : expandedChampTeams.add(key);
+            renderChampionship(); // rerender bracket with tables
+          });
+        }
+
+        // winner glow
+        if (champName && teamName && teamName === champName) row.classList.add("winner-glow");
+        return row;
+      }
+
+      function champRosterTable(team){
+        const wrap = document.createElement("div");
+        wrap.className = "roster-wrap";
+        wrap.style.marginTop = "8px";
+
+        const scroll = document.createElement("div");
+        scroll.className = "roster-scroll";
+        scroll.style.maxHeight = "260px";
+
+        const table = document.createElement("table");
+        table.className = "champ-roster";
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th style="text-align:left;padding-left:10px;">Player</th>
+              <th>SF 1</th><th>SF 2</th><th>SF</th>
+              <th>F 1</th><th>F 2</th><th>F</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        const tbody = table.querySelector("tbody");
+
+        (team.players || []).forEach(p=>{
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="pname">${escapeHtml((p.name || "-").toUpperCase())}</td>
+            <td>${escapeHtml(fmtScore(p.semi1))}</td>
+            <td>${escapeHtml(fmtScore(p.semi2))}</td>
+            <td class="counted">${escapeHtml(fmtScore(p.semiBest))}</td>
+            <td>${escapeHtml(fmtScore(p.fin1))}</td>
+            <td>${escapeHtml(fmtScore(p.fin2))}</td>
+            <td class="counted">${escapeHtml(fmtScore(p.finalBest))}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        scroll.appendChild(table);
+        wrap.appendChild(scroll);
+        return wrap;
+      }
+
+      const cardSF1 = document.createElement("div");
+      cardSF1.className = "bracket-card";
+      cardSF1.innerHTML = `<div class="bracket-title">Semifinal • 1 vs 4</div>`;
+      const listSF1 = document.createElement("div");
+      listSF1.className = "bracket-list";
+      listSF1.appendChild(bracketTeamRow(t1, "semiTotal", "SEED 1"));
+      if (expandedChampTeams.has(t1.key) && t1.name) listSF1.appendChild(champRosterTable(t1));
+      listSF1.appendChild(bracketTeamRow(t4, "semiTotal", "SEED 4"));
+      if (expandedChampTeams.has(t4.key) && t4.name) listSF1.appendChild(champRosterTable(t4));
+      cardSF1.appendChild(listSF1);
+
+      const cardSF2 = document.createElement("div");
+      cardSF2.className = "bracket-card";
+      cardSF2.innerHTML = `<div class="bracket-title">Semifinal • 2 vs 3</div>`;
+      const listSF2 = document.createElement("div");
+      listSF2.className = "bracket-list";
+      listSF2.appendChild(bracketTeamRow(t2, "semiTotal", "SEED 2"));
+      if (expandedChampTeams.has(t2.key) && t2.name) listSF2.appendChild(champRosterTable(t2));
+      listSF2.appendChild(bracketTeamRow(t3, "semiTotal", "SEED 3"));
+      if (expandedChampTeams.has(t3.key) && t3.name) listSF2.appendChild(champRosterTable(t3));
+      cardSF2.appendChild(listSF2);
+
+      const cardFinal = document.createElement("div");
+      cardFinal.className = "bracket-card";
+      cardFinal.innerHTML = `<div class="bracket-title">Final</div>`;
+      const listFinal = document.createElement("div");
+      listFinal.className = "bracket-list";
+      listFinal.appendChild(bracketTeamRow(fA, "finalTotal", "FINAL"));
+      if (expandedChampTeams.has(fA.key) && fA.name) listFinal.appendChild(champRosterTable(fA));
+      listFinal.appendChild(bracketTeamRow(fB, "finalTotal", "FINAL"));
+      if (expandedChampTeams.has(fB.key) && fB.name) listFinal.appendChild(champRosterTable(fB));
+      cardFinal.appendChild(listFinal);
+
+      bracketWrap.appendChild(cardSF1);
+      bracketWrap.appendChild(cardSF2);
+      bracketWrap.appendChild(cardFinal);
+    }
+
+    // -------------------- Interactions --------------------
     teamsList.addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-team]");
       if(!btn) return;
@@ -2192,7 +2756,7 @@
       renderPlayers();
     });
 
-    teamsView.addEventListener("click", (e)=>{
+    document.getElementById("teamsView").addEventListener("click", (e)=>{
       const cell = e.target.closest("td.clickable-player[data-player]");
       if(!cell) return;
       const name = cell.getAttribute("data-player") || "";
@@ -2200,7 +2764,7 @@
       openPlayerModal(name);
     });
 
-    playersView.addEventListener("click", (e)=>{
+    document.getElementById("playersView").addEventListener("click", (e)=>{
       const btn = e.target.closest("button.full-stats-btn[data-player]");
       if(!btn) return;
       const name = btn.getAttribute("data-player") || "";
@@ -2208,7 +2772,7 @@
       openPlayerModal(name);
     });
 
-    weeklySection.addEventListener("click", (e)=>{
+    document.getElementById("weeklyView").addEventListener("click", (e)=>{
       const btn = e.target.closest("button.team-cell[data-player]");
       if(!btn) return;
       const name = btn.getAttribute("data-player") || "";
@@ -2218,76 +2782,23 @@
 
     playerSearch.addEventListener("input", renderPlayers);
 
-    seasonSelect.addEventListener("change", ()=>{
-      expandedTeams.clear();
-      expandedPlayers.clear();
-      playerSearch.value = "";
-      syncStageDropdown();
-      update(true);
-    });
+    // -------------------- Period data cache --------------------
+    const periodCache = new Map(); // key => data
+    const champCache = new Map();  // key => championship data (season)
 
-    stageSelect.addEventListener("change", ()=>{
-      expandedTeams.clear();
-      expandedPlayers.clear();
-      playerSearch.value = "";
-      update(true);
-    });
-
-    /* ---------------- Player Modal + History ---------------- */
-    const seasonHistoryCache = new Map();
-
-    playerModalClose.addEventListener("click", closePlayerModal);
-    playerModal.addEventListener("click", (e)=>{
-      if (e.target === playerModal) closePlayerModal();
-    });
-    window.addEventListener("keydown", (e)=>{
-      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
-    });
-
-    function showPlayerLoading(){
-      playerModalContent.className = "modal-loading";
-      playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
-
-      const card = playerModal.querySelector(".modal-card");
-      if (card) card.scrollTop = 0;
+    function periodKey(season, stage){
+      if (!isStagedSeason(season)) return `S${season}`;
+      return `S${season}-${stage === "championship" ? "championship" : `stage${stage}`}`;
     }
 
-    function closePlayerModal(){
-      playerModal.classList.remove("show");
-      playerModal.setAttribute("aria-hidden", "true");
-      showPlayerLoading();
-    }
+    async function getPeriodHistoryData(season, stage){
+      const key = periodKey(season, stage);
+      if (periodCache.has(key)) return periodCache.get(key);
 
-    function trophyMeta(type){
-      switch(type){
-        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST", tier:"gold",  cat:"team" };
-        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND", tier:"silver",cat:"team" };
-        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD", tier:"bronze",cat:"team" };
+      const cfg = getPeriodConfig(season, stage);
+      if (!cfg) throw new Error("Unknown season/stage config.");
 
-        case "IND_1":  return { icon:"🏆", main:"1ST OVERALL", tier:"gold",  cat:"individual" };
-        case "IND_2":  return { icon:"🥈", main:"2ND OVERALL", tier:"silver",cat:"individual" };
-        case "IND_3":  return { icon:"🥉", main:"3RD OVERALL", tier:"bronze",cat:"individual" };
-
-        case "TOP_10": return { icon:"⭐", main:"TOP 10", tier:"default", cat:"individual" };
-
-        default:       return { icon:"🏅", main:"AWARD", tier:"default", cat:"misc" };
-      }
-    }
-
-    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
-    const CAT_ORDER  = { team:0, individual:1, misc:2 };
-
-    function trophyCountLabel(n){
-      if (!n || n <= 1) return "";
-      return `x${n}`;
-    }
-
-    async function getPeriodHistoryData(seasonNum, stageVal){
-      const key = `${seasonNum}:${stageVal ?? "season"}`;
-      if (seasonHistoryCache.has(key)) return seasonHistoryCache.get(key);
-
-      const cfg = getCfg(seasonNum);
-      const sheet = sheetNameFor(seasonNum, stageVal || "1");
+      const sheet = cfg.sheet;
 
       const ranges = {
         teamStandings: `'${sheet}'!${cfg.teamRank}`,
@@ -2317,8 +2828,8 @@
       for (const [n, s] of parsed.byPlayer.entries()) playerStatsMap.set(n, s);
 
       const data = {
-        seasonNum,
-        stageVal,
+        seasonNum: Number(season),
+        stage,
         sheet,
         teamMap,
         playerMap,
@@ -2327,118 +2838,266 @@
         captains: parsed.captains
       };
 
-      seasonHistoryCache.set(key, data);
+      periodCache.set(key, data);
       return data;
     }
 
-    function buildRankChip(rank, isPrev){
-      if (rank == null || !Number.isFinite(Number(rank))){
-        return `<span class="chip rank">-</span>`;
+    async function getChampionshipData(season){
+      const s = Number(season);
+      const key = `S${s}-championship`;
+      if (champCache.has(key)) return champCache.get(key);
+
+      const sheet = sheetNameForPeriod(s, "championship");
+      const ranges = {
+        winners: `'${sheet}'!${CH_STAGE_WINNERS}`,
+        wildcards: `'${sheet}'!${CH_WILDCARDS}`,
+        slots: `'${sheet}'!${CH_WILDCARD_SLOTS}`,
+        roster: `'${sheet}'!${CH_ROSTER}`,
+      };
+
+      // Be resilient if sheet exists but is incomplete
+      const [winnersRows, wildcardRows, slotsRows, rosterRows] = await Promise.all([
+        fetchRange(ranges.winners).catch(()=>[]),
+        fetchRange(ranges.wildcards).catch(()=>[]),
+        fetchRange(ranges.slots).catch(()=>[]),
+        fetchRange(ranges.roster).catch(()=>[]),
+      ]);
+
+      const winners = (winnersRows || []).slice(0,3).map(r=>{
+        const stage = toNum(r?.[0]) ?? null; // J
+        const team  = String(r?.[1] ?? "").trim(); // K
+        const best  = toNum(r?.[2]); // L
+        return { stage, team, best };
+      });
+
+      const wildcards = (wildcardRows || []).slice(0,12).map((r, idx)=>{
+        const rank = toNum(r?.[0]) ?? (idx+1);
+        const team = String(r?.[1] ?? "").trim();
+        const best = toNum(r?.[2]);
+        return { rank, team, best };
+      });
+
+      const slots = toNum(slotsRows?.[0]?.[0]) ?? 0;
+
+      const parsed = parseChampionshipRoster(rosterRows || []);
+      const data = {
+        season: s,
+        sheet,
+        winners,
+        wildcards,
+        slots,
+        teams: parsed.teams,
+        champion: parsed.champion
+      };
+
+      champCache.set(key, data);
+      return data;
+    }
+
+    // -------------------- Auto detection --------------------
+    function anyNonBlank(values){
+      for (const row of (values || [])){
+        for (const c of (row || [])){
+          if (String(c ?? "").trim() !== "") return true;
+        }
       }
-      const r = Number(rank);
+      return false;
+    }
 
-      let cls = "chip rank";
-      let emoji = "";
-      if (isPrev){
-        if (r === 1){ cls += " gold"; emoji = "🥇"; }
-        else if (r === 2){ cls += " silver"; emoji = "🥈"; }
-        else if (r === 3){ cls += " bronze"; emoji = "🥉"; }
+    async function hasRoundsDataForStageSheet(season, stage){
+      const sheet = sheetNameForPeriod(season, stage);
+      const r1 = await fetchRange(`'${sheet}'!${DETECT_R1}`).catch(()=>[]);
+      const r2 = await fetchRange(`'${sheet}'!${DETECT_R2}`).catch(()=>[]);
+      // If both detection ranges are completely blank, then stage hasn't begun
+      return anyNonBlank(r1) || anyNonBlank(r2);
+    }
+
+    function nextStagePeriod(season, stage){
+      const s = Number(season);
+      const st = Number(stage);
+      if (st < 3) return { season: s, stage: st + 1 };
+      return { season: s + 1, stage: 1 };
+    }
+
+    async function initialDetectCurrent(){
+      // Defaults if season 6 stage 1 is blank (meaning still in Season 5 or earlier)
+      STAGE_DATA_BY_SEASON = new Map();
+
+      // scan forward starting at Season 6, Stage 1
+      let curSeason = 5;
+      let curStage  = 1;
+
+      let s = 6;
+      let st = 1;
+
+      while (s <= MAX_SEASON_TO_CHECK){
+        const ok = await hasRoundsDataForStageSheet(s, st).catch(()=>false);
+        if (!ok){
+          break;
+        }
+
+        // stage exists
+        STAGE_DATA_BY_SEASON.set(s, Math.max(STAGE_DATA_BY_SEASON.get(s) || 0, st));
+        curSeason = s;
+        curStage  = st;
+
+        const nxt = nextStagePeriod(s, st);
+        s = nxt.season;
+        st = nxt.stage;
       }
 
-      return `<span class="${cls}">${emoji ? `${emoji} ` : ""}${escapeHtml(ordinal(r).toUpperCase())}</span>`;
-    }
-
-    function buildTeamChip(teamName){
-      if(!teamName){
-        return `<span class="chip solo">SOLO PLAYER</span>`;
-      }
-      const style = getTeamStyle(teamName) || {};
-      const bg = style.bg || "rgba(255,255,255,0.06)";
-      const fg = style.fg || "rgba(255,255,255,0.92)";
-      return `<span class="chip team" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">${escapeHtml(String(teamName).toUpperCase())}</span>`;
-    }
-
-    function buildScoreChip(score){
-      return `<span class="chip score">${escapeHtml(fmtScore(score))}</span>`;
-    }
-
-    function normalizeRoundValue(v){
-      if (v === null || v === undefined) return null;
-      const s = String(v).trim();
-      if (s === "") return null;
-      const n = Number(s);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    function buildRoundsTable(stat){
-      const roundsRaw = (stat && Array.isArray(stat.rounds)) ? stat.rounds.slice(0,8) : Array(8).fill(null);
-      const rounds = roundsRaw.map(normalizeRoundValue);
-      const hi = pickTop3RoundIndices(rounds);
-
-      const sepIdx = new Set([2,4,6]);
-      let tds = "";
-      for(let i=0;i<8;i++){
-        const v = rounds[i];
-        const cls = `${hi.has(i) ? "counted" : ""} ${sepIdx.has(i) ? "sep-left" : ""}`.trim();
-        tds += `<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`;
+      // Determine detected current
+      if (curSeason >= 6){
+        DETECTED_CURRENT_SEASON = curSeason;
+        DETECTED_CURRENT_STAGE = curStage;
+      } else {
+        DETECTED_CURRENT_SEASON = 5;
+        DETECTED_CURRENT_STAGE = 1;
       }
 
-      return `<table class="mini-rounds" aria-label="Individual rounds"><tr>${tds}</tr></table>`;
-    }
+      // Build available seasons list
+      const maxSeason = Math.max(DETECTED_CURRENT_SEASON, 5);
+      AVAILABLE_SEASONS = [];
+      for (let i=1; i<=maxSeason; i++) AVAILABLE_SEASONS.push(i);
 
-    function trophySortKey(item){
-      const meta = item.meta;
-      const tierK = TIER_ORDER[meta.tier] ?? TIER_ORDER.default;
-      const catK  = CAT_ORDER[meta.cat] ?? CAT_ORDER.misc;
-      const seasonK = (item.season != null ? Number(item.season) : -1);
-      const kindK = item.kind === "stack" ? 1 : 0;
-      return [tierK, catK, kindK, -seasonK, item.order ?? 999];
-    }
-
-    function cmpKey(a,b){
-      for(let i=0;i<a.length;i++){
-        if(a[i] < b[i]) return -1;
-        if(a[i] > b[i]) return 1;
+      // Ensure stage map has entries for all staged seasons up to detected (even if some were fully in past)
+      for (let i=6; i<=maxSeason; i++){
+        if (!STAGE_DATA_BY_SEASON.has(i)){
+          // For past seasons (and even if not found by scanning), assume stages 1-3 exist historically.
+          // If a sheet is missing, the UI still works (will show load error if selected).
+          STAGE_DATA_BY_SEASON.set(i, 3);
+        }
       }
-      return 0;
     }
 
-    function buildTrophyItemHTML(item){
-      const meta = item.meta;
-      const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
+    async function checkForNewStagePeriod(){
+      // Only check "next" relative to detected (optimization)
+      if (DETECTED_CURRENT_SEASON < 6) {
+        // If stage1 of season6 becomes available, detect it
+        const ok = await hasRoundsDataForStageSheet(6, 1).catch(()=>false);
+        if (ok){
+          DETECTED_CURRENT_SEASON = 6;
+          DETECTED_CURRENT_STAGE = 1;
+          STAGE_DATA_BY_SEASON.set(6, 1);
+          AVAILABLE_SEASONS = [];
+          for (let i=1; i<=6; i++) AVAILABLE_SEASONS.push(i);
+          buildSeasonDropdown();
+          applyStageDropdownForSeason(currentSelectedSeason(), true);
+        }
+        return;
+      }
 
-      const iconHtml =
-        item.iconType === "captain"
-          ? `<div class="trophy-icon captain" title="Captain"></div>`
-          : `<div class="trophy-icon">${escapeHtml(meta.icon)}</div>`;
+      const nxt = nextStagePeriod(DETECTED_CURRENT_SEASON, DETECTED_CURRENT_STAGE);
+      if (nxt.season > MAX_SEASON_TO_CHECK) return;
 
-      const sub = item.sub ? `<div class="trophy-sub">${escapeHtml(item.sub)}</div>` : ``;
-      const count = item.count ? `<div class="trophy-count">${escapeHtml(item.count)}</div>` : ``;
+      const ok = await hasRoundsDataForStageSheet(nxt.season, nxt.stage).catch(()=>false);
+      if (!ok) return;
 
-      return `
-        <div class="trophy${tierClass}">
-          <div class="trophy-left">
-            ${iconHtml}
-            <div class="trophy-text">
-              <div class="trophy-main">${escapeHtml(meta.main)}</div>
-              ${sub}
-            </div>
-          </div>
-          ${count}
-        </div>
-      `;
+      // advance detected
+      DETECTED_CURRENT_SEASON = nxt.season;
+      DETECTED_CURRENT_STAGE = nxt.stage;
+
+      STAGE_DATA_BY_SEASON.set(nxt.season, Math.max(STAGE_DATA_BY_SEASON.get(nxt.season) || 0, nxt.stage));
+
+      // extend season list if needed
+      if (!AVAILABLE_SEASONS.includes(nxt.season)){
+        const max = nxt.season;
+        AVAILABLE_SEASONS = [];
+        for (let i=1; i<=max; i++) AVAILABLE_SEASONS.push(i);
+        // for any new staged seasons, ensure stage data known
+        for (let i=6; i<=max; i++){
+          if (!STAGE_DATA_BY_SEASON.has(i)) STAGE_DATA_BY_SEASON.set(i, 1);
+        }
+        buildSeasonDropdown();
+      }
+
+      // If user was on the previously-detected current period, move them forward automatically
+      const selSeason = currentSelectedSeason();
+      const selStage  = currentSelectedStage();
+      const wasOnDetected =
+        selSeason === (nxt.stage === 1 ? nxt.season - 1 : nxt.season) &&
+        (isStagedSeason(selSeason) ? (selStage === (nxt.stage === 1 ? 3 : (nxt.stage - 1))) : true);
+
+      if (wasOnDetected){
+        seasonSelect.value = String(DETECTED_CURRENT_SEASON);
+        applyStageDropdownForSeason(DETECTED_CURRENT_SEASON, true);
+      } else {
+        // still enforce current-stage gating in dropdown if user is on detected current season
+        applyStageDropdownForSeason(currentSelectedSeason(), false);
+      }
     }
 
-    function periodLabel(seasonNum, stageVal){
-      if (!isStagedSeason(seasonNum)) return `Season ${seasonNum}`;
-      return `Season ${seasonNum} Stage ${stageVal}`;
+    // -------------------- Dropdowns --------------------
+    function buildSeasonDropdown(){
+      seasonSelect.innerHTML = "";
+      const seasonsDesc = AVAILABLE_SEASONS.slice().sort((a,b)=>b-a);
+      for (const s of seasonsDesc){
+        const opt = document.createElement("option");
+        opt.value = String(s);
+        opt.textContent = `Season ${s}`;
+        seasonSelect.appendChild(opt);
+      }
     }
 
-    function periodSubLabel(seasonNum, stageVal){
-      if (!isStagedSeason(seasonNum)) return `Season ${seasonNum}`;
-      return `Season ${seasonNum} | Stage ${stageVal}`;
+    function applyStageDropdownForSeason(seasonNum, resetIfInvalid){
+      const s = Number(seasonNum);
+      if (!isStagedSeason(s)){
+        stageWrap.classList.add("hidden");
+        stageSelect.innerHTML = "";
+        return;
+      }
+
+      stageWrap.classList.remove("hidden");
+      stageSelect.innerHTML = "";
+
+      // Determine maximum selectable stage (for current season gating)
+      let maxStage = 3;
+      if (s === DETECTED_CURRENT_SEASON){
+        maxStage = Number(DETECTED_CURRENT_STAGE || 1);
+      }
+
+      // Build stage options
+      for (let st=1; st<=3; st++){
+        // don't allow future stages in current season
+        if (s === DETECTED_CURRENT_SEASON && st > maxStage) continue;
+
+        const opt = document.createElement("option");
+        opt.value = String(st);
+        opt.textContent = `Stage ${st}`;
+        stageSelect.appendChild(opt);
+      }
+
+      // Championship always visible
+      const optC = document.createElement("option");
+      optC.value = "championship";
+      optC.textContent = "Championship";
+      stageSelect.appendChild(optC);
+
+      // Pick a sensible default if needed
+      const curVal = (stageSelect.value || "").toLowerCase();
+      if (resetIfInvalid || !curVal || !Array.from(stageSelect.options).some(o=>o.value===curVal)){
+        const desired = (s === DETECTED_CURRENT_SEASON) ? String(DETECTED_CURRENT_STAGE) : "1";
+        if (Array.from(stageSelect.options).some(o=>o.value===desired)) stageSelect.value = desired;
+        else stageSelect.value = stageSelect.options[0]?.value || "championship";
+      }
     }
 
+    seasonSelect.addEventListener("change", ()=>{
+      expandedTeams.clear();
+      expandedPlayers.clear();
+      playerSearch.value = "";
+      applyStageDropdownForSeason(currentSelectedSeason(), true);
+      update(true);
+    });
+
+    stageSelect.addEventListener("change", ()=>{
+      expandedTeams.clear();
+      expandedPlayers.clear();
+      playerSearch.value = "";
+      update(true);
+    });
+
+    // -------------------- Player modal --------------------
     async function openPlayerModal(playerName){
       const cleanName = String(playerName).trim();
       if(!cleanName) return;
@@ -2451,40 +3110,85 @@
       if (card) card.scrollTop = 0;
 
       try{
-        // Current period is whatever is selected in the dropdowns
-        const uiSeason = Number(seasonSelect.value);
-        const uiStage  = isStagedSeason(uiSeason) ? String(stageSelect.value || "1").toLowerCase() : null;
-
-        // Build period list (descending) up to detected current; exclude championship (different format)
+        // Build period list for modal:
+        // - Seasons 1-5: single
+        // - Seasons 6+: Stage 1-3 and Championship
         const periods = [];
-        for (let s = DETECTED_CURRENT_SEASON; s >= 1; s--){
-          if (s < 6){
+        const maxSeason = Math.max(...AVAILABLE_SEASONS);
+
+        for (let s=1; s<=maxSeason; s++){
+          if (!isStagedSeason(s)){
             periods.push({ season: s, stage: null });
           } else {
-            const maxStage = (s === DETECTED_CURRENT_SEASON) ? Number(DETECTED_CURRENT_STAGE || "1") : 3;
-            for (let st = maxStage; st >= 1; st--){
-              periods.push({ season: s, stage: String(st) });
-            }
+            periods.push({ season: s, stage: 1 });
+            periods.push({ season: s, stage: 2 });
+            periods.push({ season: s, stage: 3 });
+            periods.push({ season: s, stage: "championship" });
           }
         }
 
         const summaries = [];
 
-        // Past-period aggregates only (exclude current selected period)
-        const allRoundsPrev = [];
-        const periodTotalsPrev = [];
+        // aggregates (include current period too for non-flux trophies)
+        const allRoundsAgg = [];
+        const periodTotalsAgg = [];
 
-        let bestTeamFinishPrev = null;
-        let bestIndFinishPrev  = null;
+        let bestTeamFinishConcluded = null;
+        let bestIndFinishConcluded  = null;
 
-        let period60 = 0, period70 = 0, period80 = 0;
+        let season60 = 0, season70 = 0, season80 = 0;
         let round20 = 0, round25 = 0, round30 = 0;
         let captainCount = 0;
 
-        // Header team from CURRENT selected period roster
+        // Champion trophies
+        const seasonChampionSeasons = new Set(); // seasons where this player is on champion roster
+
+        // Header team from DETECTED current period roster only (else SOLO)
+        const headerSeason = DETECTED_CURRENT_SEASON;
+        const headerStage  = (headerSeason >= 6) ? DETECTED_CURRENT_STAGE : null;
+
         let headerTeam = null;
+        if (headerSeason < 6){
+          const curData = await getPeriodHistoryData(headerSeason, null);
+          headerTeam = curData.playerToTeam.get(cleanName) || null;
+        } else {
+          const curData = await getPeriodHistoryData(headerSeason, headerStage);
+          headerTeam = curData.playerToTeam.get(cleanName) || null;
+        }
 
         for (const p of periods){
+          const isChamp = (p.stage === "championship");
+
+          if (isChamp && isStagedSeason(p.season)){
+            // Championship has no player standings; only roster membership + champion
+            const ch = await getChampionshipData(p.season).catch(()=>null);
+            if (!ch){
+              // still add a summary if the player appears nowhere else? skip
+              continue;
+            }
+            const inRosterTeam = (ch.teams || []).find(t => (t.players || []).some(pl => String(pl.name||"").trim() === cleanName));
+            const hasAny = !!inRosterTeam;
+            if (!hasAny) continue;
+
+            // If champion determined and player is on champion roster => trophy later
+            if (ch.champion && inRosterTeam?.name && String(inRosterTeam.name).trim() === String(ch.champion).trim()){
+              seasonChampionSeasons.add(p.season);
+            }
+
+            summaries.push({
+              season: p.season,
+              stage: "championship",
+              teamName: inRosterTeam?.name || null,
+              teamRank: null,
+              teamScore: null,
+              playerRank: null,
+              playerScore: null,
+              stats: null,
+              isChampionship: true
+            });
+            continue;
+          }
+
           const data = await getPeriodHistoryData(p.season, p.stage);
 
           const teamName = data.playerToTeam.get(cleanName) || null;
@@ -2496,79 +3200,77 @@
           const hasAny = !!teamName || !!playerStanding || !!stats;
           if(!hasAny) continue;
 
-          const isCurrentSelected =
-            (p.season === uiSeason) &&
-            (String(p.stage || "").toLowerCase() === String(uiStage || "").toLowerCase());
-
-          if (isCurrentSelected) headerTeam = teamName || null;
-
-          // prev-only aggregates (exclude current selected period)
-          if (!isCurrentSelected){
-            if (stats && Array.isArray(stats.rounds)){
-              for (const v of stats.rounds){
-                const n = normalizeRoundValue(v);
-                if (Number.isFinite(n)){
-                  allRoundsPrev.push(n);
-                  if (n <= -20) round20++;
-                  if (n <= -25) round25++;
-                  if (n <= -30) round30++;
-                }
+          // round aggregates (include all periods that have stats)
+          if (stats && Array.isArray(stats.rounds)){
+            for (const v of stats.rounds){
+              const n = normalizeRoundValue(v);
+              if (Number.isFinite(n)){
+                allRoundsAgg.push(n);
+                if (n <= -20) round20++;
+                if (n <= -25) round25++;
+                if (n <= -30) round30++;
               }
             }
+          }
 
-            const periodTotal = (playerStanding?.score ?? stats?.stageScore);
-            if (Number.isFinite(periodTotal)){
-              periodTotalsPrev.push(Number(periodTotal));
-              if (periodTotal <= -60) period60++;
-              if (periodTotal <= -70) period70++;
-              if (periodTotal <= -80) period80++;
-            }
+          // period total aggregates (include all periods that have totals)
+          const periodTotal = (playerStanding?.score ?? stats?.stageScore);
+          if (Number.isFinite(periodTotal)){
+            periodTotalsAgg.push(Number(periodTotal));
+            if (periodTotal <= -60) season60++;
+            if (periodTotal <= -70) season70++;
+            if (periodTotal <= -80) season80++;
+          }
 
-            if (data.captains?.has(cleanName)) captainCount++;
+          // Captainship can be shown immediately
+          if (data.captains?.has(cleanName)) captainCount++;
 
+          // Best finishes + placement trophies should only be based on concluded periods
+          if (isPeriodConcluded(p.season, p.stage)){
             if (teamStanding?.rank != null){
-              bestTeamFinishPrev = bestTeamFinishPrev == null ? teamStanding.rank : Math.min(bestTeamFinishPrev, teamStanding.rank);
+              bestTeamFinishConcluded = bestTeamFinishConcluded == null ? teamStanding.rank : Math.min(bestTeamFinishConcluded, teamStanding.rank);
             }
             if (playerStanding?.rank != null){
-              bestIndFinishPrev = bestIndFinishPrev == null ? playerStanding.rank : Math.min(bestIndFinishPrev, playerStanding.rank);
+              bestIndFinishConcluded = bestIndFinishConcluded == null ? playerStanding.rank : Math.min(bestIndFinishConcluded, playerStanding.rank);
             }
           }
 
           summaries.push({
             season: p.season,
-            stage: p.stage, // null or "1"-"3"
+            stage: p.stage,
             teamName,
             teamRank: teamStanding?.rank ?? null,
             teamScore: teamStanding?.score ?? null,
             playerRank: playerStanding?.rank ?? null,
             playerScore: (playerStanding?.score ?? stats?.stageScore) ?? null,
-            stats: stats || null
+            stats: stats || null,
+            isChampionship: false
           });
         }
 
-        // Header team from CURRENT selected period roster membership ONLY (otherwise SOLO PLAYER)
         const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
         const headerBg = headerStyle?.bg || "rgba(255,255,255,0.06)";
         const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
 
-        // Info buttons (prev-only)
-        const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
-        const avgRoundPrev  = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
+        // info buttons (aggregate)
+        const bestRound = allRoundsAgg.length ? Math.min(...allRoundsAgg) : null;
+        const avgRound  = allRoundsAgg.length ? (allRoundsAgg.reduce((a,b)=>a+b,0) / allRoundsAgg.length) : null;
 
-        const bestPeriodPrev = periodTotalsPrev.length ? Math.min(...periodTotalsPrev) : null;
-        const avgPeriodPrev  = periodTotalsPrev.length ? (periodTotalsPrev.reduce((a,b)=>a+b,0) / periodTotalsPrev.length) : null;
+        const bestPeriod = periodTotalsAgg.length ? Math.min(...periodTotalsAgg) : null;
+        const avgPeriod  = periodTotalsAgg.length ? (periodTotalsAgg.reduce((a,b)=>a+b,0) / periodTotalsAgg.length) : null;
 
-        // trophies (exclude current selected period; stage winners treated same as season winners)
+        // trophies
         const trophyItems = [];
 
+        // Placement trophies: only concluded periods (stage winners treated same as season winners)
         for (const sum of summaries){
-          const isCurrentSelected =
-            (sum.season === uiSeason) &&
-            (String(sum.stage || "").toLowerCase() === String(uiStage || "").toLowerCase());
-          if (isCurrentSelected) continue;
+          if (sum.isChampionship) continue;
+
+          const concluded = isPeriodConcluded(sum.season, sum.stage);
+          if (!concluded) continue;
 
           const subLabel = isStagedSeason(sum.season)
-            ? `${String(sum.teamName || "").toUpperCase()} | ${periodSubLabel(sum.season, sum.stage)}`
+            ? `${String(sum.teamName || "").toUpperCase()} | ${periodDisplayLabel(sum.season, sum.stage)}`
             : `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`;
 
           if (sum.teamRank === 1) trophyItems.push({
@@ -2588,7 +3290,7 @@
           });
 
           const indSub = isStagedSeason(sum.season)
-            ? periodSubLabel(sum.season, sum.stage)
+            ? periodDisplayLabel(sum.season, sum.stage)
             : `Season ${sum.season}`;
 
           if (sum.playerRank === 1) trophyItems.push({
@@ -2616,15 +3318,26 @@
           }
         }
 
-        // stackables
+        // Championship trophy (only when champion is determinable)
+        if (seasonChampionSeasons.size){
+          for (const s of Array.from(seasonChampionSeasons.values()).sort((a,b)=>b-a)){
+            trophyItems.push({
+              kind:"season", season: s, type:"SEASON_CHAMP",
+              meta: trophyMeta("SEASON_CHAMP"),
+              sub: `Season ${s}`
+            });
+          }
+        }
+
+        // stackables (immediate)
         const stackablesOrdered = [
           { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
           { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
           { label:"-20 Club", icon:"⛳️", tier:"blue",   count: round20 },
 
-          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: period80 },
-          { label:"-70 Club", icon:"🎖️", tier:"purple", count: period70 },
-          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: period60 },
+          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: season80 },
+          { label:"-70 Club", icon:"🎖️", tier:"purple", count: season70 },
+          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: season60 },
 
           { label:"Team Captain", icon:"CAPTAIN", tier:"green", count: captainCount },
         ];
@@ -2652,40 +3365,59 @@
           ? trophyItems.map(buildTrophyItemHTML).join("")
           : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
 
+        // season performance list (mark CURRENT based on detected current period)
         const seasonRowsHtml = summaries
+          .slice()
           .sort((a,b)=>{
-            if (b.season !== a.season) return b.season - a.season;
-            const as = a.stage ? Number(a.stage) : 99;
-            const bs = b.stage ? Number(b.stage) : 99;
-            return bs - as;
+            if (a.season !== b.season) return b.season - a.season;
+            // order within season: championship last
+            const ao = a.stage === "championship" ? 99 : (a.stage == null ? 0 : Number(a.stage));
+            const bo = b.stage === "championship" ? 99 : (b.stage == null ? 0 : Number(b.stage));
+            return bo - ao;
           })
           .map(sum=>{
-            const isPrev = !((sum.season === uiSeason) && (String(sum.stage||"").toLowerCase() === String(uiStage||"").toLowerCase()));
+            const isDetectedCurrent =
+              (Number(sum.season) === Number(DETECTED_CURRENT_SEASON)) &&
+              (sum.stage == null
+                ? (DETECTED_CURRENT_SEASON < 6)
+                : (Number(sum.stage) === Number(DETECTED_CURRENT_STAGE)));
 
-            const title = sum.stage ? periodLabel(sum.season, sum.stage) : `Season ${sum.season}`;
+            const title = sum.stage == null
+              ? `Season ${sum.season}${isDetectedCurrent ? " (Current)" : ""}`
+              : (sum.stage === "championship"
+                  ? `Season ${sum.season} • Championship${isDetectedCurrent ? " (Current)" : ""}`
+                  : `Season ${sum.season} • Stage ${sum.stage}${isDetectedCurrent ? " (Current)" : ""}`
+                );
 
-            const teamRow = (!sum.teamName)
-              ? `<div class="btn-row"><span class="chip solo">SOLO PLAYER</span></div>`
+            const teamRow = sum.isChampionship
+              ? (sum.teamName
+                  ? `<div class="btn-row">${buildTeamChip(sum.teamName)}</div>`
+                  : `<div class="btn-row"><span class="chip solo">NOT IN CHAMPIONSHIP</span></div>`
+                )
+              : (!sum.teamName
+                  ? `<div class="btn-row"><span class="chip solo">SOLO PLAYER</span></div>`
+                  : `
+                    <div class="btn-row">
+                      ${buildRankChip(sum.teamRank, !isDetectedCurrent)}
+                      ${buildTeamChip(sum.teamName)}
+                      ${buildScoreChip(sum.teamScore)}
+                    </div>
+                  `);
+
+            const playerRow = sum.isChampionship
+              ? `<div class="btn-row"><span class="chip solo">NO INDIVIDUAL RANKING</span></div>`
               : `
                 <div class="btn-row">
-                  ${buildRankChip(sum.teamRank, isPrev)}
-                  ${buildTeamChip(sum.teamName)}
-                  ${buildScoreChip(sum.teamScore)}
+                  ${buildRankChip(sum.playerRank, !isDetectedCurrent)}
+                  ${buildScoreChip(sum.playerScore)}
+                  ${buildRoundsTable(sum.stats)}
                 </div>
               `;
-
-            const playerRow = `
-              <div class="btn-row">
-                ${buildRankChip(sum.playerRank, isPrev)}
-                ${buildScoreChip(sum.playerScore)}
-                ${buildRoundsTable(sum.stats)}
-              </div>
-            `;
 
             return `
               <div class="season-entry">
                 <div class="season-entry-head">
-                  <div class="season-entry-name">${escapeHtml(title)}${(!isPrev ? " (Current)" : "")}</div>
+                  <div class="season-entry-name">${escapeHtml(title)}</div>
                 </div>
                 ${teamRow}
                 ${playerRow}
@@ -2697,11 +3429,11 @@
         const nameCaps = cleanName.toUpperCase();
         const teamLabel = headerTeam ? headerTeam.toUpperCase() : "SOLO PLAYER";
 
-        const bestTeamFinishVal = (bestTeamFinishPrev != null && Number.isFinite(Number(bestTeamFinishPrev)))
-          ? ordinal(bestTeamFinishPrev).toUpperCase()
+        const bestTeamFinishVal = (bestTeamFinishConcluded != null && Number.isFinite(Number(bestTeamFinishConcluded)))
+          ? ordinal(bestTeamFinishConcluded).toUpperCase()
           : "-";
-        const bestIndFinishVal = (bestIndFinishPrev != null && Number.isFinite(Number(bestIndFinishPrev)))
-          ? ordinal(bestIndFinishPrev).toUpperCase()
+        const bestIndFinishVal = (bestIndFinishConcluded != null && Number.isFinite(Number(bestIndFinishConcluded)))
+          ? ordinal(bestIndFinishConcluded).toUpperCase()
           : "-";
 
         playerModalContent.className = "modal-body";
@@ -2734,19 +3466,19 @@
               <div class="info-btn-grid">
                 <div class="info-btn">
                   <div class="lbl">AVG.<br>ROUND</div>
-                  <div class="val">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgRound))}</div>
                 </div>
                 <div class="info-btn">
                   <div class="lbl">BEST<br>ROUND</div>
-                  <div class="val">${escapeHtml(fmtScore(bestRoundPrev))}</div>
+                  <div class="val">${escapeHtml(fmtScore(bestRound))}</div>
                 </div>
                 <div class="info-btn">
                   <div class="lbl">AVG.<br>PERIOD</div>
-                  <div class="val">${escapeHtml(fmtScoreAvg(avgPeriodPrev))}</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgPeriod))}</div>
                 </div>
                 <div class="info-btn">
                   <div class="lbl">BEST<br>PERIOD</div>
-                  <div class="val">${escapeHtml(fmtScore(bestPeriodPrev))}</div>
+                  <div class="val">${escapeHtml(fmtScore(bestPeriod))}</div>
                 </div>
 
                 <div class="info-btn span-2">
@@ -2767,7 +3499,7 @@
           </div>
 
           <div class="modal-pane">
-            <div class="season-title">Season / Stage Performance</div>
+            <div class="season-title">Season Performance</div>
             <div>
               ${seasonRowsHtml || `<div style="opacity:.8; font-weight:900; text-transform:uppercase; letter-spacing:.12em;">No history found.</div>`}
             </div>
@@ -2786,7 +3518,7 @@
       }
     }
 
-    /* ---------------- Data Update ---------------- */
+    // -------------------- Data update --------------------
     let updating = false;
 
     async function update(force=false){
@@ -2794,28 +3526,36 @@
       updating = true;
 
       try{
-        const seasonNum = (function(){
-          const n = Number(seasonSelect.value);
-          return Number.isFinite(n) ? n : DETECTED_CURRENT_SEASON;
-        })();
+        const seasonNum = currentSelectedSeason();
+        const stageVal = currentSelectedStage();
+        const isChamp = (stageVal === "championship" && isStagedSeason(seasonNum));
 
-        const stageVal = isStagedSeason(seasonNum)
-          ? String(stageSelect.value || "1").toLowerCase()
-          : null;
+        // Toggle views
+        normalStack.classList.toggle("hidden", isChamp);
+        champView.classList.toggle("hidden", !isChamp);
 
-        // Championship is different format; placeholder for now.
-        if (isStagedSeason(seasonNum) && stageVal === "championship"){
+        if (isChamp){
+          // Championship page
+          const ch = await getChampionshipData(seasonNum).catch(()=>null);
+
+          champStageWinners = ch?.winners || [{},{},{}];
+          champWildcards = ch?.wildcards || [];
+          champWildcardSlots = ch?.slots || 0;
+          champTeams = ch?.teams || [];
+          champChampionTeam = ch?.champion || null;
+
+          renderChampionship();
+
           statusCard.classList.add("hidden");
           contentEl.classList.remove("hidden");
-
-          teamsList.innerHTML = `<div class="status">Championship stage view coming soon.</div>`;
-          weeklyCards.innerHTML = ``;
-          playersList.innerHTML = ``;
           return;
         }
 
-        const cfg = getCfg(seasonNum);
-        const sheet = sheetNameFor(seasonNum, stageVal || "1");
+        // Normal stage/season page
+        const cfg = getPeriodConfig(seasonNum, stageVal);
+        if (!cfg) throw new Error("Unknown season/stage.");
+
+        const sheet = cfg.sheet;
 
         const ranges = {
           teamStandings: `'${sheet}'!${cfg.teamRank}`,
@@ -2850,6 +3590,7 @@
         const parsedTeams = parseTeamRosters(rosterRows);
         rosterByTeam = parsedTeams.byTeam;
         playerTeamByName = parsedTeams.playerTeamByName;
+        captainsSet = parsedTeams.captains;
 
         const lookupMap = parseLookupStats(lookupRows);
 
@@ -2869,8 +3610,8 @@
         if (w4.length) weeklyByWeek.set(4, w4);
 
         renderTeams();
-        renderWeekly();
         renderPlayers();
+        renderWeekly();
 
         statusCard.classList.add("hidden");
         contentEl.classList.remove("hidden");
@@ -2886,83 +3627,45 @@
       }
     }
 
-    // boot
+    // -------------------- Boot --------------------
     (async function boot(){
       showPlayerLoading();
 
-      // auto-detect current season/stage by probing forward, stop at first missing
-      await detectCurrentSeasonStage();
+      // detect current season/stage (auto)
+      await initialDetectCurrent();
 
-      // rebuild season dropdown (1..detected current)
-      buildSeasonOptions();
+      // Build dropdowns from detection
+      buildSeasonDropdown();
 
-      // allow url overrides if within allowed range
+      // URL params (optional): ?season=7&stage=2 or ?season=6&stage=championship
       const params = new URLSearchParams(location.search);
       const seasonParam = Number(params.get("season"));
-      if (Number.isFinite(seasonParam) && seasonParam >= 1 && seasonParam <= DETECTED_CURRENT_SEASON){
-        seasonSelect.value = String(seasonParam);
-      } else {
-        seasonSelect.value = String(DETECTED_CURRENT_SEASON);
+      const stageParamRaw = (params.get("stage") || "").toLowerCase();
+
+      const seasonDefault = (Number.isFinite(seasonParam) && AVAILABLE_SEASONS.includes(seasonParam))
+        ? seasonParam
+        : DETECTED_CURRENT_SEASON;
+
+      seasonSelect.value = String(seasonDefault);
+      applyStageDropdownForSeason(seasonDefault, true);
+
+      // Apply stage param if valid AND not a future stage (except championship)
+      if (isStagedSeason(seasonDefault) && stageParamRaw){
+        const ok = Array.from(stageSelect.options).some(o => o.value === stageParamRaw);
+        if (ok) stageSelect.value = stageParamRaw;
       }
 
-      syncStageDropdown();
-
-      // default stage to detected current stage if on detected current season
-      if (isStagedSeason(Number(seasonSelect.value)) && Number(seasonSelect.value) === DETECTED_CURRENT_SEASON){
-        if (DETECTED_CURRENT_STAGE) stageSelect.value = String(DETECTED_CURRENT_STAGE);
-      }
-
-      const stageParam = (params.get("stage") || "").toLowerCase();
-      if (isStagedSeason(Number(seasonSelect.value)) && stageParam){
-        const allowed = new Set(Array.from(stageSelect.options).map(o => String(o.value).toLowerCase()));
-        if (allowed.has(stageParam)) stageSelect.value = stageParam;
-      }
-
+      // initial update
       await update(true);
 
-      // data refresh
-      setInterval(()=>update(false), REFRESH_MS);
-
-      // light "future detection": check only the next period; stop immediately if blank
+      // periodic refresh + check if a new stage started
       setInterval(async ()=>{
-        const prevSeason = DETECTED_CURRENT_SEASON;
-        const prevStage  = DETECTED_CURRENT_STAGE;
-
-        const advanced = await checkAdvanceIfNewPeriodStarted();
-        if (!advanced) return;
-
-        // were we viewing the latest period before it advanced?
-        const userSeason = Number(seasonSelect.value);
-        const userStage  = isStagedSeason(userSeason) ? String(stageSelect.value || "1").toLowerCase() : null;
-
-        const userWasLatest =
-          (userSeason === prevSeason) &&
-          (
-            !isStagedSeason(userSeason) ||
-            String(userStage) === String(prevStage)
-          );
-
-        buildSeasonOptions();
-
-        if (userWasLatest){
-          seasonSelect.value = String(DETECTED_CURRENT_SEASON);
-          syncStageDropdown();
-          if (isStagedSeason(DETECTED_CURRENT_SEASON) && DETECTED_CURRENT_STAGE){
-            stageSelect.value = String(DETECTED_CURRENT_STAGE);
-          }
-          await update(true);
-        } else {
-          // keep user's selection; just ensure stage dropdown matches the season
-          // (and clamp if needed)
-          if (Number(seasonSelect.value) > DETECTED_CURRENT_SEASON){
-            seasonSelect.value = String(DETECTED_CURRENT_SEASON);
-          }
-          syncStageDropdown();
-        }
+        try{
+          await checkForNewStagePeriod();
+        }catch(e){}
+        update(false);
       }, REFRESH_MS);
-
     })();
   </script>
 </body>
 </html>
-
