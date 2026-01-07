@@ -1376,6 +1376,29 @@
       padding: 0 4px;
     }
 
+    /* --- Champion row exception: bigger, like regular Team Rankings (no rank/score columns) --- */
+    #champView .champion-row{
+      height: 48px;
+    }
+    #champView .champion-row .team-logo-slot{
+      width: 40px; /* match normal pages */
+    }
+    #champView .champion-row .team-logo{
+      height: calc(100% - 10px);
+    }
+    #champView .champion-row .team-cell{
+      padding: 0 12px;
+    }
+    #champView .champion-row .team-cell .name-text{
+      font-size: 20px;
+      padding-left: 10px;
+      letter-spacing: .02em;
+      font-weight: 950;
+    }
+    #champView .champion-roster-strip .p{
+      font-size: 11px;
+    }
+
     /* ---------------- MOBILE OPTIMIZATION ---------------- */
     @media (max-width: 760px){
       :root{
@@ -1437,6 +1460,10 @@
       }
       #champView #bracketWrap .champ-bracket-row{ height: 30px; }
       #champView #bracketWrap .team-cell .name-text{ font-size: 11px; }
+
+      /* Champion row still larger than bracket */
+      #champView .champion-row .team-logo-slot{ width: 36px; }
+      #champView .champion-row .team-cell .name-text{ font-size: 18px; }
     }
 
     @media (max-width: 420px){
@@ -1464,6 +1491,8 @@
         --br-score-col: 52px;
       }
       #champView #bracketWrap .team-cell .name-text{ font-size: 10.5px; }
+
+      #champView .champion-row .team-cell .name-text{ font-size: 17px; }
     }
   </style>
 </head>
@@ -1593,6 +1622,14 @@
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
     const REFRESH_MS  = 60000;
+
+    // ---------------- Manual initial period (page-load default) ----------------
+    // If enabled, this is used on first load *unless URL query params are present*.
+    // Examples:
+    //   { enabled:true, season:6, stage:2 }
+    //   { enabled:true, season:6, stage:"championship" }
+    //   { enabled:true, season:5, stage:null }
+    const MANUAL_INITIAL_PERIOD = { enabled: false, season: 6, stage: "championship" };
 
     // detection (future-proof ceiling)
     const MAX_SEASON_TO_CHECK = 25;
@@ -2498,7 +2535,7 @@
       return row;
     }
 
-    // For bracket only: count = lower (better) score among the pair
+    // For bracket only: counted = lower (better) score among the pair
     function countedPairClasses(a, b){
       const na = (a === null || a === undefined) ? null : Number(a);
       const nb = (b === null || b === undefined) ? null : Number(b);
@@ -2507,10 +2544,8 @@
       const fb = Number.isFinite(nb);
 
       if (fa && fb){
-        // golf: lower is better (more negative is lower)
         if (na < nb) return { a: "counted", b: "" };
         if (nb < na) return { a: "", b: "counted" };
-        // tie: both counted
         return { a: "counted", b: "counted" };
       }
       if (fa) return { a: "counted", b: "" };
@@ -2552,31 +2587,35 @@
 
       const tbody = table.querySelector("tbody");
 
-      if (!teamObj || !Array.isArray(teamObj.players) || !teamObj.players.length){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td class="pname" colspan="3" style="opacity:.85;">No roster data.</td>`;
-        tbody.appendChild(tr);
-      } else {
-        teamObj.players.forEach(p=>{
-          const a = (mode === "final") ? p.fin1 : p.semi1;
-          const b = (mode === "final") ? p.fin2 : p.semi2;
-          const cls = countedPairClasses(a, b);
+      // Always render 4 rows, even if data is blank/missing
+      const players = (teamObj?.players && Array.isArray(teamObj.players))
+        ? teamObj.players.slice(0,4)
+        : [{},{},{},{}];
 
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td class="pname">${escapeHtml((p.name || "-").toUpperCase())}</td>
-            <td class="${cls.a}">${escapeHtml(fmtScore(a))}</td>
-            <td class="${cls.b}">${escapeHtml(fmtScore(b))}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
+      while (players.length < 4) players.push({});
+
+      players.forEach(p=>{
+        const a = (mode === "final") ? toNum(p.fin1) : toNum(p.semi1);
+        const b = (mode === "final") ? toNum(p.fin2) : toNum(p.semi2);
+        const cls = countedPairClasses(a, b);
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="pname">${escapeHtml(String(p.name || "-").toUpperCase())}</td>
+          <td class="${cls.a}">${escapeHtml(fmtScore(a))}</td>
+          <td class="${cls.b}">${escapeHtml(fmtScore(b))}</td>
+        `;
+        tbody.appendChild(tr);
+      });
 
       scroll.appendChild(table);
       wrap.appendChild(scroll);
       return wrap;
     }
 
+    function parseTeamName(v){ return String(v || "").trim(); }
+
+    // DOM builder for bracket rows
     function bracketSeedForTeam(name){
       const n = String(name || "").trim();
       if (!n) return null;
@@ -3621,16 +3660,41 @@
       const seasonParam = Number(params.get("season"));
       const stageParamRaw = (params.get("stage") || "").toLowerCase();
 
-      const seasonDefault = (Number.isFinite(seasonParam) && AVAILABLE_SEASONS.includes(seasonParam))
-        ? seasonParam
-        : DETECTED_CURRENT_SEASON;
+      const hasUrlSeason = Number.isFinite(seasonParam) && AVAILABLE_SEASONS.includes(seasonParam);
+      const hasUrlStage = !!stageParamRaw;
 
-      seasonSelect.value = String(seasonDefault);
-      applyStageDropdownForSeason(seasonDefault, true);
+      // Choose initial season:
+      // 1) URL (if present)
+      // 2) MANUAL_INITIAL_PERIOD (if enabled)
+      // 3) detected current
+      let seasonInit = DETECTED_CURRENT_SEASON;
+      if (hasUrlSeason){
+        seasonInit = seasonParam;
+      } else if (MANUAL_INITIAL_PERIOD?.enabled && Number.isFinite(Number(MANUAL_INITIAL_PERIOD.season))){
+        const ms = Number(MANUAL_INITIAL_PERIOD.season);
+        if (AVAILABLE_SEASONS.includes(ms)) seasonInit = ms;
+      }
 
-      if (isStagedSeason(seasonDefault) && stageParamRaw){
-        const ok = Array.from(stageSelect.options).some(o => o.value === stageParamRaw);
-        if (ok) stageSelect.value = stageParamRaw;
+      seasonSelect.value = String(seasonInit);
+      applyStageDropdownForSeason(seasonInit, true);
+
+      // Choose initial stage (staged seasons only):
+      // 1) URL stage (if present)
+      // 2) MANUAL_INITIAL_PERIOD stage (if enabled)
+      // 3) default from applyStageDropdownForSeason (current stage if current season else stage 1)
+      if (isStagedSeason(seasonInit)){
+        let desiredStage = null;
+
+        if (hasUrlStage){
+          desiredStage = stageParamRaw;
+        } else if (MANUAL_INITIAL_PERIOD?.enabled && MANUAL_INITIAL_PERIOD.stage != null){
+          desiredStage = String(MANUAL_INITIAL_PERIOD.stage).toLowerCase();
+        }
+
+        if (desiredStage){
+          const ok = Array.from(stageSelect.options).some(o => o.value === desiredStage);
+          if (ok) stageSelect.value = desiredStage;
+        }
       }
 
       // Ensure URL reflects what we're actually showing (even if params were missing/invalid)
