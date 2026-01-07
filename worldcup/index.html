@@ -22,7 +22,6 @@
       --row-pad-y: 10px;
       --row-pad-x: 10px;
       --name-fs: 14px;
-      --mini-fs: 10px;
       --score-fs: 12px;
 
       --score-bg: #d9d9d9;
@@ -374,6 +373,12 @@
     }
     .p-name.empty{ opacity: .35; }
 
+    /* ✅ Winner highlight (name span only) */
+    .p-name.winner{
+      background: rgba(34,197,94,0.14);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.14) inset;
+    }
+
     .p-score{
       flex: 0 0 84px;
       background: var(--score-bg);
@@ -382,8 +387,8 @@
       align-items:center;
       justify-content:center;
       font-weight: 950;
-      letter-spacing: .08em;
-      text-transform: uppercase;
+      letter-spacing: .02em;
+      text-transform: none; /* points: show as entered */
       font-variant-numeric: tabular-nums;
       font-size: var(--score-fs);
       user-select:none;
@@ -436,7 +441,6 @@
       --row-pad-y: 6px;
       --row-pad-x: 8px;
       --name-fs: 12px;
-      --mini-fs: 9px;
       --score-fs: 11px;
     }
 
@@ -554,10 +558,12 @@
       if(Array.isArray(resp.result?.values)) return resp.result.values;
       return [];
     }
+
     async function fetchRange(a1){
       const range = `'${SHEET_NAME}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
 
+      // POST first
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -567,6 +573,7 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
+      // fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -587,14 +594,17 @@
         .replace(/'/g,"&#39;");
     }
 
-    function fmtScore(v){
-      if (v === null || v === undefined) return "—";
-      const s = String(v).trim();
-      if (s === "") return "—";
+    // Points scoring: display EXACTLY what is in the sheet (no + / E conversions).
+    function fmtPoints(v){
+      const s = String(v ?? "").trim();
+      return s === "" ? "—" : s;
+    }
+
+    function toNum(v){
+      const s = String(v ?? "").trim();
+      if (!s) return null;
       const n = Number(s);
-      if (!Number.isFinite(n)) return s.toUpperCase();
-      if (n === 0 || Object.is(n, -0)) return "E";
-      return n > 0 ? `+${n}` : String(n);
+      return Number.isFinite(n) ? n : null;
     }
 
     function extractColumnFixed(values, expected){
@@ -605,6 +615,7 @@
       }
       return out;
     }
+
     function extractMatchupsFixed(values, expected){
       const out = [];
       for(let i=0;i<expected;i++){
@@ -756,8 +767,10 @@
       }
     }
 
+    // ✅ Winner highlight: compare numeric points, highlight higher score's NAME area only
     function renderMatchupsGrid(matchups, expected){
       matchGrid.innerHTML = "";
+
       for(let i=0;i<expected;i++){
         const m = matchups?.[i] ?? { p1:"", s1:"", p2:"", s2:"" };
 
@@ -766,16 +779,24 @@
         const s1 = String(m.s1 ?? "").trim();
         const s2 = String(m.s2 ?? "").trim();
 
+        const n1 = toNum(s1);
+        const n2 = toNum(s2);
+
+        const p1Wins = (n1 != null && n2 != null && n1 > n2);
+        const p2Wins = (n1 != null && n2 != null && n2 > n1);
+
         const card = document.createElement("div");
         card.className = "match-card";
         card.innerHTML = `
           <div class="p-row">
-            <div class="p-name ${p1 ? "" : "empty"}" title="${escapeHtml(p1)}">${escapeHtml((p1 || "TBD").toUpperCase())}</div>
-            <div class="p-score ${s1 ? "" : "empty"}">${escapeHtml(fmtScore(s1))}</div>
+            <div class="p-name ${p1 ? "" : "empty"} ${p1Wins ? "winner" : ""}"
+                 title="${escapeHtml(p1)}">${escapeHtml((p1 || "TBD").toUpperCase())}</div>
+            <div class="p-score ${s1 ? "" : "empty"}">${escapeHtml(fmtPoints(s1))}</div>
           </div>
           <div class="p-row">
-            <div class="p-name ${p2 ? "" : "empty"}" title="${escapeHtml(p2)}">${escapeHtml((p2 || "TBD").toUpperCase())}</div>
-            <div class="p-score ${s2 ? "" : "empty"}">${escapeHtml(fmtScore(s2))}</div>
+            <div class="p-name ${p2 ? "" : "empty"} ${p2Wins ? "winner" : ""}"
+                 title="${escapeHtml(p2)}">${escapeHtml((p2 || "TBD").toUpperCase())}</div>
+            <div class="p-score ${s2 ? "" : "empty"}">${escapeHtml(fmtPoints(s2))}</div>
           </div>
         `;
         matchGrid.appendChild(card);
@@ -817,14 +838,14 @@
       try{
         const data = await fetchRoundData(round);
 
-        // Always render matchups (finals has just 1)
+        // Always render matchups (even if blank) so users see future format
         renderMatchupsGrid(data.matchups, round.matchSize);
 
         // Range: skip entirely on finals (pane is hidden in applyFinalsLayout)
         if(round.key === "r1"){
-          renderRangeRound1(data.field);
+          renderRangeRound1(data.field); // Round 1: no blanks + show count
         }else if(round.key !== "r7"){
-          renderRangeFixed("Field", data.field, round.fieldSize);
+          renderRangeFixed("Field", data.field, round.fieldSize); // other rounds: fixed placeholders
         }
 
         // Byes (round 3 only)
@@ -835,7 +856,7 @@
           byesList.innerHTML = "";
         }
 
-        // Champion (finals only; now in its own pane)
+        // Champion (finals only)
         if(round.key === "r7"){
           renderChampion(data.champion);
         }
