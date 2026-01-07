@@ -668,6 +668,8 @@
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,.10);
       overflow: hidden;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
     }
 
     .modal-loading{
@@ -1454,6 +1456,12 @@
       letter-spacing: .02em;
       font-weight: 950;
     }
+    #champView #bracketWrap .champion-row .team-cell .name-text{
+      font-size: 20px;
+      padding-left: 10px;
+      letter-spacing: .02em;
+      font-weight: 950;
+    }
 
     /* ---------------- MOBILE OPTIMIZATION ---------------- */
     @media (max-width: 760px){
@@ -1958,6 +1966,18 @@
       if (!isStagedSeason(s)) return `Season ${s}`;
       if (stage === "championship") return `Season ${s}, Championship`;
       return `Season ${s}, Stage ${Number(stage)}`;
+    }
+    function formatOrdinal(value){
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "-";
+      const mod100 = Math.abs(n) % 100;
+      if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+      switch (Math.abs(n) % 10){
+        case 1: return `${n}st`;
+        case 2: return `${n}nd`;
+        case 3: return `${n}rd`;
+        default: return `${n}th`;
+      }
     }
     function sheetNameForPeriod(season, stage){
       const s = Number(season);
@@ -3233,15 +3253,13 @@
       map.set(key, cur);
     }
 
-    // Restore original tier set: default/green/blue/purple/bronze/silver/gold
     function trophyTier(key){
-      // Clubs = green, Captain = blue, Podiums = bronze/silver/gold, Misc/other = purple, Default fallback = default
-      if (key === "club") return "tier-green";
-      if (key === "captain") return "tier-blue";
       if (key === "gold") return "tier-gold";
       if (key === "silver") return "tier-silver";
       if (key === "bronze") return "tier-bronze";
       if (key === "purple") return "tier-purple";
+      if (key === "blue") return "tier-blue";
+      if (key === "green") return "tier-green";
       return "tier-default";
     }
 
@@ -3249,9 +3267,23 @@
       const wrap = document.createElement("div");
       wrap.className = "trophy-grid";
 
+      const tierOrder = [
+        "tier-gold",
+        "tier-silver",
+        "tier-bronze",
+        "tier-purple",
+        "tier-blue",
+        "tier-green",
+        "tier-default"
+      ];
       const entries = Array.from(trophyMap.values())
         .filter(t => t.count > 0)
-        .sort((a,b)=> (b.count - a.count) || a.main.localeCompare(b.main));
+        .sort((a,b)=>{
+          const tierDiff = tierOrder.indexOf(a.tier || "tier-default") - tierOrder.indexOf(b.tier || "tier-default");
+          if (tierDiff !== 0) return tierDiff;
+          if (b.count !== a.count) return b.count - a.count;
+          return a.main.localeCompare(b.main);
+        });
 
       if (!entries.length){
         wrap.innerHTML = `<div class="error" style="padding:8px 0 0; font-size:14px;">No trophies yet.</div>`;
@@ -3350,10 +3382,12 @@
           const stageBlock = document.createElement("div");
           stageBlock.className = "stage-block";
 
-          const hdr = document.createElement("div");
-          hdr.className = "stage-header";
-          hdr.textContent = stageHeaderText(season, e.stage);
-          stageBlock.appendChild(hdr);
+          if (isStagedSeason(season)){
+            const hdr = document.createElement("div");
+            hdr.className = "stage-header";
+            hdr.textContent = stageHeaderText(season, e.stage);
+            stageBlock.appendChild(hdr);
+          }
 
           // TEAM PERFORMANCE ROW
           const row1 = document.createElement("div");
@@ -3560,20 +3594,54 @@
         const bestPeriod = periodTotalsAgg.length ? Math.min(...periodTotalsAgg) : null;
         const avgPeriod  = periodTotalsAgg.length ? (periodTotalsAgg.reduce((a,b)=>a+b,0) / periodTotalsAgg.length) : null;
 
+        const pickBestFinish = (entries, rankKey) => {
+          let best = null;
+          for (const entry of entries || []){
+            if (entry.isChampionship) continue;
+            const rank = entry[rankKey];
+            if (!Number.isFinite(rank)) continue;
+            if (!best){
+              best = entry;
+              continue;
+            }
+            if (rank < best[rankKey]){
+              best = entry;
+              continue;
+            }
+            if (rank === best[rankKey]){
+              const bestStage = best.stage == null ? 4 : Number(best.stage);
+              const entryStage = entry.stage == null ? 4 : Number(entry.stage);
+              if (entry.season > best.season || (entry.season === best.season && entryStage > bestStage)){
+                best = entry;
+              }
+            }
+          }
+          return best;
+        };
+
+        const bestIndividualFinish = pickBestFinish(summaries, "playerRank");
+        const bestTeamFinish = pickBestFinish(summaries, "teamRank");
+        const bestIndividualText = bestIndividualFinish
+          ? `${periodDisplayLabel(bestIndividualFinish.season, bestIndividualFinish.stage)} • ${formatOrdinal(bestIndividualFinish.playerRank)}`
+          : "—";
+        const bestTeamText = bestTeamFinish
+          ? `${periodDisplayLabel(bestTeamFinish.season, bestTeamFinish.stage)} • ${formatOrdinal(bestTeamFinish.teamRank)}`
+          : "—";
+
         // TROPHIES (placement trophies only when concluded; others as they happen)
         const trophyMap = new Map();
 
-        // Clubs (green)
-        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"🏌️", main:"20 CLUB", sub:"ROUND ≤ -20", tier:trophyTier("club") });
-        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"🏌️", main:"25 CLUB", sub:"ROUND ≤ -25", tier:trophyTier("club") });
-        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"🏌️", main:"30 CLUB", sub:"ROUND ≤ -30", tier:trophyTier("club") });
+        // Clubs
+        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"🏌️", main:"20 CLUB", sub:"ROUND ≤ -20", tier:trophyTier("blue") });
+        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"🏌️", main:"25 CLUB", sub:"ROUND ≤ -25", tier:trophyTier("purple") });
+        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"🏌️", main:"30 CLUB", sub:"ROUND ≤ -30", tier:trophyTier("gold") });
 
-        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"📈", main:"60 CLUB", sub:"TOTAL ≤ -60", tier:trophyTier("club") });
-        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"📈", main:"70 CLUB", sub:"TOTAL ≤ -70", tier:trophyTier("club") });
-        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"📈", main:"80 CLUB", sub:"TOTAL ≤ -80", tier:trophyTier("club") });
+        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"📈", main:"60 CLUB", sub:"TOTAL ≤ -60", tier:trophyTier("blue") });
+        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"📈", main:"70 CLUB", sub:"TOTAL ≤ -70", tier:trophyTier("purple") });
+        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"📈", main:"80 CLUB", sub:"TOTAL ≤ -80", tier:trophyTier("gold") });
 
-        // Captain (blue)
-        for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"CAPTAIN", sub:"CAPTAINSHIP", tier:trophyTier("captain") });
+        // Captain (green)
+        for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"CAPTAIN", sub:"CAPTAINSHIP", tier:trophyTier("green") });
 
         // Season Champion (gold) - championship roster members
         for (const ss of seasonChampionSeasons){
@@ -3637,10 +3705,8 @@
           <div class="info-btn"><div class="lbl">Avg Round</div><div class="val">${escapeHtml(fmtScoreAvg(avgRound))}</div></div>
           <div class="info-btn"><div class="lbl">Best Total</div><div class="val">${escapeHtml(fmtScore(bestPeriod))}</div></div>
           <div class="info-btn"><div class="lbl">Avg Total</div><div class="val">${escapeHtml(fmtScoreAvg(avgPeriod))}</div></div>
-          <div class="info-btn"><div class="lbl">20 Club</div><div class="val">${escapeHtml(String(round20))}</div></div>
-          <div class="info-btn"><div class="lbl">25 Club</div><div class="val">${escapeHtml(String(round25))}</div></div>
-          <div class="info-btn"><div class="lbl">30 Club</div><div class="val">${escapeHtml(String(round30))}</div></div>
-          <div class="info-btn"><div class="lbl">Captaincies</div><div class="val">${escapeHtml(String(captainCount))}</div></div>
+          <div class="info-btn span-2"><div class="lbl">Best Individual Finish</div><div class="val">${escapeHtml(bestIndividualText)}</div></div>
+          <div class="info-btn span-2"><div class="lbl">Best Team Finish</div><div class="val">${escapeHtml(bestTeamText)}</div></div>
         `;
         left.appendChild(info);
 
