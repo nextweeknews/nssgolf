@@ -16,7 +16,6 @@
       --text: #e9eef8;
       --title: #c7d7ff;
       --muted: #9ca3c7;
-      --border-lite: rgba(148,163,184,0.20);
 
       /* defaults = "big" (Elite 8 and later) */
       --row-minh: 44px;
@@ -25,7 +24,9 @@
       --name-fs: 14px;
       --mini-fs: 10px;
       --score-fs: 12px;
-      --score-pad-y: 8px;
+
+      --score-bg: #d9d9d9;
+      --score-fg: #000000;
     }
 
     *{ box-sizing:border-box; }
@@ -117,7 +118,7 @@
       padding: 18px 18px 48px;
     }
 
-    /* Cards */
+    /* Card */
     .card{
       background: var(--card-bg);
       border-radius: 20px;
@@ -139,7 +140,7 @@
       padding: 24px 12px;
     }
 
-    /* Round “graphic” header */
+    /* Round header */
     .round-head{
       position: relative;
       display:flex;
@@ -190,21 +191,26 @@
       background: rgba(255,255,255,.09);
       border-color: rgba(255,255,255,.28);
     }
-    .nav-btn:disabled{
-      opacity: .35;
-      cursor: not-allowed;
-    }
+    .nav-btn:disabled{ opacity: .35; cursor: not-allowed; }
     .nav-left{ left: 0; }
     .nav-right{ right: 0; }
 
-    /* Two-pane content */
+    /* ===== Layouts ===== */
     .round-body{
       display:grid;
-      grid-template-columns: 1fr 1.2fr;
+      grid-template-columns: 1fr 1fr 1fr; /* 3 equal columns */
       gap: 12px;
+      align-items: start;
     }
-    @media (max-width: 860px){
+
+    /* finals exception */
+    #roundCard.finals .round-body{
+      grid-template-columns: 1fr 1fr; /* not 3-col */
+    }
+
+    @media (max-width: 960px){
       .round-body{ grid-template-columns: 1fr; }
+      #roundCard.finals .round-body{ grid-template-columns: 1fr; }
     }
 
     .pane{
@@ -213,6 +219,7 @@
       border-radius: 16px;
       padding: 12px;
       overflow:hidden;
+      min-width: 0;
     }
     .pane-title{
       font-size: 11px;
@@ -233,7 +240,9 @@
       letter-spacing: .14em;
       color: rgba(156,163,199,0.95);
       text-transform: uppercase;
+      white-space: nowrap;
     }
+    .hidden{ display:none !important; }
 
     /* Lists */
     .list{
@@ -242,7 +251,7 @@
       gap: 6px;
     }
 
-    /* Generic row */
+    /* Range rows */
     .row{
       display:flex;
       align-items:center;
@@ -268,61 +277,7 @@
       font-size: var(--name-fs);
       opacity: .96;
     }
-    .name.empty{
-      opacity: .35;
-    }
-
-    .mini{
-      font-size: var(--mini-fs);
-      font-weight: 900;
-      letter-spacing: .14em;
-      text-transform: uppercase;
-      color: rgba(156,163,199,0.95);
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
-
-    /* Matchup row */
-    .match{
-      display:grid;
-      grid-template-columns: 1fr 76px 24px 1fr 76px;
-      gap: 8px;
-      align-items:center;
-      background: var(--row-bg);
-      border-radius: 12px;
-      padding: var(--row-pad-y) var(--row-pad-x);
-      min-height: var(--row-minh);
-      overflow:hidden;
-    }
-    .match:nth-child(even){ background: var(--row-bg-2); }
-
-    .score{
-      background:#d9d9d9;
-      color:#000;
-      border-radius: 10px;
-      text-align:center;
-      font-weight: 950;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      padding: var(--score-pad-y) 6px;
-      font-variant-numeric: tabular-nums;
-      user-select:none;
-      font-size: var(--score-fs);
-      line-height: 1;
-      opacity: .98;
-    }
-    .score.empty{
-      opacity: .50;
-    }
-    .vs{
-      text-align:center;
-      font-weight: 950;
-      color: rgba(255,255,255,.70);
-      letter-spacing: .20em;
-      text-transform: uppercase;
-      user-select:none;
-      font-size: var(--mini-fs);
-    }
+    .name.empty{ opacity: .35; }
 
     /* Byes block */
     .byes{
@@ -339,10 +294,12 @@
       border-radius: 12px;
       padding: var(--row-pad-y) var(--row-pad-x);
       min-height: var(--row-minh);
+      overflow:hidden;
     }
     .bye-rank{
       width: 40px;
-      height: 30px;
+      height: 100%;              /* take full row height */
+      min-height: calc(var(--row-minh) - (var(--row-pad-y) * 2));
       display:grid;
       place-items:center;
       border-radius: 10px;
@@ -354,9 +311,81 @@
       font-variant-numeric: tabular-nums;
       flex: 0 0 auto;
       font-size: var(--score-fs);
+      line-height: 1;
     }
 
-    /* Champion */
+    /* ===== Matchup graphics ===== */
+    /* This pane spans columns 2 & 3 in 3-col layout */
+    .matchups-pane{
+      grid-column: 2 / 4;
+    }
+    #roundCard.finals .matchups-pane{
+      grid-column: auto; /* finals: normal flow (2-col) */
+    }
+
+    .match-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr; /* two columns of matchup graphics */
+      gap: 10px; /* slight separation both directions */
+      align-items: start;
+    }
+
+    /* On small screens, stack */
+    @media (max-width: 960px){
+      .matchups-pane{ grid-column: auto; }
+      .match-grid{ grid-template-columns: 1fr; }
+    }
+
+    .match-card{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      overflow:hidden;
+      min-width: 0;
+    }
+
+    .p-row{
+      display:flex;
+      align-items: stretch; /* make score fill full height */
+      min-height: var(--row-minh);
+      background: var(--row-bg);
+    }
+    .p-row:nth-child(2){ background: var(--row-bg-2); }
+
+    .p-name{
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: var(--row-pad-y) var(--row-pad-x);
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size: var(--name-fs);
+      opacity: .96;
+      display:flex;
+      align-items:center;
+    }
+    .p-name.empty{ opacity: .35; }
+
+    .p-score{
+      flex: 0 0 84px;
+      background: var(--score-bg);
+      color: var(--score-fg);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+      font-size: var(--score-fs);
+      user-select:none;
+    }
+    .p-score.empty{ opacity: .55; }
+
+    /* Champion (finals) */
     .champion{
       margin-top: 12px;
       border: 1px solid rgba(253,224,71,0.26);
@@ -397,10 +426,7 @@
       color: rgba(233,238,248,0.55);
     }
 
-    /* ===== Compact rounds (everything smaller) =====
-       User request: “about 1/3 the size” for early rounds.
-       We keep readability while significantly shrinking.
-    */
+    /* ===== Compact rounds (Round 1 -> Sweet 16) ===== */
     #roundCard.compact{
       --row-minh: 28px;
       --row-pad-y: 6px;
@@ -408,7 +434,6 @@
       --name-fs: 12px;
       --mini-fs: 9px;
       --score-fs: 11px;
-      --score-pad-y: 6px;
     }
 
     /* Mobile tweaks */
@@ -418,7 +443,7 @@
       .card{ padding: 14px 12px; border-radius: 18px; }
       .round-title{ font-size: 16px; padding: 0 52px; }
       .nav-btn{ width: 40px; height: 40px; border-radius: 14px; }
-      .match{ grid-template-columns: 1fr 66px 18px 1fr 66px; }
+      .p-score{ flex-basis: 72px; }
     }
   </style>
 </head>
@@ -458,15 +483,17 @@
       </div>
 
       <div class="round-body">
-        <div class="pane">
+        <!-- Column 1: Range -->
+        <div class="pane" id="rangePane">
           <div class="pane-title">
-            <span>Field</span>
-            <span class="count" id="fieldCount">—</span>
+            <span id="rangeTitle">Field</span>
+            <span class="count hidden" id="rangeCount">—</span>
           </div>
+
           <div class="list" id="fieldList"></div>
 
           <!-- Only shown on Round 3 -->
-          <div class="byes" id="byesBlock" style="display:none;">
+          <div class="byes hidden" id="byesBlock">
             <div class="pane-title" style="margin-bottom:8px;">
               <span>Season 10 Top 16</span>
               <span class="count" id="byesCount">—</span>
@@ -475,14 +502,16 @@
           </div>
         </div>
 
-        <div class="pane">
+        <!-- Columns 2-3: Matchups -->
+        <div class="pane matchups-pane" id="matchupsPane">
           <div class="pane-title">
             <span>Matchups</span>
-            <span class="count" id="matchCount">—</span>
           </div>
-          <div class="list" id="matchList"></div>
 
-          <div class="champion" id="championBlock" style="display:none;">
+          <div class="match-grid" id="matchGrid"></div>
+
+          <!-- Final only -->
+          <div class="champion hidden" id="championBlock">
             <div class="lbl">Champion</div>
             <div class="val empty" id="championName">—</div>
           </div>
@@ -499,7 +528,6 @@
     const SHEET_NAME = "2026 Results";
     const REFRESH_MS = 15000;
 
-    /* Rounds with explicit sizes so we can render placeholders even when blank */
     const ROUNDS = [
       {
         key: "r1",
@@ -523,10 +551,9 @@
         key: "r3",
         title: "Round 3",
         sub: "Round of 32 (Byes Added)",
-        /* IMPORTANT: split ranges exactly as requested */
-        field: "O2:O17",       // winners from last round
+        field: "O2:O17",   // winners from last round
         fieldSize: 16,
-        byes: "O18:O33",       // season 10 top 16 (ranked by listed order)
+        byes: "O18:O33",   // season 10 top 16 (ranked by listed order)
         byesSize: 16,
         matchups: "Q2:T17",
         matchSize: 16,
@@ -560,8 +587,8 @@
       },
       {
         key: "r7",
-        title: "Round 7",
-        sub: "Final",
+        title: "Final",
+        sub: "Championship Match",
         field: "AQ2:AQ3",
         fieldSize: 2,
         matchups: "AS2:AV2",
@@ -583,6 +610,7 @@
       const range = `'${SHEET_NAME}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
 
+      // POST first
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -592,6 +620,7 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
+      // fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -622,7 +651,7 @@
       return n > 0 ? `+${n}` : String(n);
     }
 
-    /* Extract a fixed number of rows even if the Sheets API omits trailing blanks */
+    /* Fixed-length extraction so we can render placeholders */
     function extractColumnFixed(values, expected){
       const out = [];
       for(let i=0;i<expected;i++){
@@ -654,7 +683,11 @@
       document.getElementById("lastUpdated").textContent = `Updated ${hh}:${mm}:${ss}`;
     }
 
-    /* ========= STATE ========= */
+    function nonEmptyTrim(list){
+      return (list || []).map(x => String(x ?? "").trim()).filter(Boolean);
+    }
+
+    /* ========= DOM ========= */
     const statusCard = document.getElementById("statusCard");
     const roundCard  = document.getElementById("roundCard");
 
@@ -664,21 +697,23 @@
     const roundTitle = document.getElementById("roundTitle");
     const roundSub   = document.getElementById("roundSub");
 
-    const fieldCount = document.getElementById("fieldCount");
-    const fieldList  = document.getElementById("fieldList");
+    const rangeTitle = document.getElementById("rangeTitle");
+    const rangeCount = document.getElementById("rangeCount");
 
-    const matchCount = document.getElementById("matchCount");
-    const matchList  = document.getElementById("matchList");
+    const fieldList  = document.getElementById("fieldList");
 
     const byesBlock = document.getElementById("byesBlock");
     const byesCount = document.getElementById("byesCount");
     const byesList  = document.getElementById("byesList");
 
+    const matchGrid = document.getElementById("matchGrid");
+
     const championBlock = document.getElementById("championBlock");
     const championName  = document.getElementById("championName");
 
+    /* ========= STATE ========= */
     let currentRoundIndex = 0;
-    const roundCache = new Map(); // key -> data
+    const roundCache = new Map();
 
     function isBigRound(idx){
       // “Rounds of 8 and on” => Elite 8 (r5) + later
@@ -689,9 +724,15 @@
       roundCard.classList.toggle("compact", !isBigRound(currentRoundIndex));
     }
 
+    function applyFinalsLayout(){
+      const isFinal = (ROUNDS[currentRoundIndex].key === "r7");
+      roundCard.classList.toggle("finals", isFinal);
+    }
+
     function setRoundIndex(idx){
       currentRoundIndex = Math.max(0, Math.min(ROUNDS.length - 1, idx));
       applyRoundSizing();
+      applyFinalsLayout();
       renderRoundFromCacheOrFetch();
       syncNavButtons();
 
@@ -713,55 +754,57 @@
       if (e.key === "ArrowRight") setRoundIndex(currentRoundIndex + 1);
     });
 
-    function renderFieldFixed(names, expected){
+    /* ========= RENDERERS ========= */
+    function renderRangeRound1(namesRaw){
+      // Round 1: NO blanks shown, and show player count. Title "Open Sign-ups"
+      const names = nonEmptyTrim(namesRaw);
+      rangeTitle.textContent = "OPEN SIGN-UPS";
+      rangeCount.textContent = `${names.length} PLAYERS`;
+      rangeCount.classList.remove("hidden");
+
       fieldList.innerHTML = "";
-      fieldCount.textContent = `${expected} players`;
 
-      for(let i=0;i<expected;i++){
-        const raw = names?.[i] ?? "";
-        const name = String(raw ?? "").trim();
-        const isEmpty = !name;
-
+      if(!names.length){
         const div = document.createElement("div");
         div.className = "row";
-        div.innerHTML = `
-          <div class="name ${isEmpty ? "empty" : ""}">${escapeHtml((name || "TBD").toUpperCase())}</div>
-        `;
+        div.innerHTML = `<div class="name empty">NO SIGN-UPS YET</div>`;
+        fieldList.appendChild(div);
+        return;
+      }
+
+      for(const n of names){
+        const div = document.createElement("div");
+        div.className = "row";
+        div.innerHTML = `<div class="name">${escapeHtml(n.toUpperCase())}</div>`;
         fieldList.appendChild(div);
       }
     }
 
-    function renderMatchupsFixed(list, expected){
-      matchList.innerHTML = "";
-      matchCount.textContent = `${expected} matchups`;
+    function renderRangeFixed(titleText, namesRaw, expected){
+      // Other rounds: show placeholders up to expected length, no count
+      rangeTitle.textContent = titleText.toUpperCase();
+      rangeCount.classList.add("hidden");
 
+      fieldList.innerHTML = "";
       for(let i=0;i<expected;i++){
-        const m = list?.[i] ?? {p1:"",s1:"",p2:"",s2:""};
-        const p1 = String(m.p1 ?? "").trim();
-        const p2 = String(m.p2 ?? "").trim();
-        const s1 = String(m.s1 ?? "").trim();
-        const s2 = String(m.s2 ?? "").trim();
+        const name = String(namesRaw?.[i] ?? "").trim();
+        const isEmpty = !name;
 
         const div = document.createElement("div");
-        div.className = "match";
-        div.innerHTML = `
-          <div class="name ${p1 ? "" : "empty"}" title="${escapeHtml(p1)}">${escapeHtml((p1 || "TBD").toUpperCase())}</div>
-          <div class="score ${s1 ? "" : "empty"}">${escapeHtml(fmtScore(s1))}</div>
-          <div class="vs">VS</div>
-          <div class="name ${p2 ? "" : "empty"}" title="${escapeHtml(p2)}" style="text-align:right;">${escapeHtml((p2 || "TBD").toUpperCase())}</div>
-          <div class="score ${s2 ? "" : "empty"}">${escapeHtml(fmtScore(s2))}</div>
-        `;
-        matchList.appendChild(div);
+        div.className = "row";
+        div.innerHTML = `<div class="name ${isEmpty ? "empty" : ""}">${escapeHtml((name || "TBD").toUpperCase())}</div>`;
+        fieldList.appendChild(div);
       }
     }
 
-    function renderByesFixed(byes, expected){
-      byesList.innerHTML = "";
-      byesCount.textContent = `${expected} players`;
+    function renderByesFixed(byesRaw, expected){
+      // Round 3 byes: ranked in listed order, separate from field
+      byesBlock.classList.remove("hidden");
+      byesCount.textContent = `${expected} PLAYERS`;
 
+      byesList.innerHTML = "";
       for(let i=0;i<expected;i++){
-        const raw = byes?.[i] ?? "";
-        const name = String(raw ?? "").trim();
+        const name = String(byesRaw?.[i] ?? "").trim();
         const isEmpty = !name;
 
         const row = document.createElement("div");
@@ -774,13 +817,42 @@
       }
     }
 
+    function renderMatchupsGrid(matchups, expected){
+      // Two-column grid. Fill left-to-right then next row.
+      matchGrid.innerHTML = "";
+
+      for(let i=0;i<expected;i++){
+        const m = matchups?.[i] ?? { p1:"", s1:"", p2:"", s2:"" };
+
+        const p1 = String(m.p1 ?? "").trim();
+        const p2 = String(m.p2 ?? "").trim();
+        const s1 = String(m.s1 ?? "").trim();
+        const s2 = String(m.s2 ?? "").trim();
+
+        const card = document.createElement("div");
+        card.className = "match-card";
+        card.innerHTML = `
+          <div class="p-row">
+            <div class="p-name ${p1 ? "" : "empty"}" title="${escapeHtml(p1)}">${escapeHtml((p1 || "TBD").toUpperCase())}</div>
+            <div class="p-score ${s1 ? "" : "empty"}">${escapeHtml(fmtScore(s1))}</div>
+          </div>
+          <div class="p-row">
+            <div class="p-name ${p2 ? "" : "empty"}" title="${escapeHtml(p2)}">${escapeHtml((p2 || "TBD").toUpperCase())}</div>
+            <div class="p-score ${s2 ? "" : "empty"}">${escapeHtml(fmtScore(s2))}</div>
+          </div>
+        `;
+        matchGrid.appendChild(card);
+      }
+    }
+
     function renderChampion(name){
-      championBlock.style.display = "";
+      championBlock.classList.remove("hidden");
       const clean = String(name ?? "").trim();
       championName.textContent = (clean ? clean.toUpperCase() : "—");
       championName.classList.toggle("empty", !clean);
     }
 
+    /* ========= DATA ========= */
     async function fetchRoundData(round){
       if(roundCache.has(round.key)) return roundCache.get(round.key);
 
@@ -810,25 +882,29 @@
       try{
         const data = await fetchRoundData(round);
 
-        // Field + matchups always render with placeholders
-        renderFieldFixed(data.field, round.fieldSize);
-        renderMatchupsFixed(data.matchups, round.matchSize);
+        // Range
+        if(round.key === "r1"){
+          renderRangeRound1(data.field);
+        }else{
+          renderRangeFixed("Field", data.field, round.fieldSize);
+        }
 
-        // Byes only show on Round 3, and are ranked by listed order
+        // Byes (round 3 only)
         if(round.key === "r3"){
-          byesBlock.style.display = "";
           renderByesFixed(data.byes, round.byesSize || 16);
         }else{
-          byesBlock.style.display = "none";
+          byesBlock.classList.add("hidden");
           byesList.innerHTML = "";
         }
 
-        // Champion only on final round, but show even if blank (placeholder)
+        // Matchups grid always shows placeholders
+        renderMatchupsGrid(data.matchups, round.matchSize);
+
+        // Champion (final only)
         if(round.key === "r7"){
-          championBlock.style.display = "";
           renderChampion(data.champion);
         }else{
-          championBlock.style.display = "none";
+          championBlock.classList.add("hidden");
         }
 
         statusCard.style.display = "none";
@@ -858,6 +934,7 @@
         currentRoundIndex = roundParam - 1;
       }
       applyRoundSizing();
+      applyFinalsLayout();
       syncNavButtons();
       renderRoundFromCacheOrFetch();
       setInterval(refreshVisibleRoundOnly, REFRESH_MS);
