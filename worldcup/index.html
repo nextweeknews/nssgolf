@@ -449,7 +449,7 @@
       border: 1px solid rgba(253,224,71,0.26);
       background: rgba(253,224,71,0.10);
       border-radius: 16px;
-      padding: 14px 12px;
+      padding: 14px 14px; /* slightly tighter + consistent */
       box-shadow: 0 0 18px rgba(253,224,71,0.18);
       overflow:hidden;
       text-align:center;
@@ -463,27 +463,48 @@
       width: 100%;
       min-width: 0;
     }
+
+    /* ✅ Make label fill the bubble width better */
     .champion-label{
-      font-size: 10px;
+      width: 100%;
+      padding: 0 6px;           /* slight padding */
+      font-size: 13px;          /* larger than before */
       font-weight: 950;
-      letter-spacing: .16em;
+      letter-spacing: .14em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.82);
+      color: rgba(255,255,255,.86);
       line-height: 1.15;
+      /* allow wrapping so it can occupy the space without looking tiny */
+      white-space: normal;
+      word-break: break-word;
     }
+
+    /* ✅ Make champion name noticeably larger */
     .champion-name{
-      font-size: 18px;
+      width: 100%;
+      padding: 0 6px;           /* match label padding */
+      font-size: 24px;          /* noticeably larger */
       font-weight: 950;
       letter-spacing: .06em;
       text-transform: uppercase;
       color: rgba(254,240,138,0.98);
+      line-height: 1.10;
+      /* keep single line if possible; still ellipsize if absurdly long */
       white-space: nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
       max-width: 100%;
-      line-height: 1.15;
     }
-    .champion-name.empty{ opacity: .55; color: rgba(255,255,255,.82); }
+    .champion-name.empty{
+      opacity: .55;
+      color: rgba(255,255,255,.82);
+    }
+
+    /* Optional: slightly scale down on very small screens */
+    @media (max-width: 420px){
+      .champion-label{ font-size: 12px; }
+      .champion-name{ font-size: 20px; }
+    }
 
     .footer{
       margin-top: 18px;
