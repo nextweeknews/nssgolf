@@ -60,6 +60,8 @@
       flex-wrap:wrap;
     }
     .brand{display:flex; gap:12px; align-items:center;}
+
+    /* Home button icon (golf.png) */
     .home-btn{
       width:40px; height:40px;
       border-radius:16px;
@@ -75,14 +77,14 @@
       background: rgba(255,255,255,.08);
       border-color: rgba(255,255,255,.25);
     }
-    .home-btn span{
-      font-weight: 950;
-      color: rgba(255,255,255,.92);
-      letter-spacing: .02em;
-      font-size: 16px;
-      line-height: 1;
-      user-select:none;
+    .home-btn img{
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
     }
+
     .kicker{
       font-size:11px; letter-spacing:.25em; text-transform:uppercase;
       color: rgba(255,255,255,.65); font-weight:900;
@@ -264,7 +266,7 @@
       overflow:hidden;
     }
 
-    /* ✅ more subtle rank number (reverts from score-like look) */
+    /* subtle rank number (byes only) */
     .bye-rank{
       width: 40px;
       height: 100%;
@@ -284,26 +286,16 @@
     }
 
     /* ===== Matchup graphics ===== */
-    /* Non-finals: matchups span columns 2 & 3 */
-    .matchups-pane{
-      grid-column: 2 / 4;
-    }
-    /* Finals: matchups should be a normal single pane column */
-    #roundCard.finals .matchups-pane{
-      grid-column: auto;
-    }
+    .matchups-pane{ grid-column: 2 / 4; }
+    #roundCard.finals .matchups-pane{ grid-column: auto; }
 
     .match-grid{
       display:grid;
-      grid-template-columns: 1fr 1fr; /* two columns of matchup graphics */
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
       align-items: start;
     }
-
-    /* Finals: only one matchup, so single column */
-    #roundCard.finals .match-grid{
-      grid-template-columns: 1fr;
-    }
+    #roundCard.finals .match-grid{ grid-template-columns: 1fr; }
 
     @media (max-width: 960px){
       .matchups-pane{ grid-column: auto; }
@@ -345,12 +337,7 @@
       box-shadow: none;
     }
     .p-name.empty{ opacity: .35; }
-
-    /* winner highlight: contained fill only (no outline, no bleed) */
-    .p-name.winner{
-      background: var(--win-fill);
-      box-shadow: none;
-    }
+    .p-name.winner{ background: var(--win-fill); box-shadow: none; }
 
     .p-score{
       flex: 0 0 var(--score-col);
@@ -437,7 +424,9 @@
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <a class="home-btn" href="index.html" aria-label="Home"><span>⌂</span></a>
+        <a class="home-btn" href="index.html" aria-label="Home">
+          <img src="golf.png" alt="Home" loading="eager" decoding="async" />
+        </a>
         <div>
           <div class="kicker">2026 World Open</div>
         </div>
@@ -487,7 +476,6 @@
 
         <!-- Champion pane (finals only; sits side-by-side with matchup) -->
         <div class="pane hidden" id="championPane">
-          <!-- header removed by design (no pane-title here) -->
           <div class="champion">
             <div class="lbl">2026 WORLD OPEN CHAMPION</div>
             <div class="val empty" id="championName">—</div>
