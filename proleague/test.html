@@ -1,1 +1,2968 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Shotgun Pro League</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
+      --row-bg-2: rgba(255,255,255,0.045);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+
+      --border-lite: rgba(148,163,184,0.20);
+      --sep: rgba(148,163,184,0.26);
+
+      --top10-bg: rgba(16,185,129,0.18);
+
+      --gold:  #ffd700;
+      --silver:#c0c0c0;
+      --bronze:#cd7f32;
+
+      --logo-slot: 40px;
+
+      /* Desktop-first row sizing */
+      --rank-col: 100px;
+      --score-col: 120px;
+
+      --wk-rank-col: 100px;
+      --wk-round-col: 88px;
+      --wk-score-col: 120px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    /* Topbar */
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+
+    .home-btn{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      text-decoration:none;
+      cursor:pointer;
+      flex: 0 0 auto;
+    }
+    .home-btn:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.25);
+    }
+    .home-btn img{
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
+    }
+
+    .kicker{font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65); font-weight:900;}
+
+    /* Dropdowns */
+    .select-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      position: relative;
+    }
+    .select-label{
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .select{
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.90);
+      padding: 10px 42px 10px 14px;
+      border-radius: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+      min-width: 210px;
+    }
+    .select-wrap::after{
+      content:"▾";
+      position:absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255,255,255,.75);
+      pointer-events:none;
+      font-weight: 900;
+    }
+    .select:focus{
+      border-color: rgba(255,255,255,.35);
+      background: rgba(255,255,255,.09);
+    }
+
+    .header-controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 18px 18px 48px;
+    }
+
+    /* Cards */
+    .card{
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 18px 18px;
+      box-shadow: var(--card-shadow);
+    }
+    .card + .card{ margin-top: 16px; }
+
+    .card-head{
+      display:flex;
+      gap:14px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom: 12px;
+    }
+    .card-head .h2{
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    /* Main header row + entries */
+    .header-row, .entry{
+      display:grid;
+      grid-template-columns: var(--rank-col) 1fr var(--score-col);
+      align-items:center;
+      min-width: 0;
+    }
+
+    .header-row{
+      height: 40px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 18px;
+      min-width: 0;
+    }
+    .header-row span:nth-child(2){
+      justify-content:flex-start;
+      padding-left: 18px;
+    }
+
+    .resultsList{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .entry{
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 18px;
+      font-weight: 700;
+      transition: background .25s ease;
+      min-width: 0;
+    }
+
+    .place{
+      font-size: 22px;
+      font-weight: 900;
+      text-align:center;
+      color: var(--title);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 100%;
+      background: transparent;
+      min-width: 0;
+    }
+    .place.top10bg{ background: var(--top10-bg); }
+
+    .gold{color:var(--gold);}
+    .silver{color:var(--silver);}
+    .bronze{color:var(--bronze);}
+
+    /* Team/Player name button cell */
+    .team-cell{
+      position: relative;
+      height: 100%;
+      width: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      padding: 0 12px;
+      border:none;
+      background: rgba(255,255,255,0.08);
+      color:#fff;
+      cursor:pointer;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      overflow:hidden;
+      border-radius: 0;
+      gap: 0;
+      min-width: 0;
+    }
+    .team-cell:hover{ filter: brightness(1.04); }
+
+    .team-logo-slot{
+      width: var(--logo-slot);
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0;
+      flex: 0 0 auto;
+    }
+    .team-logo{
+      height: calc(100% - 10px);
+      width: auto;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      display:block;
+      border:none;
+      outline:none;
+      box-shadow:none;
+    }
+
+    .team-cell .name-text{
+      font-size: 20px;
+      font-weight: 950;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: left;
+      justify-content: flex-start;
+      padding-left: 10px;
+    }
+
+    button.team-cell{
+      font-family: inherit !important;
+      font-size: inherit !important;
+      font-weight: 900 !important;
+      letter-spacing: inherit !important;
+      text-transform: uppercase !important;
+      line-height: 1 !important;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    button.team-cell .name-text{
+      font-weight: 950 !important;
+      text-transform: uppercase !important;
+    }
+
+    .score-col{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#d9d9d9;
+      color:#000;
+      font-size: 20px;
+      font-weight: 900;
+      padding: 0 10px;
+      min-width: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Weekly */
+    .wk-hide-mobile{ /* default: visible */ }
+
+    .weekly-header-row, .weekly-entry{
+      display:grid;
+      grid-template-columns: var(--wk-rank-col) 1fr var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
+      align-items:center;
+      min-width: 0;
+    }
+
+    .weekly-header-row{
+      height: 40px;
+      background: var(--header-bg);
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    .weekly-header-row span{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 10px;
+      height: 18px;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .weekly-header-row span:nth-child(2){
+      justify-content:flex-start;
+      padding-left: 18px;
+    }
+
+    .weekly-entry{
+      height: 48px;
+      background: var(--row-bg);
+      border-radius: 10px;
+      overflow:hidden;
+      font-size: 18px;
+      font-weight: 700;
+      min-width: 0;
+    }
+    .weekly-round{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(255,255,255,0.06);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 900;
+      min-width: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Weekly section subcards (avoid nested heavy shadows) */
+    .weekly-subcard{
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px 12px;
+    }
+    .weekly-subcard + .weekly-subcard{ margin-top: 12px; }
+    .weekly-subcard .h2{
+      font-size: 18px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0 0 10px 0;
+    }
+
+    /* Collapsible roster / stats */
+    .roster-wrap{
+      margin-top: 4px;
+      margin-bottom: 10px;
+      padding-top: 2px;
+    }
+    .roster-title-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 0 10px 6px 10px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .roster-title{
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+    }
+
+    /* Default: vertical scroll only, but we'll enable horizontal scroll on small screens */
+    .roster-scroll{
+      max-height: 280px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 4px;
+    }
+    .roster-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    .roster-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,0.22);
+      border-radius: 999px;
+    }
+    .roster-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    table.roster-table{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      table-layout: fixed;
+    }
+
+    col.c-rank{  width: 54px; }
+    col.c-name{  width: 156px; }
+    col.c-stage{ width: 62px; }
+    col.c-best{  width: 54px; }
+    col.c-week{  width: 52px; }
+    col.c-round{ width: 44px; }
+
+    .roster-table thead th{
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: rgba(15,23,42,0.92);
+      backdrop-filter: blur(6px);
+      padding: 6px 6px;
+      border-bottom: none;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .roster-table tbody tr{ background: transparent !important; }
+    .roster-table tbody td{ background: var(--row-bg); }
+    .roster-table tbody tr:nth-child(even) td{ background: var(--row-bg-2); }
+
+    .roster-table,
+    .roster-table thead th,
+    .roster-table tbody tr,
+    .roster-table tbody td{
+      border-radius: 0 !important;
+      clip-path: none !important;
+      mask: none !important;
+    }
+
+    .roster-table td{
+      padding: 8px 6px;
+      font-size: 11px;
+      color: rgba(233,238,248,0.92);
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      border-top: 1px solid rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      background-clip: padding-box;
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .cell-rank{
+      color: rgba(156,163,199,0.95);
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+
+    .cell-name{
+      text-transform: uppercase;
+      color: var(--title);
+      text-align: center;
+      padding-left: 0;
+      line-height: 1.05;
+    }
+    .cell-name .name-inline{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .cell-name .name-inline span{
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.05;
+    }
+
+    .captain-icon{
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      align-self: center;
+      color: currentColor;
+      background-color: currentColor;
+      -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
+      mask: url("logos/Captain.svg") no-repeat center / contain;
+      opacity: 0.95;
+    }
+
+    .clickable-player{ cursor: pointer; }
+    .clickable-player:hover{
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .roster-table tbody .sep-right{ border-right: 2px solid var(--sep) !important; }
+    .roster-table thead .sep-right{ border-right: 2px solid transparent !important; }
+
+    .stageScore{
+      background: rgba(217,217,217,0.14) !important;
+      color: #ffffff;
+    }
+    .counted{
+      background: rgba(52,211,153,0.16) !important;
+      color: #ffffff;
+    }
+
+    .full-stats-btn{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.90);
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      cursor: pointer;
+      outline: none;
+      line-height: 1;
+    }
+    .full-stats-btn:hover{
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.28);
+    }
+
+    .status{
+      color: rgba(233,238,248,0.92);
+      font-size: 18px;
+      font-weight: 800;
+      text-align:center;
+      padding: 24px 0;
+    }
+    .error{
+      color: rgba(233,238,248,0.92);
+      font-size: 16px;
+      text-align:center;
+      padding: 24px 12px;
+    }
+
+    .hidden{ display:none !important; }
+
+    .search{
+      display:flex; align-items:center; gap:10px;
+      border:1px solid var(--border-lite);
+      background: rgba(148,163,184,0.10);
+      padding: 10px 12px;
+      border-radius: 10px;
+      min-width: 260px;
+    }
+    .search span{color: var(--muted); font-weight:900;}
+    .search input{
+      width:100%;
+      background:transparent;
+      border:none;
+      outline:none;
+      color: var(--text);
+      font-size:14px;
+    }
+    .search input::placeholder{color: rgba(156,163,199,.70);}
+
+    .footer{
+      margin-top: 18px;
+      text-align:center;
+      font-size:12px;
+      color: rgba(233,238,248,0.55);
+    }
+
+    /* ---------------- MODAL ---------------- */
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+    }
+    .modal-backdrop.show{ display:flex; }
+
+    .modal-wrap{
+      position: relative;
+      width: min(980px, 100%);
+      padding-top: 56px;
+    }
+
+    .modal-close-float{
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,0.75);
+      color: rgba(255,255,255,.92);
+      cursor: pointer;
+      font-weight: 950;
+      line-height: 1;
+      display:grid;
+      place-items:center;
+      box-shadow: 0 18px 24px rgba(0,0,0,0.45);
+      backdrop-filter: blur(10px);
+      z-index: 2;
+    }
+    .modal-close-float:hover{
+      background: rgba(15,23,42,0.90);
+      border-color: rgba(255,255,255,.28);
+    }
+
+    .modal-card{
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow: hidden;
+    }
+
+    .modal-loading{
+      min-height: 360px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-size: 16px;
+      font-weight: 950;
+      color: rgba(233,238,248,0.92);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      padding: 24px;
+      width: 100%;
+    }
+
+    .modal-body{
+      padding: 14px;
+      display:grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 860px){
+      .modal-wrap{ padding-top: 52px; }
+      .modal-body{ grid-template-columns: 1fr; }
+      .modal-loading{ min-height: 300px; }
+    }
+
+    .modal-pane{
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px;
+    }
+
+    .modal-left{
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+
+    .player-hero{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+    }
+    .hero-team{
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.15);
+      overflow: hidden;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,0.05);
+      flex: 0 0 auto;
+    }
+    .hero-team img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display:block;
+    }
+    .hero-text{ min-width: 0; }
+    .hero-name{
+      font-size: 18px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      color: var(--title);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hero-sub{
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,0.86);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hero-sub.solo{
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .info-btn-grid{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 8px;
+    }
+    @media (max-width: 860px){
+      .info-btn-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .info-btn.span-2{ grid-column: span 2; }
+    }
+    .info-btn{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      border-radius: 14px;
+      padding: 10px 8px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      min-height: 62px;
+    }
+    .info-btn .lbl{
+      font-size: 9px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(156,163,199,0.95);
+      line-height: 1.15;
+      margin-bottom: 6px;
+      white-space: normal;
+      overflow: visible;
+      width: 100%;
+    }
+    .info-btn .val{
+      font-size: 16px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,0.92);
+      line-height: 1.05;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      font-variant-numeric: tabular-nums;
+    }
+    .info-btn.span-2{ grid-column: span 2; }
+
+    .trophy-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+    }
+    .trophy-grid{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .trophy{
+      display:inline-flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      width: fit-content;
+      max-width: 100%;
+      flex: 0 0 auto;
+    }
+    .trophy-left{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      min-width: 0;
+      flex: 0 1 auto;
+    }
+    .trophy-icon{
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      font-size: 16px;
+      flex: 0 0 auto;
+      color: rgba(255,255,255,0.92);
+    }
+    .trophy-icon.captain{
+      font-size: 0;
+      position: relative;
+    }
+    .trophy-icon.captain::before{
+      content:"";
+      width: 16px;
+      height: 16px;
+      display:block;
+      background-color: currentColor;
+      -webkit-mask: url("logos/Captain.svg") no-repeat center / contain;
+      mask: url("logos/Captain.svg") no-repeat center / contain;
+      opacity: 0.95;
+    }
+
+    .trophy-text{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+      max-width: 280px;
+    }
+    .trophy-main{
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,0.92);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .trophy-sub{
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(156,163,199,0.95);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .trophy-count{
+      flex: 0 0 auto;
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      color: rgba(233,238,248,0.92) !important;
+      white-space: nowrap;
+    }
+
+    /* Neon tiers */
+    .trophy.tier-blue{
+      border-color: rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.08);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.10) inset, 0 0 18px rgba(56,189,248,0.22);
+    }
+    .trophy.tier-blue .trophy-main,
+    .trophy.tier-blue .trophy-icon{ color: rgba(186,230,253,0.95); }
+    .trophy.tier-blue .trophy-icon{
+      border-color: rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.10);
+    }
+
+    .trophy.tier-purple{
+      border-color: rgba(168,85,247,0.35);
+      background: rgba(168,85,247,0.08);
+      box-shadow: 0 0 0 1px rgba(168,85,247,0.10) inset, 0 0 18px rgba(168,85,247,0.22);
+    }
+    .trophy.tier-purple .trophy-main,
+    .trophy.tier-purple .trophy-icon{ color: rgba(233,213,255,0.95); }
+    .trophy.tier-purple .trophy-icon{
+      border-color: rgba(168,85,247,0.35);
+      background: rgba(168,85,247,0.10);
+    }
+
+    .trophy.tier-gold{
+      border-color: rgba(253,224,71,0.40);
+      background: rgba(253,224,71,0.10);
+      box-shadow: 0 0 0 1px rgba(253,224,71,0.12) inset, 0 0 18px rgba(253,224,71,0.24);
+    }
+    .trophy.tier-gold .trophy-main,
+    .trophy.tier-gold .trophy-icon{ color: rgba(254,240,138,0.98); }
+    .trophy.tier-gold .trophy-icon{
+      border-color: rgba(253,224,71,0.40);
+      background: rgba(253,224,71,0.12);
+    }
+
+    .trophy.tier-silver{
+      border-color: rgba(226,232,240,0.38);
+      background: rgba(226,232,240,0.08);
+      box-shadow: 0 0 0 1px rgba(226,232,240,0.10) inset, 0 0 18px rgba(226,232,240,0.20);
+    }
+    .trophy.tier-silver .trophy-main,
+    .trophy.tier-silver .trophy-icon{ color: rgba(241,245,249,0.98); }
+    .trophy.tier-silver .trophy-icon{
+      border-color: rgba(226,232,240,0.38);
+      background: rgba(226,232,240,0.10);
+    }
+
+    .trophy.tier-bronze{
+      border-color: rgba(251,146,60,0.40);
+      background: rgba(251,146,60,0.09);
+      box-shadow: 0 0 0 1px rgba(251,146,60,0.10) inset, 0 0 18px rgba(251,146,60,0.20);
+    }
+    .trophy.tier-bronze .trophy-main,
+    .trophy.tier-bronze .trophy-icon{ color: rgba(254,215,170,0.96); }
+    .trophy.tier-bronze .trophy-icon{
+      border-color: rgba(251,146,60,0.40);
+      background: rgba(251,146,60,0.11);
+    }
+
+    .trophy.tier-green{
+      border-color: rgba(34,197,94,0.40);
+      background: rgba(34,197,94,0.09);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.10) inset, 0 0 18px rgba(34,197,94,0.22);
+    }
+    .trophy.tier-green .trophy-main,
+    .trophy.tier-green .trophy-icon{ color: rgba(187,247,208,0.96); }
+    .trophy.tier-green .trophy-icon{
+      border-color: rgba(34,197,94,0.40);
+      background: rgba(34,197,94,0.11);
+    }
+
+    .season-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+    }
+
+    /* Season performance */
+    .season-entry{
+      padding: 10px 10px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .season-entry + .season-entry{ margin-top: 10px; }
+
+    .season-entry-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .season-entry-name{
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,0.92);
+    }
+
+    /* Right-justified season buttons */
+    .btn-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      justify-content: flex-end;
+      -webkit-overflow-scrolling: touch;
+    }
+    .btn-row + .btn-row{ margin-top: 8px; }
+
+    .btn-row::-webkit-scrollbar { height: 10px; }
+    .btn-row::-webkit-scrollbar-thumb {
+      background: rgba(148,163,184,0.22);
+      border-radius: 999px;
+    }
+    .btn-row::-webkit-scrollbar-track { background: transparent; }
+
+    .chip{
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      border-radius: 12px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .chip.solo{ text-transform: uppercase; letter-spacing: .10em; }
+
+    .chip.rank{
+      background: rgba(255,255,255,0.04);
+      color: var(--title);
+      border-color: rgba(255,255,255,0.10);
+    }
+    .chip.rank.gold{ color: var(--gold); }
+    .chip.rank.silver{ color: var(--silver); }
+    .chip.rank.bronze{ color: var(--bronze); }
+
+    .chip.team{
+      background: var(--team-bg, rgba(255,255,255,0.06));
+      color: var(--team-fg, rgba(255,255,255,0.92));
+      border-color: rgba(255,255,255,0.14);
+      justify-content: center;
+      text-align: center;
+    }
+
+    .chip.score{
+      background: #d9d9d9;
+      color: #000000;
+      border-color: rgba(0,0,0,0.08);
+      letter-spacing: .08em;
+    }
+
+    /* Inline rounds table */
+    table.mini-rounds{
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: fixed;
+      width: 360px;
+      max-width: 360px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 0;
+      overflow: visible;
+      flex: 0 0 auto;
+    }
+    .mini-rounds td{
+      padding: 6px 0;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      line-height: 1;
+      color: rgba(255,255,255,0.92);
+      font-variant-numeric: tabular-nums;
+      user-select: none;
+      border: none;
+      background: rgba(255,255,255,0.03);
+    }
+    .mini-rounds td.sep-left{ border-left: 2px solid rgba(148,163,184,0.26); }
+    .mini-rounds td.counted{
+      background: rgba(52,211,153,0.16);
+      color: rgba(255,255,255,0.98);
+    }
+
+    /* ---------------- MOBILE OPTIMIZATION (shrink-to-fit; desktop unchanged) ---------------- */
+    @media (max-width: 760px){
+      :root{
+        --rank-col: 72px;
+        --score-col: 82px;
+        --wk-rank-col: 72px;
+        --wk-round-col: 64px;
+        --wk-score-col: 92px;
+        --logo-slot: 34px;
+      }
+
+      .container{ padding: 14px 12px 40px; }
+      .topbar-inner{ padding: 12px 12px; }
+
+      .card{ padding: 14px 12px; border-radius: 18px; }
+      .card-head .h2{ font-size: 18px; }
+
+      .header-row, .weekly-header-row{ height: 36px; font-size: 12px; }
+      .entry, .weekly-entry{ height: 44px; }
+      .place{ font-size: 18px; padding: 0 6px; }
+      .score-col{ font-size: 16px; padding: 0 6px; }
+
+      .team-cell{ padding: 0 8px; }
+      .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
+      .team-logo{ height: calc(100% - 8px); }
+
+      .weekly-round{ font-size: 14px; }
+
+      .search{ min-width: 0; width: 100%; }
+
+      .roster-scroll{
+        overflow-x: auto;
+        padding-right: 0;
+        -webkit-overflow-scrolling: touch;
+      }
+      table.roster-table{
+        width: max-content;
+        min-width: 820px;
+      }
+
+      .modal-backdrop{
+        align-items: flex-start;
+        justify-content: center;
+        padding: 12px;
+      }
+      .modal-wrap{
+        width: 100%;
+        padding-top: 52px;
+        margin-top: 8px;
+      }
+
+      .modal-card{
+        max-height: calc(100vh - 84px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overflow-x: hidden;
+      }
+      .modal-body,
+      .modal-pane{
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .btn-row{
+        flex-wrap: wrap;
+        overflow-x: visible;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      table.mini-rounds{
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 100%;
+      }
+
+      .mini-rounds td{
+        font-size: 10px;
+        padding: 6px 0;
+      }
+
+      .chip{
+        max-width: 100%;
+      }
+
+      .modal-body{
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+      .modal-loading{
+        min-height: 300px;
+      }
+
+      .trophy-text{ max-width: 220px; }
+
+      /* ✅ Weekly Top 5: on mobile show only Rank | Player | Score */
+      .wk-hide-mobile{ display:none !important; }
+      .weekly-header-row, .weekly-entry{
+        grid-template-columns: var(--wk-rank-col) 1fr var(--wk-score-col);
+      }
+    }
+
+    @media (max-width: 420px){
+      :root{
+        --rank-col: 64px;
+        --score-col: 76px;
+        --wk-rank-col: 64px;
+        --wk-round-col: 58px;
+        --wk-score-col: 84px;
+        --logo-slot: 30px;
+      }
+
+      .select{ min-width: 170px; padding: 10px 38px 10px 12px; }
+      .select-label{ font-size: 10px; }
+      .kicker{ font-size: 10px; }
+
+      .entry, .weekly-entry{ height: 42px; }
+      .team-cell .name-text{ font-size: 15px; }
+
+      table.mini-rounds{ width: 280px; max-width: 280px; }
+      table.roster-table{ min-width: 860px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="/" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </a>
+        <div>
+          <div class="kicker">Shotgun Pro League</div>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div class="select-wrap" aria-label="Season selector">
+          <label class="select-label" for="seasonSelect">Season</label>
+          <!-- Options will be rebuilt at boot based on detected current season -->
+          <select id="seasonSelect" class="select">
+            <option value="6">Season 6</option>
+            <option value="5">Season 5</option>
+            <option value="4">Season 4</option>
+            <option value="3">Season 3</option>
+            <option value="2">Season 2</option>
+            <option value="1">Season 1</option>
+          </select>
+        </div>
+
+        <!-- Stage selector shown for Season 6+; options rebuilt based on detected current stage -->
+        <div id="stageWrap" class="select-wrap hidden" aria-label="Stage selector">
+          <label class="select-label" for="stageSelect">Stage</label>
+          <select id="stageSelect" class="select">
+            <option value="1">Stage 1</option>
+            <option value="2">Stage 2</option>
+            <option value="3">Stage 3</option>
+            <option value="championship">Championship</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="statusCard" class="card">
+      <div class="status">Loading standings…</div>
+    </div>
+
+    <div id="content" class="hidden">
+      <!-- 1) TEAM RANKINGS -->
+      <div id="teamsView" class="card">
+        <div class="card-head">
+          <h2 class="h2">Team Rankings</h2>
+        </div>
+
+        <div class="header-row">
+          <span>Rank</span>
+          <span>Team</span>
+          <span>Score</span>
+        </div>
+
+        <div id="teamsList" class="resultsList"></div>
+      </div>
+
+      <!-- 2) WEEKLY TOP 5 -->
+      <div id="weeklySection" class="card" style="margin-top:16px;">
+        <div class="card-head">
+          <h2 class="h2">Weekly Top 5</h2>
+        </div>
+        <div id="weeklyCards"></div>
+      </div>
+
+      <!-- 3) PLAYER RANKINGS -->
+      <div id="playersView" class="card" style="margin-top:16px;">
+        <div class="card-head">
+          <h2 class="h2">Player Rankings</h2>
+          <div class="search">
+            <span>⌕</span>
+            <input id="playerSearch" type="text" placeholder="Search…" />
+          </div>
+        </div>
+
+        <div class="header-row">
+          <span>Rank</span>
+          <span>Player</span>
+          <span>Score</span>
+        </div>
+
+        <div id="playersList" class="resultsList"></div>
+      </div>
+
+      <div class="footer">Shotgun Pro League</div>
+    </div>
+  </div>
+
+  <!-- Player Modal -->
+  <div id="playerModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-wrap">
+      <button id="playerModalClose" class="modal-close-float" type="button" aria-label="Close">✕</button>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-label="Player details">
+        <div id="playerModalContent" class="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+    const REFRESH_MS  = 60000;
+
+    // ---- Round-data detection: must check BOTH ranges (header content between them is always present) ----
+    const ROUND_DATA_RANGES = ["L5:S63", "L66:S101"];
+
+    // ---- Legacy configs (Seasons 1-5), staged configs (Season 6+) ----
+    const LEGACY_CONFIG = {
+      5: { sheet: "Season 5", rosters: "A3:S63", teamRank: "U4:X15" },
+      4: { sheet: "Season 4", rosters: "A3:S53", teamRank: "U4:X13" },
+      3: { sheet: "Season 3", rosters: "A3:S48", teamRank: "U4:X12" },
+      2: { sheet: "Season 2", rosters: "A3:S43", teamRank: "U4:X11" },
+      1: { sheet: "Season 1", rosters: "A3:S38", teamRank: "U4:X10" },
+    };
+    const STAGED_CONFIG = { rosters: "A3:S63", teamRank: "U4:X15" };
+
+    function isStagedSeason(seasonNum){
+      return Number(seasonNum) >= 6;
+    }
+    function getCfg(seasonNum){
+      if (!isStagedSeason(seasonNum)) return LEGACY_CONFIG[seasonNum];
+      return STAGED_CONFIG;
+    }
+    function sheetNameFor(seasonNum, stageVal){
+      if (!isStagedSeason(seasonNum)) return `Season ${seasonNum}`;
+      const s = String(stageVal).toLowerCase();
+      if (s === "championship") return `Season ${seasonNum}, Championship`;
+      return `Season ${seasonNum}, Stage ${Number(s)}`;
+    }
+
+    // Chronological next period (championship excluded from detection)
+    function nextPeriod(seasonNum, stageVal){
+      const s = Number(seasonNum);
+
+      if (s < 6){
+        if (s < 5) return { season: s + 1, stage: null };
+        return { season: 6, stage: "1" };
+      }
+
+      const st = Number(stageVal);
+      if (st < 3) return { season: s, stage: String(st + 1) };
+      return { season: s + 1, stage: "1" };
+    }
+
+    // Detected current season/stage (auto)
+    let DETECTED_CURRENT_SEASON = 5;
+    let DETECTED_CURRENT_STAGE  = null; // null for seasons 1-5; "1"-"3" for staged
+
+    // Ranges (common)
+    const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
+    const RANGE_W1_A1 = "Z4:AC13";
+    const RANGE_W2_A1 = "Z16:AC25";
+    const RANGE_W3_A1 = "Z28:AC37";
+    const RANGE_W4_A1 = "Z40:AC49";
+    const LOOKUP_RANGE_A1 = "A3:S250";
+
+    const TEAM_STYLES = {
+      "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
+      "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000" },
+      "BREAKERS":        { bg: "#f1c232", fg: "#1c4487" },
+      "DAGGERS":         { bg: "#ea9999", fg: "#1d2244" },
+      "SNIPERS":         { bg: "#275318", fg: "#ffe6cd" },
+      "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff" },
+      "INFERNIX":        { bg: "#f6b26b", fg: "#000000" },
+      "INFERNIX*":       { bg: "#f6b26b", fg: "#000000" },
+      "DOUBLE-EAGLES":   { bg: "#1c4487", fg: "#ffffff" },
+      "PHANTOM TROUPE":  { bg: "#674ea7", fg: "#ffffff" },
+      "ASTERISM":        { bg: "#ba2636", fg: "#ffffff" },
+      "CARROTS":         { bg: "#ff9966", fg: "#000000" },
+      "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
+      "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
+      "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
+      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
+    };
+
+    function getTeamStyle(name) {
+      if (!name) return null;
+      const key = String(name).trim().toUpperCase();
+      return TEAM_STYLES[key] || null;
+    }
+
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function fetchRange(range){
+      const payload = { sheetId: SHEET_ID, range };
+
+      // POST first
+      try{
+        const r = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){}
+
+      // fallback GET
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(()=>"");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    function rowHasAnyValue(row){
+      return Array.isArray(row) && row.some(c => String(c ?? "").trim() !== "");
+    }
+    function slugify(name){
+      return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+    function toNum(v){
+      const s = String(v ?? "").trim();
+      if(!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    // blanks => "-" ; 0 => "E"; positives => +N
+    function fmtScore(v){
+      if (v === null || v === undefined) return "-";
+      const s = String(v).trim();
+      if (s === "") return "-";
+      const n = Number(s);
+      if (!Number.isFinite(n)) return s;
+      if (n === 0 || Object.is(n, -0)) return "E";
+      return n > 0 ? `+${n}` : String(n);
+    }
+    function fmtScoreAvg(n){
+      if (n === null || n === undefined || !Number.isFinite(n)) return "-";
+      const rounded = Math.round(n * 10) / 10;
+      if (rounded === 0) return "E";
+      return rounded > 0 ? `+${rounded}` : String(rounded);
+    }
+
+    function rankClass(rank){
+      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
+
+    function ordinal(n){
+      const v = Number(n);
+      if(!Number.isFinite(v)) return "-";
+      const mod100 = v % 100;
+      const mod10  = v % 10;
+      const suf =
+        (mod100 >= 11 && mod100 <= 13) ? "th" :
+        (mod10 === 1) ? "st" :
+        (mod10 === 2) ? "nd" :
+        (mod10 === 3) ? "rd" : "th";
+      return `${v}${suf}`;
+    }
+
+    function normalizeStandingsGeneric(rows){
+      return (rows || [])
+        .filter(rowHasAnyValue)
+        .map(r=>{
+          const arr = Array.isArray(r) ? r : [];
+          const rank = arr[0];
+          const name = arr.length >= 2 ? arr[arr.length - 2] : "";
+          const score = arr.length >= 1 ? arr[arr.length - 1] : "";
+          if(!rank || !name) return null;
+          return {
+            rank: Number(rank),
+            name: String(name).trim(),
+            displayName: String(name).trim().toUpperCase(),
+            slug: slugify(name),
+            score: (String(score ?? "").trim() !== "") ? Number(score) : null
+          };
+        })
+        .filter(Boolean)
+        .sort((a,b)=>a.rank-b.rank);
+    }
+
+    // Highlight exactly up to 3 played rounds (blanks never considered)
+    function pickTop3RoundIndices(rounds){
+      const played = (rounds || [])
+        .map((v, idx) => ({ v, idx }))
+        .filter(o => o.v !== null && o.v !== undefined && Number.isFinite(o.v));
+      if (!played.length) return new Set();
+
+      const sortedVals = played.map(o => o.v).slice().sort((a,b)=>a-b);
+      const chosenVals = sortedVals.slice(0, Math.min(3, sortedVals.length));
+
+      const need = new Map();
+      for (const v of chosenVals) need.set(v, (need.get(v) || 0) + 1);
+
+      const picked = new Set();
+      for (const o of played){
+        const remaining = need.get(o.v) || 0;
+        if (remaining > 0){
+          picked.add(o.idx);
+          need.set(o.v, remaining - 1);
+        }
+        if (picked.size >= chosenVals.length) break;
+      }
+      return picked;
+    }
+
+    function parseTeamRosters(values){
+      const cleaned = (values || []).filter(rowHasAnyValue);
+      const byTeam = new Map();
+      const byPlayer = new Map();
+      const playerTeamByName = new Map();
+      const captains = new Set();
+
+      if(!cleaned.length) return { byTeam, byPlayer, playerTeamByName, captains };
+
+      const rows = cleaned.slice(1); // drop header row
+
+      for(let i=0; i<rows.length; i+=5){
+        const teamRow = rows[i] || [];
+        const teamName = String(teamRow[2] ?? "").trim();
+        if(!teamName) continue;
+
+        const playerRows = [rows[i+1], rows[i+2], rows[i+3], rows[i+4]].filter(Boolean);
+
+        const players = playerRows.map(pr=>{
+          const r = pr || [];
+          const pName = String(r[2] ?? "").trim();
+
+          const stat = {
+            overallRank: toNum(r[0]),
+            name: pName,
+            displayName: pName ? pName.toUpperCase() : "",
+            stageScore: toNum(r[3]),
+            best: [toNum(r[4]), toNum(r[5]), toNum(r[6])],
+            weekTotals: [toNum(r[7]), toNum(r[8]), toNum(r[9]), toNum(r[10])],
+            rounds: Array.from({length:8}, (_,k)=> toNum(r[11 + k]))
+          };
+
+          if (pName) {
+            byPlayer.set(pName, stat);
+            playerTeamByName.set(pName, teamName);
+          }
+          return stat;
+        });
+
+        const capName = String(playerRows?.[0]?.[2] ?? "").trim();
+        if (capName) captains.add(capName);
+
+        byTeam.set(teamName, { teamName, displayTeamName: teamName.toUpperCase(), players });
+      }
+
+      return { byTeam, byPlayer, playerTeamByName, captains };
+    }
+
+    // broader lookup for solo players etc
+    function parseLookupStats(values){
+      const cleaned = (values || []).filter(rowHasAnyValue);
+      const byPlayer = new Map();
+      if(!cleaned.length) return byPlayer;
+
+      const rows = cleaned.slice(1);
+      for (const r of rows){
+        const name = String(r?.[2] ?? "").trim();
+        if(!name) continue;
+
+        const overallRank = toNum(r?.[0]);
+        if (overallRank === null) continue; // skip team header rows
+
+        byPlayer.set(name, {
+          overallRank,
+          name,
+          displayName: name.toUpperCase(),
+          stageScore: toNum(r?.[3]),
+          best: [toNum(r?.[4]), toNum(r?.[5]), toNum(r?.[6])],
+          weekTotals: [toNum(r?.[7]), toNum(r?.[8]), toNum(r?.[9]), toNum(r?.[10])],
+          rounds: Array.from({length:8}, (_,k)=> toNum(r?.[11 + k]))
+        });
+      }
+      return byPlayer;
+    }
+
+    // ---- round-data detection helpers ----
+    function hasAnyNonBlankCell(values){
+      if (!Array.isArray(values)) return false;
+      for (const row of values){
+        if (!Array.isArray(row)) continue;
+        for (const cell of row){
+          if (String(cell ?? "").trim() !== "") return true;
+        }
+      }
+      return false;
+    }
+
+    async function periodHasRoundData(sheetName){
+      const [a, b] = await Promise.all(
+        ROUND_DATA_RANGES.map(r => fetchRange(`'${sheetName}'!${r}`).catch(()=>[]))
+      );
+      return hasAnyNonBlankCell(a) || hasAnyNonBlankCell(b);
+    }
+
+    async function detectCurrentSeasonStage(){
+      // Past seasons/stages always have data; future periods are blank.
+      // Start at Season 5 and probe forward in chronological order; stop at first missing period.
+      let cur = { season: 5, stage: null };
+
+      while (true){
+        const nxt = nextPeriod(cur.season, cur.stage);
+        const sheet = sheetNameFor(nxt.season, nxt.stage);
+        const hasData = await periodHasRoundData(sheet);
+        if (!hasData) break;
+        cur = nxt;
+      }
+
+      DETECTED_CURRENT_SEASON = cur.season;
+      DETECTED_CURRENT_STAGE  = cur.stage; // null or "1"-"3"
+    }
+
+    async function checkAdvanceIfNewPeriodStarted(){
+      const cur = { season: DETECTED_CURRENT_SEASON, stage: DETECTED_CURRENT_STAGE };
+      const nxt = nextPeriod(cur.season, cur.stage);
+
+      const sheet = sheetNameFor(nxt.season, nxt.stage);
+      const hasData = await periodHasRoundData(sheet);
+      if (!hasData) return false;
+
+      // Advance forward as far as new data exists (usually just one step)
+      let now = nxt;
+      while (true){
+        const after = nextPeriod(now.season, now.stage);
+        const afterSheet = sheetNameFor(after.season, after.stage);
+        const ok = await periodHasRoundData(afterSheet);
+        if (!ok) break;
+        now = after;
+      }
+
+      DETECTED_CURRENT_SEASON = now.season;
+      DETECTED_CURRENT_STAGE  = now.stage;
+      return true;
+    }
+
+    function buildSeasonOptions(){
+      // show seasons 1..detected current season
+      const maxS = Number(DETECTED_CURRENT_SEASON);
+      let html = "";
+      for (let s = maxS; s >= 1; s--){
+        html += `<option value="${s}">Season ${s}</option>`;
+      }
+      seasonSelect.innerHTML = html;
+    }
+
+    function stageLimitForSeason(seasonNum){
+      const s = Number(seasonNum);
+      if (!isStagedSeason(s)) return 0;
+      if (s < DETECTED_CURRENT_SEASON) return 3;
+      return Number(DETECTED_CURRENT_STAGE || "1");
+    }
+
+    function syncStageDropdown(){
+      const seasonNum = Number(seasonSelect.value);
+
+      if (!isStagedSeason(seasonNum)){
+        stageWrap.classList.add("hidden");
+        return;
+      }
+
+      stageWrap.classList.remove("hidden");
+
+      const lim = stageLimitForSeason(seasonNum);
+
+      let html = "";
+      for (let st = 1; st <= lim; st++){
+        html += `<option value="${st}">Stage ${st}</option>`;
+      }
+
+      // Championship always visible for the CURRENT season (regardless of current stage)
+      if (seasonNum === DETECTED_CURRENT_SEASON){
+        html += `<option value="championship">Championship</option>`;
+      }
+
+      stageSelect.innerHTML = html;
+
+      // Ensure selection is valid; default to latest available stage for that season
+      const allowed = new Set(Array.from(stageSelect.options).map(o => String(o.value).toLowerCase()));
+      const curVal = String(stageSelect.value || "1").toLowerCase();
+      if (!allowed.has(curVal)){
+        stageSelect.value = String(lim);
+      }
+    }
+
+    const TEAM_LOGO_DIR = "logos";
+    const TEAM_LOGO_EXT = "png";
+    function teamLogoSrc(teamName){
+      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
+    }
+
+    // DOM refs
+    const statusCard = document.getElementById("statusCard");
+    const contentEl  = document.getElementById("content");
+
+    const seasonSelect = document.getElementById("seasonSelect");
+    const stageWrap   = document.getElementById("stageWrap");
+    const stageSelect = document.getElementById("stageSelect");
+
+    const teamsView  = document.getElementById("teamsView");
+    const playersView= document.getElementById("playersView");
+    const weeklySection = document.getElementById("weeklySection");
+
+    const teamsList  = document.getElementById("teamsList");
+    const playersList= document.getElementById("playersList");
+    const weeklyCards= document.getElementById("weeklyCards");
+    const playerSearch = document.getElementById("playerSearch");
+
+    const playerModal = document.getElementById("playerModal");
+    const playerModalClose = document.getElementById("playerModalClose");
+    const playerModalContent = document.getElementById("playerModalContent");
+
+    // state
+    let teamStandings = [];
+    let playerStandings = [];
+    let weeklyByWeek = new Map();
+
+    let rosterByTeam = new Map();
+    let playerStatsByName = new Map();
+    let playerTeamByName = new Map();
+
+    const expandedTeams = new Set();
+    const expandedPlayers = new Set();
+
+    function renderTeamRosterTable(roster){
+      const wrap = document.createElement("div");
+      wrap.className = "roster-wrap";
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "roster-title-row";
+      titleRow.innerHTML = `<div class="roster-title">Roster</div>`;
+      wrap.appendChild(titleRow);
+
+      if(!roster || !roster.players || !roster.players.length){
+        wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Roster not found.</div>`;
+        return wrap;
+      }
+
+      const scroll = document.createElement("div");
+      scroll.className = "roster-scroll";
+
+      const table = document.createElement("table");
+      table.className = "roster-table";
+
+      table.innerHTML = `
+        <colgroup>
+          <col class="c-rank">
+          <col class="c-name">
+          <col class="c-stage">
+          <col class="c-best"><col class="c-best"><col class="c-best">
+          <col class="c-week"><col class="c-week"><col class="c-week"><col class="c-week">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>Total</th>
+            <th>1st</th><th>2nd</th><th>3rd</th>
+            <th>WK1</th><th>WK2</th><th>WK3</th><th class="sep-right">WK4</th>
+            <th>1-1</th><th class="sep-right">1-2</th>
+            <th>2-1</th><th class="sep-right">2-2</th>
+            <th>3-1</th><th class="sep-right">3-2</th>
+            <th>4-1</th><th>4-2</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+
+      roster.players.forEach((p, idxOnTeam)=>{
+        const rounds = (p.rounds || Array(8).fill(null));
+        const highlightIdx = pickTop3RoundIndices(rounds);
+
+        const weekTotals = (p.weekTotals || [null,null,null,null]);
+        const best = (p.best || [null,null,null]);
+
+        const isCaptain = (idxOnTeam === 0);
+        const captainMark = isCaptain ? `<span class="captain-icon" aria-label="Captain" title="Captain"></span>` : ``;
+
+        const cells = [];
+        cells.push(`<td class="cell-rank">${escapeHtml(String(p.overallRank ?? "-"))}</td>`);
+        cells.push(`
+          <td class="cell-name clickable-player" data-player="${escapeHtml(p.name)}">
+            <span class="name-inline">
+              <span>${escapeHtml((p.displayName || p.name || "").toUpperCase())}</span>
+              ${captainMark}
+            </span>
+          </td>
+        `);
+        cells.push(`<td class="stageScore">${escapeHtml(fmtScore(p.stageScore))}</td>`);
+
+        for(let i=0;i<3;i++){
+          cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
+        }
+
+        for(let i=0;i<4;i++){
+          const cls = (i===3) ? "sep-right" : "";
+          cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
+        }
+
+        for(let i=0;i<8;i++){
+          const v = rounds[i];
+          const isHighlighted = highlightIdx.has(i);
+          const isWeekEnd = (i===1 || i===3 || i===5);
+          const cls = `${isHighlighted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+          cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
+        }
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = cells.join("");
+        tbody.appendChild(tr);
+      });
+
+      scroll.appendChild(table);
+      wrap.appendChild(scroll);
+      return wrap;
+    }
+
+    function renderPlayerStatsTable(stat, playerName){
+      const wrap = document.createElement("div");
+      wrap.className = "roster-wrap";
+
+      const titleRow = document.createElement("div");
+      titleRow.className = "roster-title-row";
+      titleRow.innerHTML = `
+        <div class="roster-title">Stats</div>
+        <button class="full-stats-btn" type="button" data-player="${escapeHtml(playerName)}">Full Player Stats</button>
+      `;
+      wrap.appendChild(titleRow);
+
+      if(!stat){
+        wrap.innerHTML += `<div class="error" style="padding:10px 10px 4px;">Stats not found.</div>`;
+        return wrap;
+      }
+
+      const scroll = document.createElement("div");
+      scroll.className = "roster-scroll";
+
+      const table = document.createElement("table");
+      table.className = "roster-table";
+
+      table.innerHTML = `
+        <colgroup>
+          <col class="c-best"><col class="c-best"><col class="c-best">
+          <col class="c-week"><col class="c-week"><col class="c-week"><col class="c-week">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+          <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>1st</th><th>2nd</th><th>3rd</th>
+            <th>WK1</th><th>WK2</th><th>WK3</th><th class="sep-right">WK4</th>
+            <th>1-1</th><th class="sep-right">1-2</th>
+            <th>2-1</th><th class="sep-right">2-2</th>
+            <th>3-1</th><th class="sep-right">3-2</th>
+            <th>4-1</th><th>4-2</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+
+      const best = stat.best || [null,null,null];
+      const weekTotals = stat.weekTotals || [null,null,null,null];
+      const rounds = stat.rounds || Array(8).fill(null);
+      const highlightIdx = pickTop3RoundIndices(rounds);
+
+      const cells = [];
+
+      for(let i=0;i<3;i++){
+        cells.push(`<td class="counted">${escapeHtml(fmtScore(best[i]))}</td>`);
+      }
+
+      for(let i=0;i<4;i++){
+        const cls = (i===3) ? "sep-right" : "";
+        cells.push(`<td class="${cls}">${escapeHtml(fmtScore(weekTotals[i]))}</td>`);
+      }
+
+      for(let i=0;i<8;i++){
+        const v = rounds[i];
+        const isHighlighted = highlightIdx.has(i);
+        const isWeekEnd = (i===1 || i===3 || i===5);
+        const cls = `${isHighlighted ? "counted" : ""} ${isWeekEnd ? "sep-right" : ""}`.trim();
+        cells.push(`<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`);
+      }
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = cells.join("");
+      tbody.appendChild(tr);
+
+      scroll.appendChild(table);
+      wrap.appendChild(scroll);
+      return wrap;
+    }
+
+    function renderTeams(){
+      teamsList.innerHTML = "";
+      if(!teamStandings.length){
+        teamsList.innerHTML = `<div class="error">No teams found.</div>`;
+        return;
+      }
+
+      teamStandings.forEach(team=>{
+        const row = document.createElement("div");
+        row.className = "entry";
+
+        const style = getTeamStyle(team.name) || {};
+        const bg = style.bg || "rgba(255,255,255,0.08)";
+        const fg = style.fg || "#ffffff";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "team-cell";
+        btn.setAttribute("data-team", team.name);
+        btn.style.background = bg;
+        btn.style.color = fg;
+
+        const logoSrc = teamLogoSrc(team.name);
+        btn.innerHTML = `
+          <span class="team-logo-slot">
+            <img class="team-logo"
+                 src="${escapeHtml(logoSrc)}"
+                 alt="${escapeHtml(team.displayName)} logo"
+                 loading="lazy"
+                 decoding="async"
+                 onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.width='40px';" />
+          </span>
+          <span class="name-text">${escapeHtml(team.displayName)}</span>
+        `;
+
+        row.innerHTML = `
+          <div class="place ${rankClass(team.rank)}">${team.rank}</div>
+          <div id="teamHost-${team.slug}"></div>
+          <div class="score-col">${escapeHtml(fmtScore(team.score))}</div>
+        `;
+        row.querySelector(`#teamHost-${team.slug}`).replaceWith(btn);
+        teamsList.appendChild(row);
+
+        teamsList.appendChild(expandedTeams.has(team.name)
+          ? renderTeamRosterTable(rosterByTeam.get(team.name))
+          : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
+        );
+      });
+    }
+
+    function renderPlayers(){
+      const q = playerSearch.value.trim().toLowerCase();
+      playersList.innerHTML = "";
+
+      const view = playerStandings.filter(p=>{
+        if(!q) return true;
+        return (p.name + " " + (p.score ?? "") + " " + p.rank).toLowerCase().includes(q);
+      });
+
+      if(!view.length){
+        playersList.innerHTML = `<div class="error">No players found.</div>`;
+        return;
+      }
+
+      view.forEach(p=>{
+        const row = document.createElement("div");
+        row.className = "entry";
+
+        const teamName = playerTeamByName.get(p.name) || null;
+        const style = teamName ? (getTeamStyle(teamName) || {}) : null;
+        const bg = style?.bg || "rgba(255,255,255,0.08)";
+        const fg = style?.fg || "#ffffff";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "team-cell";
+        btn.setAttribute("data-player", p.name);
+        btn.style.background = bg;
+        btn.style.color = fg;
+
+        const logoHtml = teamName
+          ? `
+            <img class="team-logo"
+             src="${escapeHtml(teamLogoSrc(teamName))}"
+             alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+             loading="lazy"
+             decoding="async"
+             onerror="this.style.display='none'; this.removeAttribute('src');" />
+          `
+          : "";
+
+        btn.innerHTML = `
+          <span class="team-logo-slot">${logoHtml}</span>
+          <span class="name-text">${escapeHtml(p.displayName)}</span>
+        `;
+
+        const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
+
+        row.innerHTML = `
+          <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
+          <div id="playerHost-${p.slug}"></div>
+          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+        `;
+        row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
+        playersList.appendChild(row);
+
+        playersList.appendChild(expandedPlayers.has(p.name)
+          ? renderPlayerStatsTable(playerStatsByName.get(p.name), p.name)
+          : Object.assign(document.createElement("div"), { className: "roster-wrap hidden" })
+        );
+      });
+    }
+
+    function renderWeekly(){
+      weeklyCards.innerHTML = "";
+      const weeks = Array.from(weeklyByWeek.keys()).sort((a,b)=>b-a);
+
+      if(!weeks.length){
+        weeklyCards.innerHTML = `<div class="status">Weekly Top 5 has not been posted yet.</div>`;
+        return;
+      }
+
+      weeks.forEach(weekNum=>{
+        const list = weeklyByWeek.get(weekNum) || [];
+        if(!list.length) return;
+
+        const block = document.createElement("div");
+        block.className = "weekly-subcard";
+
+        const r1Label = `${weekNum}-1`;
+        const r2Label = `${weekNum}-2`;
+
+        block.innerHTML = `
+          <h3 class="h2">Week ${weekNum} Top 5</h3>
+
+          <div class="weekly-header-row">
+            <span>Rank</span>
+            <span>Player</span>
+            <span class="wk-hide-mobile">${r1Label}</span>
+            <span class="wk-hide-mobile">${r2Label}</span>
+            <span>Score</span>
+          </div>
+
+          <div class="resultsList" id="weekList-${weekNum}"></div>
+        `;
+
+        const holder = block.querySelector(`#weekList-${weekNum}`);
+        list.forEach(p=>{
+          const row = document.createElement("div");
+          row.className = "weekly-entry";
+
+          const stat = playerStatsByName.get(p.name);
+          const idx1 = (weekNum - 1) * 2;
+          const idx2 = idx1 + 1;
+          const round1 = stat?.rounds?.[idx1] ?? null;
+          const round2 = stat?.rounds?.[idx2] ?? null;
+
+          const teamName = playerTeamByName.get(p.name) || null;
+          const style = teamName ? (getTeamStyle(teamName) || {}) : null;
+          const bg = style?.bg || "rgba(255,255,255,0.08)";
+          const fg = style?.fg || "#ffffff";
+
+          const nameCell = document.createElement("button");
+          nameCell.type = "button";
+          nameCell.className = "team-cell";
+          nameCell.dataset.player = p.name;
+          nameCell.style.cursor = "pointer";
+          nameCell.style.background = bg;
+          nameCell.style.color = fg;
+
+          const logoHtml = teamName
+            ? `
+              <img class="team-logo"
+                   src="${escapeHtml(teamLogoSrc(teamName))}"
+                   alt="${escapeHtml(String(teamName).toUpperCase())} logo"
+                   loading="lazy"
+                   decoding="async"
+                   onerror="this.style.display='none'; this.removeAttribute('src');" />
+            `
+            : "";
+
+          nameCell.innerHTML = `
+            <span class="team-logo-slot">${logoHtml}</span>
+            <span class="name-text">${escapeHtml(p.displayName)}</span>
+          `;
+
+          row.innerHTML = `
+            <div class="place ${rankClass(p.rank)}">${p.rank}</div>
+            <div id="wkName-${weekNum}-${p.slug}"></div>
+            <div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(round1))}</div>
+            <div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(round2))}</div>
+            <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+          `;
+          row.querySelector(`#wkName-${weekNum}-${p.slug}`).replaceWith(nameCell);
+          holder.appendChild(row);
+        });
+
+        weeklyCards.appendChild(block);
+      });
+    }
+
+    // interactions
+    teamsList.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-team]");
+      if(!btn) return;
+      const teamName = btn.getAttribute("data-team");
+      if(!teamName) return;
+
+      expandedTeams.has(teamName) ? expandedTeams.delete(teamName) : expandedTeams.add(teamName);
+      renderTeams();
+    });
+
+    playersList.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-player]");
+      if(!btn) return;
+      const playerName = btn.getAttribute("data-player");
+      if(!playerName) return;
+
+      expandedPlayers.has(playerName) ? expandedPlayers.delete(playerName) : expandedPlayers.add(playerName);
+      renderPlayers();
+    });
+
+    teamsView.addEventListener("click", (e)=>{
+      const cell = e.target.closest("td.clickable-player[data-player]");
+      if(!cell) return;
+      const name = cell.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    playersView.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.full-stats-btn[data-player]");
+      if(!btn) return;
+      const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    weeklySection.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button.team-cell[data-player]");
+      if(!btn) return;
+      const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    playerSearch.addEventListener("input", renderPlayers);
+
+    seasonSelect.addEventListener("change", ()=>{
+      expandedTeams.clear();
+      expandedPlayers.clear();
+      playerSearch.value = "";
+      syncStageDropdown();
+      update(true);
+    });
+
+    stageSelect.addEventListener("change", ()=>{
+      expandedTeams.clear();
+      expandedPlayers.clear();
+      playerSearch.value = "";
+      update(true);
+    });
+
+    /* ---------------- Player Modal + History ---------------- */
+    const seasonHistoryCache = new Map();
+
+    playerModalClose.addEventListener("click", closePlayerModal);
+    playerModal.addEventListener("click", (e)=>{
+      if (e.target === playerModal) closePlayerModal();
+    });
+    window.addEventListener("keydown", (e)=>{
+      if (e.key === "Escape" && playerModal.classList.contains("show")) closePlayerModal();
+    });
+
+    function showPlayerLoading(){
+      playerModalContent.className = "modal-loading";
+      playerModalContent.innerHTML = `LOADING PLAYER DATA...`;
+
+      const card = playerModal.querySelector(".modal-card");
+      if (card) card.scrollTop = 0;
+    }
+
+    function closePlayerModal(){
+      playerModal.classList.remove("show");
+      playerModal.setAttribute("aria-hidden", "true");
+      showPlayerLoading();
+    }
+
+    function trophyMeta(type){
+      switch(type){
+        case "TEAM_1": return { icon:"🏆", main:"TEAM 1ST", tier:"gold",  cat:"team" };
+        case "TEAM_2": return { icon:"🥈", main:"TEAM 2ND", tier:"silver",cat:"team" };
+        case "TEAM_3": return { icon:"🥉", main:"TEAM 3RD", tier:"bronze",cat:"team" };
+
+        case "IND_1":  return { icon:"🏆", main:"1ST OVERALL", tier:"gold",  cat:"individual" };
+        case "IND_2":  return { icon:"🥈", main:"2ND OVERALL", tier:"silver",cat:"individual" };
+        case "IND_3":  return { icon:"🥉", main:"3RD OVERALL", tier:"bronze",cat:"individual" };
+
+        case "TOP_10": return { icon:"⭐", main:"TOP 10", tier:"default", cat:"individual" };
+
+        default:       return { icon:"🏅", main:"AWARD", tier:"default", cat:"misc" };
+      }
+    }
+
+    const TIER_ORDER = { gold:0, silver:1, bronze:2, purple:3, blue:4, green:5, default:6 };
+    const CAT_ORDER  = { team:0, individual:1, misc:2 };
+
+    function trophyCountLabel(n){
+      if (!n || n <= 1) return "";
+      return `x${n}`;
+    }
+
+    async function getPeriodHistoryData(seasonNum, stageVal){
+      const key = `${seasonNum}:${stageVal ?? "season"}`;
+      if (seasonHistoryCache.has(key)) return seasonHistoryCache.get(key);
+
+      const cfg = getCfg(seasonNum);
+      const sheet = sheetNameFor(seasonNum, stageVal || "1");
+
+      const ranges = {
+        teamStandings: `'${sheet}'!${cfg.teamRank}`,
+        rosters: `'${sheet}'!${cfg.rosters}`,
+        lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+        playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
+      };
+
+      const [teamRows, rosterRows, lookupRows, playerRows] = await Promise.all([
+        fetchRange(ranges.teamStandings),
+        fetchRange(ranges.rosters),
+        fetchRange(ranges.lookup),
+        fetchRange(ranges.playerStandings),
+      ]);
+
+      const teamList = normalizeStandingsGeneric(teamRows);
+      const playerList = normalizeStandingsGeneric(playerRows);
+
+      const teamMap = new Map(teamList.map(t => [t.name, t]));
+      const playerMap = new Map(playerList.map(p => [p.name, p]));
+
+      const parsed = parseTeamRosters(rosterRows);
+      const lookupMap = parseLookupStats(lookupRows);
+
+      const playerStatsMap = new Map();
+      for (const [n, s] of lookupMap.entries()) playerStatsMap.set(n, s);
+      for (const [n, s] of parsed.byPlayer.entries()) playerStatsMap.set(n, s);
+
+      const data = {
+        seasonNum,
+        stageVal,
+        sheet,
+        teamMap,
+        playerMap,
+        playerToTeam: parsed.playerTeamByName,
+        playerStatsMap,
+        captains: parsed.captains
+      };
+
+      seasonHistoryCache.set(key, data);
+      return data;
+    }
+
+    function buildRankChip(rank, isPrev){
+      if (rank == null || !Number.isFinite(Number(rank))){
+        return `<span class="chip rank">-</span>`;
+      }
+      const r = Number(rank);
+
+      let cls = "chip rank";
+      let emoji = "";
+      if (isPrev){
+        if (r === 1){ cls += " gold"; emoji = "🥇"; }
+        else if (r === 2){ cls += " silver"; emoji = "🥈"; }
+        else if (r === 3){ cls += " bronze"; emoji = "🥉"; }
+      }
+
+      return `<span class="${cls}">${emoji ? `${emoji} ` : ""}${escapeHtml(ordinal(r).toUpperCase())}</span>`;
+    }
+
+    function buildTeamChip(teamName){
+      if(!teamName){
+        return `<span class="chip solo">SOLO PLAYER</span>`;
+      }
+      const style = getTeamStyle(teamName) || {};
+      const bg = style.bg || "rgba(255,255,255,0.06)";
+      const fg = style.fg || "rgba(255,255,255,0.92)";
+      return `<span class="chip team" style="--team-bg:${escapeHtml(bg)};--team-fg:${escapeHtml(fg)};">${escapeHtml(String(teamName).toUpperCase())}</span>`;
+    }
+
+    function buildScoreChip(score){
+      return `<span class="chip score">${escapeHtml(fmtScore(score))}</span>`;
+    }
+
+    function normalizeRoundValue(v){
+      if (v === null || v === undefined) return null;
+      const s = String(v).trim();
+      if (s === "") return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function buildRoundsTable(stat){
+      const roundsRaw = (stat && Array.isArray(stat.rounds)) ? stat.rounds.slice(0,8) : Array(8).fill(null);
+      const rounds = roundsRaw.map(normalizeRoundValue);
+      const hi = pickTop3RoundIndices(rounds);
+
+      const sepIdx = new Set([2,4,6]);
+      let tds = "";
+      for(let i=0;i<8;i++){
+        const v = rounds[i];
+        const cls = `${hi.has(i) ? "counted" : ""} ${sepIdx.has(i) ? "sep-left" : ""}`.trim();
+        tds += `<td class="${cls}">${escapeHtml(fmtScore(v))}</td>`;
+      }
+
+      return `<table class="mini-rounds" aria-label="Individual rounds"><tr>${tds}</tr></table>`;
+    }
+
+    function trophySortKey(item){
+      const meta = item.meta;
+      const tierK = TIER_ORDER[meta.tier] ?? TIER_ORDER.default;
+      const catK  = CAT_ORDER[meta.cat] ?? CAT_ORDER.misc;
+      const seasonK = (item.season != null ? Number(item.season) : -1);
+      const kindK = item.kind === "stack" ? 1 : 0;
+      return [tierK, catK, kindK, -seasonK, item.order ?? 999];
+    }
+
+    function cmpKey(a,b){
+      for(let i=0;i<a.length;i++){
+        if(a[i] < b[i]) return -1;
+        if(a[i] > b[i]) return 1;
+      }
+      return 0;
+    }
+
+    function buildTrophyItemHTML(item){
+      const meta = item.meta;
+      const tierClass = meta.tier && meta.tier !== "default" ? ` tier-${meta.tier}` : "";
+
+      const iconHtml =
+        item.iconType === "captain"
+          ? `<div class="trophy-icon captain" title="Captain"></div>`
+          : `<div class="trophy-icon">${escapeHtml(meta.icon)}</div>`;
+
+      const sub = item.sub ? `<div class="trophy-sub">${escapeHtml(item.sub)}</div>` : ``;
+      const count = item.count ? `<div class="trophy-count">${escapeHtml(item.count)}</div>` : ``;
+
+      return `
+        <div class="trophy${tierClass}">
+          <div class="trophy-left">
+            ${iconHtml}
+            <div class="trophy-text">
+              <div class="trophy-main">${escapeHtml(meta.main)}</div>
+              ${sub}
+            </div>
+          </div>
+          ${count}
+        </div>
+      `;
+    }
+
+    function periodLabel(seasonNum, stageVal){
+      if (!isStagedSeason(seasonNum)) return `Season ${seasonNum}`;
+      return `Season ${seasonNum} Stage ${stageVal}`;
+    }
+
+    function periodSubLabel(seasonNum, stageVal){
+      if (!isStagedSeason(seasonNum)) return `Season ${seasonNum}`;
+      return `Season ${seasonNum} | Stage ${stageVal}`;
+    }
+
+    async function openPlayerModal(playerName){
+      const cleanName = String(playerName).trim();
+      if(!cleanName) return;
+
+      playerModal.classList.add("show");
+      playerModal.setAttribute("aria-hidden", "false");
+      showPlayerLoading();
+
+      const card = playerModal.querySelector(".modal-card");
+      if (card) card.scrollTop = 0;
+
+      try{
+        // Current period is whatever is selected in the dropdowns
+        const uiSeason = Number(seasonSelect.value);
+        const uiStage  = isStagedSeason(uiSeason) ? String(stageSelect.value || "1").toLowerCase() : null;
+
+        // Build period list (descending) up to detected current; exclude championship (different format)
+        const periods = [];
+        for (let s = DETECTED_CURRENT_SEASON; s >= 1; s--){
+          if (s < 6){
+            periods.push({ season: s, stage: null });
+          } else {
+            const maxStage = (s === DETECTED_CURRENT_SEASON) ? Number(DETECTED_CURRENT_STAGE || "1") : 3;
+            for (let st = maxStage; st >= 1; st--){
+              periods.push({ season: s, stage: String(st) });
+            }
+          }
+        }
+
+        const summaries = [];
+
+        // Past-period aggregates only (exclude current selected period)
+        const allRoundsPrev = [];
+        const periodTotalsPrev = [];
+
+        let bestTeamFinishPrev = null;
+        let bestIndFinishPrev  = null;
+
+        let period60 = 0, period70 = 0, period80 = 0;
+        let round20 = 0, round25 = 0, round30 = 0;
+        let captainCount = 0;
+
+        // Header team from CURRENT selected period roster
+        let headerTeam = null;
+
+        for (const p of periods){
+          const data = await getPeriodHistoryData(p.season, p.stage);
+
+          const teamName = data.playerToTeam.get(cleanName) || null;
+          const teamStanding = teamName ? (data.teamMap.get(teamName) || null) : null;
+
+          const playerStanding = data.playerMap.get(cleanName) || null;
+          const stats = data.playerStatsMap.get(cleanName) || null;
+
+          const hasAny = !!teamName || !!playerStanding || !!stats;
+          if(!hasAny) continue;
+
+          const isCurrentSelected =
+            (p.season === uiSeason) &&
+            (String(p.stage || "").toLowerCase() === String(uiStage || "").toLowerCase());
+
+          if (isCurrentSelected) headerTeam = teamName || null;
+
+          // prev-only aggregates (exclude current selected period)
+          if (!isCurrentSelected){
+            if (stats && Array.isArray(stats.rounds)){
+              for (const v of stats.rounds){
+                const n = normalizeRoundValue(v);
+                if (Number.isFinite(n)){
+                  allRoundsPrev.push(n);
+                  if (n <= -20) round20++;
+                  if (n <= -25) round25++;
+                  if (n <= -30) round30++;
+                }
+              }
+            }
+
+            const periodTotal = (playerStanding?.score ?? stats?.stageScore);
+            if (Number.isFinite(periodTotal)){
+              periodTotalsPrev.push(Number(periodTotal));
+              if (periodTotal <= -60) period60++;
+              if (periodTotal <= -70) period70++;
+              if (periodTotal <= -80) period80++;
+            }
+
+            if (data.captains?.has(cleanName)) captainCount++;
+
+            if (teamStanding?.rank != null){
+              bestTeamFinishPrev = bestTeamFinishPrev == null ? teamStanding.rank : Math.min(bestTeamFinishPrev, teamStanding.rank);
+            }
+            if (playerStanding?.rank != null){
+              bestIndFinishPrev = bestIndFinishPrev == null ? playerStanding.rank : Math.min(bestIndFinishPrev, playerStanding.rank);
+            }
+          }
+
+          summaries.push({
+            season: p.season,
+            stage: p.stage, // null or "1"-"3"
+            teamName,
+            teamRank: teamStanding?.rank ?? null,
+            teamScore: teamStanding?.score ?? null,
+            playerRank: playerStanding?.rank ?? null,
+            playerScore: (playerStanding?.score ?? stats?.stageScore) ?? null,
+            stats: stats || null
+          });
+        }
+
+        // Header team from CURRENT selected period roster membership ONLY (otherwise SOLO PLAYER)
+        const headerStyle = headerTeam ? (getTeamStyle(headerTeam) || {}) : null;
+        const headerBg = headerStyle?.bg || "rgba(255,255,255,0.06)";
+        const headerLogo = headerTeam ? teamLogoSrc(headerTeam) : null;
+
+        // Info buttons (prev-only)
+        const bestRoundPrev = allRoundsPrev.length ? Math.min(...allRoundsPrev) : null;
+        const avgRoundPrev  = allRoundsPrev.length ? (allRoundsPrev.reduce((a,b)=>a+b,0) / allRoundsPrev.length) : null;
+
+        const bestPeriodPrev = periodTotalsPrev.length ? Math.min(...periodTotalsPrev) : null;
+        const avgPeriodPrev  = periodTotalsPrev.length ? (periodTotalsPrev.reduce((a,b)=>a+b,0) / periodTotalsPrev.length) : null;
+
+        // trophies (exclude current selected period; stage winners treated same as season winners)
+        const trophyItems = [];
+
+        for (const sum of summaries){
+          const isCurrentSelected =
+            (sum.season === uiSeason) &&
+            (String(sum.stage || "").toLowerCase() === String(uiStage || "").toLowerCase());
+          if (isCurrentSelected) continue;
+
+          const subLabel = isStagedSeason(sum.season)
+            ? `${String(sum.teamName || "").toUpperCase()} | ${periodSubLabel(sum.season, sum.stage)}`
+            : `${String(sum.teamName || "").toUpperCase()} | Season ${sum.season}`;
+
+          if (sum.teamRank === 1) trophyItems.push({
+            kind:"period", season: sum.season, type:"TEAM_1",
+            meta: trophyMeta("TEAM_1"),
+            sub: subLabel
+          });
+          if (sum.teamRank === 2) trophyItems.push({
+            kind:"period", season: sum.season, type:"TEAM_2",
+            meta: trophyMeta("TEAM_2"),
+            sub: subLabel
+          });
+          if (sum.teamRank === 3) trophyItems.push({
+            kind:"period", season: sum.season, type:"TEAM_3",
+            meta: trophyMeta("TEAM_3"),
+            sub: subLabel
+          });
+
+          const indSub = isStagedSeason(sum.season)
+            ? periodSubLabel(sum.season, sum.stage)
+            : `Season ${sum.season}`;
+
+          if (sum.playerRank === 1) trophyItems.push({
+            kind:"period", season: sum.season, type:"IND_1",
+            meta: trophyMeta("IND_1"),
+            sub: indSub
+          });
+          if (sum.playerRank === 2) trophyItems.push({
+            kind:"period", season: sum.season, type:"IND_2",
+            meta: trophyMeta("IND_2"),
+            sub: indSub
+          });
+          if (sum.playerRank === 3) trophyItems.push({
+            kind:"period", season: sum.season, type:"IND_3",
+            meta: trophyMeta("IND_3"),
+            sub: indSub
+          });
+
+          if (sum.playerRank != null && Number(sum.playerRank) >= 4 && Number(sum.playerRank) <= 10) {
+            trophyItems.push({
+              kind:"period", season: sum.season, type:"TOP_10",
+              meta: trophyMeta("TOP_10"),
+              sub: `${indSub} | #${sum.playerRank}`
+            });
+          }
+        }
+
+        // stackables
+        const stackablesOrdered = [
+          { label:"-30 Club", icon:"⛳️", tier:"gold",   count: round30 },
+          { label:"-25 Club", icon:"⛳️", tier:"purple", count: round25 },
+          { label:"-20 Club", icon:"⛳️", tier:"blue",   count: round20 },
+
+          { label:"-80 Club", icon:"🎖️", tier:"gold",   count: period80 },
+          { label:"-70 Club", icon:"🎖️", tier:"purple", count: period70 },
+          { label:"-60 Club", icon:"🎖️", tier:"blue",   count: period60 },
+
+          { label:"Team Captain", icon:"CAPTAIN", tier:"green", count: captainCount },
+        ];
+
+        for (let i=0;i<stackablesOrdered.length;i++){
+          const t = stackablesOrdered[i];
+          if (!t.count || t.count <= 0) continue;
+
+          const meta = { icon: t.icon, main: t.label.toUpperCase(), tier: t.tier, cat: "misc" };
+
+          trophyItems.push({
+            kind:"stack",
+            season: -1,
+            type: t.label,
+            meta,
+            iconType: (t.icon === "CAPTAIN") ? "captain" : "emoji",
+            count: trophyCountLabel(t.count),
+            order: i
+          });
+        }
+
+        trophyItems.sort((a,b)=>cmpKey(trophySortKey(a), trophySortKey(b)));
+
+        const trophyHtml = trophyItems.length
+          ? trophyItems.map(buildTrophyItemHTML).join("")
+          : `<div style="opacity:.75; font-weight:900; text-transform:uppercase; letter-spacing:.12em; padding:10px 0;">No trophies yet.</div>`;
+
+        const seasonRowsHtml = summaries
+          .sort((a,b)=>{
+            if (b.season !== a.season) return b.season - a.season;
+            const as = a.stage ? Number(a.stage) : 99;
+            const bs = b.stage ? Number(b.stage) : 99;
+            return bs - as;
+          })
+          .map(sum=>{
+            const isPrev = !((sum.season === uiSeason) && (String(sum.stage||"").toLowerCase() === String(uiStage||"").toLowerCase()));
+
+            const title = sum.stage ? periodLabel(sum.season, sum.stage) : `Season ${sum.season}`;
+
+            const teamRow = (!sum.teamName)
+              ? `<div class="btn-row"><span class="chip solo">SOLO PLAYER</span></div>`
+              : `
+                <div class="btn-row">
+                  ${buildRankChip(sum.teamRank, isPrev)}
+                  ${buildTeamChip(sum.teamName)}
+                  ${buildScoreChip(sum.teamScore)}
+                </div>
+              `;
+
+            const playerRow = `
+              <div class="btn-row">
+                ${buildRankChip(sum.playerRank, isPrev)}
+                ${buildScoreChip(sum.playerScore)}
+                ${buildRoundsTable(sum.stats)}
+              </div>
+            `;
+
+            return `
+              <div class="season-entry">
+                <div class="season-entry-head">
+                  <div class="season-entry-name">${escapeHtml(title)}${(!isPrev ? " (Current)" : "")}</div>
+                </div>
+                ${teamRow}
+                ${playerRow}
+              </div>
+            `;
+          })
+          .join("");
+
+        const nameCaps = cleanName.toUpperCase();
+        const teamLabel = headerTeam ? headerTeam.toUpperCase() : "SOLO PLAYER";
+
+        const bestTeamFinishVal = (bestTeamFinishPrev != null && Number.isFinite(Number(bestTeamFinishPrev)))
+          ? ordinal(bestTeamFinishPrev).toUpperCase()
+          : "-";
+        const bestIndFinishVal = (bestIndFinishPrev != null && Number.isFinite(Number(bestIndFinishPrev)))
+          ? ordinal(bestIndFinishPrev).toUpperCase()
+          : "-";
+
+        playerModalContent.className = "modal-body";
+        playerModalContent.innerHTML = `
+          <div class="modal-left">
+            <div class="modal-pane">
+              <div class="player-hero">
+                ${headerTeam ? `
+                  <div class="hero-team" style="background:${escapeHtml(headerBg)}; border-color: rgba(255,255,255,.18);">
+                    <img src="${escapeHtml(headerLogo)}"
+                         alt="${escapeHtml(teamLabel)} logo"
+                         loading="lazy"
+                         decoding="async"
+                         onerror="this.style.display='none'; this.removeAttribute('src'); this.parentElement.style.background='${escapeHtml(headerBg)}';" />
+                  </div>
+                ` : `
+                  <div class="hero-team">
+                    <div style="font-weight:950; opacity:.9;">👤</div>
+                  </div>
+                `}
+                <div class="hero-text">
+                  <div class="hero-name">${escapeHtml(nameCaps)}</div>
+                  ${headerTeam
+                    ? `<div class="hero-sub">${escapeHtml(teamLabel)}</div>`
+                    : `<div class="hero-sub solo">SOLO PLAYER</div>`
+                  }
+                </div>
+              </div>
+
+              <div class="info-btn-grid">
+                <div class="info-btn">
+                  <div class="lbl">AVG.<br>ROUND</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgRoundPrev))}</div>
+                </div>
+                <div class="info-btn">
+                  <div class="lbl">BEST<br>ROUND</div>
+                  <div class="val">${escapeHtml(fmtScore(bestRoundPrev))}</div>
+                </div>
+                <div class="info-btn">
+                  <div class="lbl">AVG.<br>PERIOD</div>
+                  <div class="val">${escapeHtml(fmtScoreAvg(avgPeriodPrev))}</div>
+                </div>
+                <div class="info-btn">
+                  <div class="lbl">BEST<br>PERIOD</div>
+                  <div class="val">${escapeHtml(fmtScore(bestPeriodPrev))}</div>
+                </div>
+
+                <div class="info-btn span-2">
+                  <div class="lbl">BEST TEAM FINISH</div>
+                  <div class="val">${escapeHtml(bestTeamFinishVal)}</div>
+                </div>
+                <div class="info-btn span-2">
+                  <div class="lbl">BEST INDIV. FINISH</div>
+                  <div class="val">${escapeHtml(bestIndFinishVal)}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-pane">
+              <div class="trophy-title">Trophy Case</div>
+              <div class="trophy-grid">${trophyHtml}</div>
+            </div>
+          </div>
+
+          <div class="modal-pane">
+            <div class="season-title">Season / Stage Performance</div>
+            <div>
+              ${seasonRowsHtml || `<div style="opacity:.8; font-weight:900; text-transform:uppercase; letter-spacing:.12em;">No history found.</div>`}
+            </div>
+          </div>
+        `;
+
+        if (card) card.scrollTop = 0;
+
+      }catch(err){
+        playerModalContent.className = "modal-body";
+        playerModalContent.innerHTML = `
+          <div class="modal-pane" style="grid-column:1 / -1;">
+            <div class="error"><b>Couldn’t load player history</b><div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load.")}</div></div>
+          </div>
+        `;
+      }
+    }
+
+    /* ---------------- Data Update ---------------- */
+    let updating = false;
+
+    async function update(force=false){
+      if(updating && !force) return;
+      updating = true;
+
+      try{
+        const seasonNum = (function(){
+          const n = Number(seasonSelect.value);
+          return Number.isFinite(n) ? n : DETECTED_CURRENT_SEASON;
+        })();
+
+        const stageVal = isStagedSeason(seasonNum)
+          ? String(stageSelect.value || "1").toLowerCase()
+          : null;
+
+        // Championship is different format; placeholder for now.
+        if (isStagedSeason(seasonNum) && stageVal === "championship"){
+          statusCard.classList.add("hidden");
+          contentEl.classList.remove("hidden");
+
+          teamsList.innerHTML = `<div class="status">Championship stage view coming soon.</div>`;
+          weeklyCards.innerHTML = ``;
+          playersList.innerHTML = ``;
+          return;
+        }
+
+        const cfg = getCfg(seasonNum);
+        const sheet = sheetNameFor(seasonNum, stageVal || "1");
+
+        const ranges = {
+          teamStandings: `'${sheet}'!${cfg.teamRank}`,
+          rosters: `'${sheet}'!${cfg.rosters}`,
+          lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+
+          playerStandings: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
+          week1: `'${sheet}'!${RANGE_W1_A1}`,
+          week2: `'${sheet}'!${RANGE_W2_A1}`,
+          week3: `'${sheet}'!${RANGE_W3_A1}`,
+          week4: `'${sheet}'!${RANGE_W4_A1}`,
+        };
+
+        const [
+          teamRows, rosterRows, lookupRows,
+          playerRows, wk1, wk2, wk3, wk4
+        ] = await Promise.all([
+          fetchRange(ranges.teamStandings),
+          fetchRange(ranges.rosters),
+          fetchRange(ranges.lookup),
+
+          fetchRange(ranges.playerStandings),
+          fetchRange(ranges.week1),
+          fetchRange(ranges.week2),
+          fetchRange(ranges.week3),
+          fetchRange(ranges.week4),
+        ]);
+
+        teamStandings = normalizeStandingsGeneric(teamRows);
+        playerStandings = normalizeStandingsGeneric(playerRows);
+
+        const parsedTeams = parseTeamRosters(rosterRows);
+        rosterByTeam = parsedTeams.byTeam;
+        playerTeamByName = parsedTeams.playerTeamByName;
+
+        const lookupMap = parseLookupStats(lookupRows);
+
+        playerStatsByName = new Map();
+        for (const [name, stat] of lookupMap.entries()) playerStatsByName.set(name, stat);
+        for (const [name, stat] of parsedTeams.byPlayer.entries()) playerStatsByName.set(name, stat);
+
+        weeklyByWeek = new Map();
+        const w1 = normalizeStandingsGeneric(wk1);
+        const w2 = normalizeStandingsGeneric(wk2);
+        const w3 = normalizeStandingsGeneric(wk3);
+        const w4 = normalizeStandingsGeneric(wk4);
+
+        if (w1.length) weeklyByWeek.set(1, w1);
+        if (w2.length) weeklyByWeek.set(2, w2);
+        if (w3.length) weeklyByWeek.set(3, w3);
+        if (w4.length) weeklyByWeek.set(4, w4);
+
+        renderTeams();
+        renderWeekly();
+        renderPlayers();
+
+        statusCard.classList.add("hidden");
+        contentEl.classList.remove("hidden");
+      }catch(err){
+        statusCard.classList.remove("hidden");
+        contentEl.classList.add("hidden");
+        statusCard.innerHTML =
+          `<div class="error"><b>Couldn’t load data</b>` +
+          `<div style="margin-top:8px;opacity:.85;">${escapeHtml(err.message || "Failed to load standings.")}</div></div>`;
+        console.error(err);
+      }finally{
+        updating = false;
+      }
+    }
+
+    // boot
+    (async function boot(){
+      showPlayerLoading();
+
+      // auto-detect current season/stage by probing forward, stop at first missing
+      await detectCurrentSeasonStage();
+
+      // rebuild season dropdown (1..detected current)
+      buildSeasonOptions();
+
+      // allow url overrides if within allowed range
+      const params = new URLSearchParams(location.search);
+      const seasonParam = Number(params.get("season"));
+      if (Number.isFinite(seasonParam) && seasonParam >= 1 && seasonParam <= DETECTED_CURRENT_SEASON){
+        seasonSelect.value = String(seasonParam);
+      } else {
+        seasonSelect.value = String(DETECTED_CURRENT_SEASON);
+      }
+
+      syncStageDropdown();
+
+      // default stage to detected current stage if on detected current season
+      if (isStagedSeason(Number(seasonSelect.value)) && Number(seasonSelect.value) === DETECTED_CURRENT_SEASON){
+        if (DETECTED_CURRENT_STAGE) stageSelect.value = String(DETECTED_CURRENT_STAGE);
+      }
+
+      const stageParam = (params.get("stage") || "").toLowerCase();
+      if (isStagedSeason(Number(seasonSelect.value)) && stageParam){
+        const allowed = new Set(Array.from(stageSelect.options).map(o => String(o.value).toLowerCase()));
+        if (allowed.has(stageParam)) stageSelect.value = stageParam;
+      }
+
+      await update(true);
+
+      // data refresh
+      setInterval(()=>update(false), REFRESH_MS);
+
+      // light "future detection": check only the next period; stop immediately if blank
+      setInterval(async ()=>{
+        const prevSeason = DETECTED_CURRENT_SEASON;
+        const prevStage  = DETECTED_CURRENT_STAGE;
+
+        const advanced = await checkAdvanceIfNewPeriodStarted();
+        if (!advanced) return;
+
+        // were we viewing the latest period before it advanced?
+        const userSeason = Number(seasonSelect.value);
+        const userStage  = isStagedSeason(userSeason) ? String(stageSelect.value || "1").toLowerCase() : null;
+
+        const userWasLatest =
+          (userSeason === prevSeason) &&
+          (
+            !isStagedSeason(userSeason) ||
+            String(userStage) === String(prevStage)
+          );
+
+        buildSeasonOptions();
+
+        if (userWasLatest){
+          seasonSelect.value = String(DETECTED_CURRENT_SEASON);
+          syncStageDropdown();
+          if (isStagedSeason(DETECTED_CURRENT_SEASON) && DETECTED_CURRENT_STAGE){
+            stageSelect.value = String(DETECTED_CURRENT_STAGE);
+          }
+          await update(true);
+        } else {
+          // keep user's selection; just ensure stage dropdown matches the season
+          // (and clamp if needed)
+          if (Number(seasonSelect.value) > DETECTED_CURRENT_SEASON){
+            seasonSelect.value = String(DETECTED_CURRENT_SEASON);
+          }
+          syncStageDropdown();
+        }
+      }, REFRESH_MS);
+
+    })();
+  </script>
+</body>
+</html>
 
