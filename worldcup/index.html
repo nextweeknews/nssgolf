@@ -445,11 +445,15 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height: calc(var(--row-minh) * 2 + 10px);
+
+      /* match one matchup card: two player rows tall */
+      height: calc(var(--row-minh) * 2);
+      min-height: calc(var(--row-minh) * 2);
+
       border: 1px solid rgba(253,224,71,0.26);
       background: rgba(253,224,71,0.10);
       border-radius: 16px;
-      padding: 14px 14px; /* slightly tighter + consistent */
+      padding: 14px 14px;
       box-shadow: 0 0 18px rgba(253,224,71,0.18);
       overflow:hidden;
       text-align:center;
@@ -634,7 +638,7 @@
 
     // Signup closes: January 15, 2026 at 10:30 AM US Central
     // Use fixed offset for CST (-06:00). (Jan 15 is standard time.)
-    const SIGNUP_CLOSE_ISO = "2026-01-15T10:30:00-06:00";
+    const SIGNUP_CLOSE_ISO = "2026-01-06T23:52:00-06:00";
     const SIGNUP_CLOSE_MS  = Date.parse(SIGNUP_CLOSE_ISO);
 
     // Round 1 matchups gated by F1, Round 2 matchups gated by M1.
