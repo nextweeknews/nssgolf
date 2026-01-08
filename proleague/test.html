@@ -334,7 +334,7 @@
       justify-content:center;
       background:#d9d9d9;
       color:#000;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 900;
       padding: 0 10px;
       min-width: 0;
@@ -392,7 +392,7 @@
       justify-content:center;
       background: rgba(255,255,255,0.06);
       color: #ffffff;
-      font-size: 16px;
+      font-size: 22px;
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
@@ -695,7 +695,16 @@
     }
     @media (max-width: 860px){
       .modal-wrap{ padding-top: 52px; }
-      .modal-body{ flex-direction: column; }
+      .modal-body{
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .modal-column{
+        width: 100%;
+      }
+      .modal-pane{
+        width: 100%;
+      }
       .modal-loading{ min-height: 300px; }
     }
 
@@ -1576,11 +1585,11 @@
     /* ---------------- MOBILE OPTIMIZATION ---------------- */
     @media (max-width: 760px){
       :root{
-        --rank-col: 72px;
-        --score-col: 82px;
-        --wk-rank-col: 72px;
-        --wk-round-col: 64px;
-        --wk-score-col: 92px;
+        --rank-col: 54px;
+        --score-col: 62px;
+        --wk-rank-col: 54px;
+        --wk-round-col: 48px;
+        --wk-score-col: 69px;
         --logo-slot: 34px;
       }
 
@@ -1593,13 +1602,13 @@
       .header-row, .weekly-header-row{ height: 36px; font-size: 12px; }
       .entry, .weekly-entry{ height: 44px; }
       .place{ font-size: 18px; padding: 0 6px; }
-      .score-col{ font-size: 14px; padding: 0 6px; }
+      .score-col{ font-size: 18px; padding: 0 6px; }
 
       .team-cell{ padding: 0 8px; }
       .team-cell .name-text{ font-size: 16px; padding-left: 8px; }
       .team-logo{ height: calc(100%); }
 
-      .weekly-round{ font-size: 14px; }
+      .weekly-round{ font-size: 18px; }
 
       .search{ min-width: 0; width: 100%; }
 
@@ -1645,11 +1654,11 @@
 
     @media (max-width: 420px){
       :root{
-        --rank-col: 64px;
-        --score-col: 76px;
-        --wk-rank-col: 64px;
-        --wk-round-col: 58px;
-        --wk-score-col: 84px;
+        --rank-col: 48px;
+        --score-col: 57px;
+        --wk-rank-col: 48px;
+        --wk-round-col: 44px;
+        --wk-score-col: 63px;
         --logo-slot: 30px;
       }
 
