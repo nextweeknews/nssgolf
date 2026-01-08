@@ -1518,7 +1518,8 @@
     }
     #champView .team-logo{ height: calc(100%); }
     #champView .champ-score{
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 900;
     }
     #champView .match-box{ padding: 8px; }
 
@@ -1544,6 +1545,7 @@
     #champView #bracketWrap .champ-score{
       font-size: 12px;
       padding: 0 4px;
+      font-weight: 900;
     }
 
     /* IMPORTANT: Champion row (only this row) should resemble main list rows (bigger) */
@@ -1635,6 +1637,11 @@
         --logo-slot: 26px;
       }
       #champView .champ-list-row{ height: 36px; }
+      #champView .champ-list-row .place,
+      #champView .champ-list-row .champ-score{
+        font-size: 16px;
+        font-weight: 900;
+      }
 
       /* Bracket: even tighter */
       #champView #bracketWrap{
