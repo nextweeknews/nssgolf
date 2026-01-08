@@ -1145,9 +1145,26 @@
       color: var(--title);
       border-color: rgba(255,255,255,0.10);
     }
-    .chip.rank.gold{ color: var(--gold); }
-    .chip.rank.silver{ color: var(--silver); }
-    .chip.rank.bronze{ color: var(--bronze); }
+    .chip.rank.gold{
+      color: var(--gold);
+      border-color: rgba(250,204,21,0.65);
+      box-shadow: 0 0 10px rgba(250,204,21,0.35);
+    }
+    .chip.rank.silver{
+      color: var(--silver);
+      border-color: rgba(226,232,240,0.65);
+      box-shadow: 0 0 10px rgba(226,232,240,0.35);
+    }
+    .chip.rank.bronze{
+      color: var(--bronze);
+      border-color: rgba(251,146,60,0.6);
+      box-shadow: 0 0 10px rgba(251,146,60,0.35);
+    }
+    .chip.rank.blue{
+      color: rgba(186,230,253,0.95);
+      border-color: rgba(56,189,248,0.6);
+      box-shadow: 0 0 10px rgba(56,189,248,0.35);
+    }
 
     .chip.team{
       background: var(--team-bg, rgba(255,255,255,0.06));
@@ -3351,10 +3368,29 @@
     });
 
     // -------------------- Player modal (restored season-stacked layout) --------------------
-    function addTrophy(map, key, { icon, main, sub, tier, stackable = false, category = "other" }){
-      const cur = map.get(key) || { count:0, icon, main, sub, tier, stackable, category };
+    function stageRank(stage){
+      if (stage === "championship") return 99;
+      const n = Number(stage);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function addTrophy(map, key, { icon, main, sub, tier, stackable = false, category = "other", season = null, stage = null }){
+      const cur = map.get(key) || { count:0, icon, main, sub, tier, stackable, category, season: null, stage: null };
       cur.count += 1;
       if (!cur.category) cur.category = category;
+      if (season != null || stage != null){
+        const nextSeason = season != null ? Number(season) : null;
+        const curSeason = cur.season != null ? Number(cur.season) : null;
+        const nextStageRank = stageRank(stage);
+        const curStageRank = stageRank(cur.stage);
+        const isNewer = (curSeason == null && nextSeason != null)
+          || (curSeason != null && nextSeason != null && nextSeason > curSeason)
+          || (curSeason != null && nextSeason != null && nextSeason === curSeason && nextStageRank > curStageRank);
+        if (isNewer || curSeason == null){
+          cur.season = season ?? cur.season;
+          cur.stage = stage ?? cur.stage;
+        }
+      }
       map.set(key, cur);
     }
 
@@ -3404,6 +3440,12 @@
           if (tierDiff !== 0) return tierDiff;
           const categoryDiff = categoryOrder.indexOf(a.category || "other") - categoryOrder.indexOf(b.category || "other");
           if (categoryDiff !== 0) return categoryDiff;
+          const seasonA = Number.isFinite(Number(a.season)) ? Number(a.season) : -1;
+          const seasonB = Number.isFinite(Number(b.season)) ? Number(b.season) : -1;
+          if (seasonA !== seasonB) return seasonB - seasonA;
+          const stageA = stageRank(a.stage);
+          const stageB = stageRank(b.stage);
+          if (stageA !== stageB) return stageB - stageA;
           if (b.count !== a.count) return b.count - a.count;
           return a.main.localeCompare(b.main);
         });
@@ -3541,7 +3583,7 @@
             if (e.teamRank != null){
               const c = document.createElement("div");
               c.className = `chip rank ${rankClass(e.teamRank)}`.trim();
-              c.textContent = `TEAM ${e.teamRank}`;
+              c.textContent = `TEAM ${ordinalSuffix(e.teamRank)}`.toUpperCase();
               row1.appendChild(c);
             }
             if (e.teamScore != null){
@@ -3552,8 +3594,13 @@
             }
           } else if (e.champResult){
             const c = document.createElement("div");
-            c.className = "chip solo";
-            c.textContent = e.champResult;
+            const champClass = e.champResult === "champion"
+              ? "gold"
+              : e.champResult === "runner-up"
+                ? "silver"
+                : "blue";
+            c.className = `chip rank ${champClass}`.trim();
+            c.textContent = String(e.champResult).toUpperCase();
             row1.appendChild(c);
           }
           stageBlock.appendChild(row1);
@@ -3565,8 +3612,8 @@
 
             if (e.playerRank != null){
               const c = document.createElement("div");
-              c.className = "chip rank";
-              c.textContent = `PLAYER ${e.playerRank}`;
+              c.className = `chip rank ${rankClass(e.playerRank)}`.trim();
+              c.textContent = `${ordinalSuffix(e.playerRank)} OVERALL`.toUpperCase();
               row2.appendChild(c);
             }
             if (e.playerScore != null){
@@ -3762,7 +3809,9 @@
                 main:"CHAMPION",
                 sub: champTeamName ? `Season ${s.season}, ${champTeamName}` : `Season ${s.season}`,
                 tier: trophyTier("gold"),
-                category:"team"
+                category:"team",
+                season: s.season,
+                stage: "championship"
               });
             }
             if (s.champResult === "runner-up"){
@@ -3771,7 +3820,9 @@
                 main:"RUNNER-UP",
                 sub: periodDisplayLabel(s.season, "championship"),
                 tier: trophyTier("silver"),
-                category:"team"
+                category:"team",
+                season: s.season,
+                stage: "championship"
               });
             }
             if (s.champResult === "semi-finalist"){
@@ -3780,7 +3831,9 @@
                 main:"SEMI-FINALIST",
                 sub: periodDisplayLabel(s.season, "championship"),
                 tier: trophyTier("blue"),
-                category:"team"
+                category:"team",
+                season: s.season,
+                stage: "championship"
               });
             }
             continue;
@@ -3795,7 +3848,9 @@
               main:`Team ${ordinalSuffix(s.teamRank)}`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey),
-              category:"team"
+              category:"team",
+              season: s.season,
+              stage: s.stage
             });
           }
           if (concluded && (s.playerRank === 1 || s.playerRank === 2 || s.playerRank === 3)){
@@ -3806,7 +3861,9 @@
               main:`${ordinalSuffix(s.playerRank)} Overall`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey),
-              category:"individual"
+              category:"individual",
+              season: s.season,
+              stage: s.stage
             });
           }
 
@@ -3817,7 +3874,9 @@
               sub:null,
               tier: trophyTier("blue"),
               stackable:true,
-              category:"other"
+              category:"other",
+              season: s.season,
+              stage: s.stage
             });
           }
         }
