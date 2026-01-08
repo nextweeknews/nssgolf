@@ -3518,9 +3518,12 @@
           if (!isStagedSeason(s)){
             periods.push({ season: s, stage: null });
           } else {
-            periods.push({ season: s, stage: 1 });
-            periods.push({ season: s, stage: 2 });
-            periods.push({ season: s, stage: 3 });
+            const maxStage = (s === DETECTED_CURRENT_SEASON)
+              ? Number(DETECTED_CURRENT_STAGE || 1)
+              : Number(STAGE_DATA_BY_SEASON.get(s) || 3);
+            for (let st=1; st<=maxStage; st++){
+              periods.push({ season: s, stage: st });
+            }
             periods.push({ season: s, stage: "championship" });
           }
         }
@@ -3550,6 +3553,7 @@
           if (isChamp && isStagedSeason(p.season)){
             const ch = await getChampionshipData(p.season).catch(()=>null);
             if (!ch) continue;
+            if (!ch.championName) continue;
 
             // Player appears in one of the 4 championship rosters (B3:H23)
             const inRosterTeam = (ch.rosterTeams || []).find(t => (t.players || []).some(pl => String(pl.name||"").trim() === cleanName));
@@ -3632,6 +3636,7 @@
           let best = null;
           for (const entry of entries || []){
             if (entry.isChampionship) continue;
+            if (!isPeriodConcluded(entry.season, entry.stage)) continue;
             const rank = entry[rankKey];
             if (!Number.isFinite(rank)) continue;
             if (!best){
