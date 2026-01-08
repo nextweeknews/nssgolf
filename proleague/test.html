@@ -1850,7 +1850,8 @@
 
     // Manual bracket cells
     const CH_SEMIS_BLOCK   = "O3:P9";
-    const CH_FINALS_BLOCK  = "R4:S4;R8:S8";
+    const CH_FINALS_TOP    = "R4:S4";
+    const CH_FINALS_BOTTOM = "R8:S8";
     const CH_CHAMPION_CELL = "U6:U6";
 
     // Seasons 1-5 varying roster/teamRank sizes
@@ -3186,13 +3187,14 @@
         roster: `'${sheet}'!${CH_ROSTER}`,
 
         semis: `'${sheet}'!${CH_SEMIS_BLOCK}`,
-        finals: `'${sheet}'!${CH_FINALS_BLOCK}`,
+        finalsTop: `'${sheet}'!${CH_FINALS_TOP}`,
+        finalsBottom: `'${sheet}'!${CH_FINALS_BOTTOM}`,
         champion: `'${sheet}'!${CH_CHAMPION_CELL}`,
       };
 
       const [
         winnersRows, wildcardRows, slotsRows, rosterRows,
-        semisBlock, finalsBlock, champCell
+        semisBlock, finalsTopRows, finalsBottomRows, champCell
       ] = await Promise.all([
         fetchRange(ranges.winners).catch(()=>[]),
         fetchRange(ranges.wildcards).catch(()=>[]),
@@ -3200,9 +3202,14 @@
         fetchRange(ranges.roster).catch(()=>[]),
 
         fetchRange(ranges.semis).catch(()=>[]),
-        fetchRange(ranges.finals).catch(()=>[]),
+        fetchRange(ranges.finalsTop).catch(()=>[]),
+        fetchRange(ranges.finalsBottom).catch(()=>[]),
         fetchRange(ranges.champion).catch(()=>[]),
       ]);
+      const finalsBlock = [
+        ...(finalsTopRows || []),
+        ...(finalsBottomRows || [])
+      ];
 
       const winners = (winnersRows || []).slice(0,3).map((r, idx)=>{
         const stage = toNum(r?.[0]) ?? (idx+1);
