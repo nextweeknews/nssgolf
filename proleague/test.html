@@ -1386,6 +1386,21 @@
       text-transform: uppercase;
       padding-left: 10px;
     }
+    .champ-roster .pname .name-inline{
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      max-width: 100%;
+      min-width: 0;
+    }
+    .champ-roster .pname .name-inline span{
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.05;
+    }
 
     /* --- Championship compact overrides (global for championship view) --- */
     #champView{
@@ -1461,6 +1476,9 @@
       padding-left: 10px;
       letter-spacing: .02em;
       font-weight: 950;
+    }
+    #champView #bracketWrap .champion-row .team-logo{
+      height: calc(100% - 10px);
     }
 
     /* ---------------- MOBILE OPTIMIZATION ---------------- */
@@ -2668,14 +2686,22 @@
       const players = (teamObj?.players && Array.isArray(teamObj.players)) ? teamObj.players.slice(0,4) : [];
       while (players.length < 4) players.push({ name:"", semi1:null, semi2:null, fin1:null, fin2:null });
 
-      players.forEach(p=>{
+      players.forEach((p, idxOnTeam)=>{
         const a = (mode === "final") ? toNum(p.fin1) : toNum(p.semi1);
         const b = (mode === "final") ? toNum(p.fin2) : toNum(p.semi2);
         const cls = countedPairClasses(a, b);
+        const name = String(p.name || "").trim();
+        const isCaptain = idxOnTeam === 0 && name;
+        const captainMark = isCaptain ? `<span class="captain-icon" aria-label="Captain" title="Captain"></span>` : ``;
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td class="pname">${escapeHtml(String(p.name || "-").toUpperCase())}</td>
+          <td class="pname clickable-player" data-player="${escapeHtml(name)}">
+            <span class="name-inline">
+              <span>${escapeHtml(name ? name.toUpperCase() : "-")}</span>
+              ${captainMark}
+            </span>
+          </td>
           <td class="${cls.a}">${escapeHtml(fmtScore(a))}</td>
           <td class="${cls.b}">${escapeHtml(fmtScore(b))}</td>
         `;
@@ -2933,6 +2959,14 @@
       const btn = e.target.closest("button.team-cell[data-player]");
       if(!btn) return;
       const name = btn.getAttribute("data-player") || "";
+      if(!name) return;
+      openPlayerModal(name);
+    });
+
+    document.getElementById("champView").addEventListener("click", (e)=>{
+      const cell = e.target.closest("td.clickable-player[data-player]");
+      if(!cell) return;
+      const name = cell.getAttribute("data-player") || "";
       if(!name) return;
       openPlayerModal(name);
     });
