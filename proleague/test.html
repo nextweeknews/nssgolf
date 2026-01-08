@@ -935,6 +935,12 @@
       mask: url("logos/Captain.svg") no-repeat center / contain;
       opacity: 0.95;
     }
+    .trophy-icon.logo img{
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      display:block;
+    }
 
     .trophy-text{
       min-width:0;
@@ -3515,6 +3521,14 @@
       }
 
       for (const t of entries){
+        const logoMarkup = t.logoSrc
+          ? `<img src="${escapeHtml(t.logoSrc)}" alt="${escapeHtml(t.logoAlt || t.main)}" />`
+          : "";
+        const iconMarkup = t.icon === "captain"
+          ? ""
+          : t.logoSrc
+            ? logoMarkup
+            : escapeHtml(t.icon || "🏆");
         const div = document.createElement("div");
         const hasSub = Boolean(t.sub && String(t.sub).trim());
         div.className = `trophy ${t.tier || "tier-default"}${hasSub ? "" : " no-sub"}`;
@@ -3524,7 +3538,7 @@
         const subMarkup = hasSub ? `<div class="trophy-sub">${escapeHtml(t.sub)}</div>` : "";
         div.innerHTML = `
           <div class="trophy-left">
-            <div class="trophy-icon ${t.icon === "captain" ? "captain" : ""}">${t.icon === "captain" ? "" : escapeHtml(t.icon || "🏆")}</div>
+            <div class="trophy-icon ${t.icon === "captain" ? "captain" : ""}${t.logoSrc ? " logo" : ""}">${iconMarkup}</div>
             <div class="trophy-text">
               <div class="trophy-main">${escapeHtml(t.main)}</div>
               ${subMarkup}
@@ -3906,6 +3920,8 @@
               icon,
               main:`#${s.teamRank} TEAM`,
               sub: periodDisplayLabel(s.season, s.stage),
+              logoSrc: s.teamName ? teamLogoSrc(s.teamName) : null,
+              logoAlt: s.teamName ? `${s.teamName} logo` : "",
               tier: trophyTier(tierKey),
               category:"team",
               season: s.season,
