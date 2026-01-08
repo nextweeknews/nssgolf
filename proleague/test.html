@@ -689,14 +689,13 @@
 
     .modal-body{
       padding: 14px;
-      display:grid;
-      grid-template-columns: 1.25fr 1fr;
+      display:flex;
       gap: 12px;
-      align-items: start;
+      align-items: flex-start;
     }
     @media (max-width: 860px){
       .modal-wrap{ padding-top: 52px; }
-      .modal-body{ grid-template-columns: 1fr; }
+      .modal-body{ flex-direction: column; }
       .modal-loading{ min-height: 300px; }
     }
 
@@ -705,6 +704,19 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 12px;
+    }
+
+    .modal-column{
+      flex: 1.25;
+      display:flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .trophies-pane{
+      flex: 1;
+      min-width: 0;
     }
 
     .modal-left{
@@ -880,6 +892,9 @@
       flex-direction:column;
       gap: 2px;
       max-width: 280px;
+    }
+    .trophy.no-sub .trophy-text{
+      justify-content: center;
     }
     .trophy-main{
       font-size: 11px;
@@ -2814,7 +2829,7 @@
         const d = document.createElement("div");
         d.className = "p";
         const label = names[i] ? names[i].toUpperCase() : "-";
-        d.innerHTML = `${escapeHtml(label)}${i === 0 && names[i] ? ` <span class="captain-icon" aria-label="Captain" title="Captain"></span>` : ""}`;
+        d.innerHTML = escapeHtml(label);
         rosterStrip.appendChild(d);
       }
 
@@ -3341,16 +3356,18 @@
 
       for (const t of entries){
         const div = document.createElement("div");
-        div.className = `trophy ${t.tier || "tier-default"}`;
+        const hasSub = Boolean(t.sub && String(t.sub).trim());
+        div.className = `trophy ${t.tier || "tier-default"}${hasSub ? "" : " no-sub"}`;
         const countMarkup = (t.stackable && t.count > 1)
           ? `<div class="trophy-count">×${t.count}</div>`
           : "";
+        const subMarkup = hasSub ? `<div class="trophy-sub">${escapeHtml(t.sub)}</div>` : "";
         div.innerHTML = `
           <div class="trophy-left">
             <div class="trophy-icon ${t.icon === "captain" ? "captain" : ""}">${t.icon === "captain" ? "" : escapeHtml(t.icon || "🏆")}</div>
             <div class="trophy-text">
               <div class="trophy-main">${escapeHtml(t.main)}</div>
-              <div class="trophy-sub">${escapeHtml(t.sub || "")}</div>
+              ${subMarkup}
             </div>
           </div>
           ${countMarkup}
@@ -3702,40 +3719,58 @@
         const trophyMap = new Map();
 
         // Clubs
-        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"🏌️", main:"20 CLUB", sub:"ROUND ≤ -20", tier:trophyTier("blue"), stackable:true });
-        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"🏌️", main:"25 CLUB", sub:"ROUND ≤ -25", tier:trophyTier("purple"), stackable:true });
-        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"🏌️", main:"30 CLUB", sub:"ROUND ≤ -30", tier:trophyTier("gold"), stackable:true });
+        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"⛳️", main:"-20 CLUB", sub:null, tier:trophyTier("blue"), stackable:true });
+        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"⛳️", main:"-25 CLUB", sub:null, tier:trophyTier("purple"), stackable:true });
+        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"⛳️", main:"-30 CLUB", sub:null, tier:trophyTier("gold"), stackable:true });
 
-        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"📈", main:"60 CLUB", sub:"TOTAL ≤ -60", tier:trophyTier("blue"), stackable:true });
-        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"📈", main:"70 CLUB", sub:"TOTAL ≤ -70", tier:trophyTier("purple"), stackable:true });
-        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"📈", main:"80 CLUB", sub:"TOTAL ≤ -80", tier:trophyTier("gold"), stackable:true });
+        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"🏅", main:"-60 CLUB", sub:null, tier:trophyTier("blue"), stackable:true });
+        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"🏅", main:"-70 CLUB", sub:null, tier:trophyTier("purple"), stackable:true });
+        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"🏅", main:"-80 CLUB", sub:null, tier:trophyTier("gold"), stackable:true });
 
         // Captain (green)
         for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"Captain", sub:"", tier:trophyTier("green"), stackable:true });
 
         // Season Champion (gold) - championship roster members
         for (const ss of seasonChampionSeasons){
-          addTrophy(trophyMap, `champ-${ss}`, { icon:"👑", main:"SEASON CHAMPION", sub:`SEASON ${ss}`, tier:trophyTier("gold") });
+          addTrophy(trophyMap, `champ-${ss}`, { icon:"🏆", main:"SEASON CHAMPION", sub:`SEASON ${ss}`, tier:trophyTier("gold") });
         }
 
         // Placement trophies only once concluded
         for (const s of summaries){
-          if (s.isChampionship) continue;
-          const concluded = isPeriodConcluded(s.season, s.stage);
-
-          if (concluded && s.teamRank === 1){
-            addTrophy(trophyMap, `winner-${s.season}-${s.stage}`, {
-              icon:"🏆",
-              main:"WINNER",
-              sub: periodDisplayLabel(s.season, s.stage),
-              tier: trophyTier("gold")
-            });
+          if (s.isChampionship){
+            if (s.champResult === "champion"){
+              addTrophy(trophyMap, `championship-${s.season}-champ`, {
+                icon:"🏆",
+                main:"CHAMPION",
+                sub: periodDisplayLabel(s.season, "championship"),
+                tier: trophyTier("gold")
+              });
+            }
+            if (s.champResult === "runner-up"){
+              addTrophy(trophyMap, `championship-${s.season}-runner`, {
+                icon:"🥈",
+                main:"RUNNER-UP",
+                sub: periodDisplayLabel(s.season, "championship"),
+                tier: trophyTier("silver")
+              });
+            }
+            if (s.champResult === "semi-finalist"){
+              addTrophy(trophyMap, `championship-${s.season}-semi`, {
+                icon:"🏅",
+                main:"SEMI-FINALIST",
+                sub: periodDisplayLabel(s.season, "championship"),
+                tier: trophyTier("blue")
+              });
+            }
+            continue;
           }
+          const concluded = isPeriodConcluded(s.season, s.stage);
 
           if (concluded && (s.teamRank === 1 || s.teamRank === 2 || s.teamRank === 3)){
             const tierKey = (s.teamRank === 1) ? "gold" : (s.teamRank === 2) ? "silver" : "bronze";
+            const icon = (s.teamRank === 1) ? "🥇" : (s.teamRank === 2) ? "🥈" : "🥉";
             addTrophy(trophyMap, `teamPod-${s.season}-${s.stage}-${s.teamRank}`, {
-              icon:"🥇",
+              icon,
               main:`Team ${ordinalSuffix(s.teamRank)}`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey)
@@ -3743,11 +3778,22 @@
           }
           if (concluded && (s.playerRank === 1 || s.playerRank === 2 || s.playerRank === 3)){
             const tierKey = (s.playerRank === 1) ? "gold" : (s.playerRank === 2) ? "silver" : "bronze";
+            const icon = (s.playerRank === 1) ? "🥇" : (s.playerRank === 2) ? "🥈" : "🥉";
             addTrophy(trophyMap, `indPod-${s.season}-${s.stage}-${s.playerRank}`, {
-              icon:"⭐",
+              icon,
               main:`${ordinalSuffix(s.playerRank)} Overall`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey)
+            });
+          }
+
+          if (concluded && Number.isFinite(s.playerRank) && s.playerRank <= 10){
+            addTrophy(trophyMap, "top10", {
+              icon:"🏅",
+              main:"top 10",
+              sub:null,
+              tier: trophyTier("blue"),
+              stackable:true
             });
           }
         }
@@ -3781,7 +3827,7 @@
         left.appendChild(info);
 
         const trophiesPane = document.createElement("div");
-        trophiesPane.className = "modal-pane";
+        trophiesPane.className = "modal-pane trophies-pane";
         trophiesPane.innerHTML = `<div class="trophy-title">Trophies</div>`;
         trophiesPane.appendChild(renderTrophyChips(trophyMap));
 
@@ -3789,11 +3835,15 @@
         right.className = "modal-pane";
         right.appendChild(renderSeasonStackedPerformance(summaries));
 
+        const leftColumn = document.createElement("div");
+        leftColumn.className = "modal-column";
+        leftColumn.appendChild(left);
+        leftColumn.appendChild(right);
+
         playerModalContent.className = "modal-body";
         playerModalContent.innerHTML = "";
-        playerModalContent.appendChild(left);
+        playerModalContent.appendChild(leftColumn);
         playerModalContent.appendChild(trophiesPane);
-        playerModalContent.appendChild(right);
 
       }catch(err){
         playerModalContent.className = "modal-body";
