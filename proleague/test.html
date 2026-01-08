@@ -1316,7 +1316,8 @@
     @media (max-width: 860px){
       .tourney{ grid-template-columns: 1fr; }
       .bracket-round-label{ display: block; }
-      .round-col .bracket-round-label + .match-box{ margin-top: -10px; }
+      .round-col{ gap: 12px; }
+      .round-col .bracket-round-label + .match-box{ margin-top: -14px; }
     }
 
     .round-col{
@@ -1329,6 +1330,9 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 10px;
+    }
+    .match-box .roster-wrap:last-child{
+      margin-bottom: 2px;
     }
     .match-gap{ margin-top: 6px; }
 
@@ -1628,8 +1632,9 @@
         --br-seed-col: 40px;
         --br-score-col: 54px;
       }
-      #champView #bracketWrap .champ-bracket-row{ height: 30px; }
-      #champView #bracketWrap .team-cell .name-text{ font-size: 11px; }
+      #champView #bracketWrap .team-logo-slot{ width: 26px; }
+      #champView #bracketWrap .champ-bracket-row{ height: 36px; }
+      #champView #bracketWrap .team-cell .name-text{ font-size: 14px; }
 
       /* Champion row still larger than bracket */
       #champView .champion-row .team-logo-slot{ width: 36px; }
@@ -1660,7 +1665,8 @@
         --br-seed-col: 38px;
         --br-score-col: 52px;
       }
-      #champView #bracketWrap .team-cell .name-text{ font-size: 10.5px; }
+      #champView #bracketWrap .team-logo-slot{ width: 24px; }
+      #champView #bracketWrap .team-cell .name-text{ font-size: 14px; }
 
       #champView .champion-row .team-cell .name-text{ font-size: 17px; }
     }
@@ -2737,7 +2743,7 @@
       if (fa && fb){
         if (na < nb) return { a: "counted", b: "" };
         if (nb < na) return { a: "", b: "counted" };
-        return { a: "counted", b: "counted" };
+        return { a: "counted", b: "" };
       }
       if (fa) return { a: "counted", b: "" };
       if (fb) return { a: "", b: "counted" };
@@ -2747,7 +2753,9 @@
     function champRosterTable(teamObj, mode){
       const wrap = document.createElement("div");
       wrap.className = "roster-wrap";
-      wrap.style.marginTop = "8px";
+      wrap.style.marginTop = "2px";
+      wrap.style.marginBottom = "6px";
+      wrap.style.paddingTop = "0";
 
       const scroll = document.createElement("div");
       scroll.className = "roster-scroll";
