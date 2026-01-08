@@ -1248,6 +1248,16 @@
       color: rgba(255,255,255,.65);
       margin: 14px 0 10px;
     }
+    .bracket-round-label{
+      display: none;
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin: 2px 0 8px;
+      text-align: left;
+    }
 
     /* Championship list rows (Stage Winners + Wildcards) */
     .champ-list-row{
@@ -1305,6 +1315,7 @@
     }
     @media (max-width: 860px){
       .tourney{ grid-template-columns: 1fr; }
+      .bracket-round-label{ display: block; }
     }
 
     .round-col{
@@ -2946,6 +2957,10 @@
 
       const semisCol = document.createElement("div");
       semisCol.className = "round-col";
+      const semisLabel = document.createElement("div");
+      semisLabel.className = "bracket-round-label";
+      semisLabel.textContent = "Semi-finals";
+      semisCol.appendChild(semisLabel);
 
       const m1 = document.createElement("div");
       m1.className = "match-box";
@@ -2980,6 +2995,10 @@
 
       const finalsCol = document.createElement("div");
       finalsCol.className = "finals-col";
+      const finalsLabel = document.createElement("div");
+      finalsLabel.className = "bracket-round-label";
+      finalsLabel.textContent = "Finals";
+      finalsCol.appendChild(finalsLabel);
 
       const mf = document.createElement("div");
       mf.className = "match-box";
