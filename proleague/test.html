@@ -823,6 +823,47 @@
       font-variant-numeric: tabular-nums;
     }
     .info-btn.span-2{ grid-column: span 2; }
+    .info-btn.tier-green{
+      border-color: rgba(34,197,94,0.40);
+      background: rgba(34,197,94,0.09);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.10) inset, 0 0 18px rgba(34,197,94,0.22);
+    }
+    .info-btn.tier-green .val{ color: rgba(187,247,208,0.96); }
+
+    .info-btn.tier-blue{
+      border-color: rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.08);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.10) inset, 0 0 18px rgba(56,189,248,0.22);
+    }
+    .info-btn.tier-blue .val{ color: rgba(186,230,253,0.95); }
+
+    .info-btn.tier-purple{
+      border-color: rgba(168,85,247,0.35);
+      background: rgba(168,85,247,0.08);
+      box-shadow: 0 0 0 1px rgba(168,85,247,0.10) inset, 0 0 18px rgba(168,85,247,0.22);
+    }
+    .info-btn.tier-purple .val{ color: rgba(233,213,255,0.95); }
+
+    .info-btn.tier-gold{
+      border-color: rgba(253,224,71,0.40);
+      background: rgba(253,224,71,0.10);
+      box-shadow: 0 0 0 1px rgba(253,224,71,0.12) inset, 0 0 18px rgba(253,224,71,0.24);
+    }
+    .info-btn.tier-gold .val{ color: rgba(254,240,138,0.98); }
+
+    .info-btn.tier-silver{
+      border-color: rgba(226,232,240,0.38);
+      background: rgba(226,232,240,0.08);
+      box-shadow: 0 0 0 1px rgba(226,232,240,0.10) inset, 0 0 18px rgba(226,232,240,0.20);
+    }
+    .info-btn.tier-silver .val{ color: rgba(241,245,249,0.98); }
+
+    .info-btn.tier-bronze{
+      border-color: rgba(251,146,60,0.40);
+      background: rgba(251,146,60,0.09);
+      box-shadow: 0 0 0 1px rgba(251,146,60,0.10) inset, 0 0 18px rgba(251,146,60,0.20);
+    }
+    .info-btn.tier-bronze .val{ color: rgba(254,215,170,0.96); }
 
     .trophy-title{
       font-size: 11px;
@@ -1308,6 +1349,7 @@
     #champView #bracketWrap .champ-seed.win-seed{
       background: rgba(20, 83, 45, 0.38);
       box-shadow: 0 0 0 1px rgba(34,197,94,0.10) inset;
+      border-radius: 10px 0 0 10px;
     }
 
     /* Champion block glow */
@@ -3304,9 +3346,10 @@
     });
 
     // -------------------- Player modal (restored season-stacked layout) --------------------
-    function addTrophy(map, key, { icon, main, sub, tier, stackable = false }){
-      const cur = map.get(key) || { count:0, icon, main, sub, tier, stackable };
+    function addTrophy(map, key, { icon, main, sub, tier, stackable = false, category = "other" }){
+      const cur = map.get(key) || { count:0, icon, main, sub, tier, stackable, category };
       cur.count += 1;
+      if (!cur.category) cur.category = category;
       map.set(key, cur);
     }
 
@@ -3318,6 +3361,14 @@
       if (key === "blue") return "tier-blue";
       if (key === "green") return "tier-green";
       return "tier-default";
+    }
+
+    function scoreTier(score, thresholds){
+      if (!Number.isFinite(score)) return "";
+      if (score <= thresholds.gold) return trophyTier("gold");
+      if (score <= thresholds.purple) return trophyTier("purple");
+      if (score <= thresholds.blue) return trophyTier("blue");
+      return "";
     }
 
     function ordinalSuffix(n){
@@ -3340,11 +3391,14 @@
         "tier-green",
         "tier-default"
       ];
+      const categoryOrder = ["team", "individual", "other"];
       const entries = Array.from(trophyMap.values())
         .filter(t => t.count > 0)
         .sort((a,b)=>{
           const tierDiff = tierOrder.indexOf(a.tier || "tier-default") - tierOrder.indexOf(b.tier || "tier-default");
           if (tierDiff !== 0) return tierDiff;
+          const categoryDiff = categoryOrder.indexOf(a.category || "other") - categoryOrder.indexOf(b.category || "other");
+          if (categoryDiff !== 0) return categoryDiff;
           if (b.count !== a.count) return b.count - a.count;
           return a.main.localeCompare(b.main);
         });
@@ -3500,10 +3554,10 @@
           stageBlock.appendChild(row1);
 
           // INDIVIDUAL PERFORMANCE ROW
-          const row2 = document.createElement("div");
-          row2.className = "btn-row";
-
           if (!e.isChampionship){
+            const row2 = document.createElement("div");
+            row2.className = "btn-row";
+
             if (e.playerRank != null){
               const c = document.createElement("div");
               c.className = "chip rank";
@@ -3516,14 +3570,9 @@
               c.textContent = fmtScore(e.playerScore);
               row2.appendChild(c);
             }
-          } else {
-            const c = document.createElement("div");
-            c.className = "chip solo";
-            c.textContent = "CHAMPIONSHIP";
-            row2.appendChild(c);
-          }
 
-          stageBlock.appendChild(row2);
+            stageBlock.appendChild(row2);
+          }
 
           // ROUNDS TABLE (for non-championship stages/seasons; uses that period's rounds)
           if (!e.isChampionship && e.stats && Array.isArray(e.stats.rounds)){
@@ -3576,7 +3625,7 @@
         let round20 = 0, round25 = 0, round30 = 0;
         let captainCount = 0;
 
-        const seasonChampionSeasons = new Set();
+        const seasonChampionTeams = new Map();
 
         let headerTeam = null;
         if (DETECTED_CURRENT_SEASON < 6){
@@ -3601,7 +3650,7 @@
 
             // Season Champion trophy: player listed on champion roster
             if (ch.championName && inRosterTeam?.name && String(inRosterTeam.name).trim() === String(ch.championName).trim()){
-              seasonChampionSeasons.add(p.season);
+              seasonChampionTeams.set(p.season, String(inRosterTeam.name).trim());
             }
 
             const finalsTeams = new Set([ch.finals?.t1, ch.finals?.t2].filter(Boolean));
@@ -3680,70 +3729,35 @@
         const bestPeriod = periodTotalsAgg.length ? Math.min(...periodTotalsAgg) : null;
         const avgPeriod  = periodTotalsAgg.length ? (periodTotalsAgg.reduce((a,b)=>a+b,0) / periodTotalsAgg.length) : null;
 
-        const pickBestFinish = (entries, rankKey) => {
-          let best = null;
-          for (const entry of entries || []){
-            if (entry.isChampionship) continue;
-            if (!isPeriodConcluded(entry.season, entry.stage)) continue;
-            const rank = entry[rankKey];
-            if (!Number.isFinite(rank)) continue;
-            if (!best){
-              best = entry;
-              continue;
-            }
-            if (rank < best[rankKey]){
-              best = entry;
-              continue;
-            }
-            if (rank === best[rankKey]){
-              const bestStage = best.stage == null ? 4 : Number(best.stage);
-              const entryStage = entry.stage == null ? 4 : Number(entry.stage);
-              if (entry.season > best.season || (entry.season === best.season && entryStage > bestStage)){
-                best = entry;
-              }
-            }
-          }
-          return best;
-        };
-
-        const bestIndividualFinish = pickBestFinish(summaries, "playerRank");
-        const bestTeamFinish = pickBestFinish(summaries, "teamRank");
-        const bestIndividualText = bestIndividualFinish
-          ? `#${bestIndividualFinish.playerRank}`
-          : "—";
-        const bestTeamText = bestTeamFinish
-          ? `#${bestTeamFinish.teamRank}`
-          : "—";
+        const bestRoundTier = scoreTier(bestRound, { blue: -20, purple: -25, gold: -30 });
+        const bestSeasonTier = scoreTier(bestPeriod, { blue: -60, purple: -70, gold: -80 });
 
         // TROPHIES (placement trophies only when concluded; others as they happen)
         const trophyMap = new Map();
 
         // Clubs
-        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"⛳️", main:"-20 CLUB", sub:null, tier:trophyTier("blue"), stackable:true });
-        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"⛳️", main:"-25 CLUB", sub:null, tier:trophyTier("purple"), stackable:true });
-        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"⛳️", main:"-30 CLUB", sub:null, tier:trophyTier("gold"), stackable:true });
+        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"⛳️", main:"-20 CLUB", sub:null, tier:trophyTier("blue"), stackable:true, category:"other" });
+        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"⛳️", main:"-25 CLUB", sub:null, tier:trophyTier("purple"), stackable:true, category:"other" });
+        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"⛳️", main:"-30 CLUB", sub:null, tier:trophyTier("gold"), stackable:true, category:"other" });
 
-        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"🏅", main:"-60 CLUB", sub:null, tier:trophyTier("blue"), stackable:true });
-        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"🏅", main:"-70 CLUB", sub:null, tier:trophyTier("purple"), stackable:true });
-        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"🏅", main:"-80 CLUB", sub:null, tier:trophyTier("gold"), stackable:true });
+        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"🏅", main:"-60 CLUB", sub:null, tier:trophyTier("blue"), stackable:true, category:"other" });
+        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"🏅", main:"-70 CLUB", sub:null, tier:trophyTier("purple"), stackable:true, category:"other" });
+        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"🏅", main:"-80 CLUB", sub:null, tier:trophyTier("gold"), stackable:true, category:"other" });
 
         // Captain (green)
-        for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"Captain", sub:"", tier:trophyTier("green"), stackable:true });
-
-        // Season Champion (gold) - championship roster members
-        for (const ss of seasonChampionSeasons){
-          addTrophy(trophyMap, `champ-${ss}`, { icon:"🏆", main:"SEASON CHAMPION", sub:`SEASON ${ss}`, tier:trophyTier("gold") });
-        }
+        for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"Captain", sub:"", tier:trophyTier("green"), stackable:true, category:"other" });
 
         // Placement trophies only once concluded
         for (const s of summaries){
           if (s.isChampionship){
             if (s.champResult === "champion"){
+              const champTeamName = s.teamName || seasonChampionTeams.get(s.season) || "";
               addTrophy(trophyMap, `championship-${s.season}-champ`, {
                 icon:"🏆",
                 main:"CHAMPION",
-                sub: periodDisplayLabel(s.season, "championship"),
-                tier: trophyTier("gold")
+                sub: champTeamName ? `Season ${s.season}, ${champTeamName}` : `Season ${s.season}`,
+                tier: trophyTier("gold"),
+                category:"team"
               });
             }
             if (s.champResult === "runner-up"){
@@ -3751,7 +3765,8 @@
                 icon:"🥈",
                 main:"RUNNER-UP",
                 sub: periodDisplayLabel(s.season, "championship"),
-                tier: trophyTier("silver")
+                tier: trophyTier("silver"),
+                category:"team"
               });
             }
             if (s.champResult === "semi-finalist"){
@@ -3759,7 +3774,8 @@
                 icon:"🏅",
                 main:"SEMI-FINALIST",
                 sub: periodDisplayLabel(s.season, "championship"),
-                tier: trophyTier("blue")
+                tier: trophyTier("blue"),
+                category:"team"
               });
             }
             continue;
@@ -3773,7 +3789,8 @@
               icon,
               main:`Team ${ordinalSuffix(s.teamRank)}`,
               sub: periodDisplayLabel(s.season, s.stage),
-              tier: trophyTier(tierKey)
+              tier: trophyTier(tierKey),
+              category:"team"
             });
           }
           if (concluded && (s.playerRank === 1 || s.playerRank === 2 || s.playerRank === 3)){
@@ -3783,7 +3800,8 @@
               icon,
               main:`${ordinalSuffix(s.playerRank)} Overall`,
               sub: periodDisplayLabel(s.season, s.stage),
-              tier: trophyTier(tierKey)
+              tier: trophyTier(tierKey),
+              category:"individual"
             });
           }
 
@@ -3793,7 +3811,8 @@
               main:"top 10",
               sub:null,
               tier: trophyTier("blue"),
-              stackable:true
+              stackable:true,
+              category:"other"
             });
           }
         }
@@ -3817,12 +3836,10 @@
         const info = document.createElement("div");
         info.className = "info-btn-grid";
         info.innerHTML = `
-          <div class="info-btn"><div class="lbl">Best Round</div><div class="val">${escapeHtml(fmtScore(bestRound))}</div></div>
+          <div class="info-btn ${bestRoundTier}"><div class="lbl">Best Round</div><div class="val">${escapeHtml(fmtScore(bestRound))}</div></div>
           <div class="info-btn"><div class="lbl">Avg Round</div><div class="val">${escapeHtml(fmtScoreAvg(avgRound))}</div></div>
-          <div class="info-btn"><div class="lbl">Best Total</div><div class="val">${escapeHtml(fmtScore(bestPeriod))}</div></div>
+          <div class="info-btn ${bestSeasonTier}"><div class="lbl">Best Total</div><div class="val">${escapeHtml(fmtScore(bestPeriod))}</div></div>
           <div class="info-btn"><div class="lbl">Avg Total</div><div class="val">${escapeHtml(fmtScoreAvg(avgPeriod))}</div></div>
-          <div class="info-btn span-2"><div class="lbl">Best Individual Finish</div><div class="val">${escapeHtml(bestIndividualText)}</div></div>
-          <div class="info-btn span-2"><div class="lbl">Best Team Finish</div><div class="val">${escapeHtml(bestTeamText)}</div></div>
         `;
         left.appendChild(info);
 
@@ -3831,19 +3848,23 @@
         trophiesPane.innerHTML = `<div class="trophy-title">Trophies</div>`;
         trophiesPane.appendChild(renderTrophyChips(trophyMap));
 
-        const right = document.createElement("div");
-        right.className = "modal-pane";
-        right.appendChild(renderSeasonStackedPerformance(summaries));
+        const seasonPane = document.createElement("div");
+        seasonPane.className = "modal-pane";
+        seasonPane.appendChild(renderSeasonStackedPerformance(summaries));
 
         const leftColumn = document.createElement("div");
         leftColumn.className = "modal-column";
         leftColumn.appendChild(left);
-        leftColumn.appendChild(right);
+        leftColumn.appendChild(trophiesPane);
+
+        const rightColumn = document.createElement("div");
+        rightColumn.className = "modal-column";
+        rightColumn.appendChild(seasonPane);
 
         playerModalContent.className = "modal-body";
         playerModalContent.innerHTML = "";
         playerModalContent.appendChild(leftColumn);
-        playerModalContent.appendChild(trophiesPane);
+        playerModalContent.appendChild(rightColumn);
 
       }catch(err){
         playerModalContent.className = "modal-body";
