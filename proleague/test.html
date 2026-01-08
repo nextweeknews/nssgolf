@@ -1817,7 +1817,6 @@
   <script>
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
-    const REFRESH_MS  = 60000;
 
     // ---------------- Manual initial period (page-load default) ----------------
     // If enabled, this is used on first load *unless URL query params are present*.
@@ -4157,10 +4156,6 @@
 
       await update(true);
 
-      setInterval(async ()=>{
-        try{ await checkForNewStagePeriod(); }catch(e){}
-        update(false);
-      }, REFRESH_MS);
     })();
   </script>
 </body>
