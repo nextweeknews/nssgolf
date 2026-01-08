@@ -1316,7 +1316,8 @@
     @media (max-width: 860px){
       .tourney{ grid-template-columns: 1fr; }
       .bracket-round-label{ display: block; }
-      .round-col .bracket-round-label + .match-box{ margin-top: -10px; }
+      .round-col{ gap: 12px; }
+      .round-col .bracket-round-label + .match-box{ margin-top: -14px; }
     }
 
     .round-col{
@@ -1329,6 +1330,9 @@
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 10px;
+    }
+    .match-box .roster-wrap:last-child{
+      margin-bottom: 2px;
     }
     .match-gap{ margin-top: 6px; }
 
@@ -1660,6 +1664,7 @@
         --br-seed-col: 38px;
         --br-score-col: 52px;
       }
+      #champView #bracketWrap .team-logo-slot{ width: 24px; }
       #champView #bracketWrap .team-cell .name-text{ font-size: 14px; }
 
       #champView .champion-row .team-cell .name-text{ font-size: 17px; }
