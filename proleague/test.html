@@ -1469,7 +1469,7 @@
     .champ-roster tr:nth-child(even) td{ background: var(--row-bg-2); }
     .champ-roster .pname{
       text-align: left;
-      color: var(--title);
+      color: rgba(233,238,248,0.92);
       text-transform: uppercase;
       padding-left: 10px;
     }
@@ -1633,7 +1633,10 @@
         --br-score-col: 54px;
       }
       #champView #bracketWrap .champ-bracket-row{ height: 36px; }
+      #champView #bracketWrap .champ-seed{ font-size: 14px; }
+      #champView #bracketWrap .champ-score{ font-size: 13px; }
       #champView #bracketWrap .team-cell .name-text{ font-size: 14px; }
+      #champView #bracketWrap .team-logo-slot{ width: var(--logo-slot); }
 
       /* Champion row still larger than bracket */
       #champView .champion-row .team-logo-slot{ width: 36px; }
@@ -1664,8 +1667,10 @@
         --br-seed-col: 38px;
         --br-score-col: 52px;
       }
-      #champView #bracketWrap .team-logo-slot{ width: 24px; }
+      #champView #bracketWrap .champ-seed{ font-size: 14px; }
+      #champView #bracketWrap .team-logo-slot{ width: var(--logo-slot); }
       #champView #bracketWrap .team-cell .name-text{ font-size: 14px; }
+      #champView #bracketWrap .champ-score{ font-size: 13px; }
 
       #champView .champion-row .team-cell .name-text{ font-size: 17px; }
     }
