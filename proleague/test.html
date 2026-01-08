@@ -692,6 +692,7 @@
       display:grid;
       grid-template-columns: 1.25fr 1fr;
       gap: 12px;
+      align-items: start;
     }
     @media (max-width: 860px){
       .modal-wrap{ padding-top: 52px; }
@@ -3288,8 +3289,8 @@
     });
 
     // -------------------- Player modal (restored season-stacked layout) --------------------
-    function addTrophy(map, key, { icon, main, sub, tier }){
-      const cur = map.get(key) || { count:0, icon, main, sub, tier };
+    function addTrophy(map, key, { icon, main, sub, tier, stackable = false }){
+      const cur = map.get(key) || { count:0, icon, main, sub, tier, stackable };
       cur.count += 1;
       map.set(key, cur);
     }
@@ -3302,6 +3303,13 @@
       if (key === "blue") return "tier-blue";
       if (key === "green") return "tier-green";
       return "tier-default";
+    }
+
+    function ordinalSuffix(n){
+      if (n === 1) return "1st";
+      if (n === 2) return "2nd";
+      if (n === 3) return "3rd";
+      return `${n}th`;
     }
 
     function renderTrophyChips(trophyMap){
@@ -3334,6 +3342,9 @@
       for (const t of entries){
         const div = document.createElement("div");
         div.className = `trophy ${t.tier || "tier-default"}`;
+        const countMarkup = (t.stackable && t.count > 1)
+          ? `<div class="trophy-count">×${t.count}</div>`
+          : "";
         div.innerHTML = `
           <div class="trophy-left">
             <div class="trophy-icon ${t.icon === "captain" ? "captain" : ""}">${t.icon === "captain" ? "" : escapeHtml(t.icon || "🏆")}</div>
@@ -3342,7 +3353,7 @@
               <div class="trophy-sub">${escapeHtml(t.sub || "")}</div>
             </div>
           </div>
-          <div class="trophy-count">×${t.count}</div>
+          ${countMarkup}
         `;
         wrap.appendChild(div);
       }
@@ -3463,6 +3474,11 @@
               c.textContent = fmtScore(e.teamScore);
               row1.appendChild(c);
             }
+          } else if (e.champResult){
+            const c = document.createElement("div");
+            c.className = "chip solo";
+            c.textContent = e.champResult;
+            row1.appendChild(c);
           }
           stageBlock.appendChild(row1);
 
@@ -3571,6 +3587,13 @@
               seasonChampionSeasons.add(p.season);
             }
 
+            const finalsTeams = new Set([ch.finals?.t1, ch.finals?.t2].filter(Boolean));
+            const rosterName = String(inRosterTeam?.name || "").trim();
+            const championName = String(ch.championName || "").trim();
+            let champResult = "semi-finalist";
+            if (finalsTeams.has(rosterName)) champResult = "runner-up";
+            if (rosterName && championName && rosterName === championName) champResult = "champion";
+
             summaries.push({
               season: p.season,
               stage: "championship",
@@ -3580,7 +3603,8 @@
               playerRank: null,
               playerScore: null,
               stats: null,
-              isChampionship: true
+              isChampionship: true,
+              champResult
             });
             continue;
           }
@@ -3678,16 +3702,16 @@
         const trophyMap = new Map();
 
         // Clubs
-        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"🏌️", main:"20 CLUB", sub:"ROUND ≤ -20", tier:trophyTier("blue") });
-        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"🏌️", main:"25 CLUB", sub:"ROUND ≤ -25", tier:trophyTier("purple") });
-        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"🏌️", main:"30 CLUB", sub:"ROUND ≤ -30", tier:trophyTier("gold") });
+        for (let i=0;i<round20;i++) addTrophy(trophyMap, "r20", { icon:"🏌️", main:"20 CLUB", sub:"ROUND ≤ -20", tier:trophyTier("blue"), stackable:true });
+        for (let i=0;i<round25;i++) addTrophy(trophyMap, "r25", { icon:"🏌️", main:"25 CLUB", sub:"ROUND ≤ -25", tier:trophyTier("purple"), stackable:true });
+        for (let i=0;i<round30;i++) addTrophy(trophyMap, "r30", { icon:"🏌️", main:"30 CLUB", sub:"ROUND ≤ -30", tier:trophyTier("gold"), stackable:true });
 
-        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"📈", main:"60 CLUB", sub:"TOTAL ≤ -60", tier:trophyTier("blue") });
-        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"📈", main:"70 CLUB", sub:"TOTAL ≤ -70", tier:trophyTier("purple") });
-        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"📈", main:"80 CLUB", sub:"TOTAL ≤ -80", tier:trophyTier("gold") });
+        for (let i=0;i<season60;i++) addTrophy(trophyMap, "s60", { icon:"📈", main:"60 CLUB", sub:"TOTAL ≤ -60", tier:trophyTier("blue"), stackable:true });
+        for (let i=0;i<season70;i++) addTrophy(trophyMap, "s70", { icon:"📈", main:"70 CLUB", sub:"TOTAL ≤ -70", tier:trophyTier("purple"), stackable:true });
+        for (let i=0;i<season80;i++) addTrophy(trophyMap, "s80", { icon:"📈", main:"80 CLUB", sub:"TOTAL ≤ -80", tier:trophyTier("gold"), stackable:true });
 
         // Captain (green)
-        for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"CAPTAIN", sub:"CAPTAINSHIP", tier:trophyTier("green") });
+        for (let i=0;i<captainCount;i++) addTrophy(trophyMap, "cap", { icon:"captain", main:"Captain", sub:"", tier:trophyTier("green"), stackable:true });
 
         // Season Champion (gold) - championship roster members
         for (const ss of seasonChampionSeasons){
@@ -3712,7 +3736,7 @@
             const tierKey = (s.teamRank === 1) ? "gold" : (s.teamRank === 2) ? "silver" : "bronze";
             addTrophy(trophyMap, `teamPod-${s.season}-${s.stage}-${s.teamRank}`, {
               icon:"🥇",
-              main:`TEAM ${s.teamRank} PLACE`,
+              main:`Team ${ordinalSuffix(s.teamRank)}`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey)
             });
@@ -3721,7 +3745,7 @@
             const tierKey = (s.playerRank === 1) ? "gold" : (s.playerRank === 2) ? "silver" : "bronze";
             addTrophy(trophyMap, `indPod-${s.season}-${s.stage}-${s.playerRank}`, {
               icon:"⭐",
-              main:`PLAYER ${s.playerRank} PLACE`,
+              main:`${ordinalSuffix(s.playerRank)} Overall`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey)
             });
