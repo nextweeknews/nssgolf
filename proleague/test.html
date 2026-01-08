@@ -1255,7 +1255,7 @@
       text-transform: uppercase;
       letter-spacing: .16em;
       color: rgba(255,255,255,.65);
-      margin: 2px 0 8px;
+      margin: 0 0 8px;
       text-align: left;
     }
 
@@ -1316,6 +1316,7 @@
     @media (max-width: 860px){
       .tourney{ grid-template-columns: 1fr; }
       .bracket-round-label{ display: block; }
+      .round-col .bracket-round-label + .match-box{ margin-top: -10px; }
     }
 
     .round-col{
@@ -1427,7 +1428,7 @@
       border-collapse: separate;
       border-spacing: 0 6px;
       table-layout: fixed;
-      margin-top: 8px;
+      margin: 0;
     }
     .champ-roster thead th{
       position: sticky;
