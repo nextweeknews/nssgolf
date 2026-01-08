@@ -1148,22 +1148,18 @@
     .chip.rank.gold{
       color: var(--gold);
       border-color: rgba(250,204,21,0.65);
-      box-shadow: 0 0 10px rgba(250,204,21,0.35);
     }
     .chip.rank.silver{
       color: var(--silver);
       border-color: rgba(226,232,240,0.65);
-      box-shadow: 0 0 10px rgba(226,232,240,0.35);
     }
     .chip.rank.bronze{
       color: var(--bronze);
       border-color: rgba(251,146,60,0.6);
-      box-shadow: 0 0 10px rgba(251,146,60,0.35);
     }
     .chip.rank.blue{
       color: rgba(186,230,253,0.95);
       border-color: rgba(56,189,248,0.6);
-      box-shadow: 0 0 10px rgba(56,189,248,0.35);
     }
 
     .chip.team{
@@ -2657,8 +2653,16 @@
         const r = block?.[idx] || [];
         return { team: String(r?.[0] ?? "").trim(), score: toNum(r?.[1]) };
       };
-      const s1 = pick(0), s2 = pick(2), s3 = pick(4), s4 = pick(6);
-      return { s1: s1.team, p1: s1.score, s2: s2.team, p2: s2.score, s3: s3.team, p3: s3.score, s4: s4.team, p4: s4.score };
+      const seed1 = pick(0); // O3
+      const seed4 = pick(2); // O5
+      const seed2 = pick(4); // O7
+      const seed3 = pick(6); // O9
+      return {
+        s1: seed1.team, p1: seed1.score,
+        s2: seed2.team, p2: seed2.score,
+        s3: seed3.team, p3: seed3.score,
+        s4: seed4.team, p4: seed4.score
+      };
     }
 
     function parseManualFinals(block){
@@ -2666,7 +2670,8 @@
         const r = block?.[idx] || [];
         return { team: String(r?.[0] ?? "").trim(), score: toNum(r?.[1]) };
       };
-      const a = pick(0), b = pick(4);
+      const a = pick(0); // R4
+      const b = pick(1); // R5
       return { t1: a.team, s1: a.score, t2: b.team, s2: b.score };
     }
 
