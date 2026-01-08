@@ -1299,7 +1299,7 @@
       border-radius: 16px;
       overflow: hidden;
       background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(253,224,71,0.38);
+      border: 1px solid transparent;
       box-shadow:
         0 0 0 1px rgba(253,224,71,0.14) inset,
         0 0 26px rgba(253,224,71,0.22);
@@ -1463,7 +1463,7 @@
       height: calc(100% - 10px);
     }
     #champView .champion-row .team-cell{
-      padding: 0 12px;
+      padding: 0 16px;
     }
     #champView .champion-row .team-cell .name-text{
       font-size: 20px;
@@ -2720,7 +2720,7 @@
       return champSeedByName.get(n) || null;
     }
 
-    function renderBracketTeamRow(seedNum, teamName, scoreVal, isWinner){
+    function renderBracketTeamRow(seedNum, teamName, scoreVal, isWinner, rowKey){
       const row = document.createElement("div");
       row.className = "champ-bracket-row";
 
@@ -2754,7 +2754,7 @@
 
       btn.addEventListener("click", ()=>{
         if (!teamName) return;
-        expandedChampTeams.has(teamName) ? expandedChampTeams.delete(teamName) : expandedChampTeams.add(teamName);
+        expandedChampTeams.has(rowKey) ? expandedChampTeams.delete(rowKey) : expandedChampTeams.add(rowKey);
         renderChampionship();
       });
 
@@ -2812,7 +2812,8 @@
       for (let i=0;i<4;i++){
         const d = document.createElement("div");
         d.className = "p";
-        d.textContent = names[i] ? names[i].toUpperCase() : "-";
+        const label = names[i] ? names[i].toUpperCase() : "-";
+        d.innerHTML = `${escapeHtml(label)}${i === 0 && names[i] ? ` <span class="captain-icon" aria-label="Captain" title="Captain"></span>` : ""}`;
         rosterStrip.appendChild(d);
       }
 
@@ -2863,25 +2864,29 @@
 
       const m1 = document.createElement("div");
       m1.className = "match-box";
-      m1.appendChild(renderBracketTeamRow(seedOf(champSemis.s1), champSemis.s1, champSemis.p1, semiWin(champSemis.s1)));
-      if (expandedChampTeams.has(champSemis.s1) && champSemis.s1){
+      const semisKey1 = "semis-1";
+      m1.appendChild(renderBracketTeamRow(seedOf(champSemis.s1), champSemis.s1, champSemis.p1, semiWin(champSemis.s1), semisKey1));
+      if (expandedChampTeams.has(semisKey1) && champSemis.s1){
         m1.appendChild(champRosterTable(champTeamByName.get(champSemis.s1), "semi"));
       }
       m1.appendChild(document.createElement("div")).className = "match-gap";
-      m1.appendChild(renderBracketTeamRow(seedOf(champSemis.s4), champSemis.s4, champSemis.p4, semiWin(champSemis.s4)));
-      if (expandedChampTeams.has(champSemis.s4) && champSemis.s4){
+      const semisKey4 = "semis-4";
+      m1.appendChild(renderBracketTeamRow(seedOf(champSemis.s4), champSemis.s4, champSemis.p4, semiWin(champSemis.s4), semisKey4));
+      if (expandedChampTeams.has(semisKey4) && champSemis.s4){
         m1.appendChild(champRosterTable(champTeamByName.get(champSemis.s4), "semi"));
       }
 
       const m2 = document.createElement("div");
       m2.className = "match-box";
-      m2.appendChild(renderBracketTeamRow(seedOf(champSemis.s2), champSemis.s2, champSemis.p2, semiWin(champSemis.s2)));
-      if (expandedChampTeams.has(champSemis.s2) && champSemis.s2){
+      const semisKey2 = "semis-2";
+      m2.appendChild(renderBracketTeamRow(seedOf(champSemis.s2), champSemis.s2, champSemis.p2, semiWin(champSemis.s2), semisKey2));
+      if (expandedChampTeams.has(semisKey2) && champSemis.s2){
         m2.appendChild(champRosterTable(champTeamByName.get(champSemis.s2), "semi"));
       }
       m2.appendChild(document.createElement("div")).className = "match-gap";
-      m2.appendChild(renderBracketTeamRow(seedOf(champSemis.s3), champSemis.s3, champSemis.p3, semiWin(champSemis.s3)));
-      if (expandedChampTeams.has(champSemis.s3) && champSemis.s3){
+      const semisKey3 = "semis-3";
+      m2.appendChild(renderBracketTeamRow(seedOf(champSemis.s3), champSemis.s3, champSemis.p3, semiWin(champSemis.s3), semisKey3));
+      if (expandedChampTeams.has(semisKey3) && champSemis.s3){
         m2.appendChild(champRosterTable(champTeamByName.get(champSemis.s3), "semi"));
       }
 
@@ -2894,13 +2899,15 @@
       const mf = document.createElement("div");
       mf.className = "match-box";
 
-      mf.appendChild(renderBracketTeamRow(seedOf(champFinals.t1), champFinals.t1, champFinals.s1, finalWin(champFinals.t1)));
-      if (expandedChampTeams.has(champFinals.t1) && champFinals.t1){
+      const finalsKey1 = "finals-1";
+      mf.appendChild(renderBracketTeamRow(seedOf(champFinals.t1), champFinals.t1, champFinals.s1, finalWin(champFinals.t1), finalsKey1));
+      if (expandedChampTeams.has(finalsKey1) && champFinals.t1){
         mf.appendChild(champRosterTable(champTeamByName.get(champFinals.t1), "final"));
       }
       mf.appendChild(document.createElement("div")).className = "match-gap";
-      mf.appendChild(renderBracketTeamRow(seedOf(champFinals.t2), champFinals.t2, champFinals.s2, finalWin(champFinals.t2)));
-      if (expandedChampTeams.has(champFinals.t2) && champFinals.t2){
+      const finalsKey2 = "finals-2";
+      mf.appendChild(renderBracketTeamRow(seedOf(champFinals.t2), champFinals.t2, champFinals.s2, finalWin(champFinals.t2), finalsKey2));
+      if (expandedChampTeams.has(finalsKey2) && champFinals.t2){
         mf.appendChild(champRosterTable(champTeamByName.get(champFinals.t2), "final"));
       }
 
