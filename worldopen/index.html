@@ -1107,12 +1107,6 @@
       }
     }
 
-    async function refreshVisibleRoundOnly(){
-      const round = ROUNDS[currentRoundIndex];
-      roundCache.delete(round.key);
-      await renderRoundFromCacheOrFetch();
-    }
-
     (function boot(){
       // countdown
       tickCountdown();
@@ -1129,7 +1123,6 @@
       applyFinalsLayout();
       syncNavButtons();
       renderRoundFromCacheOrFetch();
-      setInterval(refreshVisibleRoundOnly, REFRESH_MS);
     })();
   </script>
 </body>
