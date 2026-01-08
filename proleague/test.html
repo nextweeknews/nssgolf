@@ -3656,10 +3656,10 @@
         const bestIndividualFinish = pickBestFinish(summaries, "playerRank");
         const bestTeamFinish = pickBestFinish(summaries, "teamRank");
         const bestIndividualText = bestIndividualFinish
-          ? `#${bestIndividualFinish.playerRank}`
+          ? `${periodDisplayLabel(bestIndividualFinish.season, bestIndividualFinish.stage)} • ${formatOrdinal(bestIndividualFinish.playerRank)}`
           : "—";
         const bestTeamText = bestTeamFinish
-          ? `#${bestTeamFinish.teamRank}`
+          ? `${periodDisplayLabel(bestTeamFinish.season, bestTeamFinish.stage)} • ${formatOrdinal(bestTeamFinish.teamRank)}`
           : "—";
 
         // TROPHIES (placement trophies only when concluded; others as they happen)
