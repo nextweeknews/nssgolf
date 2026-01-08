@@ -3634,7 +3634,7 @@
           } else {
             const c = document.createElement("div");
             c.className = "chip solo";
-            c.textContent = "NO TEAM";
+            c.textContent = "SOLO PLAYER";
             row1.appendChild(c);
           }
 
@@ -3643,7 +3643,7 @@
             if (e.teamRank != null){
               const c = document.createElement("div");
               c.className = `chip rank ${rankClass(e.teamRank)}`.trim();
-              c.textContent = `TEAM ${ordinalSuffix(e.teamRank)}`.toUpperCase();
+              c.textContent = `#${e.teamRank} TEAM`.toUpperCase();
               row1.appendChild(c);
             }
             if (e.teamScore != null){
@@ -3673,7 +3673,7 @@
             if (e.playerRank != null){
               const c = document.createElement("div");
               c.className = `chip rank ${rankClass(e.playerRank)}`.trim();
-              c.textContent = `${ordinalSuffix(e.playerRank)} OVERALL`.toUpperCase();
+              c.textContent = `#${e.playerRank} OVERALL`.toUpperCase();
               row2.appendChild(c);
             }
             if (e.playerScore != null){
@@ -3905,7 +3905,7 @@
             const icon = (s.teamRank === 1) ? "🥇" : (s.teamRank === 2) ? "🥈" : "🥉";
             addTrophy(trophyMap, `teamPod-${s.season}-${s.stage}-${s.teamRank}`, {
               icon,
-              main:`Team ${ordinalSuffix(s.teamRank)}`,
+              main:`#${s.teamRank} TEAM`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey),
               category:"team",
@@ -3918,7 +3918,7 @@
             const icon = (s.playerRank === 1) ? "🥇" : (s.playerRank === 2) ? "🥈" : "🥉";
             addTrophy(trophyMap, `indPod-${s.season}-${s.stage}-${s.playerRank}`, {
               icon,
-              main:`${ordinalSuffix(s.playerRank)} Overall`,
+              main:`#${s.playerRank} OVERALL`,
               sub: periodDisplayLabel(s.season, s.stage),
               tier: trophyTier(tierKey),
               category:"individual",
@@ -3952,7 +3952,7 @@
           </div>
           <div class="hero-text">
             <div class="hero-name">${escapeHtml(cleanName.toUpperCase())}</div>
-            <div class="hero-sub ${headerTeam ? "" : "solo"}">${escapeHtml(headerTeam ? String(headerTeam).toUpperCase() : "NO TEAM")}</div>
+            <div class="hero-sub ${headerTeam ? "" : "solo"}">${escapeHtml(headerTeam ? String(headerTeam).toUpperCase() : "SOLO PLAYER")}</div>
           </div>
         `;
         left.appendChild(hero);
