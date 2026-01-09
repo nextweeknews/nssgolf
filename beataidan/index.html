@@ -1,1 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Beataidan Weekly Matches</title>
 
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --row-bg: rgba(255,255,255,0.06);
+      --row-bg-2: rgba(255,255,255,0.045);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: rgba(255,255,255,.72);
+      --link-blue: rgba(147,197,253,0.98);
+      --accent: rgba(56,189,248,0.5);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    a{ color: inherit; text-decoration: none; }
+    a:hover{ text-decoration: underline; text-underline-offset: 3px; }
+
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+
+    .home-btn{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      text-decoration:none;
+      cursor:pointer;
+      flex: 0 0 auto;
+    }
+    .home-btn:hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.25);
+    }
+    .home-btn img{
+      width: 70%;
+      height: 70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
+    }
+
+    .kicker{
+      font-size:11px; letter-spacing:.25em; text-transform:uppercase;
+      color: rgba(255,255,255,.65); font-weight:900;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 18px 18px 48px;
+    }
+
+    .page-title{
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: .02em;
+      color: var(--title);
+      margin: 8px 0 6px;
+    }
+
+    .page-subtitle{
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .card{
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 18px 18px 20px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .status{
+      color: rgba(233,238,248,0.92);
+      font-size: 16px;
+      font-weight: 700;
+      text-align:center;
+      padding: 24px 0;
+    }
+
+    .week-card{
+      background: rgba(10,22,44,0.85);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 18px;
+      padding: 16px 16px 18px;
+      margin-bottom: 18px;
+    }
+
+    .week-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .week-title{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: rgba(226,232,240,0.85);
+    }
+
+    .week-meta{
+      font-size: 12px;
+      color: rgba(148,163,184,0.9);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      border: 1px solid rgba(148,163,184,0.25);
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.6);
+    }
+
+    .table-wrap{
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(148,163,184,0.12);
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 720px;
+    }
+
+    thead th{
+      text-align: center;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      padding: 12px 10px;
+      color: rgba(226,232,240,0.86);
+      background: rgba(15,23,42,0.9);
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+      position: sticky;
+      top: 0;
+    }
+
+    tbody td{
+      padding: 10px 10px;
+      text-align: center;
+      font-size: 14px;
+      color: rgba(226,232,240,0.92);
+    }
+
+    tbody tr:nth-child(odd){
+      background: var(--row-bg);
+    }
+    tbody tr:nth-child(even){
+      background: var(--row-bg-2);
+    }
+
+    tbody td.name{
+      text-align: left;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    tbody td.total{
+      font-weight: 900;
+      color: #fff;
+    }
+
+    .hole-chip{
+      display:inline-block;
+      min-width: 28px;
+      padding: 4px 6px;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(30,41,59,0.6);
+    }
+
+    .footer{
+      text-align:center;
+      color: rgba(148,163,184,0.6);
+      font-size: 11px;
+      margin-top: 22px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="/" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" />
+        </a>
+        <div>
+          <div class="kicker">Weekly Matches</div>
+          <div class="page-title">Beataidan</div>
+        </div>
+      </div>
+      <div class="week-meta">Live from Google Sheets</div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="page-subtitle">
+      Weekly match cards show finish order, hole-by-hole scoring, and playoff holes when needed.
+    </div>
+
+    <div class="card">
+      <div id="status" class="status">Loading weekly results…</div>
+      <div id="weeks"></div>
+    </div>
+
+    <div class="footer">Beataidan Weekly Matches</div>
+  </div>
+
+  <script>
+    const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID = "1sbAQKwAoHzhGaRX2aI6v79wrsU7nuO7hI8xnaOexOiM";
+    const SHEET_NAME = "Inputs";
+    const REFRESH_MS = 60000;
+
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function fetchRange(a1){
+      const range = `'${SHEET_NAME}'!${a1}`;
+      const payload = { sheetId: SHEET_ID, range };
+
+      try{
+        const r = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){}
+
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(()=> "");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    function isRowEmpty(row){
+      return !row || row.every(cell => String(cell ?? "").trim() === "");
+    }
+
+    function formatCell(value){
+      const s = String(value ?? "").trim();
+      return s === "" ? "—" : s;
+    }
+
+    function extractHoleNumber(raw){
+      const match = String(raw ?? "").trim().match(/^(\d+)/);
+      return match ? match[1] : "";
+    }
+
+    function parseWeeks(values){
+      const weeks = [];
+      const blockSize = 9; // header + 8 players
+
+      for(let i=0; i < values.length; i += blockSize){
+        const header = values[i] ?? [];
+        const players = values.slice(i + 1, i + 1 + 8);
+        if(isRowEmpty(header) && players.every(isRowEmpty)){
+          continue;
+        }
+
+        const weekNumber = (() => {
+          for(const row of players){
+            const w = String(row?.[0] ?? "").trim();
+            if(w) return w;
+          }
+          return String(header?.[0] ?? "").trim() || "—";
+        })();
+
+        const holeColumns = [];
+        for(let col = 4; col < header.length; col += 5){
+          const headerValue = String(header?.[col] ?? "").trim();
+          const hasPlayerValue = players.some(row => String(row?.[col] ?? "").trim() !== "");
+          if(!headerValue && !hasPlayerValue){
+            break;
+          }
+          holeColumns.push({
+            col,
+            label: extractHoleNumber(headerValue) || "—",
+          });
+        }
+
+        const playerRows = players
+          .filter(row => !isRowEmpty(row))
+          .map(row => ({
+            finish: formatCell(row?.[1]),
+            name: formatCell(row?.[3]),
+            total: formatCell(row?.[2]),
+            holes: holeColumns.map(hole => formatCell(row?.[hole.col])),
+          }));
+
+        if(playerRows.length){
+          weeks.push({
+            weekNumber,
+            holeColumns,
+            playerRows,
+          });
+        }
+      }
+
+      return weeks;
+    }
+
+    function renderWeeks(weeks){
+      const container = document.getElementById("weeks");
+      container.innerHTML = "";
+
+      if(!weeks.length){
+        container.innerHTML = `<div class="status">No match data available yet.</div>`;
+        return;
+      }
+
+      weeks.forEach((week, index) => {
+        const mainHoles = week.holeColumns.slice(0, 9);
+        const playoffHoles = week.holeColumns.slice(9);
+
+        const card = document.createElement("div");
+        card.className = "week-card";
+
+        card.innerHTML = `
+          <div class="week-header">
+            <div class="week-title">Week ${escapeHtml(week.weekNumber)}</div>
+            <div class="week-meta">Match ${index + 1}</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Finish</th>
+                  <th>Player</th>
+                  ${mainHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
+                  <th>Total</th>
+                  ${playoffHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${week.playerRows.map(player => `
+                  <tr>
+                    <td>${escapeHtml(player.finish)}</td>
+                    <td class="name">${escapeHtml(player.name)}</td>
+                    ${mainHoles.map((_, i) => `<td>${escapeHtml(player.holes[i] ?? "—")}</td>`).join("")}
+                    <td class="total">${escapeHtml(player.total)}</td>
+                    ${playoffHoles.map((_, i) => `<td>${escapeHtml(player.holes[i + 9] ?? "—")}</td>`).join("")}
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
+    }
+
+    async function load(){
+      const status = document.getElementById("status");
+      status.textContent = "Loading weekly results…";
+      try{
+        const values = await fetchRange("A1:AZ500");
+        const weeks = parseWeeks(values);
+        status.remove();
+        renderWeeks(weeks);
+      }catch(err){
+        status.textContent = "Unable to load weekly results.";
+        console.error(err);
+      }
+    }
+
+    load();
+    setInterval(load, REFRESH_MS);
+  </script>
+</body>
+</html>
