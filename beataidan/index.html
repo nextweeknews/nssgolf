@@ -50,6 +50,65 @@
     }
     .brand{display:flex; gap:12px; align-items:center;}
 
+    .topbar-actions{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+
+    .unit-toggle{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: .2em;
+      font-weight: 800;
+      color: rgba(226,232,240,0.75);
+    }
+
+    .toggle-switch{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .toggle-switch input{
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track{
+      width: 44px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.8);
+      display: inline-flex;
+      align-items: center;
+      padding: 2px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .toggle-thumb{
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(226,232,240,0.9);
+      transition: transform 0.2s ease;
+    }
+
+    .toggle-switch input:checked + .toggle-track{
+      border-color: rgba(56,189,248,0.6);
+      background: rgba(56,189,248,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-track .toggle-thumb{
+      transform: translateX(22px);
+      background: rgba(224,242,254,0.95);
+    }
+
     .home-btn{
       width:40px; height:40px;
       border-radius:16px;
@@ -202,13 +261,16 @@
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: .12em;
-      padding: 8px 10px;
+      padding: 6px 8px;
       color: rgba(226,232,240,0.86);
       background: rgba(15,23,42,0.9);
       border-bottom: 1px solid rgba(148,163,184,0.18);
       position: sticky;
       top: 0;
       vertical-align: middle;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     tbody td{
@@ -216,6 +278,32 @@
       text-align: center;
       font-size: 14px;
       color: rgba(226,232,240,0.92);
+    }
+
+    tbody tr{
+      position: relative;
+    }
+
+    tbody tr::after{
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    tbody tr.row-gold::after{
+      background: rgba(250,204,21,0.12);
+    }
+
+    tbody tr.row-aidan::after{
+      background: rgba(15,175,255,0.16);
+    }
+
+    tbody tr > td{
+      position: relative;
+      z-index: 2;
     }
 
     tbody tr:nth-child(odd){
@@ -241,7 +329,7 @@
     th.col-total,
     td.col-name,
     td.col-total{
-      background: rgba(59,130,246,0.18);
+      background: rgba(147,197,253,0.12);
     }
 
     .hole-score.score-gold{ color: #f5d76e; }
@@ -268,7 +356,8 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap: 4px;
+      gap: 2px;
+      line-height: 1.1;
     }
 
     .hole-header-top{
@@ -328,7 +417,24 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 4px;
+      gap: 2px;
+    }
+
+    .star-btn{
+      margin-left: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(250,204,21,0.6);
+      background: rgba(250,204,21,0.15);
+      color: rgba(250,204,21,0.95);
+      font-size: 11px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      padding: 0;
     }
 
     .hole-par{
@@ -381,19 +487,31 @@
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <a class="home-btn" href="/" aria-label="Home">
-          <img src="/logos/golf.png" alt="Home" />
-        </a>
-        <div>
-          <div class="kicker">Weekly Matches</div>
-          <div class="page-title">beat aidan challenge</div>
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <a class="home-btn" href="/" aria-label="Home">
+            <img src="/logos/golf.png" alt="Home" />
+          </a>
+          <div>
+            <div class="kicker">Weekly Matches</div>
+            <div class="page-title">beat aidan challenge</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <label class="unit-toggle" for="wind-unit-toggle">
+            <span>MPH</span>
+            <span class="toggle-switch">
+              <input id="wind-unit-toggle" type="checkbox" aria-label="Toggle wind speed units" />
+              <span class="toggle-track">
+                <span class="toggle-thumb"></span>
+              </span>
+            </span>
+            <span>M/S</span>
+          </label>
         </div>
       </div>
     </div>
-  </div>
 
   <div class="container">
     <div class="card">
@@ -409,6 +527,30 @@
     const SHEET_ID = "1sbAQKwAoHzhGaRX2aI6v79wrsU7nuO7hI8xnaOexOiM";
     const SHEET_NAME = "Inputs";
     const REFRESH_MS = 60000;
+    const AIDAN_NAME = "NWN Aidan";
+    const WIND_UNIT_MPH = "mph";
+    const WIND_UNIT_MS = "ms";
+    const WIND_MPH_TO_MS = new Map([
+      [0, 0],
+      [2, 1],
+      [4, 2],
+      [6, 3],
+      [9, 4],
+      [11, 5],
+      [13, 6],
+      [15, 7],
+      [17, 8],
+      [20, 9],
+      [22, 10],
+      [24, 11],
+      [26, 12],
+      [29, 13],
+      [31, 14],
+      [33, 15],
+    ]);
+
+    let windUnit = WIND_UNIT_MPH;
+    let currentWeeks = [];
 
     function normalizeValues(resp){
       if(!resp) return [];
@@ -505,6 +647,15 @@
       return arrows[direction] ?? "";
     }
 
+    function formatWindSpeed(speed){
+      if(speed === null || speed === undefined) return "—";
+      if(windUnit === WIND_UNIT_MS){
+        const mapped = WIND_MPH_TO_MS.get(speed);
+        return mapped ?? speed;
+      }
+      return speed;
+    }
+
     function getWindClass(speed){
       if(speed === 0) return "wind-0";
       if(speed >= 2 && speed <= 11) return "wind-low";
@@ -552,7 +703,7 @@
 
     function renderHoleHeader(hole){
       const windSpeed = hole.windSpeed;
-      const windText = windSpeed !== null ? `${windSpeed}` : "—";
+      const windText = `${formatWindSpeed(windSpeed)}`;
       const windClass = getWindClass(windSpeed);
       const arrow = windSpeed && windSpeed > 0 ? getWindArrow(hole.windDir) : "";
       const pinText = formatPinPosition(hole.pinCode);
@@ -633,17 +784,25 @@
 
         const playerRows = players
           .filter(row => !isRowEmpty(row))
-          .map(row => ({
-            finish: formatCell(row?.[1]),
-            name: formatCell(row?.[3]),
-            total: row?.[2] ?? "",
-            holes: holeColumns.map(hole => row?.[hole.col] ?? ""),
-          }))
+          .map(row => {
+            const finish = formatCell(row?.[1]);
+            const finishValue = Number.parseInt(String(finish ?? "").trim(), 10);
+            const name = formatCell(row?.[3]);
+            return {
+              finish,
+              finishValue,
+              name,
+              isAidan: String(name).toLowerCase() === AIDAN_NAME.toLowerCase(),
+              total: row?.[2] ?? "",
+              holes: holeColumns.map(hole => row?.[hole.col] ?? ""),
+            };
+          })
           .sort((a, b) => {
-            const aFinish = Number.parseInt(a.finish, 10);
-            const bFinish = Number.parseInt(b.finish, 10);
-            const aScore = Number.isNaN(aFinish) ? Number.POSITIVE_INFINITY : aFinish;
-            const bScore = Number.isNaN(bFinish) ? Number.POSITIVE_INFINITY : bFinish;
+            const aScore = Number.isNaN(a.finishValue) ? Number.POSITIVE_INFINITY : a.finishValue;
+            const bScore = Number.isNaN(b.finishValue) ? Number.POSITIVE_INFINITY : b.finishValue;
+            if(aScore === bScore && a.isAidan !== b.isAidan){
+              return a.isAidan ? -1 : 1;
+            }
             return aScore - bScore;
           });
 
@@ -685,6 +844,8 @@
       const card = document.createElement("div");
       card.className = "week-card";
 
+      const aidanFinish = week.playerRows.find(player => player.isAidan)?.finishValue;
+
       card.innerHTML = `
         <button class="week-nav week-prev" type="button" aria-label="Previous week" ${index === 0 ? "disabled" : ""}>&larr;</button>
         <button class="week-nav week-next" type="button" aria-label="Next week" ${index === weeks.length - 1 ? "disabled" : ""}>&rarr;</button>
@@ -712,10 +873,21 @@
               </tr>
             </thead>
             <tbody>
-              ${week.playerRows.map(player => `
-                <tr>
+              ${week.playerRows.map(player => {
+                const hasValidAidanFinish = Number.isFinite(aidanFinish);
+                const hasValidFinish = Number.isFinite(player.finishValue);
+                const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
+                const rowClass = [
+                  isBetterThanAidan ? "row-gold" : "",
+                  player.isAidan ? "row-aidan" : "",
+                ].filter(Boolean).join(" ");
+                const starButton = isBetterThanAidan
+                  ? `<button class="star-btn" type="button" aria-label="Star player">★</button>`
+                  : "";
+                return `
+                <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                  <td class="name col-name">${escapeHtml(player.name)}</td>
+                  <td class="name col-name">${escapeHtml(player.name)}${starButton}</td>
                   ${mainHoles.map((_, i) => {
                     const value = player.holes[i] ?? "";
                     return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
@@ -726,7 +898,8 @@
                     return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
                   }).join("")}
                 </tr>
-              `).join("")}
+              `;
+              }).join("")}
             </tbody>
           </table>
         </div>
@@ -771,14 +944,26 @@
         .replace(/'/g,"&#39;");
     }
 
+    function setupWindToggle(){
+      const toggle = document.getElementById("wind-unit-toggle");
+      if(!toggle) return;
+      toggle.checked = windUnit === WIND_UNIT_MS;
+      toggle.onchange = () => {
+        windUnit = toggle.checked ? WIND_UNIT_MS : WIND_UNIT_MPH;
+        renderWeek(currentWeeks, currentWeekIndex);
+      };
+    }
+
     async function load(){
       const status = document.getElementById("status");
       status.textContent = "Loading weekly results…";
       try{
         const values = await fetchRange("A1:CH500");
         const weeks = parseWeeks(values).sort((a, b) => getWeekSortValue(a) - getWeekSortValue(b));
+        currentWeeks = weeks;
         currentWeekIndex = Math.max(weeks.length - 1, 0);
         status.remove();
+        setupWindToggle();
         renderWeek(weeks, currentWeekIndex);
       }catch(err){
         status.textContent = "Unable to load weekly results.";
