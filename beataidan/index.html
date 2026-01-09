@@ -180,7 +180,7 @@
       overflow-x: auto;
       border-radius: 14px;
       border: 1px solid rgba(148,163,184,0.12);
-      padding-bottom: 12px;
+      padding-bottom: 0;
       scrollbar-gutter: stable both-edges;
     }
 
@@ -268,7 +268,15 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap: 2px;
+      gap: 4px;
+    }
+
+    .hole-header-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 0;
+      width: 100%;
     }
 
     .wind{
@@ -276,40 +284,51 @@
       font-weight: 700;
       display:flex;
       align-items:center;
-      justify-content:center;
+      justify-content:flex-end;
       gap: 0;
     }
 
     .wind-speed{
-      letter-spacing: .08em;
-    }
-
-    .wind-unit{
-      font-size: 0.72em;
       letter-spacing: .02em;
     }
 
     .wind-0{ color: rgba(255,255,255,0.9); }
     .wind-low{ color: #60a5fa; }
     .wind-mid{ color: #facc15; }
-    .wind-high{ color: #910951; }
+    .wind-high{ color: #c0267d; }
 
     .pin-position{
       font-size: 6px;
       letter-spacing: .04em;
       color: rgba(148,163,184,0.75);
-      white-space: nowrap;
+      text-transform: uppercase;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      justify-content:center;
+      line-height: 1.05;
+    }
+
+    .pin-position span{
+      line-height: 1.05;
+    }
+
+    .pin-position.pin-single{
+      justify-content:center;
     }
 
     .hole-number{
       font-size: 14px;
       font-weight: 800;
       color: rgba(147,197,253,0.98);
+      letter-spacing: .04em;
+    }
+
+    .hole-number-row{
       display:flex;
       align-items:center;
       justify-content:center;
       gap: 4px;
-      letter-spacing: .04em;
     }
 
     .hole-par{
@@ -537,20 +556,24 @@
       const windClass = getWindClass(windSpeed);
       const arrow = windSpeed && windSpeed > 0 ? getWindArrow(hole.windDir) : "";
       const pinText = formatPinPosition(hole.pinCode);
+      const pinWords = pinText ? pinText.split(" ").filter(Boolean) : [];
       const holeNumber = hole.holeNumber || "—";
       const holePar = getParForHole(holeNumber);
 
       return `
         <div class="hole-header">
-          <div class="wind ${windClass}">
-            ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
-            <span class="wind-speed">${escapeHtml(windText)}</span>
-            ${windSpeed !== null ? `<span class="wind-unit">mph</span>` : ""}
+          <div class="hole-header-top">
+            <div class="pin-position ${pinWords.length === 1 ? "pin-single" : ""}">
+              ${pinWords.length ? pinWords.map(word => `<span>${escapeHtml(word)}</span>`).join("") : "<span>—</span>"}
+            </div>
+            <div class="wind ${windClass}">
+              ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
+              <span class="wind-speed">${escapeHtml(windText)}</span>
+            </div>
           </div>
-          <div class="pin-position">${escapeHtml(pinText || "—")}</div>
-          <div class="hole-number">
-            ${escapeHtml(holeNumber)}
-            ${holePar ? `<span class="hole-par">Par ${holePar}</span>` : ""}
+          <div class="hole-number-row">
+            <span class="hole-number">${escapeHtml(holeNumber)}</span>
+            ${holePar ? `<span class="hole-par">${holePar}</span>` : ""}
           </div>
         </div>
       `;
