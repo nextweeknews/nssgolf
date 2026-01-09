@@ -329,7 +329,7 @@
           const headerValue = String(header?.[col] ?? "").trim();
           const hasPlayerValue = players.some(row => String(row?.[col] ?? "").trim() !== "");
           if(!headerValue && !hasPlayerValue){
-            break;
+            continue;
           }
           holeColumns.push({
             col,
