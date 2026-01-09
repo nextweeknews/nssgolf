@@ -219,12 +219,58 @@
       text-align: left;
       font-weight: 700;
       letter-spacing: .02em;
-      color: rgba(191,219,254,0.95);
+      color: rgba(255,255,255,0.85);
     }
 
     tbody td.total{
       font-weight: 900;
-      color: rgba(191,219,254,0.95);
+      color: rgba(255,255,255,0.85);
+    }
+
+    th.col-name,
+    th.col-total,
+    td.col-name,
+    td.col-total{
+      background: rgba(59,130,246,0.18);
+    }
+
+    .hole-score.score-gold{ color: #f5d76e; }
+    .hole-score.score-purple{ color: #c084fc; }
+    .hole-score.score-blue{ color: #60a5fa; }
+    .hole-score.score-green{ color: #4ade80; }
+    .hole-score.score-red{ color: #f87171; }
+
+    .hole-header{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 2px;
+    }
+
+    .wind{
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 4px;
+    }
+
+    .wind-0{ color: rgba(255,255,255,0.9); }
+    .wind-low{ color: #60a5fa; }
+    .wind-mid{ color: #facc15; }
+    .wind-high{ color: #c084fc; }
+
+    .pin-position{
+      font-size: 10px;
+      color: rgba(148,163,184,0.75);
+    }
+
+    .hole-number{
+      font-size: 14px;
+      font-weight: 800;
+      color: rgba(147,197,253,0.98);
     }
 
     .hole-chip{
@@ -318,9 +364,82 @@
       return s === "" ? "—" : s;
     }
 
-    function extractHoleNumber(raw){
-      const match = String(raw ?? "").trim().match(/^(\d+)/);
-      return match ? match[1] : "";
+    function parseHoleHeader(raw){
+      const text = String(raw ?? "").trim();
+      const numbers = text.match(/\d+/g) ?? [];
+      const letters = text.match(/[A-Za-z]+/g) ?? [];
+      const holeNumber = numbers[0] ?? "";
+      const windSpeed = numbers[1] ? Number.parseInt(numbers[1], 10) : null;
+      const windDir = letters[1] ? letters[1].toUpperCase() : "";
+      const pinCode = letters[0] ? letters[0].toUpperCase() : "";
+      return {
+        holeNumber,
+        windSpeed: Number.isNaN(windSpeed) ? null : windSpeed,
+        windDir,
+        pinCode,
+      };
+    }
+
+    function formatPinPosition(code){
+      const map = { B: "back", F: "front", M: "middle", L: "left", R: "right" };
+      return String(code ?? "")
+        .split("")
+        .map(letter => map[letter])
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    function getWindArrow(direction){
+      const arrows = {
+        N: "↑",
+        S: "↓",
+        E: "→",
+        W: "←",
+        NE: "↗",
+        NW: "↖",
+        SE: "↘",
+        SW: "↙",
+      };
+      return arrows[direction] ?? "";
+    }
+
+    function getWindClass(speed){
+      if(speed === 0) return "wind-0";
+      if(speed >= 2 && speed <= 11) return "wind-low";
+      if(speed >= 13 && speed <= 22) return "wind-mid";
+      if(speed >= 24 && speed <= 33) return "wind-high";
+      return "";
+    }
+
+    function renderHoleHeader(hole){
+      const windSpeed = hole.windSpeed;
+      const windText = windSpeed !== null ? `${windSpeed}mph` : "—";
+      const windClass = getWindClass(windSpeed);
+      const arrow = windSpeed && windSpeed > 0 ? getWindArrow(hole.windDir) : "";
+      const pinText = formatPinPosition(hole.pinCode);
+      const holeNumber = hole.holeNumber || "—";
+
+      return `
+        <div class="hole-header">
+          <div class="wind ${windClass}">
+            ${escapeHtml(windText)}
+            ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
+          </div>
+          <div class="pin-position">${escapeHtml(pinText || "—")}</div>
+          <div class="hole-number">${escapeHtml(holeNumber)}</div>
+        </div>
+      `;
+    }
+
+    function getScoreClass(value){
+      const score = Number.parseInt(String(value ?? "").trim(), 10);
+      if(Number.isNaN(score)) return "";
+      if(score <= -3) return "score-gold";
+      if(score === -2) return "score-purple";
+      if(score === -1) return "score-blue";
+      if(score === 0) return "score-green";
+      if(score >= 1) return "score-red";
+      return "";
     }
 
     function parseWeeks(values){
@@ -354,9 +473,13 @@
           if(!headerValue && !hasPlayerValue){
             continue;
           }
+          const holeMeta = parseHoleHeader(headerValue);
           holeColumns.push({
             col,
-            label: extractHoleNumber(headerValue) || "—",
+            holeNumber: holeMeta.holeNumber || "—",
+            windSpeed: holeMeta.windSpeed,
+            windDir: holeMeta.windDir,
+            pinCode: holeMeta.pinCode,
           });
         }
 
@@ -429,20 +552,26 @@
             <thead>
               <tr>
                 <th>Finish</th>
-                <th>Player</th>
-                ${mainHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
-                <th>Total</th>
-                ${playoffHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
+                <th class="col-name">Player</th>
+                ${mainHoles.map(hole => `<th>${renderHoleHeader(hole)}</th>`).join("")}
+                <th class="col-total">Total</th>
+                ${playoffHoles.map(hole => `<th>${renderHoleHeader(hole)}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
               ${week.playerRows.map(player => `
                 <tr>
                   <td>${escapeHtml(player.finish)}</td>
-                  <td class="name">${escapeHtml(player.name)}</td>
-                  ${mainHoles.map((_, i) => `<td>${escapeHtml(player.holes[i] ?? "—")}</td>`).join("")}
-                  <td class="total">${escapeHtml(player.total)}</td>
-                  ${playoffHoles.map((_, i) => `<td>${escapeHtml(player.holes[i + 9] ?? "—")}</td>`).join("")}
+                  <td class="name col-name">${escapeHtml(player.name)}</td>
+                  ${mainHoles.map((_, i) => {
+                    const value = player.holes[i] ?? "—";
+                    return `<td class="hole-score ${getScoreClass(value)}">${escapeHtml(value)}</td>`;
+                  }).join("")}
+                  <td class="total col-total">${escapeHtml(player.total)}</td>
+                  ${playoffHoles.map((_, i) => {
+                    const value = player.holes[i + 9] ?? "—";
+                    return `<td class="hole-score ${getScoreClass(value)}">${escapeHtml(value)}</td>`;
+                  }).join("")}
                 </tr>
               `).join("")}
             </tbody>
