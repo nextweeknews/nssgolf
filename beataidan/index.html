@@ -180,6 +180,8 @@
       overflow-x: auto;
       border-radius: 14px;
       border: 1px solid rgba(148,163,184,0.12);
+      padding-bottom: 12px;
+      scrollbar-gutter: stable both-edges;
     }
 
     table{
@@ -438,6 +440,13 @@
       return s;
     }
 
+    function formatHoleScoreDisplay(value){
+      const s = String(value ?? "").trim();
+      if(s === "") return "";
+      if(s === "0") return "E";
+      return s;
+    }
+
     function parseHoleHeader(raw){
       const text = String(raw ?? "").trim();
       const numbers = text.match(/\d+/g) ?? [];
@@ -686,12 +695,12 @@
                   <td class="name col-name">${escapeHtml(player.name)}</td>
                   ${mainHoles.map((_, i) => {
                     const value = player.holes[i] ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatScoreDisplay(value))}</td>`;
+                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
                   }).join("")}
                   <td class="total col-total">${escapeHtml(formatScoreDisplay(player.total))}</td>
                   ${playoffHoles.map((_, i) => {
                     const value = player.holes[i + 9] ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatScoreDisplay(value))}</td>`;
+                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
                   }).join("")}
                 </tr>
               `).join("")}
