@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Beataidan Weekly Matches</title>
+  <title>beat aidan challenge</title>
 
   <style>
     :root{
@@ -26,6 +26,7 @@
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       color: var(--text);
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+      text-transform: uppercase;
     }
 
     a{ color: inherit; text-decoration: none; }
@@ -118,15 +119,17 @@
       border-radius: 18px;
       padding: 16px 16px 18px;
       margin-bottom: 18px;
+      position: relative;
     }
 
     .week-header{
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      justify-content:center;
       margin-bottom: 12px;
       flex-wrap: wrap;
       gap: 10px;
+      text-align: center;
     }
 
     .week-title{
@@ -137,16 +140,40 @@
       color: rgba(226,232,240,0.85);
     }
 
-    .week-meta{
-      font-size: 12px;
-      color: rgba(148,163,184,0.9);
-      letter-spacing: .12em;
+    .week-select{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: .2em;
       text-transform: uppercase;
+      color: rgba(226,232,240,0.92);
       border: 1px solid rgba(148,163,184,0.25);
-      padding: 6px 10px;
+      padding: 8px 14px;
       border-radius: 999px;
       background: rgba(15,23,42,0.6);
+      appearance: none;
+      cursor: pointer;
     }
+
+    .week-nav{
+      position: absolute;
+      top: 12px;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.8);
+      color: rgba(226,232,240,0.9);
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .week-nav[disabled]{
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .week-prev{ left: 12px; }
+    .week-next{ right: 12px; }
 
     .table-wrap{
       width: 100%;
@@ -192,11 +219,12 @@
       text-align: left;
       font-weight: 700;
       letter-spacing: .02em;
+      color: rgba(191,219,254,0.95);
     }
 
     tbody td.total{
       font-weight: 900;
-      color: #fff;
+      color: rgba(191,219,254,0.95);
     }
 
     .hole-chip{
@@ -227,18 +255,13 @@
         </a>
         <div>
           <div class="kicker">Weekly Matches</div>
-          <div class="page-title">Beataidan</div>
+          <div class="page-title">beat aidan challenge</div>
         </div>
       </div>
-      <div class="week-meta">Live from Google Sheets</div>
     </div>
   </div>
 
   <div class="container">
-    <div class="page-subtitle">
-      Weekly match cards show finish order, hole-by-hole scoring, and playoff holes when needed.
-    </div>
-
     <div class="card">
       <div id="status" class="status">Loading weekly results…</div>
       <div id="weeks"></div>
@@ -344,7 +367,14 @@
             name: formatCell(row?.[3]),
             total: formatCell(row?.[2]),
             holes: holeColumns.map(hole => formatCell(row?.[hole.col])),
-          }));
+          }))
+          .sort((a, b) => {
+            const aFinish = Number.parseInt(a.finish, 10);
+            const bFinish = Number.parseInt(b.finish, 10);
+            const aScore = Number.isNaN(aFinish) ? Number.POSITIVE_INFINITY : aFinish;
+            const bScore = Number.isNaN(bFinish) ? Number.POSITIVE_INFINITY : bFinish;
+            return aScore - bScore;
+          });
 
         if(playerRows.length){
           weeks.push({
@@ -358,7 +388,12 @@
       return weeks;
     }
 
-    function renderWeeks(weeks){
+    function getWeekSortValue(week){
+      const match = String(week.weekNumber ?? "").match(/\d+/);
+      return match ? Number.parseInt(match[0], 10) : -1;
+    }
+
+    function renderWeek(weeks, index){
       const container = document.getElementById("weeks");
       container.innerHTML = "";
 
@@ -367,45 +402,75 @@
         return;
       }
 
-      weeks.forEach((week, index) => {
-        const mainHoles = week.holeColumns.slice(0, 9);
-        const playoffHoles = week.holeColumns.slice(9);
+      const week = weeks[index];
+      if(!week){
+        container.innerHTML = `<div class="status">No match data available yet.</div>`;
+        return;
+      }
 
-        const card = document.createElement("div");
-        card.className = "week-card";
+      const mainHoles = week.holeColumns.slice(0, 9);
+      const playoffHoles = week.holeColumns.slice(9);
 
-        card.innerHTML = `
-          <div class="week-header">
-            <div class="week-title">Week ${escapeHtml(week.weekNumber)}</div>
-            <div class="week-meta">Match ${index + 1}</div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
+      const card = document.createElement("div");
+      card.className = "week-card";
+
+      card.innerHTML = `
+        <button class="week-nav week-prev" type="button" aria-label="Previous week" ${index === 0 ? "disabled" : ""}>&larr;</button>
+        <button class="week-nav week-next" type="button" aria-label="Next week" ${index === weeks.length - 1 ? "disabled" : ""}>&rarr;</button>
+        <div class="week-header">
+          <select class="week-select" aria-label="Select week">
+            ${weeks.map((entry, i) => `
+              <option value="${i}" ${i === index ? "selected" : ""}>Week ${escapeHtml(entry.weekNumber)}</option>
+            `).join("")}
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Finish</th>
+                <th>Player</th>
+                ${mainHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
+                <th>Total</th>
+                ${playoffHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${week.playerRows.map(player => `
                 <tr>
-                  <th>Finish</th>
-                  <th>Player</th>
-                  ${mainHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
-                  <th>Total</th>
-                  ${playoffHoles.map(hole => `<th><span class="hole-chip">${escapeHtml(hole.label)}</span></th>`).join("")}
+                  <td>${escapeHtml(player.finish)}</td>
+                  <td class="name">${escapeHtml(player.name)}</td>
+                  ${mainHoles.map((_, i) => `<td>${escapeHtml(player.holes[i] ?? "—")}</td>`).join("")}
+                  <td class="total">${escapeHtml(player.total)}</td>
+                  ${playoffHoles.map((_, i) => `<td>${escapeHtml(player.holes[i + 9] ?? "—")}</td>`).join("")}
                 </tr>
-              </thead>
-              <tbody>
-                ${week.playerRows.map(player => `
-                  <tr>
-                    <td>${escapeHtml(player.finish)}</td>
-                    <td class="name">${escapeHtml(player.name)}</td>
-                    ${mainHoles.map((_, i) => `<td>${escapeHtml(player.holes[i] ?? "—")}</td>`).join("")}
-                    <td class="total">${escapeHtml(player.total)}</td>
-                    ${playoffHoles.map((_, i) => `<td>${escapeHtml(player.holes[i + 9] ?? "—")}</td>`).join("")}
-                  </tr>
-                `).join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
 
-        container.appendChild(card);
+      container.appendChild(card);
+
+      const select = card.querySelector(".week-select");
+      const prevBtn = card.querySelector(".week-prev");
+      const nextBtn = card.querySelector(".week-next");
+      select?.addEventListener("change", (event) => {
+        const target = event.target;
+        const nextIndex = Number.parseInt(target.value, 10);
+        if(Number.isNaN(nextIndex)) return;
+        currentWeekIndex = nextIndex;
+        renderWeek(weeks, currentWeekIndex);
+      });
+      prevBtn?.addEventListener("click", () => {
+        if(currentWeekIndex <= 0) return;
+        currentWeekIndex -= 1;
+        renderWeek(weeks, currentWeekIndex);
+      });
+      nextBtn?.addEventListener("click", () => {
+        if(currentWeekIndex >= weeks.length - 1) return;
+        currentWeekIndex += 1;
+        renderWeek(weeks, currentWeekIndex);
       });
     }
 
@@ -423,15 +488,17 @@
       status.textContent = "Loading weekly results…";
       try{
         const values = await fetchRange("A1:CH500");
-        const weeks = parseWeeks(values);
+        const weeks = parseWeeks(values).sort((a, b) => getWeekSortValue(a) - getWeekSortValue(b));
+        currentWeekIndex = Math.max(weeks.length - 1, 0);
         status.remove();
-        renderWeeks(weeks);
+        renderWeek(weeks, currentWeekIndex);
       }catch(err){
         status.textContent = "Unable to load weekly results.";
         console.error(err);
       }
     }
 
+    let currentWeekIndex = 0;
     load();
     setInterval(load, REFRESH_MS);
   </script>
