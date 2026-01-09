@@ -357,8 +357,8 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap: 3px;
-      line-height: 1.05;
+      gap: 1px;
+      line-height: 1.02;
     }
 
     .wind{
@@ -381,7 +381,7 @@
     .wind-high{ color: #c0267d; }
 
     .pin-position{
-      font-size: 8px;
+      font-size: 6px;
       letter-spacing: .08em;
       color: rgba(148,163,184,0.75);
       text-transform: uppercase;
@@ -399,7 +399,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 4px;
+      gap: 1px;
     }
 
     .hole-par-label{
@@ -412,7 +412,111 @@
     .hole-par-value{
       font-size: 12px;
       font-weight: 800;
-      color: rgba(226,232,240,0.85);
+      color: rgba(148,163,184,0.8);
+    }
+
+    .hole-score{
+      padding: 0;
+    }
+
+    .score-button{
+      width: 100%;
+      padding: 10px 6px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      cursor: pointer;
+    }
+
+    .score-button:focus-visible{
+      outline: 2px solid rgba(56,189,248,0.65);
+      outline-offset: -2px;
+    }
+
+    .score-button:hover{
+      background: rgba(148,163,184,0.12);
+    }
+
+    .score-modal{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 50;
+    }
+
+    .score-modal.is-open{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .score-modal-backdrop{
+      position: absolute;
+      inset: 0;
+      background: rgba(3,12,28,0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .score-modal-dialog{
+      position: relative;
+      z-index: 1;
+      min-width: 240px;
+      max-width: 320px;
+      width: calc(100% - 48px);
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,0.2);
+      background: rgba(10,22,44,0.98);
+      padding: 16px 16px 18px;
+      text-align: center;
+      box-shadow: 0 24px 40px rgba(0,0,0,0.5);
+    }
+
+    .score-modal-title{
+      font-size: 12px;
+      letter-spacing: .2em;
+      font-weight: 800;
+      color: rgba(226,232,240,0.8);
+      margin-bottom: 12px;
+    }
+
+    .score-modal-content{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(226,232,240,0.9);
+    }
+
+    .score-modal-holeout{
+      color: rgba(59,130,246,0.95);
+      font-size: 16px;
+      letter-spacing: .08em;
+    }
+
+    .score-modal-green{
+      color: rgba(74,222,128,0.95);
+    }
+
+    .score-modal-close{
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.75);
+      color: rgba(226,232,240,0.9);
+      font-size: 16px;
+      cursor: pointer;
     }
 
     .star-btn{
@@ -510,6 +614,15 @@
     <div class="footer">Beataidan Weekly Matches</div>
   </div>
 
+  <div class="score-modal" id="score-modal" aria-hidden="true">
+    <div class="score-modal-backdrop" data-modal-close></div>
+    <div class="score-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="score-modal-title">
+      <button class="score-modal-close" type="button" aria-label="Close score details" data-modal-close>×</button>
+      <div class="score-modal-title" id="score-modal-title">Hole Details</div>
+      <div class="score-modal-content" id="score-modal-content"></div>
+    </div>
+  </div>
+
   <script>
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1sbAQKwAoHzhGaRX2aI6v79wrsU7nuO7hI8xnaOexOiM";
@@ -594,6 +707,15 @@
       if(s === "") return "";
       if(s === "0") return "E";
       return s;
+    }
+
+    function parseCheckboxValue(value){
+      if(value === true) return true;
+      if(value === false) return false;
+      const normalized = String(value ?? "").trim().toLowerCase();
+      if(normalized === "true") return true;
+      if(normalized === "false") return false;
+      return null;
     }
 
     function parseHoleHeader(raw){
@@ -780,7 +902,16 @@
               name,
               isAidan: String(name).toLowerCase() === AIDAN_NAME.toLowerCase(),
               total: row?.[2] ?? "",
-              holes: holeColumns.map(hole => row?.[hole.col] ?? ""),
+              holes: holeColumns.map(hole => {
+                const baseCol = hole.col;
+                return {
+                  score: row?.[baseCol] ?? "",
+                  greenHit: row?.[baseCol + 1] ?? "",
+                  putts: row?.[baseCol + 2] ?? "",
+                  events: row?.[baseCol + 3] ?? "",
+                  holeOut: row?.[baseCol + 4] ?? "",
+                };
+              }),
             };
           })
           .sort((a, b) => {
@@ -874,14 +1005,20 @@
                 <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
                   <td class="name col-name">${escapeHtml(player.name)}${starButton}</td>
-                  ${mainHoles.map((_, i) => {
-                    const value = player.holes[i] ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
+                  ${mainHoles.map((hole, i) => {
+                    const holeData = player.holes[i] ?? {};
+                    const scoreValue = holeData.score ?? "";
+                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}" data-green-hit="${escapeHtml(holeData.greenHit ?? "")}" data-putts="${escapeHtml(holeData.putts ?? "")}" data-events="${escapeHtml(holeData.events ?? "")}" data-hole-out="${escapeHtml(holeData.holeOut ?? "")}">
+                      <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
+                    </td>`;
                   }).join("")}
                   <td class="total col-total">${escapeHtml(formatScoreDisplay(player.total))}</td>
-                  ${playoffHoles.map((_, i) => {
-                    const value = player.holes[i + 9] ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
+                  ${playoffHoles.map((hole, i) => {
+                    const holeData = player.holes[i + 9] ?? {};
+                    const scoreValue = holeData.score ?? "";
+                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}" data-green-hit="${escapeHtml(holeData.greenHit ?? "")}" data-putts="${escapeHtml(holeData.putts ?? "")}" data-events="${escapeHtml(holeData.events ?? "")}" data-hole-out="${escapeHtml(holeData.holeOut ?? "")}">
+                      <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
+                    </td>`;
                   }).join("")}
                 </tr>
               `;
@@ -919,6 +1056,111 @@
         if(!tableWrap) return;
         tableWrap.scrollTo({ left: tableWrap.scrollWidth, behavior: "smooth" });
       });
+
+      const scoreButtons = card.querySelectorAll(".hole-score .score-button");
+      scoreButtons.forEach(button => {
+        button.addEventListener("click", () => {
+          const cell = button.closest(".hole-score");
+          if(!cell) return;
+          openScoreModal({
+            holeNumber: cell.dataset.holeNumber || "—",
+            greenHit: cell.dataset.greenHit ?? "",
+            putts: cell.dataset.putts ?? "",
+            events: cell.dataset.events ?? "",
+            holeOut: cell.dataset.holeOut ?? "",
+          });
+        });
+      });
+    }
+
+    function formatEventLabel(code){
+      const key = String(code ?? "").trim().toLowerCase();
+      const map = {
+        xsv: "Missed Save",
+        sv: "Made Save",
+        xfp: "Missed Off-Green Putt",
+        fp: "Made Off-Green Putt",
+        ph: "Pin Hit",
+        lr: "Launch Roll",
+        xfw: "Fairway Missed",
+        pl: "Pin Launch",
+        ll: "Lip Launch",
+      };
+      return map[key] ?? code;
+    }
+
+    function openScoreModal(data){
+      const modal = document.getElementById("score-modal");
+      const modalTitle = document.getElementById("score-modal-title");
+      const modalContent = document.getElementById("score-modal-content");
+      if(!modal || !modalTitle || !modalContent) return;
+
+      const holeOut = parseCheckboxValue(data.holeOut);
+      const greenHit = parseCheckboxValue(data.greenHit);
+      const puttsValue = String(data.putts ?? "").trim();
+      const eventsRaw = String(data.events ?? "").trim();
+
+      modalTitle.textContent = `Hole ${data.holeNumber || "—"} Details`;
+      modalContent.innerHTML = "";
+
+      if(holeOut){
+        const line = document.createElement("div");
+        line.className = "score-modal-holeout";
+        line.textContent = "HOLE OUT!";
+        modalContent.appendChild(line);
+      }else{
+        const lines = [];
+        if(greenHit){
+          lines.push({ text: "GREEN HIT", className: "score-modal-green" });
+        }
+        lines.push({ text: `PUTTS: ${puttsValue || "—"}` });
+
+        if(eventsRaw){
+          const events = eventsRaw
+            .split(",")
+            .map(entry => entry.trim())
+            .filter(Boolean)
+            .map(entry => formatEventLabel(entry));
+          events.forEach(eventLabel => {
+            lines.push({ text: eventLabel });
+          });
+        }
+
+        if(!lines.length){
+          lines.push({ text: "No details available." });
+        }
+
+        lines.forEach(lineInfo => {
+          const line = document.createElement("div");
+          line.textContent = lineInfo.text;
+          if(lineInfo.className){
+            line.className = lineInfo.className;
+          }
+          modalContent.appendChild(line);
+        });
+      }
+
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeScoreModal(){
+      const modal = document.getElementById("score-modal");
+      if(!modal) return;
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function setupScoreModal(){
+      const modal = document.getElementById("score-modal");
+      if(!modal) return;
+      modal.querySelectorAll("[data-modal-close]").forEach(trigger => {
+        trigger.addEventListener("click", () => closeScoreModal());
+      });
+      document.addEventListener("keydown", (event) => {
+        if(event.key !== "Escape") return;
+        closeScoreModal();
+      });
     }
 
     function escapeHtml(s){
@@ -950,6 +1192,7 @@
         currentWeekIndex = Math.max(weeks.length - 1, 0);
         status.remove();
         setupWindToggle();
+        setupScoreModal();
         renderWeek(weeks, currentWeekIndex);
       }catch(err){
         status.textContent = "Unable to load weekly results.";
