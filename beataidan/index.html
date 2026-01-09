@@ -183,10 +183,16 @@
     }
 
     table{
-      width: max-content;
+      width: calc(100% + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
       min-width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+    }
+
+    thead tr,
+    tbody tr{
+      display: grid;
+      grid-template-columns: var(--pos-width, 68px) 1fr repeat(9, var(--hole-width, 68px)) var(--total-width, 72px) repeat(var(--playoff-holes, 0), var(--hole-width, 68px));
     }
 
     thead th{
@@ -241,10 +247,10 @@
     .hole-score.score-green{ color: #4ade80; }
     .hole-score.score-red{ color: #f87171; }
 
-    .col-pos{ width: 68px; }
-    .col-name{ width: 180px; }
-    .col-total{ width: 72px; }
-    .col-hole{ width: 68px; }
+    .col-pos{ width: var(--pos-width, 68px); }
+    .col-name{ width: auto; }
+    .col-total{ width: var(--total-width, 72px); }
+    .col-hole{ width: var(--hole-width, 68px); }
 
     .hole-score,
     .finish-pos{
@@ -617,7 +623,7 @@
           </div>
         ` : ""}
         <div class="table-wrap">
-          <table>
+          <table style="--playoff-holes: ${playoffHoles.length};">
             <thead>
               <tr>
                 <th class="col-pos">Pos.</th>
