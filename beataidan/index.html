@@ -183,9 +183,9 @@
     }
 
     table{
-      width: 100%;
+      width: max-content;
+      min-width: 100%;
       border-collapse: collapse;
-      min-width: 0;
       table-layout: fixed;
     }
 
@@ -241,10 +241,10 @@
     .hole-score.score-green{ color: #4ade80; }
     .hole-score.score-red{ color: #f87171; }
 
-    .col-pos{ width: 7%; }
-    .col-name{ width: 18%; }
-    .col-total{ width: 8%; }
-    .col-hole{ width: 7%; }
+    .col-pos{ width: 68px; }
+    .col-name{ width: 180px; }
+    .col-total{ width: 72px; }
+    .col-hole{ width: 68px; }
 
     .hole-score,
     .finish-pos{
@@ -268,7 +268,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 4px;
+      gap: 0;
     }
 
     .wind-speed{
@@ -286,9 +286,10 @@
     .wind-high{ color: #910951; }
 
     .pin-position{
-      font-size: 7px;
-      letter-spacing: .06em;
+      font-size: 6px;
+      letter-spacing: .04em;
       color: rgba(148,163,184,0.75);
+      white-space: nowrap;
     }
 
     .hole-number{
@@ -411,6 +412,13 @@
       return s === "" ? "—" : s;
     }
 
+    function formatScoreDisplay(value){
+      const s = String(value ?? "").trim();
+      if(s === "") return "—";
+      if(s === "0") return "E";
+      return s;
+    }
+
     function parseHoleHeader(raw){
       const text = String(raw ?? "").trim();
       const numbers = text.match(/\d+/g) ?? [];
@@ -477,9 +485,9 @@
       return `
         <div class="hole-header">
           <div class="wind ${windClass}">
+            ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
             <span class="wind-speed">${escapeHtml(windText)}</span>
             ${windSpeed !== null ? `<span class="wind-unit">mph</span>` : ""}
-            ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
           </div>
           <div class="pin-position">${escapeHtml(pinText || "—")}</div>
           <div class="hole-number">${escapeHtml(holeNumber)}</div>
@@ -544,8 +552,8 @@
           .map(row => ({
             finish: formatCell(row?.[1]),
             name: formatCell(row?.[3]),
-            total: formatCell(row?.[2]),
-            holes: holeColumns.map(hole => formatCell(row?.[hole.col])),
+            total: row?.[2] ?? "",
+            holes: holeColumns.map(hole => row?.[hole.col] ?? ""),
           }))
           .sort((a, b) => {
             const aFinish = Number.parseInt(a.finish, 10);
@@ -625,13 +633,13 @@
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
                   <td class="name col-name">${escapeHtml(player.name)}</td>
                   ${mainHoles.map((_, i) => {
-                    const value = player.holes[i] ?? "—";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(value)}</td>`;
+                    const value = player.holes[i] ?? "";
+                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatScoreDisplay(value))}</td>`;
                   }).join("")}
-                  <td class="total col-total">${escapeHtml(player.total)}</td>
+                  <td class="total col-total">${escapeHtml(formatScoreDisplay(player.total))}</td>
                   ${playoffHoles.map((_, i) => {
-                    const value = player.holes[i + 9] ?? "—";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(value)}</td>`;
+                    const value = player.holes[i + 9] ?? "";
+                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatScoreDisplay(value))}</td>`;
                   }).join("")}
                 </tr>
               `).join("")}
