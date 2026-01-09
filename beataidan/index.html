@@ -101,8 +101,8 @@
     }
 
     .toggle-switch input:checked + .toggle-track{
-      border-color: rgba(56,189,248,0.6);
-      background: rgba(56,189,248,0.2);
+      border-color: rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.8);
     }
 
     .toggle-switch input:checked + .toggle-track .toggle-thumb{
@@ -395,26 +395,6 @@
       letter-spacing: .04em;
     }
 
-    .hole-par-row{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap: 1px;
-    }
-
-    .hole-par-label{
-      font-size: 7px;
-      font-weight: 800;
-      color: rgba(148,163,184,0.8);
-      letter-spacing: .12em;
-    }
-
-    .hole-par-value{
-      font-size: 12px;
-      font-weight: 800;
-      color: rgba(148,163,184,0.8);
-    }
-
     .hole-score{
       padding: 0;
     }
@@ -519,21 +499,21 @@
       cursor: pointer;
     }
 
-    .star-btn{
+    .beat-aidan-btn{
       margin-left: 6px;
-      width: 18px;
-      height: 18px;
+      padding: 2px 6px;
       border-radius: 999px;
-      border: 1px solid rgba(250,204,21,0.6);
-      background: rgba(250,204,21,0.15);
+      border: 1px solid rgba(250,204,21,0.7);
+      background: transparent;
       color: rgba(250,204,21,0.95);
-      font-size: 11px;
+      font-size: 8px;
       font-weight: 800;
+      letter-spacing: .12em;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       vertical-align: middle;
-      padding: 0;
+      text-transform: uppercase;
     }
 
     .hole-chip{
@@ -829,10 +809,7 @@
           <div class="pin-position">${escapeHtml(pinText || "—")}</div>
           <div class="hole-number">${escapeHtml(holeNumber)}</div>
           ${holePar ? `
-            <div class="hole-par-row">
-              <span class="hole-par-label">par</span>
-              <span class="hole-par-value">${holePar}</span>
-            </div>
+            <div class="pin-position">par ${holePar}</div>
           ` : ""}
         </div>
       `;
@@ -999,7 +976,7 @@
                   player.isAidan ? "row-aidan" : "",
                 ].filter(Boolean).join(" ");
                 const starButton = isBetterThanAidan
-                  ? `<button class="star-btn" type="button" aria-label="Star player">★</button>`
+                  ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
                   : "";
                 return `
                 <tr class="${rowClass}">
