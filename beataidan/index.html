@@ -17,6 +17,7 @@
       --muted: rgba(255,255,255,.72);
       --link-blue: rgba(147,197,253,0.98);
       --accent: rgba(56,189,248,0.5);
+      --hole-width: 58px;
     }
 
     *{ box-sizing:border-box; }
@@ -356,29 +357,22 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap: 2px;
-      line-height: 1.1;
-    }
-
-    .hole-header-top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 0;
-      width: 100%;
+      gap: 3px;
+      line-height: 1.05;
     }
 
     .wind{
-      font-size: 11px;
-      font-weight: 700;
       display:flex;
       align-items:center;
-      justify-content:flex-end;
-      gap: 0;
+      justify-content:center;
+      gap: 2px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .02em;
     }
 
     .wind-speed{
-      letter-spacing: .02em;
+      letter-spacing: .04em;
     }
 
     .wind-0{ color: rgba(255,255,255,0.9); }
@@ -387,37 +381,38 @@
     .wind-high{ color: #c0267d; }
 
     .pin-position{
-      font-size: 6px;
-      letter-spacing: .04em;
+      font-size: 8px;
+      letter-spacing: .08em;
       color: rgba(148,163,184,0.75);
       text-transform: uppercase;
-      display:flex;
-      flex-direction:column;
-      align-items:flex-start;
-      justify-content:center;
-      line-height: 1.05;
-    }
-
-    .pin-position span{
-      line-height: 1.05;
-    }
-
-    .pin-position.pin-single{
-      justify-content:center;
+      white-space: nowrap;
     }
 
     .hole-number{
-      font-size: 14px;
+      font-size: 22px;
       font-weight: 800;
       color: rgba(147,197,253,0.98);
       letter-spacing: .04em;
     }
 
-    .hole-number-row{
+    .hole-par-row{
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 2px;
+      gap: 4px;
+    }
+
+    .hole-par-label{
+      font-size: 7px;
+      font-weight: 800;
+      color: rgba(148,163,184,0.8);
+      letter-spacing: .12em;
+    }
+
+    .hole-par-value{
+      font-size: 12px;
+      font-weight: 800;
+      color: rgba(226,232,240,0.85);
     }
 
     .star-btn{
@@ -435,13 +430,6 @@
       justify-content: center;
       vertical-align: middle;
       padding: 0;
-    }
-
-    .hole-par{
-      font-size: 9px;
-      font-weight: 700;
-      color: rgba(148,163,184,0.8);
-      letter-spacing: .08em;
     }
 
     .hole-chip{
@@ -707,25 +695,23 @@
       const windClass = getWindClass(windSpeed);
       const arrow = windSpeed && windSpeed > 0 ? getWindArrow(hole.windDir) : "";
       const pinText = formatPinPosition(hole.pinCode);
-      const pinWords = pinText ? pinText.split(" ").filter(Boolean) : [];
       const holeNumber = hole.holeNumber || "—";
       const holePar = getParForHole(holeNumber);
 
       return `
         <div class="hole-header">
-          <div class="hole-header-top">
-            <div class="pin-position ${pinWords.length === 1 ? "pin-single" : ""}">
-              ${pinWords.length ? pinWords.map(word => `<span>${escapeHtml(word)}</span>`).join("") : "<span>—</span>"}
-            </div>
-            <div class="wind ${windClass}">
-              ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
-              <span class="wind-speed">${escapeHtml(windText)}</span>
-            </div>
+          <div class="wind ${windClass}">
+            ${arrow ? `<span class="wind-arrow">${arrow}</span>` : ""}
+            <span class="wind-speed">${escapeHtml(windText)}</span>
           </div>
-          <div class="hole-number-row">
-            <span class="hole-number">${escapeHtml(holeNumber)}</span>
-            ${holePar ? `<span class="hole-par">${holePar}</span>` : ""}
-          </div>
+          <div class="pin-position">${escapeHtml(pinText || "—")}</div>
+          <div class="hole-number">${escapeHtml(holeNumber)}</div>
+          ${holePar ? `
+            <div class="hole-par-row">
+              <span class="hole-par-label">par</span>
+              <span class="hole-par-value">${holePar}</span>
+            </div>
+          ` : ""}
         </div>
       `;
     }
