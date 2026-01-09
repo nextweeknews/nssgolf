@@ -16,6 +16,7 @@
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
       --header-bg: rgba(148,163,184,0.12);
       --row-bg: rgba(255,255,255,0.06);
+      --top10-bg: rgba(16,185,129,0.18);
 
       --text: #e9eef8;
       --title: #c7d7ff;
@@ -240,6 +241,7 @@
       overflow:hidden;
       font-size: 18px;
       font-weight: 700;
+      transition: background .25s ease;
       min-width: 0;
     }
 
@@ -254,18 +256,23 @@
       align-items:center;
       justify-content:center;
       height: 100%;
+      background: transparent;
+      font-variant-numeric: tabular-nums;
     }
+    .place.top10bg{ background: var(--top10-bg); }
     .gold{color:var(--gold);}
     .silver{color:var(--silver);}
     .bronze{color:var(--bronze);}
 
     .team-cell{
+      position: relative;
       width: 100%;
       height: 100%;
       padding: 0 12px;
       border:none;
       background: rgba(255,255,255,0.08);
       color:#fff;
+      cursor:pointer;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .02em;
@@ -275,7 +282,9 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
+      border-radius: 0;
     }
+    .team-cell:hover{ filter: brightness(1.04); }
     .team-logo-slot{
       width: var(--logo-slot);
       height: 100%;
@@ -286,10 +295,10 @@
       flex: 0 0 auto;
     }
     .team-logo{
-      height: calc(100% - 10px);
+      height: calc(100%);
       width: auto;
       aspect-ratio: 1 / 1;
-      object-fit: contain;
+      object-fit: cover;
       display:block;
       border:none;
       outline:none;
@@ -318,7 +327,7 @@
       justify-content:center;
       background:#d9d9d9;
       color:#000;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 900;
       padding: 0 10px;
       min-width: 0;
@@ -368,7 +377,7 @@
     .weekly-round{
       background: rgba(255,255,255,0.06);
       color: #ffffff;
-      font-size: 16px;
+      font-size: 22px;
       font-weight: 900;
       min-width: 0;
       font-variant-numeric: tabular-nums;
@@ -447,13 +456,13 @@
 
     @media (max-width: 760px){
       :root{
-        --rank-col: 72px;
-        --score-col: 82px;
+        --rank-col: 60px;
+        --score-col: 70px;
         --name-col: 240px;
 
-        --wk-rank-col: 72px;
-        --wk-round-col: 64px;
-        --wk-score-col: 92px;
+        --wk-rank-col: 60px;
+        --wk-round-col: 48px;
+        --wk-score-col: 70px;
         --wk-name-col: calc(var(--name-col) - var(--wk-round-col) - var(--wk-round-col));
         --wk-name-col-mobile: var(--name-col);
 
@@ -465,10 +474,11 @@
       .lobby-entry{ height: 44px; }
 
       .place{ font-size: 18px; padding: 0 6px; }
-      .score-col{ font-size: 16px; padding: 0 6px; }
+      .score-col{ font-size: 18px; padding: 0 6px; }
+      .team-cell{ padding: 0 8px; }
       .name-text{ font-size: 16px; padding-left: 8px; }
-      .weekly-round{ font-size: 14px; }
-      .team-logo{ height: calc(100% - 8px); }
+      .weekly-round{ font-size: 18px; }
+      .team-logo{ height: calc(100%); }
     }
   </style>
 </head>
