@@ -320,7 +320,12 @@
         })();
 
         const holeColumns = [];
-        for(let col = 4; col < header.length; col += 5){
+        const maxCols = Math.max(
+          header.length,
+          ...players.map(row => row?.length ?? 0),
+        );
+
+        for(let col = 4; col < maxCols; col += 5){
           const headerValue = String(header?.[col] ?? "").trim();
           const hasPlayerValue = players.some(row => String(row?.[col] ?? "").trim() !== "");
           if(!headerValue && !hasPlayerValue){
