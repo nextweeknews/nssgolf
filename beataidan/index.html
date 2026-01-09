@@ -180,13 +180,21 @@
       overflow-x: auto;
       border-radius: 14px;
       border: 1px solid rgba(148,163,184,0.12);
+      padding-bottom: 12px;
+      scrollbar-gutter: stable both-edges;
     }
 
     table{
-      width: max-content;
+      width: calc(100% + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
       min-width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
+    }
+
+    thead tr,
+    tbody tr{
+      display: grid;
+      grid-template-columns: var(--pos-width, 68px) 1fr repeat(9, var(--hole-width, 68px)) var(--total-width, 72px) repeat(var(--playoff-holes, 0), var(--hole-width, 68px));
     }
 
     thead th{
@@ -194,12 +202,13 @@
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: .12em;
-      padding: 12px 10px;
+      padding: 8px 10px;
       color: rgba(226,232,240,0.86);
       background: rgba(15,23,42,0.9);
       border-bottom: 1px solid rgba(148,163,184,0.18);
       position: sticky;
       top: 0;
+      vertical-align: middle;
     }
 
     tbody td{
@@ -241,10 +250,10 @@
     .hole-score.score-green{ color: #4ade80; }
     .hole-score.score-red{ color: #f87171; }
 
-    .col-pos{ width: 68px; }
-    .col-name{ width: 180px; }
-    .col-total{ width: 72px; }
-    .col-hole{ width: 68px; }
+    .col-pos{ width: var(--pos-width, 68px); }
+    .col-name{ width: auto; }
+    .col-total{ width: var(--total-width, 72px); }
+    .col-hole{ width: var(--hole-width, 68px); }
 
     .hole-score,
     .finish-pos{
@@ -296,6 +305,18 @@
       font-size: 14px;
       font-weight: 800;
       color: rgba(147,197,253,0.98);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 4px;
+      letter-spacing: .04em;
+    }
+
+    .hole-par{
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(148,163,184,0.8);
+      letter-spacing: .08em;
     }
 
     .hole-chip{
@@ -419,6 +440,13 @@
       return s;
     }
 
+    function formatHoleScoreDisplay(value){
+      const s = String(value ?? "").trim();
+      if(s === "") return "";
+      if(s === "0") return "E";
+      return s;
+    }
+
     function parseHoleHeader(raw){
       const text = String(raw ?? "").trim();
       const numbers = text.match(/\d+/g) ?? [];
@@ -474,6 +502,35 @@
       return "";
     }
 
+    function getParForHole(value){
+      const holeNumber = Number.parseInt(String(value ?? "").trim(), 10);
+      if(Number.isNaN(holeNumber)) return null;
+      const parMap = {
+        1: 4,
+        2: 3,
+        3: 5,
+        4: 3,
+        5: 5,
+        6: 4,
+        7: 4,
+        8: 3,
+        9: 5,
+        10: 4,
+        11: 3,
+        12: 5,
+        13: 3,
+        14: 5,
+        15: 4,
+        16: 4,
+        17: 3,
+        18: 5,
+        19: 4,
+        20: 4,
+        21: 4,
+      };
+      return parMap[holeNumber] ?? null;
+    }
+
     function renderHoleHeader(hole){
       const windSpeed = hole.windSpeed;
       const windText = windSpeed !== null ? `${windSpeed}` : "—";
@@ -481,6 +538,7 @@
       const arrow = windSpeed && windSpeed > 0 ? getWindArrow(hole.windDir) : "";
       const pinText = formatPinPosition(hole.pinCode);
       const holeNumber = hole.holeNumber || "—";
+      const holePar = getParForHole(holeNumber);
 
       return `
         <div class="hole-header">
@@ -490,7 +548,10 @@
             ${windSpeed !== null ? `<span class="wind-unit">mph</span>` : ""}
           </div>
           <div class="pin-position">${escapeHtml(pinText || "—")}</div>
-          <div class="hole-number">${escapeHtml(holeNumber)}</div>
+          <div class="hole-number">
+            ${escapeHtml(holeNumber)}
+            ${holePar ? `<span class="hole-par">Par ${holePar}</span>` : ""}
+          </div>
         </div>
       `;
     }
@@ -617,7 +678,7 @@
           </div>
         ` : ""}
         <div class="table-wrap">
-          <table>
+          <table style="--playoff-holes: ${playoffHoles.length};">
             <thead>
               <tr>
                 <th class="col-pos">Pos.</th>
@@ -634,12 +695,12 @@
                   <td class="name col-name">${escapeHtml(player.name)}</td>
                   ${mainHoles.map((_, i) => {
                     const value = player.holes[i] ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatScoreDisplay(value))}</td>`;
+                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
                   }).join("")}
                   <td class="total col-total">${escapeHtml(formatScoreDisplay(player.total))}</td>
                   ${playoffHoles.map((_, i) => {
                     const value = player.holes[i + 9] ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatScoreDisplay(value))}</td>`;
+                    return `<td class="hole-score col-hole ${getScoreClass(value)}">${escapeHtml(formatHoleScoreDisplay(value))}</td>`;
                   }).join("")}
                 </tr>
               `).join("")}
