@@ -329,7 +329,7 @@
           const headerValue = String(header?.[col] ?? "").trim();
           const hasPlayerValue = players.some(row => String(row?.[col] ?? "").trim() !== "");
           if(!headerValue && !hasPlayerValue){
-            break;
+            continue;
           }
           holeColumns.push({
             col,
@@ -422,7 +422,7 @@
       const status = document.getElementById("status");
       status.textContent = "Loading weekly results…";
       try{
-        const values = await fetchRange("A1:AZ500");
+        const values = await fetchRange("A1:CH500");
         const weeks = parseWeeks(values);
         status.remove();
         renderWeeks(weeks);
