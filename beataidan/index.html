@@ -352,12 +352,16 @@
 
     .stats-table thead tr,
     .stats-table tbody tr{
-      grid-template-columns: var(--pos-width, 68px) 1fr 110px 110px 110px 110px 110px;
+      grid-template-columns: var(--pos-width, 68px) 1fr repeat(6, 110px);
     }
 
     .stats-table tbody td{
       font-size: 25px;
       padding: 12px 10px;
+    }
+
+    .stats-table tbody td.stat-record{
+      font-size: 18px;
     }
 
     .stats-table th,
@@ -705,6 +709,7 @@
     const SHEET_ID = "1sbAQKwAoHzhGaRX2aI6v79wrsU7nuO7hI8xnaOexOiM";
     const SHEET_NAME = "Inputs";
     const PLAYER_STATS_SHEET = "Player Stats";
+    const DATA_SHEET = "Data";
     const REFRESH_MS = 60000;
     const AIDAN_NAME = "NWN Aidan";
     const WIND_UNIT_MPH = "mph";
@@ -919,6 +924,16 @@
       return map;
     }
 
+    function buildAvgHoleMap(values){
+      const map = new Map();
+      values.forEach(row => {
+        const name = String(row?.[0] ?? "").trim();
+        if(!name || normalizeName(name) === "player") return;
+        map.set(normalizeName(name), String(row?.[9] ?? "").trim());
+      });
+      return map;
+    }
+
     function formatRecord(record){
       const values = [record?.wins, record?.losses, record?.ties];
       if(values.every(value => String(value ?? "").trim() === "")){
@@ -940,23 +955,20 @@
 
     function getHoleTotals(player){
       let totalHoles = 0;
-      let holeOuts = 0;
       let greens = 0;
       let puttsMade = 0;
       let puttsAttempted = 0;
+      let saves = 0;
+      let saveAttempts = 0;
 
       player.holes.forEach(hole => {
         const score = String(hole?.score ?? "").trim();
         const greenHit = parseCheckboxValue(hole?.greenHit);
-        const holeOut = parseCheckboxValue(hole?.holeOut);
         const puttsRaw = String(hole?.putts ?? "").trim();
         const eventsRaw = String(hole?.events ?? "").trim();
         const playedHole = score !== "";
         if(playedHole){
           totalHoles += 1;
-        }
-        if(playedHole && holeOut){
-          holeOuts += 1;
         }
         if(playedHole && greenHit){
           greens += 1;
@@ -966,15 +978,31 @@
           puttsMade += 1;
           puttsAttempted += putts;
         }
+
+        if(eventsRaw){
+          eventsRaw
+            .split(",")
+            .map(entry => entry.trim().toLowerCase())
+            .filter(Boolean)
+            .forEach(entry => {
+              if(entry === "sv"){
+                saves += 1;
+                saveAttempts += 1;
+              }else if(entry === "xsv"){
+                saveAttempts += 1;
+              }
+            });
+        }
       });
 
       const greenPercent = totalHoles ? (greens / totalHoles) * 100 : null;
       const puttPercent = puttsAttempted ? (puttsMade / puttsAttempted) * 100 : null;
+      const savePercent = saveAttempts ? (saves / saveAttempts) * 100 : null;
 
       return {
         totalHoles,
-        holeOuts,
         greenPercent,
+        savePercent,
         puttPercent,
       };
     }
@@ -1239,8 +1267,9 @@
                 <th class="col-name">Player</th>
                 <th>Vs. Aidan</th>
                 <th>Vs. All</th>
-                <th>Holeouts</th>
+                <th>Avg. Hole</th>
                 <th>Green %</th>
+                <th>Save %</th>
                 <th>Putt %</th>
               </tr>
             </thead>
@@ -1266,14 +1295,17 @@
                   : "";
                 const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
                 const totals = getHoleTotals(player);
+                const avgHole = avgHoleMap.get(normalizeName(player.name));
+                const vsAidanText = player.isAidan ? "" : formatRecord(playerStats?.vsAidan);
                 return `
                   <tr class="${rowClass}">
                     <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
                     <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
-                    <td>${escapeHtml(formatRecord(playerStats?.vsAidan))}</td>
-                    <td>${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
-                    <td>${escapeHtml(totals.holeOuts)}</td>
+                    <td class="stat-record">${escapeHtml(vsAidanText)}</td>
+                    <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
+                    <td>${escapeHtml(formatCell(avgHole))}</td>
                     <td>${escapeHtml(formatPercent(totals.greenPercent))}</td>
+                    <td>${escapeHtml(formatPercent(totals.savePercent))}</td>
                     <td>${escapeHtml(formatPercent(totals.puttPercent))}</td>
                   </tr>
                 `;
@@ -1441,13 +1473,15 @@
       const status = document.getElementById("status");
       status.textContent = "Loading weekly results…";
       try{
-        const [values, playerStats] = await Promise.all([
+        const [values, playerStats, avgHoleData] = await Promise.all([
           fetchRange("A1:CH500"),
           fetchRange("A1:H500", PLAYER_STATS_SHEET),
+          fetchRange("A1:J500", DATA_SHEET),
         ]);
         const weeks = parseWeeks(values).sort((a, b) => getWeekSortValue(a) - getWeekSortValue(b));
         currentWeeks = weeks;
         playerStatsMap = buildPlayerStatsMap(playerStats);
+        avgHoleMap = buildAvgHoleMap(avgHoleData);
         currentWeekIndex = Math.max(weeks.length - 1, 0);
         status.remove();
         setupWindToggle();
@@ -1461,6 +1495,7 @@
 
     let currentWeekIndex = 0;
     let playerStatsMap = new Map();
+    let avgHoleMap = new Map();
     load();
     setInterval(load, REFRESH_MS);
   </script>
