@@ -333,6 +333,15 @@
       display: inline-block;
     }
 
+    .name-buttons{
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 4px;
+      align-self: center;
+    }
+
     tbody td.total{
       font-weight: 700;
       color: rgba(255,255,255,0.85);
@@ -1292,7 +1301,7 @@
                 return `
                 <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
+                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
                   ${mainHoles.map((hole, i) => {
                     const holeData = player.holes[i] ?? {};
                     const scoreValue = holeData.score ?? "";
@@ -1362,7 +1371,7 @@
                 return `
                   <tr class="${rowClass}">
                     <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                    <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
+                    <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
                     <td class="stat-record">${escapeHtml(vsAidanText)}</td>
                     <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
                     <td style="${avgHoleColor ? `color: ${avgHoleColor};` : ""}">${escapeHtml(formatCell(avgHole))}</td>
