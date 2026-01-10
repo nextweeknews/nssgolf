@@ -149,7 +149,7 @@
       border-radius: 20px;
       padding: 18px 18px 20px;
       box-shadow: var(--card-shadow);
-      width: fit-content;
+      width: 1100px;
     }
     .card-head{
       display:flex;
@@ -170,7 +170,7 @@
 
     .table-wrap{
       width: 100%;
-      overflow: visible;
+      overflow-x: hidden;
       border-radius: 14px;
       border: 1px solid rgba(148,163,184,0.12);
     }
@@ -518,9 +518,32 @@
       return [];
     }
 
+    function parseGvizResponse(text){
+      const match = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/s);
+      if(!match) throw new Error("Unable to parse Google Sheets response.");
+      const payload = JSON.parse(match[1]);
+      const rows = payload?.table?.rows ?? [];
+      return rows.map(row => (row.c ?? []).map(cell => cell?.v ?? ""));
+    }
+
+    async function fetchRangeGviz(a1, sheetName = SHEET_NAME){
+      const url = new URL(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`);
+      url.searchParams.set("tqx", "out:json");
+      url.searchParams.set("sheet", sheetName);
+      url.searchParams.set("range", a1);
+      const resp = await fetch(url.toString());
+      if(!resp.ok){
+        const text = await resp.text().catch(() => "");
+        throw new Error(`Gviz request failed (${resp.status}). ${text}`.trim());
+      }
+      const text = await resp.text();
+      return parseGvizResponse(text);
+    }
+
     async function fetchRange(a1, sheetName = SHEET_NAME){
       const range = `'${sheetName}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
+      let lastError;
 
       try{
         const r = await fetch(WORKER_URL, {
@@ -529,17 +552,29 @@
           body: JSON.stringify(payload),
         });
         if(r.ok) return normalizeValues(await r.json());
-      }catch(e){}
-
-      const u = new URL(WORKER_URL);
-      u.searchParams.set("sheetId", SHEET_ID);
-      u.searchParams.set("range", range);
-      const r2 = await fetch(u.toString());
-      if(!r2.ok){
-        const text = await r2.text().catch(()=> "");
-        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }catch(e){
+        lastError = e;
       }
-      return normalizeValues(await r2.json());
+
+      try{
+        const u = new URL(WORKER_URL);
+        u.searchParams.set("sheetId", SHEET_ID);
+        u.searchParams.set("range", range);
+        const r2 = await fetch(u.toString());
+        if(r2.ok) return normalizeValues(await r2.json());
+        const text = await r2.text().catch(()=> "");
+        lastError = new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }catch(e){
+        lastError = e;
+      }
+
+      try{
+        return await fetchRangeGviz(a1, sheetName);
+      }catch(e){
+        lastError = e;
+      }
+
+      throw lastError ?? new Error("Unable to load weekly results.");
     }
 
     function isRowEmpty(row){
