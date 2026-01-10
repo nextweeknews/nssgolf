@@ -338,7 +338,7 @@
       flex-direction: column;
       align-items: flex-start;
       justify-content: center;
-      gap: 4px;
+      gap: 2px;
       align-self: center;
     }
 
@@ -361,7 +361,7 @@
 
     .stats-table thead tr,
     .stats-table tbody tr{
-      grid-template-columns: var(--pos-width, 68px) 1fr 92px 92px 100px 100px 100px 100px;
+      grid-template-columns: var(--pos-width, 68px) 1fr 100px 100px 100px 100px 100px 100px;
     }
 
     .stats-table tbody td{
@@ -829,7 +829,7 @@
     }
 
     function formatPinPosition(code){
-      const map = { B: "back", F: "front", M: "middle", L: "left", R: "right" };
+      const map = { B: "back", F: "front", M: "mid.", L: "left", R: "right" };
       return String(code ?? "")
         .split("")
         .map(letter => map[letter])
