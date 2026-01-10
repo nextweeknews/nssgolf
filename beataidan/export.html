@@ -151,6 +151,10 @@
       box-shadow: var(--card-shadow);
       width: 1100px;
     }
+
+    #resultsCard{
+      width: calc(1100px + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
+    }
     .card-head{
       display:flex;
       gap:14px;
@@ -206,10 +210,13 @@
     }
 
     tbody td{
-      padding: 10px 10px;
+      padding: 12px 10px;
       text-align: center;
       font-size: 25px;
       color: rgba(226,232,240,0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     tbody tr{
@@ -253,6 +260,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
+      justify-content: flex-start;
     }
 
     .name-text{
@@ -387,6 +395,9 @@
       font: inherit;
       letter-spacing: inherit;
       text-transform: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .beat-aidan-btn{
@@ -1032,12 +1043,15 @@
       if(!week){
         resultsTable.innerHTML = "";
         statsTable.innerHTML = "";
+        resultsCard.style.setProperty("--playoff-holes", 0);
         return;
       }
 
       const mainHoles = week.holeColumns.slice(0, 9);
       const playoffHoles = week.holeColumns.slice(9);
       const aidanFinish = week.playerRows.find(player => player.isAidan)?.finishValue;
+
+      resultsCard.style.setProperty("--playoff-holes", playoffHoles.length);
 
       resultsTitle.textContent = `Week ${week.weekNumber} Results`;
       statsTitle.textContent = `Week ${week.weekNumber} Stats`;
