@@ -259,7 +259,7 @@
     thead tr,
     tbody tr{
       display: grid;
-      grid-template-columns: var(--pos-width, 68px) 1fr repeat(9, var(--hole-width, 64px)) var(--total-width, 68px) repeat(var(--playoff-holes, 0), var(--hole-width, 64px));
+      grid-template-columns: var(--pos-width, 68px) 1fr repeat(9, var(--hole-width, 68px)) var(--total-width, 72px) repeat(var(--playoff-holes, 0), var(--hole-width, 68px));
     }
 
     thead th{
@@ -829,12 +829,12 @@
     }
 
     function formatPinPosition(code){
-      const map = { B: "back", F: "front", M: "mid.", L: "left", R: "right" };
+      const map = { B: "back", F: "front", M: "middle", L: "left", R: "right" };
       return String(code ?? "")
         .split("")
         .map(letter => map[letter])
         .filter(Boolean)
-        .join("-");
+        .join(" ");
     }
 
     function getWindArrow(direction){
