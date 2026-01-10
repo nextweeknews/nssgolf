@@ -362,6 +362,9 @@
 
     .stats-table tbody td.stat-record{
       font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .stats-table th,
@@ -709,7 +712,6 @@
     const SHEET_ID = "1sbAQKwAoHzhGaRX2aI6v79wrsU7nuO7hI8xnaOexOiM";
     const SHEET_NAME = "Inputs";
     const PLAYER_STATS_SHEET = "Player Stats";
-    const DATA_SHEET = "Data";
     const REFRESH_MS = 60000;
     const AIDAN_NAME = "NWN Aidan";
     const WIND_UNIT_MPH = "mph";
@@ -951,6 +953,43 @@
         return `${rounded}%`;
       }
       return `${rounded.toFixed(1)}%`;
+    }
+
+    function lerp(a, b, t){
+      return Math.round(a + (b - a) * t);
+    }
+
+    function colorForScale(value, minValue, midValue, maxValue){
+      if(value === null || value === undefined || Number.isNaN(value)) return "";
+      const red = { r: 248, g: 113, b: 113 };
+      const yellow = { r: 250, g: 204, b: 21 };
+      const green = { r: 74, g: 222, b: 128 };
+
+      let from = red;
+      let to = yellow;
+      let t = 0;
+
+      if(value <= maxValue){
+        return `rgb(${green.r}, ${green.g}, ${green.b})`;
+      }
+      if(value >= minValue){
+        return `rgb(${red.r}, ${red.g}, ${red.b})`;
+      }
+
+      if(value <= midValue){
+        from = yellow;
+        to = green;
+        t = (midValue - value) / (midValue - maxValue);
+      }else{
+        from = red;
+        to = yellow;
+        t = (minValue - value) / (minValue - midValue);
+      }
+
+      const r = lerp(from.r, to.r, t);
+      const g = lerp(from.g, to.g, t);
+      const b = lerp(from.b, to.b, t);
+      return `rgb(${r}, ${g}, ${b})`;
     }
 
     function getHoleTotals(player){
@@ -1266,8 +1305,8 @@
                 <th class="col-pos">Pos.</th>
                 <th class="col-name">Player</th>
                 <th>Vs. Aidan</th>
-                <th>Vs. All</th>
-                <th>Avg. Hole</th>
+                <th>Vs. All Players</th>
+                <th>Avg. Hole Score</th>
                 <th>Green %</th>
                 <th>Save %</th>
                 <th>Putt %</th>
@@ -1297,16 +1336,23 @@
                 const totals = getHoleTotals(player);
                 const avgHole = avgHoleMap.get(normalizeName(player.name));
                 const vsAidanText = player.isAidan ? "" : formatRecord(playerStats?.vsAidan);
+                const avgHoleValue = Number.parseFloat(String(avgHole ?? "").trim());
+                const avgHoleColor = Number.isFinite(avgHoleValue)
+                  ? colorForScale(avgHoleValue, -0.5, -0.9, -1.3)
+                  : "";
+                const greenPercentColor = colorForScale(totals.greenPercent, 50, 75, 100);
+                const puttPercentColor = colorForScale(totals.puttPercent, 50, 75, 100);
+                const savePercentColor = colorForScale(totals.savePercent, 0, 25, 50);
                 return `
                   <tr class="${rowClass}">
                     <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
                     <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
                     <td class="stat-record">${escapeHtml(vsAidanText)}</td>
                     <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
-                    <td>${escapeHtml(formatCell(avgHole))}</td>
-                    <td>${escapeHtml(formatPercent(totals.greenPercent))}</td>
-                    <td>${escapeHtml(formatPercent(totals.savePercent))}</td>
-                    <td>${escapeHtml(formatPercent(totals.puttPercent))}</td>
+                    <td style="${avgHoleColor ? `color: ${avgHoleColor};` : ""}">${escapeHtml(formatCell(avgHole))}</td>
+                    <td style="${greenPercentColor ? `color: ${greenPercentColor};` : ""}">${escapeHtml(formatPercent(totals.greenPercent))}</td>
+                    <td style="${savePercentColor ? `color: ${savePercentColor};` : ""}">${escapeHtml(formatPercent(totals.savePercent))}</td>
+                    <td style="${puttPercentColor ? `color: ${puttPercentColor};` : ""}">${escapeHtml(formatPercent(totals.puttPercent))}</td>
                   </tr>
                 `;
               }).join("")}
@@ -1473,15 +1519,14 @@
       const status = document.getElementById("status");
       status.textContent = "Loading weekly results…";
       try{
-        const [values, playerStats, avgHoleData] = await Promise.all([
+        const [values, playerStats] = await Promise.all([
           fetchRange("A1:CH500"),
-          fetchRange("A1:H500", PLAYER_STATS_SHEET),
-          fetchRange("A1:J500", DATA_SHEET),
+          fetchRange("A1:J500", PLAYER_STATS_SHEET),
         ]);
         const weeks = parseWeeks(values).sort((a, b) => getWeekSortValue(a) - getWeekSortValue(b));
         currentWeeks = weeks;
         playerStatsMap = buildPlayerStatsMap(playerStats);
-        avgHoleMap = buildAvgHoleMap(avgHoleData);
+        avgHoleMap = buildAvgHoleMap(playerStats);
         currentWeekIndex = Math.max(weeks.length - 1, 0);
         status.remove();
         setupWindToggle();
