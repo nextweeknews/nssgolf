@@ -245,6 +245,10 @@
       scrollbar-gutter: stable both-edges;
     }
 
+    .week-card .table-wrap + .table-wrap{
+      margin-top: 16px;
+    }
+
     table{
       width: calc(100% + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
       min-width: 100%;
@@ -354,6 +358,11 @@
     .stats-table tbody td{
       font-size: 18px;
       padding: 12px 10px;
+    }
+
+    .stats-table th.col-total,
+    .stats-table td.col-total{
+      background: transparent;
     }
 
     .stat-score{
@@ -554,6 +563,43 @@
       justify-content: center;
       vertical-align: middle;
       text-transform: uppercase;
+    }
+
+    .playoff-place-btn{
+      margin-left: 0;
+      padding: 2px 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.7);
+      background: transparent;
+      color: rgba(226,232,240,0.9);
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      text-transform: uppercase;
+    }
+
+    .playoff-place-gold{
+      border-color: rgba(250,204,21,0.75);
+      color: rgba(250,204,21,0.95);
+    }
+
+    .playoff-place-silver{
+      border-color: rgba(226,232,240,0.75);
+      color: rgba(226,232,240,0.95);
+    }
+
+    .playoff-place-bronze{
+      border-color: rgba(251,146,60,0.75);
+      color: rgba(251,146,60,0.95);
+    }
+
+    .playoff-place-blue{
+      border-color: rgba(56,189,248,0.75);
+      color: rgba(125,211,252,0.95);
     }
 
     .playoff-arrow{
@@ -807,6 +853,20 @@
       if(finish === 2) return "finish-silver";
       if(finish === 3) return "finish-bronze";
       return "";
+    }
+
+    function getPlayoffPlaceClass(value){
+      const finish = Number.parseInt(String(value ?? "").trim(), 10);
+      if(finish === 1) return "playoff-place-gold";
+      if(finish === 2) return "playoff-place-silver";
+      if(finish === 3) return "playoff-place-bronze";
+      return "playoff-place-blue";
+    }
+
+    function formatPlayoffLabel(value){
+      const match = String(value ?? "").match(/\d+/);
+      const number = match ? match[0] : String(value ?? "").trim();
+      return number ? `PLAYOFF ${number}TH` : "PLAYOFF";
     }
 
     function normalizeName(value){
@@ -1110,10 +1170,18 @@
                 const starButton = isBetterThanAidan
                   ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
                   : "";
+                const playoffScores = playoffHoles.some((hole, i) => {
+                  const score = String(player.holes[i + 9]?.score ?? "").trim();
+                  return score !== "";
+                });
+                const playoffButton = playoffHoles.length && playoffScores
+                  ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
+                  : "";
+                const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
                 return `
                 <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${starButton}</td>
+                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
                   ${mainHoles.map((hole, i) => {
                     const holeData = player.holes[i] ?? {};
                     const scoreValue = holeData.score ?? "";
@@ -1166,16 +1234,18 @@
                   const score = String(player.holes[i + 9]?.score ?? "").trim();
                   return score !== "";
                 });
-                const wonPlayoff = playoffHoles.length && playoffScores && player.finishValue === 1;
+                const playoffButton = playoffHoles.length && playoffScores
+                  ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
+                  : "";
+                const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
                 const totals = getHoleTotals(player);
                 return `
                   <tr class="${rowClass}">
                     <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                    <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${starButton}</td>
+                    <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
                     <td class="total col-total">
                       <div class="stat-score">
                         <span>${escapeHtml(formatScoreDisplay(player.total))}</span>
-                        ${wonPlayoff ? `<span class="playoff-label">Won Playoff</span>` : ""}
                       </div>
                     </td>
                     <td>${escapeHtml(formatRecord(playerStats?.vsAidan))}</td>
