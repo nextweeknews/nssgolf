@@ -325,6 +325,10 @@
       gap: 6px;
     }
 
+    .name-text{
+      display: inline-block;
+    }
+
     tbody td.total{
       font-weight: 700;
       color: rgba(255,255,255,0.85);
@@ -518,6 +522,12 @@
       justify-content: center;
       vertical-align: middle;
       text-transform: uppercase;
+    }
+
+    .playoff-arrow{
+      display: inline-block;
+      margin-left: 6px;
+      vertical-align: middle;
     }
 
     .hole-chip{
@@ -956,7 +966,10 @@
         </div>
         ${playoffHoles.length ? `
           <div class="week-table-actions">
-            <button class="playoff-btn" type="button">Playoff ›</button>
+            <button class="playoff-btn" type="button">
+              <span>Playoff</span>
+              <span class="playoff-arrow">›</span>
+            </button>
           </div>
         ` : ""}
         <div class="table-wrap">
@@ -985,7 +998,7 @@
                 return `
                 <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                  <td class="name col-name">${escapeHtml(player.name)}${starButton}</td>
+                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${starButton}</td>
                   ${mainHoles.map((hole, i) => {
                     const holeData = player.holes[i] ?? {};
                     const scoreValue = holeData.score ?? "";
