@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Beat Aidan Challenge</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Beat Aidan Challenge — PNG Exports</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
   <style>
     :root{
@@ -15,9 +17,10 @@
       --text: #e9eef8;
       --title: #c7d7ff;
       --muted: rgba(255,255,255,.72);
-      --link-blue: rgba(147,197,253,0.98);
       --accent: rgba(56,189,248,0.5);
       --hole-width: 58px;
+      --pos-width: 68px;
+      --total-width: 72px;
     }
 
     *{ box-sizing:border-box; }
@@ -28,11 +31,7 @@
       color: var(--text);
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
       text-transform: uppercase;
-      overflow-x: hidden;
     }
-
-    a{ color: inherit; text-decoration: none; }
-    a:hover{ text-decoration: underline; text-underline-offset: 3px; }
 
     .topbar{
       position: sticky; top:0; z-index:10;
@@ -41,7 +40,7 @@
       backdrop-filter: blur(10px);
     }
     .topbar-inner{
-      max-width:1100px;
+      max-width:1200px;
       margin:0 auto;
       padding: 14px 18px;
       display:flex;
@@ -50,113 +49,99 @@
       justify-content:space-between;
       flex-wrap:wrap;
     }
-    .brand{display:flex; gap:12px; align-items:center;}
-
-    .topbar-actions{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-    }
-
-    .unit-toggle{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      font-size: 11px;
-      letter-spacing: .2em;
-      font-weight: 800;
-      color: rgba(226,232,240,0.75);
-    }
-
-    .toggle-switch{
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .toggle-switch input{
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .toggle-track{
-      width: 44px;
-      height: 22px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.4);
-      background: rgba(15,23,42,0.8);
-      display: inline-flex;
-      align-items: center;
-      padding: 2px;
-      cursor: pointer;
-      transition: border-color 0.2s ease, background 0.2s ease;
-    }
-
-    .toggle-thumb{
-      width: 18px;
-      height: 18px;
-      border-radius: 999px;
-      background: rgba(226,232,240,0.9);
-      transition: transform 0.2s ease;
-    }
-
-    .toggle-switch input:checked + .toggle-track{
-      border-color: rgba(148,163,184,0.4);
-      background: rgba(15,23,42,0.8);
-    }
-
-    .toggle-switch input:checked + .toggle-track .toggle-thumb{
-      transform: translateX(22px);
-      background: rgba(224,242,254,0.95);
-    }
-
-    .home-btn{
-      width:40px; height:40px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.05);
-      display:grid; place-items:center;
-      overflow:hidden;
-      text-decoration:none;
-      cursor:pointer;
-      flex: 0 0 auto;
-    }
-    .home-btn:hover{
-      background: rgba(255,255,255,.08);
-      border-color: rgba(255,255,255,.25);
-    }
-    .home-btn img{
-      width: 70%;
-      height: 70%;
-      object-fit: contain;
-      display:block;
-      pointer-events:none;
-    }
-
     .kicker{
       font-size:11px; letter-spacing:.25em; text-transform:uppercase;
       color: rgba(255,255,255,.65); font-weight:900;
     }
+    .page-title{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      color: var(--title);
+      margin: 4px 0 0;
+    }
+
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .select{
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 10px 38px 10px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 12px;
+      cursor:pointer;
+      outline:none;
+    }
+    .btn{
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .btn:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.28); }
 
     .container{
-      max-width:1100px;
+      max-width:1200px;
       margin:0 auto;
       padding: 18px 18px 48px;
+      display:grid;
+      gap: 16px;
     }
 
-    .page-title{
-      font-size: 26px;
+    .status{
+      font-size: 12px;
       font-weight: 900;
-      letter-spacing: .02em;
-      color: var(--title);
-      margin: 8px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255,255,255,0.75);
     }
 
-    .page-subtitle{
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 20px;
+    .png-grid{
+      display:grid;
+      gap: 16px;
+      justify-items: start;
+    }
+    .png-wrap{
+      display:inline-block;
+      width: fit-content;
+      max-width: 100%;
+    }
+    .png-img{
+      display:block;
+      width: auto;
+      max-width: 100%;
+      border-radius: 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+      user-select: none;
+      -webkit-user-drag: none;
+      cursor: context-menu;
+    }
+
+    .render-surface{
+      position:absolute;
+      left:-10000px;
+      top:0;
+      width: max-content;
+      height: max-content;
+      opacity: 0;
+      pointer-events:none;
     }
 
     .card{
@@ -164,89 +149,30 @@
       border-radius: 20px;
       padding: 18px 18px 20px;
       box-shadow: var(--card-shadow);
+      width: 1100px;
     }
-
-    .status{
-      color: rgba(233,238,248,0.92);
-      font-size: 16px;
-      font-weight: 700;
-      text-align:center;
-      padding: 24px 0;
-    }
-
-    .week-card{
-      background: rgba(10,22,44,0.85);
-      border: 1px solid rgba(148,163,184,0.12);
-      border-radius: 18px;
-      padding: 16px 16px 18px;
-      margin-bottom: 18px;
-      position: relative;
-    }
-
-    .week-header{
+    .card-head{
       display:flex;
-      align-items:center;
-      justify-content:center;
+      gap:14px;
+      align-items:flex-end;
+      justify-content:space-between;
+      flex-wrap:wrap;
       margin-bottom: 12px;
-      flex-wrap: wrap;
-      gap: 10px;
-      text-align: center;
     }
-
-    .week-title{
-      font-size: 16px;
+    .h2{
+      font-size: 18px;
       font-weight: 900;
-      letter-spacing: .2em;
-      text-transform: uppercase;
       color: var(--title);
-    }
-
-    .week-select{
-      font-size: 16px;
-      font-weight: 900;
-      letter-spacing: .2em;
+      letter-spacing: .06em;
       text-transform: uppercase;
-      color: rgba(147,197,253,0.98);
-      border: 1px solid rgba(148,163,184,0.25);
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: rgba(15,23,42,0.6);
-      appearance: none;
-      cursor: pointer;
+      margin: 0;
     }
-
-    .week-nav{
-      position: absolute;
-      top: 12px;
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
-      border: 1px solid rgba(148,163,184,0.35);
-      background: rgba(15,23,42,0.8);
-      color: rgba(226,232,240,0.9);
-      display: grid;
-      place-items: center;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    .week-nav[disabled]{
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .week-prev{ left: 12px; }
-    .week-next{ right: 12px; }
 
     .table-wrap{
       width: 100%;
-      overflow-x: auto;
+      overflow-x: hidden;
       border-radius: 14px;
       border: 1px solid rgba(148,163,184,0.12);
-      padding-bottom: 0;
-      scrollbar-gutter: stable both-edges;
-    }
-
-    .week-card .table-wrap + .table-wrap{
-      margin-top: 16px;
     }
 
     table{
@@ -386,19 +312,6 @@
       background: transparent;
     }
 
-    .stat-score{
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .playoff-label{
-      font-size: 11px;
-      color: #4ade80;
-      letter-spacing: .08em;
-    }
-
     .hole-score.score-gold{ color: #f5d76e; }
     .hole-score.score-purple{ color: #c084fc; }
     .hole-score.score-blue{ color: #60a5fa; }
@@ -465,10 +378,6 @@
       letter-spacing: .04em;
     }
 
-    .hole-score{
-      padding: 0;
-    }
-
     .score-button{
       width: 100%;
       padding: 10px 6px;
@@ -478,95 +387,6 @@
       font: inherit;
       letter-spacing: inherit;
       text-transform: inherit;
-      cursor: pointer;
-    }
-
-    .score-button:focus-visible{
-      outline: 2px solid rgba(56,189,248,0.65);
-      outline-offset: -2px;
-    }
-
-    .score-button:hover{
-      background: rgba(148,163,184,0.12);
-    }
-
-    .score-modal{
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-      z-index: 50;
-    }
-
-    .score-modal.is-open{
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .score-modal-backdrop{
-      position: absolute;
-      inset: 0;
-      background: rgba(3,12,28,0.7);
-      backdrop-filter: blur(4px);
-    }
-
-    .score-modal-dialog{
-      position: relative;
-      z-index: 1;
-      min-width: 240px;
-      max-width: 320px;
-      width: calc(100% - 48px);
-      border-radius: 16px;
-      border: 1px solid rgba(148,163,184,0.2);
-      background: rgba(10,22,44,0.98);
-      padding: 16px 16px 18px;
-      text-align: center;
-      box-shadow: 0 24px 40px rgba(0,0,0,0.5);
-    }
-
-    .score-modal-title{
-      font-size: 12px;
-      letter-spacing: .2em;
-      font-weight: 800;
-      color: rgba(226,232,240,0.8);
-      margin-bottom: 12px;
-    }
-
-    .score-modal-content{
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      color: rgba(226,232,240,0.9);
-    }
-
-    .score-modal-holeout{
-      color: rgba(59,130,246,0.95);
-      font-size: 16px;
-      letter-spacing: .08em;
-    }
-
-    .score-modal-green{
-      color: rgba(74,222,128,0.95);
-    }
-
-    .score-modal-close{
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.35);
-      background: rgba(15,23,42,0.75);
-      color: rgba(226,232,240,0.9);
-      font-size: 16px;
-      cursor: pointer;
     }
 
     .beat-aidan-btn{
@@ -622,97 +442,44 @@
       border-color: rgba(56,189,248,0.75);
       color: rgba(125,211,252,0.95);
     }
-
-    .playoff-arrow{
-      display: inline-block;
-      margin-left: 6px;
-      vertical-align: middle;
-    }
-
-    .hole-chip{
-      display:inline-block;
-      min-width: 28px;
-      padding: 4px 6px;
-      border-radius: 10px;
-      border: 1px solid rgba(148,163,184,0.3);
-      background: rgba(30,41,59,0.6);
-    }
-
-    .week-table-actions{
-      display:flex;
-      justify-content:flex-end;
-      margin: 8px 4px 12px;
-    }
-
-    .playoff-btn{
-      border-radius: 999px;
-      border: 1px solid rgba(148,163,184,0.35);
-      background: rgba(15,23,42,0.8);
-      color: rgba(226,232,240,0.9);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .16em;
-      padding: 6px 12px;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    .playoff-btn:hover{
-      background: rgba(30,41,59,0.8);
-    }
-
-    .footer{
-      text-align:center;
-      color: rgba(148,163,184,0.6);
-      font-size: 11px;
-      margin-top: 22px;
-      letter-spacing: .2em;
-      text-transform: uppercase;
-    }
   </style>
 </head>
 <body>
-    <div class="topbar">
-      <div class="topbar-inner">
-        <div class="brand">
-          <a class="home-btn" href="/" aria-label="Home">
-            <img src="/logos/golf.png" alt="Home" />
-          </a>
-          <div>
-            <div class="kicker">Weekly Matches</div>
-            <div class="page-title">Beat Aidan Challenge</div>
-          </div>
-        </div>
-        <div class="topbar-actions">
-          <label class="unit-toggle" for="wind-unit-toggle">
-            <span>MPH</span>
-            <span class="toggle-switch">
-              <input id="wind-unit-toggle" type="checkbox" aria-label="Toggle wind speed units" />
-              <span class="toggle-track">
-                <span class="toggle-thumb"></span>
-              </span>
-            </span>
-            <span>M/S</span>
-          </label>
-        </div>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="kicker">Weekly Matches</div>
+        <div class="page-title">Beat Aidan Challenge — PNG Exports</div>
+      </div>
+      <div class="controls">
+        <select id="weekSelect" class="select" aria-label="Select week"></select>
+        <button id="reloadBtn" class="btn" type="button">Reload Data</button>
       </div>
     </div>
-
-  <div class="container">
-    <div class="card">
-      <div id="status" class="status">Loading weekly results…</div>
-      <div id="weeks"></div>
-    </div>
-
-    <div class="footer">Beataidan Weekly Matches</div>
   </div>
 
-  <div class="score-modal" id="score-modal" aria-hidden="true">
-    <div class="score-modal-backdrop" data-modal-close></div>
-    <div class="score-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="score-modal-title">
-      <button class="score-modal-close" type="button" aria-label="Close score details" data-modal-close>×</button>
-      <div class="score-modal-title" id="score-modal-title">Hole Details</div>
-      <div class="score-modal-content" id="score-modal-content"></div>
+  <div class="container">
+    <div id="status" class="status">Loading weekly results…</div>
+
+    <div class="png-grid">
+      <div class="png-wrap">
+        <img id="pngResults" class="png-img" alt="Week results PNG" />
+      </div>
+      <div class="png-wrap">
+        <img id="pngStats" class="png-img" alt="Week stats PNG" />
+      </div>
+    </div>
+  </div>
+
+  <div class="render-surface" aria-hidden="true">
+    <div id="resultsCard" class="card">
+      <div class="card-head"><h2 class="h2" id="resultsTitle">Week Results</h2></div>
+      <div class="table-wrap" id="resultsTable"></div>
+    </div>
+
+    <div id="statsCard" class="card">
+      <div class="card-head"><h2 class="h2" id="statsTitle">Week Stats</h2></div>
+      <div class="table-wrap" id="statsTable"></div>
     </div>
   </div>
 
@@ -721,31 +488,26 @@
     const SHEET_ID = "1sbAQKwAoHzhGaRX2aI6v79wrsU7nuO7hI8xnaOexOiM";
     const SHEET_NAME = "Inputs";
     const PLAYER_STATS_SHEET = "Player Stats";
-    const REFRESH_MS = 60000;
     const AIDAN_NAME = "NWN Aidan";
-    const WIND_UNIT_MPH = "mph";
-    const WIND_UNIT_MS = "ms";
-    const WIND_MPH_TO_MS = new Map([
-      [0, 0],
-      [2, 1],
-      [4, 2],
-      [6, 3],
-      [9, 4],
-      [11, 5],
-      [13, 6],
-      [15, 7],
-      [17, 8],
-      [20, 9],
-      [22, 10],
-      [24, 11],
-      [26, 12],
-      [29, 13],
-      [31, 14],
-      [33, 15],
-    ]);
 
-    let windUnit = WIND_UNIT_MPH;
+    const statusEl = document.getElementById("status");
+    const weekSelect = document.getElementById("weekSelect");
+    const reloadBtn = document.getElementById("reloadBtn");
+
+    const resultsTitle = document.getElementById("resultsTitle");
+    const statsTitle = document.getElementById("statsTitle");
+    const resultsTable = document.getElementById("resultsTable");
+    const statsTable = document.getElementById("statsTable");
+
+    const resultsCard = document.getElementById("resultsCard");
+    const statsCard = document.getElementById("statsCard");
+    const pngResults = document.getElementById("pngResults");
+    const pngStats = document.getElementById("pngStats");
+
     let currentWeeks = [];
+    let currentWeekIndex = 0;
+    let playerStatsMap = new Map();
+    let avgHoleMap = new Map();
 
     function normalizeValues(resp){
       if(!resp) return [];
@@ -756,9 +518,32 @@
       return [];
     }
 
+    function parseGvizResponse(text){
+      const match = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/s);
+      if(!match) throw new Error("Unable to parse Google Sheets response.");
+      const payload = JSON.parse(match[1]);
+      const rows = payload?.table?.rows ?? [];
+      return rows.map(row => (row.c ?? []).map(cell => cell?.v ?? ""));
+    }
+
+    async function fetchRangeGviz(a1, sheetName = SHEET_NAME){
+      const url = new URL(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`);
+      url.searchParams.set("tqx", "out:json");
+      url.searchParams.set("sheet", sheetName);
+      url.searchParams.set("range", a1);
+      const resp = await fetch(url.toString());
+      if(!resp.ok){
+        const text = await resp.text().catch(() => "");
+        throw new Error(`Gviz request failed (${resp.status}). ${text}`.trim());
+      }
+      const text = await resp.text();
+      return parseGvizResponse(text);
+    }
+
     async function fetchRange(a1, sheetName = SHEET_NAME){
       const range = `'${sheetName}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
+      let lastError;
 
       try{
         const r = await fetch(WORKER_URL, {
@@ -767,21 +552,42 @@
           body: JSON.stringify(payload),
         });
         if(r.ok) return normalizeValues(await r.json());
-      }catch(e){}
-
-      const u = new URL(WORKER_URL);
-      u.searchParams.set("sheetId", SHEET_ID);
-      u.searchParams.set("range", range);
-      const r2 = await fetch(u.toString());
-      if(!r2.ok){
-        const text = await r2.text().catch(()=> "");
-        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }catch(e){
+        lastError = e;
       }
-      return normalizeValues(await r2.json());
+
+      try{
+        const u = new URL(WORKER_URL);
+        u.searchParams.set("sheetId", SHEET_ID);
+        u.searchParams.set("range", range);
+        const r2 = await fetch(u.toString());
+        if(r2.ok) return normalizeValues(await r2.json());
+        const text = await r2.text().catch(()=> "");
+        lastError = new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }catch(e){
+        lastError = e;
+      }
+
+      try{
+        return await fetchRangeGviz(a1, sheetName);
+      }catch(e){
+        lastError = e;
+      }
+
+      throw lastError ?? new Error("Unable to load weekly results.");
     }
 
     function isRowEmpty(row){
       return !row || row.every(cell => String(cell ?? "").trim() === "");
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#39;");
     }
 
     function formatCell(value){
@@ -853,10 +659,6 @@
 
     function formatWindSpeed(speed){
       if(speed === null || speed === undefined) return "—";
-      if(windUnit === WIND_UNIT_MS){
-        const mapped = WIND_MPH_TO_MS.get(speed);
-        return mapped ?? speed;
-      }
       return speed;
     }
 
@@ -1137,7 +939,7 @@
 
     function parseWeeks(values){
       const weeks = [];
-      const blockSize = 9; // header + 8 players
+      const blockSize = 9;
 
       for(let i=0; i < values.length; i += blockSize){
         const header = values[i] ?? [];
@@ -1226,86 +1028,59 @@
       return match ? Number.parseInt(match[0], 10) : -1;
     }
 
-    function renderWeek(weeks, index){
-      const container = document.getElementById("weeks");
-      container.innerHTML = "";
-
-      if(!weeks.length){
-        container.innerHTML = `<div class="status">No match data available yet.</div>`;
-        return;
-      }
-
-      const week = weeks[index];
+    function renderWeekTables(week){
       if(!week){
-        container.innerHTML = `<div class="status">No match data available yet.</div>`;
+        resultsTable.innerHTML = "";
+        statsTable.innerHTML = "";
         return;
       }
 
       const mainHoles = week.holeColumns.slice(0, 9);
       const playoffHoles = week.holeColumns.slice(9);
-
-      const card = document.createElement("div");
-      card.className = "week-card";
-
       const aidanFinish = week.playerRows.find(player => player.isAidan)?.finishValue;
 
-      card.innerHTML = `
-        <button class="week-nav week-prev" type="button" aria-label="Previous week" ${index === 0 ? "disabled" : ""}>‹</button>
-        <button class="week-nav week-next" type="button" aria-label="Next week" ${index === weeks.length - 1 ? "disabled" : ""}>›</button>
-        <div class="week-header">
-          <select class="week-select" aria-label="Select week">
-            ${weeks.map((entry, i) => `
-              <option value="${i}" ${i === index ? "selected" : ""}>Week ${escapeHtml(entry.weekNumber)}</option>
-            `).join("")}
-          </select>
-        </div>
-        ${playoffHoles.length ? `
-          <div class="week-table-actions">
-            <button class="playoff-btn" type="button">
-              <span>Playoff</span>
-              <span class="playoff-arrow">›</span>
-            </button>
-          </div>
-        ` : ""}
-        <div class="table-wrap">
-          <table style="--playoff-holes: ${playoffHoles.length};">
-            <thead>
-              <tr>
-                <th class="col-pos">Pos.</th>
-                <th class="col-name">Player</th>
-                ${mainHoles.map(hole => `<th class="col-hole">${renderHoleHeader(hole)}</th>`).join("")}
-                <th class="col-total">Score</th>
-                ${playoffHoles.map(hole => `<th class="col-hole">${renderHoleHeader(hole)}</th>`).join("")}
-              </tr>
-            </thead>
-            <tbody>
-              ${week.playerRows.map(player => {
-                const hasValidAidanFinish = Number.isFinite(aidanFinish);
-                const hasValidFinish = Number.isFinite(player.finishValue);
-                const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
-                const rowClass = [
-                  isBetterThanAidan ? "row-gold" : "",
-                  player.isAidan ? "row-aidan" : "",
-                ].filter(Boolean).join(" ");
-                const starButton = isBetterThanAidan
-                  ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
-                  : "";
-                const playoffScores = playoffHoles.some((hole, i) => {
-                  const score = String(player.holes[i + 9]?.score ?? "").trim();
-                  return score !== "";
-                });
-                const playoffButton = playoffHoles.length && playoffScores
-                  ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
-                  : "";
-                const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
-                return `
+      resultsTitle.textContent = `Week ${week.weekNumber} Results`;
+      statsTitle.textContent = `Week ${week.weekNumber} Stats`;
+
+      resultsTable.innerHTML = `
+        <table style="--playoff-holes: ${playoffHoles.length};">
+          <thead>
+            <tr>
+              <th class="col-pos">Pos.</th>
+              <th class="col-name">Player</th>
+              ${mainHoles.map(hole => `<th class="col-hole">${renderHoleHeader(hole)}</th>`).join("")}
+              <th class="col-total">Score</th>
+              ${playoffHoles.map(hole => `<th class="col-hole">${renderHoleHeader(hole)}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${week.playerRows.map(player => {
+              const hasValidAidanFinish = Number.isFinite(aidanFinish);
+              const hasValidFinish = Number.isFinite(player.finishValue);
+              const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
+              const rowClass = [
+                isBetterThanAidan ? "row-gold" : "",
+                player.isAidan ? "row-aidan" : "",
+              ].filter(Boolean).join(" ");
+              const starButton = isBetterThanAidan
+                ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
+                : "";
+              const playoffScores = playoffHoles.some((hole, i) => {
+                const score = String(player.holes[i + 9]?.score ?? "").trim();
+                return score !== "";
+              });
+              const playoffButton = playoffHoles.length && playoffScores
+                ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
+                : "";
+              const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
+              return `
                 <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
                   <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
                   ${mainHoles.map((hole, i) => {
                     const holeData = player.holes[i] ?? {};
                     const scoreValue = holeData.score ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}" data-green-hit="${escapeHtml(holeData.greenHit ?? "")}" data-putts="${escapeHtml(holeData.putts ?? "")}" data-events="${escapeHtml(holeData.events ?? "")}" data-hole-out="${escapeHtml(holeData.holeOut ?? "")}">
+                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}">
                       <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
                     </td>`;
                   }).join("")}
@@ -1313,236 +1088,142 @@
                   ${playoffHoles.map((hole, i) => {
                     const holeData = player.holes[i + 9] ?? {};
                     const scoreValue = holeData.score ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}" data-green-hit="${escapeHtml(holeData.greenHit ?? "")}" data-putts="${escapeHtml(holeData.putts ?? "")}" data-events="${escapeHtml(holeData.events ?? "")}" data-hole-out="${escapeHtml(holeData.holeOut ?? "")}">
+                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}">
                       <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
                     </td>`;
                   }).join("")}
                 </tr>
               `;
-              }).join("")}
-            </tbody>
-          </table>
-        </div>
-        <div class="table-wrap">
-          <table class="stats-table">
-            <thead>
-              <tr>
-                <th class="col-pos">Pos.</th>
-                <th class="col-name">Player</th>
-                <th>Vs. Aidan</th>
-                <th>Vs. All Players</th>
-                <th>Avg. Hole Score</th>
-                <th>Green %</th>
-                <th>Save %</th>
-                <th>Putt %</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${week.playerRows.map(player => {
-                const hasValidAidanFinish = Number.isFinite(aidanFinish);
-                const hasValidFinish = Number.isFinite(player.finishValue);
-                const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
-                const rowClass = [
-                  isBetterThanAidan ? "row-gold" : "",
-                  player.isAidan ? "row-aidan" : "",
-                ].filter(Boolean).join(" ");
-                const starButton = isBetterThanAidan
-                  ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
-                  : "";
-                const playerStats = playerStatsMap.get(normalizeName(player.name));
-                const playoffScores = playoffHoles.some((hole, i) => {
-                  const score = String(player.holes[i + 9]?.score ?? "").trim();
-                  return score !== "";
-                });
-                const playoffButton = playoffHoles.length && playoffScores
-                  ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
-                  : "";
-                const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
-                const totals = getHoleTotals(player);
-                const avgHole = avgHoleMap.get(normalizeName(player.name));
-                const vsAidanText = player.isAidan ? "" : formatRecord(playerStats?.vsAidan);
-                const avgHoleValue = Number.parseFloat(String(avgHole ?? "").trim());
-                const avgHoleColor = Number.isFinite(avgHoleValue)
-                  ? colorForScale(avgHoleValue, -0.5, -0.9, -1.3)
-                  : "";
-                const greenPercentColor = colorForScale(totals.greenPercent, 50, 75, 100);
-                const puttPercentColor = colorForScale(totals.puttPercent, 50, 75, 100);
-                const savePercentColor = colorForScale(totals.savePercent, 0, 25, 50);
-                return `
-                  <tr class="${rowClass}">
-                    <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                    <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
-                    <td class="stat-record">${escapeHtml(vsAidanText)}</td>
-                    <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
-                    <td style="${avgHoleColor ? `color: ${avgHoleColor};` : ""}">${escapeHtml(formatCell(avgHole))}</td>
-                    <td style="${greenPercentColor ? `color: ${greenPercentColor};` : ""}">${escapeHtml(formatPercent(totals.greenPercent))}</td>
-                    <td style="${savePercentColor ? `color: ${savePercentColor};` : ""}">${escapeHtml(formatPercent(totals.savePercent))}</td>
-                    <td style="${puttPercentColor ? `color: ${puttPercentColor};` : ""}">${escapeHtml(formatPercent(totals.puttPercent))}</td>
-                  </tr>
-                `;
-              }).join("")}
-            </tbody>
-          </table>
-        </div>
+            }).join("")}
+          </tbody>
+        </table>
       `;
 
-      container.appendChild(card);
-
-      const select = card.querySelector(".week-select");
-      const prevBtn = card.querySelector(".week-prev");
-      const nextBtn = card.querySelector(".week-next");
-      const playoffBtn = card.querySelector(".playoff-btn");
-      const tableWrap = card.querySelector(".table-wrap");
-      select?.addEventListener("change", (event) => {
-        const target = event.target;
-        const nextIndex = Number.parseInt(target.value, 10);
-        if(Number.isNaN(nextIndex)) return;
-        currentWeekIndex = nextIndex;
-        renderWeek(weeks, currentWeekIndex);
-      });
-      prevBtn?.addEventListener("click", () => {
-        if(currentWeekIndex <= 0) return;
-        currentWeekIndex -= 1;
-        renderWeek(weeks, currentWeekIndex);
-      });
-      nextBtn?.addEventListener("click", () => {
-        if(currentWeekIndex >= weeks.length - 1) return;
-        currentWeekIndex += 1;
-        renderWeek(weeks, currentWeekIndex);
-      });
-      playoffBtn?.addEventListener("click", () => {
-        if(!tableWrap) return;
-        tableWrap.scrollTo({ left: tableWrap.scrollWidth, behavior: "smooth" });
-      });
-
-      const scoreButtons = card.querySelectorAll(".hole-score .score-button");
-      scoreButtons.forEach(button => {
-        button.addEventListener("click", () => {
-          const cell = button.closest(".hole-score");
-          if(!cell) return;
-          openScoreModal({
-            holeNumber: cell.dataset.holeNumber || "—",
-            greenHit: cell.dataset.greenHit ?? "",
-            putts: cell.dataset.putts ?? "",
-            events: cell.dataset.events ?? "",
-            holeOut: cell.dataset.holeOut ?? "",
-          });
-        });
-      });
+      statsTable.innerHTML = `
+        <table class="stats-table">
+          <thead>
+            <tr>
+              <th class="col-pos">Pos.</th>
+              <th class="col-name">Player</th>
+              <th>Vs. Aidan</th>
+              <th>Vs. All Players</th>
+              <th>Avg. Hole Score</th>
+              <th>Green %</th>
+              <th>Save %</th>
+              <th>Putt %</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${week.playerRows.map(player => {
+              const hasValidAidanFinish = Number.isFinite(aidanFinish);
+              const hasValidFinish = Number.isFinite(player.finishValue);
+              const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
+              const rowClass = [
+                isBetterThanAidan ? "row-gold" : "",
+                player.isAidan ? "row-aidan" : "",
+              ].filter(Boolean).join(" ");
+              const starButton = isBetterThanAidan
+                ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
+                : "";
+              const playerStats = playerStatsMap.get(normalizeName(player.name));
+              const playoffScores = playoffHoles.some((hole, i) => {
+                const score = String(player.holes[i + 9]?.score ?? "").trim();
+                return score !== "";
+              });
+              const playoffButton = playoffHoles.length && playoffScores
+                ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
+                : "";
+              const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
+              const totals = getHoleTotals(player);
+              const avgHole = avgHoleMap.get(normalizeName(player.name));
+              const vsAidanText = player.isAidan ? "" : formatRecord(playerStats?.vsAidan);
+              const avgHoleValue = Number.parseFloat(String(avgHole ?? "").trim());
+              const avgHoleColor = Number.isFinite(avgHoleValue)
+                ? colorForScale(avgHoleValue, -0.5, -0.9, -1.3)
+                : "";
+              const greenPercentColor = colorForScale(totals.greenPercent, 50, 75, 100);
+              const puttPercentColor = colorForScale(totals.puttPercent, 50, 75, 100);
+              const savePercentColor = colorForScale(totals.savePercent, 0, 25, 50);
+              return `
+                <tr class="${rowClass}">
+                  <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
+                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
+                  <td class="stat-record">${escapeHtml(vsAidanText)}</td>
+                  <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
+                  <td style="${avgHoleColor ? `color: ${avgHoleColor};` : ""}">${escapeHtml(formatCell(avgHole))}</td>
+                  <td style="${greenPercentColor ? `color: ${greenPercentColor};` : ""}">${escapeHtml(formatPercent(totals.greenPercent))}</td>
+                  <td style="${savePercentColor ? `color: ${savePercentColor};` : ""}">${escapeHtml(formatPercent(totals.savePercent))}</td>
+                  <td style="${puttPercentColor ? `color: ${puttPercentColor};` : ""}">${escapeHtml(formatPercent(totals.puttPercent))}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
     }
 
-    function formatEventLabel(code){
-      const key = String(code ?? "").trim().toLowerCase();
-      const map = {
-        xsv: "Missed Save",
-        sv: "Made Save",
-        xfp: "Missed Off-Green Putt",
-        fp: "Made Off-Green Putt",
-        ph: "Pin Hit",
-        lr: "Launch Roll",
-        xfw: "Fairway Missed",
-        pl: "Pin Launch",
-        ll: "Lip Launch",
-      };
-      return map[key] ?? code;
+    async function waitForImages(rootEl){
+      const imgs = Array.from(rootEl.querySelectorAll("img"));
+      await Promise.all(imgs.map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(res => {
+          img.addEventListener("load", res, { once:true });
+          img.addEventListener("error", res, { once:true });
+        });
+      }));
     }
 
-    function openScoreModal(data){
-      const modal = document.getElementById("score-modal");
-      const modalTitle = document.getElementById("score-modal-title");
-      const modalContent = document.getElementById("score-modal-content");
-      if(!modal || !modalTitle || !modalContent) return;
+    const EXPORT_SCALE = 4;
+    const blobUrlByKey = new Map();
 
-      const holeOut = parseCheckboxValue(data.holeOut);
-      const greenHit = parseCheckboxValue(data.greenHit);
-      const puttsValue = String(data.putts ?? "").trim();
-      const eventsRaw = String(data.events ?? "").trim();
-
-      modalTitle.textContent = `Hole ${data.holeNumber || "—"} Details`;
-      modalContent.innerHTML = "";
-
-      if(holeOut){
-        const line = document.createElement("div");
-        line.className = "score-modal-holeout";
-        line.textContent = "HOLE OUT!";
-        modalContent.appendChild(line);
-      }else{
-        const lines = [];
-        if(greenHit){
-          lines.push({ text: "GREEN HIT", className: "score-modal-green" });
-        }
-        lines.push({ text: `PUTTS: ${puttsValue || "—"}` });
-
-        if(eventsRaw){
-          const events = eventsRaw
-            .split(",")
-            .map(entry => entry.trim())
-            .filter(Boolean)
-            .map(entry => formatEventLabel(entry));
-          events.forEach(eventLabel => {
-            lines.push({ text: eventLabel });
-          });
-        }
-
-        if(!lines.length){
-          lines.push({ text: "No details available." });
-        }
-
-        lines.forEach(lineInfo => {
-          const line = document.createElement("div");
-          line.textContent = lineInfo.text;
-          if(lineInfo.className){
-            line.className = lineInfo.className;
-          }
-          modalContent.appendChild(line);
-        });
+    function setPreviewImgSrc(key, imgEl, blobUrl){
+      const prev = blobUrlByKey.get(key);
+      if (prev && prev !== blobUrl){
+        try{ URL.revokeObjectURL(prev); }catch(e){}
       }
-
-      modal.classList.add("is-open");
-      modal.setAttribute("aria-hidden", "false");
+      blobUrlByKey.set(key, blobUrl);
+      imgEl.src = blobUrl;
     }
 
-    function closeScoreModal(){
-      const modal = document.getElementById("score-modal");
-      if(!modal) return;
-      modal.classList.remove("is-open");
-      modal.setAttribute("aria-hidden", "true");
-    }
+    async function buildPngBlob(cardEl){
+      await waitForImages(cardEl);
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
-    function setupScoreModal(){
-      const modal = document.getElementById("score-modal");
-      if(!modal) return;
-      modal.querySelectorAll("[data-modal-close]").forEach(trigger => {
-        trigger.addEventListener("click", () => closeScoreModal());
+      const canvas = await html2canvas(cardEl, {
+        scale: EXPORT_SCALE,
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        foreignObjectRendering: false
       });
-      document.addEventListener("keydown", (event) => {
-        if(event.key !== "Escape") return;
-        closeScoreModal();
-      });
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("PNG generation failed (canvas.toBlob returned null).");
+      return blob;
     }
 
-    function escapeHtml(s){
-      return String(s ?? "")
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#39;");
+    async function renderCardToImg(cardEl, imgEl, key){
+      const blob = await buildPngBlob(cardEl);
+      const url = URL.createObjectURL(blob);
+      setPreviewImgSrc(key, imgEl, url);
     }
 
-    function setupWindToggle(){
-      const toggle = document.getElementById("wind-unit-toggle");
-      if(!toggle) return;
-      toggle.checked = windUnit === WIND_UNIT_MS;
-      toggle.onchange = () => {
-        windUnit = toggle.checked ? WIND_UNIT_MS : WIND_UNIT_MPH;
-        renderWeek(currentWeeks, currentWeekIndex);
-      };
+    async function generatePreviews(){
+      statusEl.textContent = "Generating PNG previews…";
+      await renderCardToImg(resultsCard, pngResults, "results");
+      await renderCardToImg(statsCard, pngStats, "stats");
+      statusEl.textContent = "Ready";
+    }
+
+    function syncWeekSelect(){
+      weekSelect.innerHTML = currentWeeks.map((week, index) => {
+        return `<option value="${index}" ${index === currentWeekIndex ? "selected" : ""}>Week ${escapeHtml(week.weekNumber)}</option>`;
+      }).join("");
     }
 
     async function load(){
-      const status = document.getElementById("status");
-      status.textContent = "Loading weekly results…";
+      statusEl.textContent = "Loading weekly results…";
       try{
         const [values, playerStats] = await Promise.all([
           fetchRange("A1:CH500"),
@@ -1553,21 +1234,30 @@
         playerStatsMap = buildPlayerStatsMap(playerStats);
         avgHoleMap = buildAvgHoleMap(playerStats);
         currentWeekIndex = Math.max(weeks.length - 1, 0);
-        status.remove();
-        setupWindToggle();
-        setupScoreModal();
-        renderWeek(weeks, currentWeekIndex);
+        syncWeekSelect();
+        if(!weeks.length){
+          statusEl.textContent = "No match data available yet.";
+          return;
+        }
+        renderWeekTables(currentWeeks[currentWeekIndex]);
+        await generatePreviews();
       }catch(err){
-        status.textContent = "Unable to load weekly results.";
+        statusEl.textContent = "Unable to load weekly results.";
         console.error(err);
       }
     }
 
-    let currentWeekIndex = 0;
-    let playerStatsMap = new Map();
-    let avgHoleMap = new Map();
+    weekSelect.addEventListener("change", async (event) => {
+      const nextIndex = Number.parseInt(event.target.value, 10);
+      if(Number.isNaN(nextIndex)) return;
+      currentWeekIndex = nextIndex;
+      renderWeekTables(currentWeeks[currentWeekIndex]);
+      await generatePreviews();
+    });
+
+    reloadBtn.addEventListener("click", () => load());
+
     load();
-    setInterval(load, REFRESH_MS);
   </script>
 </body>
 </html>
