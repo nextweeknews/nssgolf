@@ -352,7 +352,7 @@
 
     .stats-table thead tr,
     .stats-table tbody tr{
-      grid-template-columns: var(--pos-width, 68px) 1fr 90px 110px 110px 110px 110px 110px;
+      grid-template-columns: var(--pos-width, 68px) 1fr 110px 110px 110px 110px 110px;
     }
 
     .stats-table tbody td{
@@ -1237,7 +1237,6 @@
               <tr>
                 <th class="col-pos">Pos.</th>
                 <th class="col-name">Player</th>
-                <th>9-Hole</th>
                 <th>Vs. Aidan</th>
                 <th>Vs. All</th>
                 <th>Holeouts</th>
@@ -1271,11 +1270,6 @@
                   <tr class="${rowClass}">
                     <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
                     <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons}</td>
-                    <td class="total col-total">
-                      <div class="stat-score">
-                        <span>${escapeHtml(formatScoreDisplay(player.total))}</span>
-                      </div>
-                    </td>
                     <td>${escapeHtml(formatRecord(playerStats?.vsAidan))}</td>
                     <td>${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
                     <td>${escapeHtml(totals.holeOuts)}</td>
