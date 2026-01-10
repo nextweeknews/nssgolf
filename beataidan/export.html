@@ -175,6 +175,15 @@
       border: 1px solid rgba(148,163,184,0.12);
     }
 
+    #resultsCard{
+      width: max-content;
+      min-width: 1100px;
+    }
+
+    #resultsCard .table-wrap{
+      overflow-x: visible;
+    }
+
     table{
       width: calc(100% + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
       min-width: 100%;
@@ -214,6 +223,7 @@
 
     tbody tr{
       position: relative;
+      align-items: center;
     }
 
     tbody tr::after{
@@ -252,6 +262,7 @@
       color: rgba(255,255,255,0.85);
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       gap: 6px;
     }
 
