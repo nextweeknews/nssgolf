@@ -965,25 +965,41 @@
       const yellow = { r: 250, g: 204, b: 21 };
       const green = { r: 74, g: 222, b: 128 };
 
+      const ascending = minValue < maxValue;
+      const lowerBound = ascending ? minValue : maxValue;
+      const upperBound = ascending ? maxValue : minValue;
+
+      if(value <= lowerBound){
+        return `rgb(${ascending ? red.r : green.r}, ${ascending ? red.g : green.g}, ${ascending ? red.b : green.b})`;
+      }
+      if(value >= upperBound){
+        return `rgb(${ascending ? green.r : red.r}, ${ascending ? green.g : red.g}, ${ascending ? green.b : red.b})`;
+      }
+
       let from = red;
       let to = yellow;
       let t = 0;
 
-      if(value <= maxValue){
-        return `rgb(${green.r}, ${green.g}, ${green.b})`;
-      }
-      if(value >= minValue){
-        return `rgb(${red.r}, ${red.g}, ${red.b})`;
-      }
-
-      if(value <= midValue){
-        from = yellow;
-        to = green;
-        t = (midValue - value) / (midValue - maxValue);
+      if(ascending){
+        if(value >= midValue){
+          from = yellow;
+          to = green;
+          t = (value - midValue) / (maxValue - midValue);
+        }else{
+          from = red;
+          to = yellow;
+          t = (value - minValue) / (midValue - minValue);
+        }
       }else{
-        from = red;
-        to = yellow;
-        t = (minValue - value) / (minValue - midValue);
+        if(value <= midValue){
+          from = yellow;
+          to = green;
+          t = (midValue - value) / (midValue - maxValue);
+        }else{
+          from = red;
+          to = yellow;
+          t = (minValue - value) / (minValue - midValue);
+        }
       }
 
       const r = lerp(from.r, to.r, t);
