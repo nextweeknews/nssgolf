@@ -179,6 +179,10 @@
       border: 1px solid rgba(148,163,184,0.12);
     }
 
+    #resultsTable.table-wrap{
+      overflow-x: visible;
+    }
+
     table{
       width: calc(100% + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
       min-width: 100%;
@@ -388,7 +392,9 @@
 
     .score-button{
       width: 100%;
-      padding: 10px 6px;
+      height: 100%;
+      padding: 0;
+      line-height: 1;
       background: transparent;
       border: none;
       color: inherit;
