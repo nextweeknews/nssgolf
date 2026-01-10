@@ -238,7 +238,7 @@
 
     .table-wrap{
       width: 100%;
-      overflow-x: hidden;
+      overflow-x: auto;
       border-radius: 14px;
       border: 1px solid rgba(148,163,184,0.12);
       padding-bottom: 0;
@@ -320,6 +320,10 @@
       font-weight: 700;
       letter-spacing: .02em;
       color: rgba(255,255,255,0.85);
+    }
+
+    .name-text{
+      display: inline-block;
     }
 
     tbody td.total{
@@ -515,6 +519,12 @@
       justify-content: center;
       vertical-align: middle;
       text-transform: uppercase;
+    }
+
+    .playoff-arrow{
+      display: inline-block;
+      margin-left: 6px;
+      vertical-align: middle;
     }
 
     .hole-chip{
@@ -942,8 +952,8 @@
       const aidanFinish = week.playerRows.find(player => player.isAidan)?.finishValue;
 
       card.innerHTML = `
-        <button class="week-nav week-prev" type="button" aria-label="Previous week" ${index === 0 ? "disabled" : ""}>&larr;</button>
-        <button class="week-nav week-next" type="button" aria-label="Next week" ${index === weeks.length - 1 ? "disabled" : ""}>&rarr;</button>
+        <button class="week-nav week-prev" type="button" aria-label="Previous week" ${index === 0 ? "disabled" : ""}>‹</button>
+        <button class="week-nav week-next" type="button" aria-label="Next week" ${index === weeks.length - 1 ? "disabled" : ""}>›</button>
         <div class="week-header">
           <select class="week-select" aria-label="Select week">
             ${weeks.map((entry, i) => `
@@ -953,7 +963,10 @@
         </div>
         ${playoffHoles.length ? `
           <div class="week-table-actions">
-            <button class="playoff-btn" type="button">Playoff →</button>
+            <button class="playoff-btn" type="button">
+              <span>Playoff</span>
+              <span class="playoff-arrow">›</span>
+            </button>
           </div>
         ` : ""}
         <div class="table-wrap">
@@ -982,7 +995,7 @@
                 return `
                 <tr class="${rowClass}">
                   <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                  <td class="name col-name">${escapeHtml(player.name)}${starButton}</td>
+                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${starButton}</td>
                   ${mainHoles.map((hole, i) => {
                     const holeData = player.holes[i] ?? {};
                     const scoreValue = holeData.score ?? "";
