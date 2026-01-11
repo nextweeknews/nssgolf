@@ -279,7 +279,7 @@
     .channel-card{
       display:flex;
       flex-direction:column;
-      gap: 10px;
+      gap: 12px;
       padding: 16px;
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
@@ -287,12 +287,42 @@
       min-height: 168px;
     }
 
+    .channel-banner{
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      min-height: 92px;
+    }
+
+    .channel-banner img{
+      width: 100%;
+      height: 100%;
+      min-height: 92px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .channel-avatar-wrap{
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      transform: translate(-50%, 50%);
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(6,24,46,0.9);
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
     .channel-avatar{
       width: 56px;
       height: 56px;
       border-radius: 50%;
       object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.2);
       display:block;
     }
 
@@ -300,7 +330,6 @@
       width: 56px;
       height: 56px;
       border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.2);
       background: rgba(255,255,255,0.06);
       display:grid;
       place-items:center;
@@ -308,6 +337,15 @@
       color: rgba(255,255,255,0.85);
       letter-spacing: .04em;
       user-select: none;
+    }
+
+    .channel-body{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      padding-top: 22px;
+      gap: 8px;
     }
 
     .channel-name{
@@ -325,6 +363,7 @@
       flex-direction:column;
       gap: 4px;
       font-weight: 600;
+      align-items:center;
     }
 
     .btn{
@@ -493,6 +532,17 @@
       return `${base}proxy?url=${encodeURIComponent(targetUrl)}`;
     }
 
+    function workerEndpoint(path, params = {}){
+      const base = WORKER_URL.endsWith("/") ? WORKER_URL : (WORKER_URL + "/");
+      const url = new URL(path.replace(/^\//, ""), base);
+      for(const [key, value] of Object.entries(params)){
+        if(value !== undefined && value !== null){
+          url.searchParams.set(key, String(value));
+        }
+      }
+      return url.toString();
+    }
+
     async function fetchWithTimeout(url, { timeoutMs = 15000, ...opts } = {}){
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), timeoutMs);
@@ -593,6 +643,16 @@
       return fetchJsonViaProxy(endpoint);
     }
 
+    async function fetchChannelMetadata(channelId){
+      const endpoint = workerEndpoint("yt/channel", { channelId });
+      const res = await fetchWithTimeout(endpoint, { timeoutMs: 20000 });
+      if(!res.ok){
+        const text = await res.text().catch(()=> "");
+        throw new Error(`Channel metadata failed (${res.status}). ${text}`.trim());
+      }
+      return res.json();
+    }
+
     function safeInitial(name){
       const s = String(name || "").trim();
       if(!s) return "N";
@@ -663,17 +723,21 @@
     }
 
     function formatViewCount(value){
-      const views = Number(value);
-      if(!Number.isFinite(views)) return "—";
-      if(views < 1000) return Math.round(views).toString();
-      if(views < 100000){
-        const rounded = Math.round((views / 1000) * 10) / 10;
+      return formatCompactNumber(value);
+    }
+
+    function formatCompactNumber(value){
+      const count = Number(value);
+      if(!Number.isFinite(count)) return "—";
+      if(count < 1000) return Math.round(count).toString();
+      if(count < 100000){
+        const rounded = Math.round((count / 1000) * 10) / 10;
         return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}K`;
       }
-      if(views < 1000000){
-        return `${Math.round(views / 1000)}K`;
+      if(count < 1000000){
+        return `${Math.round(count / 1000)}K`;
       }
-      const rounded = Math.round((views / 1000000) * 10) / 10;
+      const rounded = Math.round((count / 1000000) * 10) / 10;
       return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}M`;
     }
 
@@ -789,8 +853,8 @@
     }
 
     function formatSubscribers(value){
-      if(!Number.isFinite(value)) return "Subscribers: —";
-      return `Subscribers: ${value.toLocaleString("en-US")}`;
+      const formatted = formatCompactNumber(value);
+      return `${formatted} subscribers`;
     }
 
     function renderChannels(list){
@@ -806,10 +870,22 @@
         const card = document.createElement("article");
         card.className = "channel-card";
 
-        const link = document.createElement("a");
-        link.href = channel.url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
+        const bannerLink = document.createElement("a");
+        bannerLink.href = channel.url;
+        bannerLink.target = "_blank";
+        bannerLink.rel = "noopener noreferrer";
+        bannerLink.className = "channel-banner";
+
+        if(channel.banner){
+          const banner = document.createElement("img");
+          banner.src = channel.banner;
+          banner.alt = `${channel.name || "Channel"} banner`;
+          banner.loading = "lazy";
+          bannerLink.appendChild(banner);
+        }
+
+        const avatarWrap = document.createElement("div");
+        avatarWrap.className = "channel-avatar-wrap";
 
         if(channel.avatar){
           const avatar = document.createElement("img");
@@ -817,13 +893,15 @@
           avatar.src = channel.avatar;
           avatar.alt = "Channel avatar";
           avatar.loading = "lazy";
-          link.appendChild(avatar);
+          avatarWrap.appendChild(avatar);
         }else{
           const ph = document.createElement("div");
           ph.className = "channel-avatar-placeholder";
           ph.textContent = safeInitial(channel.name);
-          link.appendChild(ph);
+          avatarWrap.appendChild(ph);
         }
+
+        bannerLink.appendChild(avatarWrap);
 
         const name = document.createElement("p");
         name.className = "channel-name";
@@ -835,14 +913,13 @@
         const subscribers = document.createElement("span");
         subscribers.textContent = formatSubscribers(channel.subscribers);
 
-        const preview = document.createElement("span");
-        preview.textContent = `Preview videos: ${channel.previewCount || 0}`;
+        meta.append(subscribers);
 
-        const latest = document.createElement("span");
-        latest.textContent = channel.latest ? `Latest: ${dateFormatter.format(channel.latest)}` : "Latest: —";
+        const body = document.createElement("div");
+        body.className = "channel-body";
+        body.append(name, meta);
 
-        meta.append(subscribers, preview, latest);
-        card.append(link, name, meta);
+        card.append(bannerLink, body);
         frag.appendChild(card);
       }
       gridEl.appendChild(frag);
@@ -944,19 +1021,36 @@
           // 1) Resolve channel id if needed
           const id = entry.id || await resolveChannelId(channelUrl);
 
-          // 2) Get display name + avatar via oEmbed (stable)
+          // 2) Get display name + avatar via Worker metadata (preferred)
           let name = null;
           let avatar = "";
+          let subscribers = null;
+          let banner = "";
+          if(id){
+            try{
+              const meta = await fetchChannelMetadata(id);
+              name = meta?.title || null;
+              avatar = meta?.avatar || "";
+              banner = meta?.banner || "";
+              subscribers = Number.isFinite(meta?.subscribers) ? meta.subscribers : null;
+            }catch(e){
+              console.warn("Channel metadata failed", id, e);
+            }
+          }
+
+          // 3) Get display name + avatar via oEmbed (fallback)
           try{
-            const o = await fetchChannelOEmbed(channelUrl);
-            name = o?.title || o?.author_name || null;
-            avatar = o?.thumbnail_url || "";
+            if(!name || !avatar){
+              const o = await fetchChannelOEmbed(channelUrl);
+              name = name || o?.title || o?.author_name || null;
+              avatar = avatar || o?.thumbnail_url || "";
+            }
           }catch(e){
             // Keep going; we'll fall back to RSS author name below
             console.warn("oEmbed failed", channelUrl, e);
           }
 
-          // 3) Load feed (videos + author name fallback)
+          // 4) Load feed (videos + author name fallback)
           let previewCount = 0;
           let latest = null;
 
@@ -1003,7 +1097,8 @@
             id,
             name,
             avatar,
-            subscribers: null, // not available without YouTube Data API
+            banner,
+            subscribers,
             previewCount,
             latest,
           };
