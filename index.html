@@ -32,7 +32,6 @@
       background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
     }
 
-    /* Topbar (matches your site vibe) */
     .topbar{
       position: sticky; top:0; z-index:10;
       border-bottom: 1px solid rgba(255,255,255,.10);
@@ -228,6 +227,7 @@
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(6,24,46,0.7);
+      min-height: 168px;
     }
 
     .channel-avatar{
@@ -236,6 +236,21 @@
       border-radius: 50%;
       object-fit: cover;
       border: 1px solid rgba(255,255,255,0.2);
+      display:block;
+    }
+
+    .channel-avatar-placeholder{
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.06);
+      display:grid;
+      place-items:center;
+      font-weight: 950;
+      color: rgba(255,255,255,0.85);
+      letter-spacing: .04em;
+      user-select: none;
     }
 
     .channel-name{
@@ -243,6 +258,7 @@
       font-weight: 900;
       margin: 0;
       color: var(--text);
+      word-break: break-word;
     }
 
     .channel-meta{
@@ -348,9 +364,7 @@
 
   <script>
     // === CONFIG ===
-    // NOTE: This assumes your Cloudflare Worker is updated to support:
-    //   GET /proxy?url=<encoded>
-    // and returns CORS headers.
+    // REQUIRED: Worker must implement GET /proxy?url=<encoded> and return CORS headers.
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1VGouXR7onYOeu7T4oiFSId-TtdJMFS0Nc3CYcjYM6-k";
     const SHEET_NAME = "Channels";
@@ -367,14 +381,14 @@
     });
 
     // === STATE ===
-    let STATE = {
+    const STATE = {
       channels: [],
       videos: [],
       viewsReady: false,
-      lastStatusHint: "",
+      errors: [],
     };
 
-    // === HELPERS ===
+    // === SHEETS ===
     function normalizeValues(resp){
       if(!resp) return [];
       if(Array.isArray(resp)) return resp;
@@ -388,7 +402,6 @@
       const range = `'${SHEET_NAME}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
 
-      // Prefer POST (you already have this pattern)
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -398,7 +411,6 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
-      // Fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -410,6 +422,7 @@
       return normalizeValues(await r2.json());
     }
 
+    // === TIME WINDOW ===
     function getPreviousMonthWindow(){
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -417,12 +430,13 @@
       return { start, end };
     }
 
+    // === WORKER PROXY ===
     function workerProxyUrl(targetUrl){
       const base = WORKER_URL.endsWith("/") ? WORKER_URL : (WORKER_URL + "/");
       return `${base}proxy?url=${encodeURIComponent(targetUrl)}`;
     }
 
-    async function fetchWithTimeout(url, { timeoutMs = 12000, ...opts } = {}){
+    async function fetchWithTimeout(url, { timeoutMs = 15000, ...opts } = {}){
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), timeoutMs);
       try{
@@ -432,9 +446,9 @@
       }
     }
 
-    async function fetchText(url){
+    async function fetchTextViaProxy(url){
       const proxied = workerProxyUrl(url);
-      const res = await fetchWithTimeout(proxied, { timeoutMs: 15000 });
+      const res = await fetchWithTimeout(proxied, { timeoutMs: 20000 });
       if(!res.ok){
         const text = await res.text().catch(()=> "");
         throw new Error(`Proxy fetch failed (${res.status}). ${text}`.trim());
@@ -442,6 +456,17 @@
       return res.text();
     }
 
+    async function fetchJsonViaProxy(url){
+      const proxied = workerProxyUrl(url);
+      const res = await fetchWithTimeout(proxied, { timeoutMs: 20000 });
+      if(!res.ok){
+        const text = await res.text().catch(()=> "");
+        throw new Error(`Proxy fetch failed (${res.status}). ${text}`.trim());
+      }
+      return res.json();
+    }
+
+    // === CHANNEL INPUT PARSING ===
     function stripTrailingSlash(value){
       return value.endsWith("/") ? value.slice(0, -1) : value;
     }
@@ -456,7 +481,7 @@
           return null;
         }
         return stripTrailingSlash(url.href);
-      }catch(error){
+      }catch{
         return null;
       }
     }
@@ -465,24 +490,18 @@
       const raw = String(entry ?? "").trim();
       if(!raw) return null;
 
-      // Allow storing channel IDs directly in the sheet (recommended):
-      // UCxxxxxxxxxxxxxxxxxxxxxx
+      // Allow storing UC... IDs directly in the sheet (recommended)
       if(/^UC[a-zA-Z0-9_-]{20,}$/.test(raw)){
-        return {
-          url: `https://www.youtube.com/channel/${raw}`,
-          id: raw,
-          raw,
-        };
+        return { url: `https://www.youtube.com/channel/${raw}`, id: raw, raw };
       }
 
       const url = parseChannelUrl(raw);
       if(!url) return null;
-
       return { url, id: null, raw };
     }
 
+    // === CHANNEL ID RESOLUTION (only needed if sheet uses @handles / custom URLs) ===
     function extractChannelIdFromHtml(html){
-      // YouTube markup varies; try several common keys.
       return (
         html.match(/"channelId":"(UC[^"]+)"/)?.[1] ||
         html.match(/"externalId":"(UC[^"]+)"/)?.[1] ||
@@ -491,86 +510,58 @@
       );
     }
 
-    function parseSubscriberCount(text){
-      if(!text) return null;
-      const cleaned = String(text).replace(/,/g, "").trim();
-      // Matches "1.23M", "1.23 M", "123K", etc.
-      const match = cleaned.match(/([\d.]+)\s*([KMB])?/i);
-      if(!match) return null;
-      const value = Number(match[1]);
-      if(!Number.isFinite(value)) return null;
-      const suffix = (match[2] || "").toUpperCase();
-      const multipliers = { K: 1e3, M: 1e6, B: 1e9 };
-      return Math.round(value * (multipliers[suffix] || 1));
-    }
-
-    function formatSubscribers(value){
-      if(!Number.isFinite(value)) return "Subscribers: —";
-      return `Subscribers: ${value.toLocaleString("en-US")}`;
-    }
-
-    function extractChannelStats(html){
-      // More consistent on YouTube than <meta name="title">
-      const name =
-        html.match(/<meta property="og:title" content="([^"]+)"/i)?.[1] ||
-        html.match(/<meta name="title" content="([^"]+)"/i)?.[1] ||
-        null;
-
-      const avatar =
-        html.match(/<meta property="og:image" content="([^"]+)"/i)?.[1] ||
-        "";
-
-      // IMPORTANT: These patterns are NOT double-escaped now (we're matching raw HTML text).
-      const subscriberText =
-        html.match(/"subscriberCountText":\{"simpleText":"([^"]+)"/)?.[1] ||
-        html.match(/"subscriberCountText":\{"runs":\[\{"text":"([^"]+)"/)?.[1] ||
-        "";
-
-      const subscribers = parseSubscriberCount(subscriberText);
-      return { name, avatar, subscribers };
-    }
-
-    async function fetchChannelStats(channelUrl){
-      try{
-        const html = await fetchText(channelUrl);
-        return extractChannelStats(html);
-      }catch(error){
-        console.warn("Channel stats fetch failed.", error);
-        return { name: null, avatar: "", subscribers: null };
-      }
-    }
-
     async function resolveChannelId(channelUrl){
       try{
         const url = new URL(channelUrl);
 
-        // Direct channel URL
         if(url.pathname.startsWith("/channel/")){
           const maybe = url.pathname.split("/")[2] || null;
           if(maybe && maybe.startsWith("UC")) return maybe;
         }
 
-        // For @handles, /c/, /user/, etc, scrape and extract
-        const html = await fetchText(url.href);
+        // For @handles, /c/, /user/, etc.
+        const html = await fetchTextViaProxy(url.href);
         return extractChannelIdFromHtml(html);
       }catch(error){
-        console.warn("Channel lookup failed.", error);
+        console.warn("Channel lookup failed.", channelUrl, error);
         return null;
       }
     }
 
+    // === CHANNEL DISPLAY NAME + AVATAR (robust) ===
+    // YouTube oEmbed is much more stable than scraping HTML for title/avatar.
+    async function fetchChannelOEmbed(channelUrl){
+      // Returns: { title, author_name, thumbnail_url, ... }
+      const endpoint = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(channelUrl)}`;
+      return fetchJsonViaProxy(endpoint);
+    }
+
+    function safeInitial(name){
+      const s = String(name || "").trim();
+      if(!s) return "N";
+      const first = s.replace(/^https?:\/\//, "").trim().charAt(0);
+      return (first || "N").toUpperCase();
+    }
+
+    // === FEED (VIDEOS) ===
     function parseFeed(xmlText){
       const parser = new DOMParser();
       const doc = parser.parseFromString(xmlText, "application/xml");
+
+      // Root/author channel info
+      const authorName = doc.getElementsByTagName("author")[0]
+        ?.getElementsByTagName("name")[0]
+        ?.textContent?.trim() || null;
+
+      // Entries
       const entries = Array.from(doc.getElementsByTagName("entry"));
-      return entries.map(entry => {
+      const items = entries.map(entry => {
         const id = entry.getElementsByTagName("yt:videoId")[0]?.textContent?.trim();
         const title = entry.getElementsByTagName("title")[0]?.textContent?.trim();
         const published = entry.getElementsByTagName("published")[0]?.textContent?.trim();
         const channel = entry.getElementsByTagName("name")[0]?.textContent?.trim();
         const thumbnail = entry.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
 
-        // Many YouTube feeds do NOT include view stats; keep a default of null so UI can reflect "—"
         const viewsAttr = entry.getElementsByTagName("media:statistics")[0]?.getAttribute("views");
         const views = viewsAttr ? Number(viewsAttr) : null;
 
@@ -582,24 +573,20 @@
           thumbnail,
           views: Number.isFinite(views) ? views : null,
         };
-      }).filter(item => item.id);
+      }).filter(v => v.id);
+
+      return { authorName, items };
     }
 
     async function fetchChannelFeed(channelId){
       try{
         const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
-        const xmlText = await fetchText(feedUrl);
+        const xmlText = await fetchTextViaProxy(feedUrl);
         return parseFeed(xmlText);
       }catch(error){
-        console.warn("Channel feed fetch failed.", error);
-        return [];
+        console.warn("Channel feed fetch failed.", channelId, error);
+        return { authorName: null, items: [] };
       }
-    }
-
-    function formatViews(value){
-      const views = Number(value);
-      if(!Number.isFinite(views)) return "Views: —";
-      return `Views: ${views.toLocaleString("en-US")}`;
     }
 
     function buildVideoModel(item){
@@ -616,19 +603,19 @@
       };
     }
 
+    function formatViews(value){
+      const views = Number(value);
+      if(!Number.isFinite(views)) return "Views: —";
+      return `Views: ${views.toLocaleString("en-US")}`;
+    }
+
     function renderVideos(list){
       gridEl.innerHTML = "";
       if(!list.length){
         statusEl.textContent = "No videos were found for the previous month.";
         return;
       }
-
-      const viewsMissing = list.every(v => !Number.isFinite(v.views));
-      const hint = viewsMissing
-        ? "\nNote: View counts may show as “—” unless the proxy can read them."
-        : "";
-
-      statusEl.textContent = `Showing ${list.length} video${list.length === 1 ? "" : "s"}.${hint}`;
+      statusEl.textContent = `Showing ${list.length} video${list.length === 1 ? "" : "s"}.`;
 
       const frag = document.createDocumentFragment();
       for(const video of list){
@@ -642,8 +629,8 @@
 
         const img = document.createElement("img");
         img.className = "video-thumb";
-        img.src = video.thumbnail;
-        img.alt = video.title;
+        img.src = video.thumbnail || "";
+        img.alt = video.title || "Video thumbnail";
         img.loading = "lazy";
 
         link.appendChild(img);
@@ -659,9 +646,7 @@
         channel.textContent = video.channel;
 
         const published = document.createElement("span");
-        published.textContent = video.publishedAt
-          ? `Published: ${dateFormatter.format(video.publishedAt)}`
-          : "Published: —";
+        published.textContent = video.publishedAt ? `Published: ${dateFormatter.format(video.publishedAt)}` : "Published: —";
 
         const views = document.createElement("span");
         views.textContent = formatViews(video.views);
@@ -673,6 +658,11 @@
       gridEl.appendChild(frag);
     }
 
+    function formatSubscribers(value){
+      if(!Number.isFinite(value)) return "Subscribers: —";
+      return `Subscribers: ${value.toLocaleString("en-US")}`;
+    }
+
     function renderChannels(list){
       gridEl.innerHTML = "";
       if(!list.length){
@@ -680,6 +670,7 @@
         return;
       }
       statusEl.textContent = `Showing ${list.length} channel${list.length === 1 ? "" : "s"}.`;
+
       const frag = document.createDocumentFragment();
       for(const channel of list){
         const card = document.createElement("article");
@@ -690,13 +681,19 @@
         link.target = "_blank";
         link.rel = "noopener noreferrer";
 
-        const avatar = document.createElement("img");
-        avatar.className = "channel-avatar";
-        avatar.src = channel.avatar || "";
-        avatar.alt = channel.name || "Channel avatar";
-        avatar.loading = "lazy";
-
-        link.appendChild(avatar);
+        if(channel.avatar){
+          const avatar = document.createElement("img");
+          avatar.className = "channel-avatar";
+          avatar.src = channel.avatar;
+          avatar.alt = "Channel avatar";
+          avatar.loading = "lazy";
+          link.appendChild(avatar);
+        }else{
+          const ph = document.createElement("div");
+          ph.className = "channel-avatar-placeholder";
+          ph.textContent = safeInitial(channel.name);
+          link.appendChild(ph);
+        }
 
         const name = document.createElement("p");
         name.className = "channel-name";
@@ -724,6 +721,7 @@
     function sortVideos(list, mode){
       const sorted = [...list];
       if(mode === "views"){
+        // Note: RSS usually does NOT include views; this will often be all 0/—.
         sorted.sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
       }else{
         sorted.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
@@ -752,42 +750,6 @@
       return results;
     }
 
-    // Best-effort view count enrichment (no API key).
-    // This scrapes the watch page JSON and can break if YouTube changes markup.
-    function extractViewCountFromWatchHtml(html){
-      // Common patterns seen in watch pages / embedded JSON
-      const m1 = html.match(/"viewCount":"(\d+)"/);
-      if(m1) return Number(m1[1]);
-
-      const m2 = html.match(/"viewCountText":\{"simpleText":"([\d,]+)\s+views"/);
-      if(m2) return Number(m2[1].replace(/,/g, ""));
-
-      const m3 = html.match(/"viewCountText":\{"runs":\[\{"text":"([\d,]+)"/);
-      if(m3) return Number(m3[1].replace(/,/g, ""));
-
-      return null;
-    }
-
-    async function enrichViewsIfNeeded(videos){
-      // If ANY already have views, assume okay.
-      if(videos.some(v => Number.isFinite(v.views))) return videos;
-
-      statusEl.textContent = "Loading view counts for sorting…";
-      const toFetch = videos.slice(0); // all videos
-
-      await runWithConcurrency(toFetch, 4, async (video) => {
-        try{
-          const html = await fetchText(video.url);
-          const views = extractViewCountFromWatchHtml(html);
-          if(Number.isFinite(views)) video.views = views;
-        }catch(e){
-          // leave null
-        }
-      });
-
-      return videos;
-    }
-
     function renderFromState(){
       const mode = sortEl.value;
 
@@ -796,15 +758,34 @@
         return;
       }
 
-      let list = STATE.videos;
-      list = sortVideos(list, mode);
-      renderVideos(list);
+      renderVideos(sortVideos(STATE.videos, mode));
+    }
+
+    async function checkProxyHealth(){
+      // Quick sanity check: if /proxy is missing you'll see it immediately.
+      try{
+        const text = await fetchTextViaProxy("https://www.youtube.com/robots.txt");
+        return Boolean(text && text.includes("User-agent"));
+      }catch(e){
+        return false;
+      }
     }
 
     async function loadData(){
+      STATE.errors = [];
+      gridEl.innerHTML = "";
+
+      const proxyOk = await checkProxyHealth();
+      if(!proxyOk){
+        statusEl.textContent =
+          "YouTube proxy check failed.\n" +
+          "Your Worker likely does NOT implement GET /proxy?url=...\n" +
+          "Fix that first or YouTube feeds & oEmbed will never load.";
+        return;
+      }
+
       try{
         statusEl.textContent = "Loading channel list…";
-        gridEl.innerHTML = "";
 
         const values = await fetchRange("A:A");
         const rows = values.map(row => row?.[0]).filter(Boolean);
@@ -822,88 +803,97 @@
           return;
         }
 
-        statusEl.textContent = "Resolving channel details…";
-
-        // Resolve IDs + stats concurrently (faster, avoids one channel stalling all)
-        const channelEntries = await runWithConcurrency(parsedEntries, 4, async (entry) => {
-          const id = entry.id || await resolveChannelId(entry.url);
-          const stats = await fetchChannelStats(entry.url);
-          return {
-            url: entry.url,
-            id,
-            name: stats.name || entry.url,
-            avatar: stats.avatar,
-            subscribers: stats.subscribers,
-            previewCount: 0,
-            latest: null,
-          };
-        });
-
-        const validChannelEntries = channelEntries.filter(Boolean);
-        const channelIds = validChannelEntries.filter(ch => ch.id).map(ch => ch.id);
-
-        // If no IDs were found, video feeds cannot be loaded
-        if(!channelIds.length){
-          statusEl.textContent =
-            "No valid channel IDs were found.\n" +
-            "Fix: Put channel IDs (UC...) directly into the sheet OR ensure your Worker proxy can fetch YouTube pages.";
-          STATE.channels = sortChannels(validChannelEntries);
-          STATE.videos = [];
-          renderFromState();
-          return;
-        }
+        statusEl.textContent = "Resolving channels…";
 
         const { start, end } = getPreviousMonthWindow();
         const videos = [];
 
-        // Load feeds (concurrently, but not too aggressively)
-        await runWithConcurrency(validChannelEntries, 3, async (ch) => {
-          if(!ch.id) return;
+        const channels = await runWithConcurrency(parsedEntries, 4, async (entry) => {
+          const channelUrl = entry.url;
 
+          // 1) Resolve channel id if needed
+          const id = entry.id || await resolveChannelId(channelUrl);
+
+          // 2) Get display name + avatar via oEmbed (stable)
+          let name = null;
+          let avatar = "";
           try{
-            const items = await fetchChannelFeed(ch.id);
-            ch.previewCount = items.length;
-            ch.latest = items
-              .map(item => item.publishedAt)
+            const o = await fetchChannelOEmbed(channelUrl);
+            name = o?.title || o?.author_name || null;
+            avatar = o?.thumbnail_url || "";
+          }catch(e){
+            // Keep going; we'll fall back to RSS author name below
+            console.warn("oEmbed failed", channelUrl, e);
+          }
+
+          // 3) Load feed (videos + author name fallback)
+          let previewCount = 0;
+          let latest = null;
+
+          if(id){
+            const feed = await fetchChannelFeed(id);
+            previewCount = feed.items.length;
+            latest = feed.items
+              .map(v => v.publishedAt)
               .filter(Boolean)
               .sort((a, b) => b - a)[0] || null;
 
-            for(const item of items){
+            if(!name && feed.authorName) name = feed.authorName;
+
+            for(const item of feed.items){
               const model = buildVideoModel(item);
               if(!model?.publishedAt) continue;
               if(model.publishedAt >= start && model.publishedAt <= end){
                 videos.push(model);
               }
             }
-          }catch(e){}
+          }else{
+            console.warn("No channel ID resolved for", channelUrl);
+          }
+
+          // Final fallbacks so UI never shows raw URL unless absolutely necessary
+          if(!name){
+            try{
+              const u = new URL(channelUrl);
+              name = u.pathname.startsWith("/@")
+                ? u.pathname.replace("/@", "@")
+                : (u.pathname.split("/").filter(Boolean).slice(-1)[0] || channelUrl);
+            }catch{
+              name = channelUrl;
+            }
+          }
+
+          return {
+            url: channelUrl,
+            id,
+            name,
+            avatar,
+            subscribers: null, // not available without YouTube Data API
+            previewCount,
+            latest,
+          };
         });
 
-        STATE.channels = validChannelEntries;
+        STATE.channels = channels;
         STATE.videos = videos;
-        STATE.viewsReady = false;
 
-        if(!STATE.videos.length && sortEl.value !== "channels"){
-          statusEl.textContent = "No videos were published last month.";
+        if(sortEl.value !== "channels" && !STATE.videos.length){
+          statusEl.textContent =
+            "No videos were published last month.\n" +
+            "If you expect videos here, confirm your Worker /proxy can fetch:\n" +
+            "https://www.youtube.com/feeds/videos.xml?channel_id=UC...";
           gridEl.innerHTML = "";
           return;
         }
 
         renderFromState();
       }catch(error){
-        statusEl.textContent = `Unable to load videos: ${error?.message || "Unknown error"}`;
+        statusEl.textContent = `Unable to load: ${error?.message || "Unknown error"}`;
         console.error(error);
       }
     }
 
-    // One listener only (avoid duplicated handlers)
-    sortEl.addEventListener("change", async () => {
-      if(sortEl.value === "views"){
-        // Best effort: fetch view counts only when needed for sorting
-        if(!STATE.viewsReady){
-          await enrichViewsIfNeeded(STATE.videos);
-          STATE.viewsReady = true;
-        }
-      }
+    sortEl.addEventListener("change", () => {
       renderFromState();
     });
 
