@@ -208,6 +208,11 @@
       font-weight: 800;
       margin: 0;
       color: var(--text);
+      text-decoration: none;
+    }
+
+    .video-title:hover{
+      text-decoration: underline;
     }
 
     .video-meta{
@@ -395,7 +400,7 @@
 
       <section class="video-section" aria-labelledby="video-section-title">
         <div class="video-header">
-          <h2 class="section-title" id="video-section-title">Last Month's Channel Videos</h2>
+          <h2 class="section-title" id="video-section-title">Recent 90 Days of Channel Videos</h2>
           <label class="sort-control" for="video-sort">
             Sort
             <select id="video-sort">
@@ -405,7 +410,7 @@
             </select>
           </label>
         </div>
-        <p class="video-subtext">Showing videos uploaded in the previous month from the NSS Golf community channels.</p>
+        <p class="video-subtext">Showing videos uploaded in the last 90 days from the NSS Golf community channels.</p>
         <div class="video-status" id="video-status">Loading videos…</div>
         <div class="video-grid" id="video-grid"></div>
       </section>
@@ -475,10 +480,10 @@
     }
 
     // === TIME WINDOW ===
-    function getPreviousMonthWindow(){
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    function getRolling90DaysWindow(){
+      const end = new Date();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 90);
       return { start, end };
     }
 
@@ -695,7 +700,7 @@
     function renderVideos(list){
       gridEl.innerHTML = "";
       if(!list.length){
-        statusEl.textContent = "No videos were found for the previous month.";
+        statusEl.textContent = "No videos were found in the last 90 days.";
         return;
       }
       statusEl.textContent = `Showing ${list.length} video${list.length === 1 ? "" : "s"}.`;
@@ -718,9 +723,12 @@
 
         link.appendChild(img);
 
-        const title = document.createElement("p");
-        title.className = "video-title";
-        title.textContent = video.title;
+        const titleLink = document.createElement("a");
+        titleLink.className = "video-title";
+        titleLink.textContent = video.title;
+        titleLink.href = video.url;
+        titleLink.target = "_blank";
+        titleLink.rel = "noopener noreferrer";
 
         const meta = document.createElement("div");
         meta.className = "video-meta";
@@ -774,7 +782,7 @@
         viewsLine.appendChild(views);
 
         meta.append(channelLine, viewsLine);
-        card.append(link, title, meta);
+        card.append(link, titleLink, meta);
         frag.appendChild(card);
       }
       gridEl.appendChild(frag);
@@ -927,7 +935,7 @@
 
         statusEl.textContent = "Resolving channels…";
 
-        const { start, end } = getPreviousMonthWindow();
+        const { start, end } = getRolling90DaysWindow();
         const videos = [];
 
         const channels = await runWithConcurrency(parsedEntries, 4, async (entry) => {
@@ -1006,7 +1014,7 @@
 
         if(sortEl.value !== "channels" && !STATE.videos.length){
           statusEl.textContent =
-            "No videos were published last month.\n" +
+            "No videos were published in the last 90 days.\n" +
             "If you expect videos here, confirm your Worker /proxy can fetch:\n" +
             "https://www.youtube.com/feeds/videos.xml?channel_id=UC...";
           gridEl.innerHTML = "";
