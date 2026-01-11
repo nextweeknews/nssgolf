@@ -141,13 +141,6 @@
       color: var(--title);
     }
 
-    .video-subtext{
-      margin: 6px 0 14px;
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
     .sort-control{
       display:flex;
       align-items:center;
@@ -174,9 +167,51 @@
     .video-status{
       font-size: 13px;
       color: rgba(233,238,248,0.7);
-      margin-bottom: 12px;
+      margin-bottom: 8px;
       font-weight: 600;
       white-space: pre-wrap;
+    }
+
+    .pagination-bar{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      margin: 8px 0 14px;
+      flex-wrap: wrap;
+    }
+
+    .pagination-bar[hidden]{
+      display:none;
+    }
+
+    .pagination-button{
+      appearance:none;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,0.92);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor:pointer;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .pagination-button:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+
+    .pagination-button[disabled]{
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .pagination-button.is-active{
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.35);
     }
 
     .video-grid{
@@ -439,7 +474,7 @@
 
       <section class="video-section" aria-labelledby="video-section-title">
         <div class="video-header">
-          <h2 class="section-title" id="video-section-title">Recent 90 Days of Channel Videos</h2>
+          <h2 class="section-title" id="video-section-title">Community Content</h2>
           <label class="sort-control" for="video-sort">
             Sort
             <select id="video-sort">
@@ -449,9 +484,10 @@
             </select>
           </label>
         </div>
-        <p class="video-subtext">Showing videos uploaded in the last 90 days from the NSS Golf community channels.</p>
-        <div class="video-status" id="video-status">Loading videos…</div>
+        <div class="video-status" id="video-status"></div>
+        <nav class="pagination-bar" id="video-pagination-top" aria-label="Video pages"></nav>
         <div class="video-grid" id="video-grid"></div>
+        <nav class="pagination-bar" id="video-pagination-bottom" aria-label="Video pages"></nav>
       </section>
 
       <div class="footer">NSS Golf Community Events</div>
@@ -469,6 +505,8 @@
     const statusEl = document.getElementById("video-status");
     const gridEl = document.getElementById("video-grid");
     const sortEl = document.getElementById("video-sort");
+    const paginationTopEl = document.getElementById("video-pagination-top");
+    const paginationBottomEl = document.getElementById("video-pagination-bottom");
 
     const dateFormatter = new Intl.DateTimeFormat("en-US", {
       month: "short",
@@ -482,6 +520,8 @@
       videos: [],
       viewsReady: false,
       errors: [],
+      currentPage: 1,
+      pageSize: 25,
     };
 
     // === SHEETS ===
@@ -761,16 +801,90 @@
       return relativeFormatter.format(-Math.round(diffDays / 365), "year");
     }
 
+    function setPaginationVisibility(isVisible){
+      paginationTopEl.hidden = !isVisible;
+      paginationBottomEl.hidden = !isVisible;
+    }
+
+    function buildPaginationButton(label, options = {}){
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "pagination-button";
+      button.textContent = label;
+      if(options.disabled) button.disabled = true;
+      if(options.active) button.classList.add("is-active");
+      if(options.label) button.setAttribute("aria-label", options.label);
+      if(options.onClick) button.addEventListener("click", options.onClick);
+      return button;
+    }
+
+    function renderPaginationControls(totalPages){
+      const renderTo = (container) => {
+        container.innerHTML = "";
+        if(totalPages <= 1){
+          return;
+        }
+
+        const prevButton = buildPaginationButton("←", {
+          disabled: STATE.currentPage === 1,
+          label: "Previous page",
+          onClick: () => {
+            STATE.currentPage = Math.max(1, STATE.currentPage - 1);
+            renderFromState();
+          },
+        });
+
+        container.appendChild(prevButton);
+
+        for(let page = 1; page <= totalPages; page += 1){
+          const pageButton = buildPaginationButton(String(page), {
+            active: page === STATE.currentPage,
+            label: `Page ${page}`,
+            onClick: () => {
+              STATE.currentPage = page;
+              renderFromState();
+            },
+          });
+          container.appendChild(pageButton);
+        }
+
+        const nextButton = buildPaginationButton("→", {
+          disabled: STATE.currentPage === totalPages,
+          label: "Next page",
+          onClick: () => {
+            STATE.currentPage = Math.min(totalPages, STATE.currentPage + 1);
+            renderFromState();
+          },
+        });
+
+        container.appendChild(nextButton);
+      };
+
+      renderTo(paginationTopEl);
+      renderTo(paginationBottomEl);
+    }
+
     function renderVideos(list){
       gridEl.innerHTML = "";
       if(!list.length){
         statusEl.textContent = "No videos were found in the last 90 days.";
+        setPaginationVisibility(false);
         return;
       }
-      statusEl.textContent = `Showing ${list.length} video${list.length === 1 ? "" : "s"}.`;
+      statusEl.textContent = `${list.length} video${list.length === 1 ? "" : "s"}`;
+
+      const totalPages = Math.max(1, Math.ceil(list.length / STATE.pageSize));
+      if(STATE.currentPage > totalPages) STATE.currentPage = totalPages;
+      if(STATE.currentPage < 1) STATE.currentPage = 1;
+
+      const startIndex = (STATE.currentPage - 1) * STATE.pageSize;
+      const pagedList = list.slice(startIndex, startIndex + STATE.pageSize);
+
+      setPaginationVisibility(totalPages > 1);
+      renderPaginationControls(totalPages);
 
       const frag = document.createDocumentFragment();
-      for(const video of list){
+      for(const video of pagedList){
         const card = document.createElement("article");
         card.className = "video-card";
 
@@ -825,6 +939,14 @@
         channelLink.rel = "noopener noreferrer";
 
         channelWrap.appendChild(channelLink);
+        channelLine.appendChild(channelWrap);
+
+        const viewsLine = document.createElement("div");
+        viewsLine.className = "video-meta-line";
+
+        const views = document.createElement("span");
+        views.className = "video-meta-muted";
+        views.textContent = `${formatViewCount(video.views)} views`;
 
         const sep = document.createElement("span");
         sep.className = "video-meta-sep";
@@ -834,16 +956,7 @@
         published.className = "video-meta-muted";
         published.textContent = formatRelativeDate(video.publishedAt);
 
-        channelLine.append(channelWrap, sep, published);
-
-        const viewsLine = document.createElement("div");
-        viewsLine.className = "video-meta-line";
-
-        const views = document.createElement("span");
-        views.className = "video-meta-muted";
-        views.textContent = `${formatViewCount(video.views)} views`;
-
-        viewsLine.appendChild(views);
+        viewsLine.append(views, sep, published);
 
         meta.append(channelLine, viewsLine);
         card.append(link, titleLink, meta);
@@ -861,9 +974,11 @@
       gridEl.innerHTML = "";
       if(!list.length){
         statusEl.textContent = "No channels were found.";
+        setPaginationVisibility(false);
         return;
       }
       statusEl.textContent = `Showing ${list.length} channel${list.length === 1 ? "" : "s"}.`;
+      setPaginationVisibility(false);
 
       const frag = document.createDocumentFragment();
       for(const channel of list){
@@ -961,6 +1076,7 @@
       const mode = sortEl.value;
 
       if(mode === "channels"){
+        STATE.currentPage = 1;
         renderChannels(sortChannels(STATE.channels));
         return;
       }
@@ -992,7 +1108,7 @@
       }
 
       try{
-        statusEl.textContent = "Loading channel list…";
+        statusEl.textContent = "";
 
         const values = await fetchRange("A:A");
         const rows = values.map(row => row?.[0]).filter(Boolean);
@@ -1010,7 +1126,7 @@
           return;
         }
 
-        statusEl.textContent = "Resolving channels…";
+        statusEl.textContent = "";
 
         const { start, end } = getRolling90DaysWindow();
         const videos = [];
@@ -1124,6 +1240,7 @@
     }
 
     sortEl.addEventListener("change", () => {
+      STATE.currentPage = 1;
       renderFromState();
     });
 
