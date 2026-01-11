@@ -215,8 +215,60 @@
       color: rgba(233,238,248,0.7);
       display:flex;
       flex-direction:column;
-      gap: 4px;
+      gap: 6px;
       font-weight: 600;
+    }
+
+    .video-meta-line{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .video-channel{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .video-channel-avatar{
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    .video-channel-avatar-placeholder{
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.9);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+
+    .video-channel-name{
+      color: var(--text);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .video-channel-name:hover{
+      text-decoration: underline;
+    }
+
+    .video-meta-sep{
+      color: rgba(233,238,248,0.45);
+    }
+
+    .video-meta-muted{
+      color: rgba(233,238,248,0.7);
     }
 
     .channel-card{
@@ -595,7 +647,9 @@
       return {
         id: videoId,
         title: item.title || "Untitled video",
-        channel: item.channel || "Unknown channel",
+        channel: item.channelName || item.channel || "Unknown channel",
+        channelUrl: item.channelUrl || "",
+        channelAvatar: item.channelAvatar || "",
         publishedAt: item.publishedAt || null,
         thumbnail: item.thumbnail || "",
         url: `https://www.youtube.com/watch?v=${videoId}`,
@@ -603,10 +657,39 @@
       };
     }
 
-    function formatViews(value){
+    function formatViewCount(value){
       const views = Number(value);
-      if(!Number.isFinite(views)) return "Views: —";
-      return `Views: ${views.toLocaleString("en-US")}`;
+      if(!Number.isFinite(views)) return "—";
+      if(views < 1000) return Math.round(views).toString();
+      if(views < 100000){
+        const rounded = Math.round((views / 1000) * 10) / 10;
+        return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}K`;
+      }
+      if(views < 1000000){
+        return `${Math.round(views / 1000)}K`;
+      }
+      const rounded = Math.round((views / 1000000) * 10) / 10;
+      return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}M`;
+    }
+
+    const relativeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+
+    function formatRelativeDate(date){
+      if(!date) return "—";
+      const diffMs = Date.now() - date.getTime();
+      if(!Number.isFinite(diffMs)) return "—";
+      const diffSeconds = Math.round(diffMs / 1000);
+      const absSeconds = Math.abs(diffSeconds);
+      if(absSeconds < 60) return "just now";
+      const diffMinutes = Math.round(diffSeconds / 60);
+      if(Math.abs(diffMinutes) < 60) return relativeFormatter.format(-diffMinutes, "minute");
+      const diffHours = Math.round(diffMinutes / 60);
+      if(Math.abs(diffHours) < 24) return relativeFormatter.format(-diffHours, "hour");
+      const diffDays = Math.round(diffHours / 24);
+      if(Math.abs(diffDays) < 7) return relativeFormatter.format(-diffDays, "day");
+      if(Math.abs(diffDays) < 30) return relativeFormatter.format(-Math.round(diffDays / 7), "week");
+      if(Math.abs(diffDays) < 365) return relativeFormatter.format(-Math.round(diffDays / 30), "month");
+      return relativeFormatter.format(-Math.round(diffDays / 365), "year");
     }
 
     function renderVideos(list){
@@ -642,16 +725,55 @@
         const meta = document.createElement("div");
         meta.className = "video-meta";
 
-        const channel = document.createElement("span");
-        channel.textContent = video.channel;
+        const channelLine = document.createElement("div");
+        channelLine.className = "video-meta-line";
+
+        const channelWrap = document.createElement("div");
+        channelWrap.className = "video-channel";
+
+        if(video.channelAvatar){
+          const avatar = document.createElement("img");
+          avatar.className = "video-channel-avatar";
+          avatar.src = video.channelAvatar;
+          avatar.alt = `${video.channel} avatar`;
+          avatar.loading = "lazy";
+          channelWrap.appendChild(avatar);
+        }else{
+          const avatarFallback = document.createElement("div");
+          avatarFallback.className = "video-channel-avatar video-channel-avatar-placeholder";
+          avatarFallback.textContent = safeInitial(video.channel);
+          channelWrap.appendChild(avatarFallback);
+        }
+
+        const channelLink = document.createElement("a");
+        channelLink.className = "video-channel-name";
+        channelLink.textContent = video.channel;
+        channelLink.href = video.channelUrl || "#";
+        channelLink.target = "_blank";
+        channelLink.rel = "noopener noreferrer";
+
+        channelWrap.appendChild(channelLink);
+
+        const sep = document.createElement("span");
+        sep.className = "video-meta-sep";
+        sep.textContent = "•";
 
         const published = document.createElement("span");
-        published.textContent = video.publishedAt ? `Published: ${dateFormatter.format(video.publishedAt)}` : "Published: —";
+        published.className = "video-meta-muted";
+        published.textContent = formatRelativeDate(video.publishedAt);
+
+        channelLine.append(channelWrap, sep, published);
+
+        const viewsLine = document.createElement("div");
+        viewsLine.className = "video-meta-line";
 
         const views = document.createElement("span");
-        views.textContent = formatViews(video.views);
+        views.className = "video-meta-muted";
+        views.textContent = `${formatViewCount(video.views)} views`;
 
-        meta.append(channel, published, views);
+        viewsLine.appendChild(views);
+
+        meta.append(channelLine, viewsLine);
         card.append(link, title, meta);
         frag.appendChild(card);
       }
@@ -841,7 +963,12 @@
             if(!name && feed.authorName) name = feed.authorName;
 
             for(const item of feed.items){
-              const model = buildVideoModel(item);
+              const model = buildVideoModel({
+                ...item,
+                channelName: name,
+                channelUrl,
+                channelAvatar: avatar,
+              });
               if(!model?.publishedAt) continue;
               if(model.publishedAt >= start && model.publishedAt <= end){
                 videos.push(model);
