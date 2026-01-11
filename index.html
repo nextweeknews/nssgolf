@@ -399,7 +399,14 @@
       return { start, end };
     }
 
-    const PROXY_BASE = "https://api.allorigins.win/raw?url=";
+    const PROXY_BASES = [
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => {
+        const normalized = url.replace(/^https?:\/\//, "");
+        const scheme = url.startsWith("https://") ? "https" : "http";
+        return `https://r.jina.ai/${scheme}://${normalized}`;
+      },
+    ];
 
     function stripTrailingSlash(value){
       return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -421,11 +428,20 @@
     }
 
     async function fetchText(url){
-      const res = await fetch(`${PROXY_BASE}${encodeURIComponent(url)}`);
-      if(!res.ok){
-        throw new Error(`Proxy fetch failed (${res.status}).`);
+      let lastError;
+      for(const buildUrl of PROXY_BASES){
+        const proxyUrl = buildUrl(url);
+        try{
+          const res = await fetch(proxyUrl);
+          if(res.ok){
+            return res.text();
+          }
+          lastError = new Error(`Proxy fetch failed (${res.status}).`);
+        }catch(error){
+          lastError = error;
+        }
       }
-      return res.text();
+      throw lastError || new Error("Proxy fetch failed.");
     }
 
     function extractChannelIdFromHtml(html){
@@ -640,7 +656,7 @@
 
     async function loadVideos(){
       try{
-        statusEl.textContent = "Loading videos…";
+        statusEl.textContent = "Loading channel list…";
         const values = await fetchRange("A:A");
         const rows = values.map(row => row?.[0]).filter(Boolean);
         const trimmed = rows.map(entry => String(entry).trim()).filter(Boolean);
@@ -655,6 +671,7 @@
           statusEl.textContent = "No valid YouTube URLs were found.";
           return;
         }
+        statusEl.textContent = "Resolving channel details…";
         const channelEntries = [];
         for(const channelUrl of parsed){
           const id = await resolveChannelId(channelUrl);
@@ -689,6 +706,7 @@
         const videos = [];
         for(const entry of channelEntries){
           if(!entry.id) continue;
+          statusEl.textContent = `Loading videos for ${entry.name || entry.url}…`;
           const items = await fetchChannelFeed(entry.id);
           entry.previewCount = items.length;
           entry.latest = items
@@ -739,7 +757,7 @@
           }
         });
       }catch(error){
-        statusEl.textContent = "Unable to load videos right now.";
+        statusEl.textContent = `Unable to load videos: ${error?.message || "Unknown error"}`;
         console.error(error);
       }
     }
