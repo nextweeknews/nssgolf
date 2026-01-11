@@ -480,6 +480,44 @@
       .weekly-round{ font-size: 18px; }
       .team-logo{ height: calc(100%); }
     }
+
+    @media (max-width: 760px){
+      .png-wrap{ width: 100%; }
+      .png-img{
+        width: 100%;
+        height: auto;
+      }
+    }
+
+    .desktop-render{
+      --rank-col: 100px;
+      --score-col: 120px;
+      --name-col: 460px;
+      --wk-rank-col: 100px;
+      --wk-round-col: 88px;
+      --wk-score-col: 120px;
+      --wk-name-col: calc(var(--name-col) - var(--wk-round-col) - var(--wk-round-col));
+      --wk-name-col-mobile: var(--name-col);
+      --logo-slot: 40px;
+    }
+
+    .desktop-render .h2{ font-size: 22px; }
+    .desktop-render .header-row,
+    .desktop-render .weekly-header-row{ height: 40px; font-size: 14px; }
+    .desktop-render .entry,
+    .desktop-render .weekly-entry{ height: 48px; }
+    .desktop-render .weekly-header-row,
+    .desktop-render .weekly-entry{
+      grid-template-columns: var(--wk-rank-col) minmax(0, var(--wk-name-col)) var(--wk-round-col) var(--wk-round-col) var(--wk-score-col);
+    }
+    .desktop-render .lobby-entry{ height: 48px; }
+    .desktop-render .place{ font-size: 22px; padding: 0 10px; }
+    .desktop-render .score-col{ font-size: 22px; padding: 0 10px; }
+    .desktop-render .team-cell{ padding: 0 12px; }
+    .desktop-render .name-text{ font-size: 20px; padding-left: 10px; }
+    .desktop-render .weekly-round{ font-size: 22px; }
+    .desktop-render .team-logo{ height: calc(100%); }
+    .desktop-render .weekly-hide-mobile{ display:flex !important; }
   </style>
 </head>
 
@@ -537,7 +575,7 @@
   </div>
 
   <!-- Hidden render surface -->
-  <div class="render-surface" aria-hidden="true">
+  <div class="render-surface desktop-render" aria-hidden="true">
     <div id="teamsCard" class="card">
       <div class="card-head"><h2 class="h2">Team Rankings</h2></div>
       <div class="header-row">
