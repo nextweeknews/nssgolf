@@ -119,6 +119,140 @@
       border-top: 1px solid var(--border-lite);
     }
 
+    .video-section{
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-lite);
+    }
+
+    .video-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .section-title{
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--title);
+    }
+
+    .video-subtext{
+      margin: 6px 0 14px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .sort-control{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .sort-control select{
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .video-status{
+      font-size: 13px;
+      color: rgba(233,238,248,0.7);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .video-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .video-card{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(6,24,46,0.7);
+    }
+
+    .video-thumb{
+      width:100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .video-title{
+      font-size: 14px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .video-meta{
+      font-size: 12px;
+      color: rgba(233,238,248,0.7);
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    .channel-card{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      padding: 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(6,24,46,0.7);
+    }
+
+    .channel-avatar{
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .channel-name{
+      font-size: 15px;
+      font-weight: 900;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .channel-meta{
+      font-size: 12px;
+      color: rgba(233,238,248,0.7);
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+      font-weight: 600;
+    }
+
     .btn{
       appearance:none;
       -webkit-appearance:none;
@@ -180,7 +314,7 @@
         Welcome to the NSS Golf Community Events Page! Select an event to view results and leaderboards.
       </p>
 
-       <div class="actions">
+      <div class="actions">
         <a class="btn" href="https://teamupdiscord.com/leaderboard/client/DISCORD%7C1069003073311211601/leaderboard/Season_11/rating_type/player_global_all/format/global" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
           Ranked League
         </a>
@@ -190,8 +324,427 @@
         </a>
       </div>
 
+      <section class="video-section" aria-labelledby="video-section-title">
+        <div class="video-header">
+          <h2 class="section-title" id="video-section-title">Last Month's Channel Videos</h2>
+          <label class="sort-control" for="video-sort">
+            Sort
+            <select id="video-sort">
+              <option value="recent">Most Recent</option>
+              <option value="views">Most Viewed</option>
+              <option value="channels">Channels</option>
+            </select>
+          </label>
+        </div>
+        <p class="video-subtext">Showing videos uploaded in the previous month from the NSS Golf community channels.</p>
+        <div class="video-status" id="video-status">Loading videos…</div>
+        <div class="video-grid" id="video-grid"></div>
+      </section>
+
       <div class="footer">NSS Golf Community Events</div>
     </div>
   </div>
+
+  <script>
+    const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID = "1VGouXR7onYOeu7T4oiFSId-TtdJMFS0Nc3CYcjYM6-k";
+    const SHEET_NAME = "Channels";
+
+    const statusEl = document.getElementById("video-status");
+    const gridEl = document.getElementById("video-grid");
+    const sortEl = document.getElementById("video-sort");
+
+    const dateFormatter = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function fetchRange(a1){
+      const range = `'${SHEET_NAME}'!${a1}`;
+      const payload = { sheetId: SHEET_ID, range };
+      try{
+        const r = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){}
+
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(()=> "");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    function getPreviousMonthWindow(){
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      return { start, end };
+    }
+
+    const PROXY_BASE = "https://api.allorigins.win/raw?url=";
+
+    function stripTrailingSlash(value){
+      return value.endsWith("/") ? value.slice(0, -1) : value;
+    }
+
+    function parseChannelUrl(entry){
+      const raw = String(entry ?? "").trim();
+      if(!raw) return null;
+      try{
+        const url = new URL(raw);
+        const host = url.hostname.replace(/^www\./, "");
+        if(host !== "youtube.com" && host !== "m.youtube.com" && host !== "youtu.be"){
+          return null;
+        }
+        return stripTrailingSlash(url.href);
+      }catch(error){
+        return null;
+      }
+    }
+
+    async function fetchText(url){
+      const res = await fetch(`${PROXY_BASE}${encodeURIComponent(url)}`);
+      if(!res.ok){
+        throw new Error(`Proxy fetch failed (${res.status}).`);
+      }
+      return res.text();
+    }
+
+    function extractChannelIdFromHtml(html){
+      const match = html.match(/\"channelId\":\"(UC[^\"]+)\"/);
+      return match?.[1] || null;
+    }
+
+    function parseSubscriberCount(text){
+      if(!text) return null;
+      const match = text.replace(/,/g, "").match(/([\d.]+)\s*([KMB])?/i);
+      if(!match) return null;
+      const value = Number(match[1]);
+      if(!Number.isFinite(value)) return null;
+      const suffix = (match[2] || "").toUpperCase();
+      const multipliers = { K: 1e3, M: 1e6, B: 1e9 };
+      return Math.round(value * (multipliers[suffix] || 1));
+    }
+
+    function formatSubscribers(value){
+      if(!Number.isFinite(value)) return "Subscribers: —";
+      return `Subscribers: ${value.toLocaleString("en-US")}`;
+    }
+
+    function extractChannelStats(html){
+      const titleMatch = html.match(/<meta name=\"title\" content=\"([^\"]+)\"/i);
+      const name = titleMatch?.[1] || null;
+      const avatarMatch = html.match(/<meta property=\"og:image\" content=\"([^\"]+)\"/i);
+      const avatar = avatarMatch?.[1] || "";
+      const subMatch = html.match(/\"subscriberCountText\":\\{\"simpleText\":\"([^\"]+)\"/);
+      const subAltMatch = html.match(/\"subscriberCountText\":\\{\"runs\":\\[\\{\"text\":\"([^\"]+)\"/);
+      const subscriberText = subMatch?.[1] || subAltMatch?.[1] || "";
+      const subscribers = parseSubscriberCount(subscriberText);
+      return { name, avatar, subscribers };
+    }
+
+    async function fetchChannelStats(channelUrl){
+      try{
+        const html = await fetchText(channelUrl);
+        return extractChannelStats(html);
+      }catch(error){
+        console.warn("Channel stats fetch failed.", error);
+        return { name: null, avatar: "", subscribers: null };
+      }
+    }
+
+    async function resolveChannelId(channelUrl){
+      try{
+        const url = new URL(channelUrl);
+        if(url.pathname.startsWith("/channel/")){
+          return url.pathname.split("/")[2] || null;
+        }
+        const html = await fetchText(url.href);
+        return extractChannelIdFromHtml(html);
+      }catch(error){
+        console.warn("Channel lookup failed.", error);
+        return null;
+      }
+    }
+
+    function parseFeed(xmlText){
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlText, "application/xml");
+      const entries = Array.from(doc.getElementsByTagName("entry"));
+      return entries.map(entry => {
+        const id = entry.getElementsByTagName("yt:videoId")[0]?.textContent?.trim();
+        const title = entry.getElementsByTagName("title")[0]?.textContent?.trim();
+        const published = entry.getElementsByTagName("published")[0]?.textContent?.trim();
+        const channel = entry.getElementsByTagName("name")[0]?.textContent?.trim();
+        const thumbnail = entry.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
+        const views = entry.getElementsByTagName("media:statistics")[0]?.getAttribute("views");
+        return {
+          id,
+          title,
+          channel,
+          publishedAt: published ? new Date(published) : null,
+          thumbnail,
+          views: views ? Number(views) : 0,
+        };
+      }).filter(item => item.id);
+    }
+
+    async function fetchChannelFeed(channelId){
+      try{
+        const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+        const xmlText = await fetchText(feedUrl);
+        return parseFeed(xmlText);
+      }catch(error){
+        console.warn("Channel feed fetch failed.", error);
+        return [];
+      }
+    }
+
+    function formatViews(value){
+      const views = Number(value || 0);
+      if(!Number.isFinite(views)) return "Views: —";
+      return `Views: ${views.toLocaleString("en-US")}`;
+    }
+
+    function buildVideoModel(item){
+      const videoId = item?.id;
+      if(!videoId) return null;
+      return {
+        id: videoId,
+        title: item.title || "Untitled video",
+        channel: item.channel || "Unknown channel",
+        publishedAt: item.publishedAt || null,
+        thumbnail: item.thumbnail || "",
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        views: item.views || 0,
+      };
+    }
+
+    function renderVideos(list){
+      gridEl.innerHTML = "";
+      if(!list.length){
+        statusEl.textContent = "No videos were found for the previous month.";
+        return;
+      }
+      statusEl.textContent = `Showing ${list.length} video${list.length === 1 ? "" : "s"}.`;
+      const frag = document.createDocumentFragment();
+      for(const video of list){
+        const card = document.createElement("article");
+        card.className = "video-card";
+
+        const link = document.createElement("a");
+        link.href = video.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        const img = document.createElement("img");
+        img.className = "video-thumb";
+        img.src = video.thumbnail;
+        img.alt = video.title;
+        img.loading = "lazy";
+
+        link.appendChild(img);
+
+        const title = document.createElement("p");
+        title.className = "video-title";
+        title.textContent = video.title;
+
+        const meta = document.createElement("div");
+        meta.className = "video-meta";
+        const channel = document.createElement("span");
+        channel.textContent = video.channel;
+        const published = document.createElement("span");
+        published.textContent = video.publishedAt ? `Published: ${dateFormatter.format(video.publishedAt)}` : "Published: —";
+        const views = document.createElement("span");
+        views.textContent = formatViews(video.views);
+        meta.append(channel, published, views);
+
+        card.append(link, title, meta);
+        frag.appendChild(card);
+      }
+      gridEl.appendChild(frag);
+    }
+
+    function renderChannels(list){
+      gridEl.innerHTML = "";
+      if(!list.length){
+        statusEl.textContent = "No channels were found.";
+        return;
+      }
+      statusEl.textContent = `Showing ${list.length} channel${list.length === 1 ? "" : "s"}.`;
+      const frag = document.createDocumentFragment();
+      for(const channel of list){
+        const card = document.createElement("article");
+        card.className = "channel-card";
+
+        const link = document.createElement("a");
+        link.href = channel.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        const avatar = document.createElement("img");
+        avatar.className = "channel-avatar";
+        avatar.src = channel.avatar || "";
+        avatar.alt = channel.name || "Channel avatar";
+        avatar.loading = "lazy";
+
+        link.appendChild(avatar);
+
+        const name = document.createElement("p");
+        name.className = "channel-name";
+        name.textContent = channel.name || channel.url;
+
+        const meta = document.createElement("div");
+        meta.className = "channel-meta";
+        const subscribers = document.createElement("span");
+        subscribers.textContent = formatSubscribers(channel.subscribers);
+        const preview = document.createElement("span");
+        preview.textContent = `Preview videos: ${channel.previewCount || 0}`;
+        const latest = document.createElement("span");
+        latest.textContent = channel.latest ? `Latest: ${dateFormatter.format(channel.latest)}` : "Latest: —";
+        meta.append(subscribers, preview, latest);
+
+        card.append(link, name, meta);
+        frag.appendChild(card);
+      }
+      gridEl.appendChild(frag);
+    }
+
+    function sortVideos(list, mode){
+      const sorted = [...list];
+      if(mode === "views"){
+        sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+      }else{
+        sorted.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
+      }
+      return sorted;
+    }
+
+    async function loadVideos(){
+      try{
+        statusEl.textContent = "Loading videos…";
+        const values = await fetchRange("A:A");
+        const rows = values.map(row => row?.[0]).filter(Boolean);
+        const trimmed = rows.map(entry => String(entry).trim()).filter(Boolean);
+        const entries = trimmed.filter((entry, index) => !(index === 0 && entry.toLowerCase() === "channels"));
+        if(!entries.length){
+          statusEl.textContent = "No channels found in the sheet.";
+          return;
+        }
+
+        const parsed = entries.map(parseChannelUrl).filter(Boolean);
+        if(!parsed.length){
+          statusEl.textContent = "No valid YouTube URLs were found.";
+          return;
+        }
+        const channelEntries = [];
+        for(const channelUrl of parsed){
+          const id = await resolveChannelId(channelUrl);
+          const stats = await fetchChannelStats(channelUrl);
+          channelEntries.push({
+            url: channelUrl,
+            id,
+            name: stats.name || channelUrl,
+            avatar: stats.avatar,
+            subscribers: stats.subscribers,
+            previewCount: 0,
+            latest: null,
+          });
+        }
+
+        const channelSummaries = channelEntries.map(entry => ({
+          url: entry.url,
+          name: entry.name,
+          avatar: entry.avatar,
+          subscribers: entry.subscribers,
+          previewCount: entry.previewCount,
+          latest: entry.latest,
+        }));
+
+        const channelIds = channelEntries.filter(entry => entry.id).map(entry => entry.id);
+        if(!channelIds.length){
+          statusEl.textContent = "No valid channel IDs were found.";
+          return;
+        }
+
+        const { start, end } = getPreviousMonthWindow();
+        const videos = [];
+        for(const entry of channelEntries){
+          if(!entry.id) continue;
+          const items = await fetchChannelFeed(entry.id);
+          entry.previewCount = items.length;
+          entry.latest = items
+            .map(item => item.publishedAt)
+            .filter(Boolean)
+            .sort((a, b) => b - a)[0] || null;
+          const summary = channelSummaries.find(summaryItem => summaryItem.url === entry.url);
+          if(summary){
+            summary.previewCount = entry.previewCount;
+            summary.latest = entry.latest;
+          }
+          for(const item of items){
+            const model = buildVideoModel(item);
+            if(!model?.publishedAt) continue;
+            if(model.publishedAt >= start && model.publishedAt <= end){
+              videos.push(model);
+            }
+          }
+        }
+
+        if(sortEl.value === "channels"){
+          const sortedChannels = [...channelSummaries].sort((a, b) => (b.subscribers || 0) - (a.subscribers || 0));
+          renderChannels(sortedChannels);
+          sortEl.addEventListener("change", () => {
+            if(sortEl.value === "channels"){
+              renderChannels(sortedChannels);
+            }else{
+              renderVideos(sortVideos(videos, sortEl.value));
+            }
+          });
+          return;
+        }
+
+        if(!videos.length){
+          statusEl.textContent = "No videos were published last month.";
+          return;
+        }
+
+        const sorted = sortVideos(videos, sortEl.value);
+        renderVideos(sorted);
+
+        sortEl.addEventListener("change", () => {
+          if(sortEl.value === "channels"){
+            const sortedChannels = [...channelSummaries].sort((a, b) => (b.subscribers || 0) - (a.subscribers || 0));
+            renderChannels(sortedChannels);
+          }else{
+            renderVideos(sortVideos(videos, sortEl.value));
+          }
+        });
+      }catch(error){
+        statusEl.textContent = "Unable to load videos right now.";
+        console.error(error);
+      }
+    }
+
+    loadVideos();
+  </script>
 </body>
 </html>
