@@ -720,7 +720,11 @@
 
   <script>
     // === CONFIG ===
-    // REQUIRED: Worker must implement GET /proxy?url=<encoded> and return CORS headers.
+    // Worker must implement:
+    // - GET /proxy?url=...
+    // - GET /yt/channel?channelId=UC...
+    // - GET /yt/videos?ids=...
+    // - GET /yt/live?channelId=UC...   ✅ (new)
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1VGouXR7onYOeu7T4oiFSId-TtdJMFS0Nc3CYcjYM6-k";
     const SHEET_NAME = "Channels";
@@ -838,7 +842,7 @@
     }
 
     // =========================
-    // NEW: YouTube video stats via Worker
+    // YouTube video stats via Worker
     // GET /yt/videos?ids=...
     // =========================
     async function fetchVideoStats(videoIds){
@@ -861,6 +865,35 @@
         }
       }
       return statsById;
+    }
+
+    // =========================
+    // ✅ NEW: YouTube LIVE via Worker (Data API)
+    // GET /yt/live?channelId=UC...
+    // Expects: { live: boolean, videoId?: string, title?: string, thumbnail?: string }
+    // =========================
+    async function fetchYouTubeLiveNowViaApi(channelId, channelName){
+      if(!channelId) return null;
+
+      const endpoint = workerEndpoint("yt/live", { channelId });
+      const res = await fetchWithTimeout(endpoint, { timeoutMs: 20000 });
+      if(!res.ok){
+        // Don't fail the page on live check issues.
+        console.warn("yt/live failed", res.status);
+        return null;
+      }
+
+      const data = await res.json().catch(()=> null);
+      if(!data?.live || !data?.videoId) return null;
+
+      return buildLiveModel({
+        title: data.title || "Live stream",
+        channel: channelName || "Unknown channel",
+        url: `https://www.youtube.com/watch?v=${data.videoId}`,
+        // Proxy the thumbnail (optional but consistent w/ the rest of the site)
+        thumbnail: data.thumbnail ? workerProxyUrl(data.thumbnail) : "",
+        platform: "YouTube",
+      });
     }
 
     // === CHANNEL INPUT PARSING ===
@@ -979,53 +1012,6 @@
       }catch{
         return value;
       }
-    }
-
-    // =========================
-    // NEW: YouTube LIVE detection (HTML via /proxy)
-    // =========================
-    function decodeHtmlEntities(str){
-      if(!str) return "";
-      const el = document.createElement("textarea");
-      el.innerHTML = str;
-      return el.value;
-    }
-
-    function getMetaContent(html, prop){
-      const re = new RegExp(`<meta\\s+property="${prop}"\\s+content="([^"]+)"`, "i");
-      return decodeHtmlEntities(html.match(re)?.[1] || "");
-    }
-
-    function getCanonicalHref(html){
-      const m = html.match(/<link\\s+rel="canonical"\\s+href="([^"]+)"/i);
-      return decodeHtmlEntities(m?.[1] || "");
-    }
-
-    async function fetchYouTubeLiveNow(channelId, channelName){
-      // YouTube routes /live to the active broadcast if live
-      const liveLanding = `https://www.youtube.com/channel/${channelId}/live`;
-      const html = await fetchTextViaProxy(liveLanding);
-
-      const isLive =
-        /"isLiveContent"\s*:\s*true/.test(html) ||
-        /"isLive"\s*:\s*true/.test(html);
-
-      if(!isLive) return null;
-
-      const url = getMetaContent(html, "og:url") || getCanonicalHref(html);
-      if(!url || !/youtube\.com\/watch\?v=/.test(url)) return null;
-
-      const title = getMetaContent(html, "og:title") || "Live stream";
-      const ogImage = getMetaContent(html, "og:image");
-
-      return buildLiveModel({
-        title,
-        channel: channelName || "Unknown channel",
-        url,
-        // proxy the image so it always loads on your site
-        thumbnail: ogImage ? workerProxyUrl(ogImage) : "",
-        platform: "YouTube",
-      });
     }
 
     function dedupeByUrl(list){
@@ -1667,13 +1653,14 @@
             console.warn("oEmbed failed", channelUrl, e);
           }
 
-          // ✅ NEW: YouTube LIVE detection via /channel/UC.../live
+          // ✅ NEW: YouTube LIVE detection via Data API endpoint (/yt/live)
+          // Keeps RSS fallback below.
           if(id){
             try{
-              const live = await fetchYouTubeLiveNow(id, name);
+              const live = await fetchYouTubeLiveNowViaApi(id, name);
               if(live) liveNow.push(live);
             }catch(e){
-              console.warn("YouTube live check failed", id, e);
+              console.warn("YouTube live API check failed", id, e);
             }
           }
 
@@ -1703,7 +1690,7 @@
                 videos.push(model);
               }
 
-              // Keep RSS liveStatus path too, but it's unreliable
+              // ✅ RSS fallback liveStatus path (still kept, as requested)
               if(item.liveStatus === "live"){
                 const liveModel = buildLiveModel({
                   title: item.title,
