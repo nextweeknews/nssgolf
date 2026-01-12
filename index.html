@@ -659,12 +659,12 @@
         </div>
       </div>
 
-      <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-title">
+      <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-title" hidden>
         <p class="league-subtitle" id="upcoming-title">Upcoming</p>
         <p class="league-placeholder">Nothing here... yet.</p>
       </div>
 
-      <div class="league-section" id="archive-section" aria-labelledby="archive-title">
+      <div class="league-section" id="archive-section" aria-labelledby="archive-title" hidden>
         <p class="league-subtitle" id="archive-title">Archive</p>
         <p class="league-placeholder">Nothing here... yet.</p>
       </div>
@@ -1066,7 +1066,9 @@
 
     function setActiveLeagueTab(targetId){
       for(const section of leagueSections){
-        section.hidden = section.id !== targetId;
+        const isActive = section.id === targetId;
+        section.hidden = !isActive;
+        section.setAttribute("aria-hidden", isActive ? "false" : "true");
       }
       for(const tab of leagueTabs){
         const isActive = tab.dataset.target === targetId;
@@ -1077,12 +1079,21 @@
 
     function initLeagueTabs(){
       if(!leagueTabs.length) return;
-      const initial = leagueTabs.find(tab => tab.classList.contains("is-active")) || leagueTabs[0];
+      const targetIds = new Set(leagueSections.map(section => section.id));
+      const initial = leagueTabs.find(tab => tab.classList.contains("is-active") && targetIds.has(tab.dataset.target))
+        || leagueTabs.find(tab => targetIds.has(tab.dataset.target))
+        || null;
+
       if(initial?.dataset.target){
         setActiveLeagueTab(initial.dataset.target);
       }
+
       for(const tab of leagueTabs){
-        tab.addEventListener("click", () => setActiveLeagueTab(tab.dataset.target));
+        if(!targetIds.has(tab.dataset.target)) continue;
+        tab.addEventListener("click", (event) => {
+          event.preventDefault();
+          setActiveLeagueTab(tab.dataset.target);
+        });
       }
     }
 
