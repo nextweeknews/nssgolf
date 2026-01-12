@@ -159,6 +159,10 @@
       border-top: 1px solid var(--border-lite);
     }
 
+    .league-section[hidden]{
+      display: none;
+    }
+
     .league-placeholder{
       margin: 0;
       font-size: 14px;
@@ -275,6 +279,76 @@
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 16px;
+    }
+
+    .live-section{
+      margin-top: 32px;
+    }
+
+    .live-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .live-card{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(10,18,30,0.75);
+    }
+
+    .live-thumb{
+      width:100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .live-title{
+      font-size: 14px;
+      font-weight: 800;
+      margin: 0;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .live-title:hover{
+      text-decoration: underline;
+    }
+
+    .live-meta{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      color: rgba(233,238,248,0.7);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .live-badge{
+      background:#ff3558;
+      color:#fff;
+      font-weight:800;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      letter-spacing: .08em;
+    }
+
+    .live-platform{
+      background: rgba(255,255,255,0.12);
+      color:#fff;
+      font-weight:700;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
     }
 
     .video-card{
@@ -514,9 +588,23 @@
 
     @media (max-width: 760px){
       .container{ padding: 20px 12px 44px; }
-      .topbar-inner{ padding: 12px 12px; }
+      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .brand{ flex: 1; min-width: 0; }
+      .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
+      .discord-button .btn-icon{ width: 14px; height: 14px; }
       .headline{ font-size: 18px; }
       .card{ padding: 18px 14px; border-radius: 18px; }
+      .league-tabs{
+        display:grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .tab-button{
+        min-width: 0;
+      }
+      .tab-button.tab-primary{
+        grid-column: 1 / -1;
+      }
     }
   </style>
 </head>
@@ -532,7 +620,7 @@
           <div class="kicker">NSS Golf Community</div>
         </div>
       </div>
-      <a class="btn" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
+      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
         <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
         DISCORD
       </a>
@@ -543,18 +631,18 @@
     <div class="card">
       <h1 class="headline">Leagues &amp; Events</h1>
       <div class="league-tabs" role="tablist" aria-label="League sections">
-        <button class="tab-button is-active" type="button" role="tab" aria-selected="true">
+        <button class="tab-button tab-primary is-active" type="button" role="tab" aria-selected="true" aria-controls="happening-now-section" data-target="happening-now-section">
           Happening Now
         </button>
-        <a class="tab-button" href="#upcoming-section" role="tab" aria-selected="false">
+        <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="upcoming-section" data-target="upcoming-section">
           Upcoming
-        </a>
-        <a class="tab-button" href="#archive-section" role="tab" aria-selected="false">
+        </button>
+        <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="archive-section" data-target="archive-section">
           Archive
-        </a>
+        </button>
       </div>
 
-      <div class="league-section" aria-labelledby="happening-now-title">
+      <div class="league-section" id="happening-now-section" aria-labelledby="happening-now-title">
         <p class="league-subtitle" id="happening-now-title">Happening Now</p>
         <div class="actions">
           <a class="btn neon-red" href="https://teamupdiscord.com/leaderboard/client/DISCORD%7C1069003073311211601/leaderboard/Season_11/rating_type/player_global_all/format/global" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
@@ -580,6 +668,14 @@
         <p class="league-subtitle" id="archive-title">Archive</p>
         <p class="league-placeholder">Nothing here... yet.</p>
       </div>
+
+      <section class="live-section" aria-labelledby="live-section-title">
+        <div class="video-header">
+          <h2 class="section-title" id="live-section-title">Live Now</h2>
+        </div>
+        <div class="video-status" id="live-status"></div>
+        <div class="live-grid" id="live-grid"></div>
+      </section>
 
       <section class="video-section" aria-labelledby="video-section-title">
         <div class="video-header">
@@ -616,6 +712,10 @@
     const sortEl = document.getElementById("video-sort");
     const paginationTopEl = document.getElementById("video-pagination-top");
     const paginationBottomEl = document.getElementById("video-pagination-bottom");
+    const liveStatusEl = document.getElementById("live-status");
+    const liveGridEl = document.getElementById("live-grid");
+    const leagueTabs = Array.from(document.querySelectorAll(".tab-button[data-target]"));
+    const leagueSections = Array.from(document.querySelectorAll(".league-section"));
 
     const dateFormatter = new Intl.DateTimeFormat("en-US", {
       month: "short",
@@ -627,6 +727,7 @@
     const STATE = {
       channels: [],
       videos: [],
+      liveNow: [],
       viewsReady: false,
       errors: [],
       currentPage: 1,
@@ -742,18 +843,43 @@
       }
     }
 
+    function parseTwitchEntry(entry){
+      const raw = String(entry ?? "").trim();
+      if(!raw) return null;
+
+      if(raw.toLowerCase().startsWith("twitch:")){
+        const channel = raw.slice(7).trim();
+        if(!channel) return null;
+        return { platform: "twitch", channel, url: `https://www.twitch.tv/${channel}` };
+      }
+
+      try{
+        const url = new URL(raw);
+        const host = url.hostname.replace(/^www\./, "");
+        if(host !== "twitch.tv") return null;
+        const channel = url.pathname.split("/").filter(Boolean)[0];
+        if(!channel) return null;
+        return { platform: "twitch", channel, url: `https://www.twitch.tv/${channel}` };
+      }catch{
+        return null;
+      }
+    }
+
     function parseChannelEntry(entry){
+      const twitchEntry = parseTwitchEntry(entry);
+      if(twitchEntry) return twitchEntry;
+
       const raw = String(entry ?? "").trim();
       if(!raw) return null;
 
       // Allow storing UC... IDs directly in the sheet (recommended)
       if(/^UC[a-zA-Z0-9_-]{20,}$/.test(raw)){
-        return { url: `https://www.youtube.com/channel/${raw}`, id: raw, raw };
+        return { platform: "youtube", url: `https://www.youtube.com/channel/${raw}`, id: raw, raw };
       }
 
       const url = parseChannelUrl(raw);
       if(!url) return null;
-      return { url, id: null, raw };
+      return { platform: "youtube", url, id: null, raw };
     }
 
     // === CHANNEL ID RESOLUTION (only needed if sheet uses @handles / custom URLs) ===
@@ -809,6 +935,16 @@
       return (first || "N").toUpperCase();
     }
 
+    function decodeJsonString(value){
+      if(!value) return value;
+      try{
+        const escaped = value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        return JSON.parse(`"${escaped}"`);
+      }catch{
+        return value;
+      }
+    }
+
     // === FEED (VIDEOS) ===
     function parseFeed(xmlText){
       const parser = new DOMParser();
@@ -827,6 +963,7 @@
         const published = entry.getElementsByTagName("published")[0]?.textContent?.trim();
         const channel = entry.getElementsByTagName("name")[0]?.textContent?.trim();
         const thumbnail = entry.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
+        const liveStatus = entry.getElementsByTagName("yt:liveBroadcastContent")[0]?.textContent?.trim() || null;
 
         const viewsAttr = entry.getElementsByTagName("media:statistics")[0]?.getAttribute("views");
         const views = viewsAttr ? Number(viewsAttr) : null;
@@ -838,6 +975,7 @@
           publishedAt: published ? new Date(published) : null,
           thumbnail,
           views: Number.isFinite(views) ? views : null,
+          liveStatus,
         };
       }).filter(v => v.id);
 
@@ -868,6 +1006,17 @@
         thumbnail: item.thumbnail || "",
         url: `https://www.youtube.com/watch?v=${videoId}`,
         views: Number.isFinite(item.views) ? item.views : null,
+      };
+    }
+
+    function buildLiveModel(item){
+      if(!item?.url) return null;
+      return {
+        title: item.title || "Live stream",
+        channel: item.channel || "Unknown channel",
+        url: item.url,
+        thumbnail: item.thumbnail || "",
+        platform: item.platform || "YouTube",
       };
     }
 
@@ -913,6 +1062,28 @@
     function setPaginationVisibility(isVisible){
       paginationTopEl.hidden = !isVisible;
       paginationBottomEl.hidden = !isVisible;
+    }
+
+    function setActiveLeagueTab(targetId){
+      for(const section of leagueSections){
+        section.hidden = section.id !== targetId;
+      }
+      for(const tab of leagueTabs){
+        const isActive = tab.dataset.target === targetId;
+        tab.classList.toggle("is-active", isActive);
+        tab.setAttribute("aria-selected", isActive ? "true" : "false");
+      }
+    }
+
+    function initLeagueTabs(){
+      if(!leagueTabs.length) return;
+      const initial = leagueTabs.find(tab => tab.classList.contains("is-active")) || leagueTabs[0];
+      if(initial?.dataset.target){
+        setActiveLeagueTab(initial.dataset.target);
+      }
+      for(const tab of leagueTabs){
+        tab.addEventListener("click", () => setActiveLeagueTab(tab.dataset.target));
+      }
     }
 
     function buildPaginationButton(label, options = {}){
@@ -1074,6 +1245,62 @@
       gridEl.appendChild(frag);
     }
 
+    function renderLiveNow(list){
+      liveGridEl.innerHTML = "";
+      if(!list.length){
+        liveStatusEl.textContent = "No one is live right now.";
+        return;
+      }
+
+      liveStatusEl.textContent = `${list.length} live now`;
+      const frag = document.createDocumentFragment();
+
+      for(const stream of list){
+        const card = document.createElement("article");
+        card.className = "live-card";
+
+        const link = document.createElement("a");
+        link.href = stream.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+
+        const img = document.createElement("img");
+        img.className = "live-thumb";
+        img.src = stream.thumbnail || "";
+        img.alt = stream.title || "Live stream thumbnail";
+        img.loading = "lazy";
+
+        link.appendChild(img);
+
+        const titleLink = document.createElement("a");
+        titleLink.className = "live-title";
+        titleLink.textContent = stream.title;
+        titleLink.href = stream.url;
+        titleLink.target = "_blank";
+        titleLink.rel = "noopener noreferrer";
+
+        const meta = document.createElement("div");
+        meta.className = "live-meta";
+
+        const liveBadge = document.createElement("span");
+        liveBadge.className = "live-badge";
+        liveBadge.textContent = "LIVE";
+
+        const platform = document.createElement("span");
+        platform.className = "live-platform";
+        platform.textContent = stream.platform;
+
+        const channel = document.createElement("span");
+        channel.textContent = stream.channel;
+
+        meta.append(liveBadge, platform, channel);
+        card.append(link, titleLink, meta);
+        frag.appendChild(card);
+      }
+
+      liveGridEl.appendChild(frag);
+    }
+
     function formatSubscribers(value){
       const formatted = formatCompactNumber(value);
       return `${formatted} subscribers`;
@@ -1181,6 +1408,41 @@
       return results;
     }
 
+    function normalizeTwitchThumbnail(url){
+      if(!url) return "";
+      return url.replace("{width}", "640").replace("{height}", "360");
+    }
+
+    async function fetchTwitchLiveData(entry){
+      try{
+        const html = await fetchTextViaProxy(entry.url);
+        const isLive = /"isLiveBroadcast":true/.test(html) || /"isLive":true/.test(html);
+        if(!isLive) return null;
+
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const ogTitle = doc.querySelector('meta[property="og:title"]')?.content?.trim();
+        const ogImage = doc.querySelector('meta[property="og:image"]')?.content?.trim();
+        const description = doc.querySelector('meta[property="og:description"]')?.content?.trim();
+
+        const displayMatch = html.match(/"channelDisplayName":"([^"]+)"/);
+        const displayName = decodeJsonString(displayMatch?.[1]) || entry.channel;
+
+        const titleMatch = html.match(/"broadcastSettings":\{"title":"([^"]+)"/);
+        const streamTitle = decodeJsonString(titleMatch?.[1]) || description || ogTitle || "Live stream";
+
+        return buildLiveModel({
+          title: streamTitle,
+          channel: displayName,
+          url: entry.url,
+          thumbnail: normalizeTwitchThumbnail(ogImage),
+          platform: "Twitch",
+        });
+      }catch(error){
+        console.warn("Twitch live check failed.", entry.url, error);
+        return null;
+      }
+    }
+
     function renderFromState(){
       const mode = sortEl.value;
 
@@ -1206,6 +1468,7 @@
     async function loadData(){
       STATE.errors = [];
       gridEl.innerHTML = "";
+      liveGridEl.innerHTML = "";
 
       const proxyOk = await checkProxyHealth();
       if(!proxyOk){
@@ -1213,34 +1476,54 @@
           "YouTube proxy check failed.\n" +
           "Your Worker likely does NOT implement GET /proxy?url=...\n" +
           "Fix that first or YouTube feeds & oEmbed will never load.";
+        liveStatusEl.textContent = "Live status unavailable while the proxy is offline.";
         return;
       }
 
       try{
         statusEl.textContent = "";
+        liveStatusEl.textContent = "";
 
-        const values = await fetchRange("A:A");
-        const rows = values.map(row => row?.[0]).filter(Boolean);
-        const trimmed = rows.map(entry => String(entry).trim()).filter(Boolean);
-        const entries = trimmed.filter((entry, index) => !(index === 0 && entry.toLowerCase() === "channels"));
+        const values = await fetchRange("A:B");
+        const youtubeRows = values.map(row => row?.[0]).filter(Boolean);
+        const twitchRows = values.map(row => row?.[1]).filter(Boolean);
+
+        const youtubeSheetEntries = youtubeRows
+          .map(entry => String(entry).trim())
+          .filter(Boolean)
+          .filter((entry, index) => !(index === 0 && entry.toLowerCase() === "channels"));
+
+        const twitchEntries = twitchRows
+          .map(entry => String(entry).trim())
+          .filter(entry => entry && entry.toLowerCase() !== "twitch" && entry.toLowerCase() !== "channel")
+          .map(entry => `twitch:${entry}`);
+
+        const entries = [...youtubeSheetEntries, ...twitchEntries];
 
         if(!entries.length){
           statusEl.textContent = "No channels found in the sheet.";
+          liveStatusEl.textContent = "No channels found in the sheet.";
           return;
         }
 
         const parsedEntries = entries.map(parseChannelEntry).filter(Boolean);
         if(!parsedEntries.length){
           statusEl.textContent = "No valid YouTube URLs or channel IDs were found.";
+          liveStatusEl.textContent = "No valid YouTube or Twitch channels were found.";
           return;
         }
 
+        const youtubeEntries = parsedEntries.filter(entry => entry.platform === "youtube");
+        const twitchEntries = parsedEntries.filter(entry => entry.platform === "twitch");
+
         statusEl.textContent = "";
+        liveStatusEl.textContent = "";
 
         const { start, end } = getRolling90DaysWindow();
         const videos = [];
+        const liveNow = [];
 
-        const channels = await runWithConcurrency(parsedEntries, 4, async (entry) => {
+        const channels = await runWithConcurrency(youtubeEntries, 4, async (entry) => {
           const channelUrl = entry.url;
 
           // 1) Resolve channel id if needed
@@ -1300,6 +1583,17 @@
               if(model.publishedAt >= start && model.publishedAt <= end){
                 videos.push(model);
               }
+
+              if(item.liveStatus === "live"){
+                const liveModel = buildLiveModel({
+                  title: item.title,
+                  channel: name,
+                  url: model.url,
+                  thumbnail: item.thumbnail,
+                  platform: "YouTube",
+                });
+                if(liveModel) liveNow.push(liveModel);
+              }
             }
           }else{
             console.warn("No channel ID resolved for", channelUrl);
@@ -1329,8 +1623,22 @@
           };
         });
 
+        const twitchLive = await runWithConcurrency(twitchEntries, 4, fetchTwitchLiveData);
+        for(const item of twitchLive){
+          if(item) liveNow.push(item);
+        }
+
         STATE.channels = channels;
         STATE.videos = videos;
+        STATE.liveNow = liveNow;
+
+        if(!youtubeEntries.length){
+          statusEl.textContent = "No YouTube channels found in the sheet.";
+          gridEl.innerHTML = "";
+          setPaginationVisibility(false);
+          renderLiveNow(STATE.liveNow);
+          return;
+        }
 
         if(sortEl.value !== "channels" && !STATE.videos.length){
           statusEl.textContent =
@@ -1338,12 +1646,13 @@
             "If you expect videos here, confirm your Worker /proxy can fetch:\n" +
             "https://www.youtube.com/feeds/videos.xml?channel_id=UC...";
           gridEl.innerHTML = "";
-          return;
         }
 
+        renderLiveNow(STATE.liveNow);
         renderFromState();
       }catch(error){
         statusEl.textContent = `Unable to load: ${error?.message || "Unknown error"}`;
+        liveStatusEl.textContent = "Unable to load live status right now.";
         console.error(error);
       }
     }
@@ -1353,6 +1662,7 @@
       renderFromState();
     });
 
+    initLeagueTabs();
     loadData();
   </script>
 </body>
