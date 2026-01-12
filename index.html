@@ -614,6 +614,13 @@
         grid-column: 1 / -1;
       }
     }
+
+    @media (min-width: 761px){
+      .video-grid,
+      .live-grid{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 
@@ -688,6 +695,9 @@
           <div class="video-status" id="live-status"></div>
           <div class="live-grid video-grid" id="live-grid"></div>
         </section>
+        <div class="video-header">
+          <h2 class="section-title" id="videos-section-title">Videos</h2>
+        </div>
         <div class="video-controls">
           <div class="video-status" id="video-status"></div>
           <label class="sort-control" for="video-sort">
