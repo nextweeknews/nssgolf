@@ -193,6 +193,15 @@
       flex-wrap: wrap;
     }
 
+    .video-controls{
+      margin-top: 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
     .section-title{
       margin: 0;
       font-size: 18px;
@@ -228,7 +237,6 @@
     .video-status{
       font-size: 13px;
       color: rgba(233,238,248,0.7);
-      margin-bottom: 8px;
       font-weight: 600;
       white-space: pre-wrap;
     }
@@ -238,7 +246,7 @@
       align-items:center;
       justify-content:center;
       gap: 8px;
-      margin: 8px 0 14px;
+      margin: 12px 0 14px;
       flex-wrap: wrap;
     }
 
@@ -282,7 +290,7 @@
     }
 
     .live-section{
-      margin-top: 32px;
+      margin-top: 16px;
     }
 
     .live-grid{
@@ -298,7 +306,7 @@
       padding: 14px;
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(10,18,30,0.75);
+      background: rgba(6,24,46,0.7);
     }
 
     .live-thumb{
@@ -669,17 +677,19 @@
         <p class="league-placeholder">Nothing here... yet.</p>
       </div>
 
-      <section class="live-section" aria-labelledby="live-section-title">
-        <div class="video-header">
-          <h2 class="section-title" id="live-section-title">Live Now</h2>
-        </div>
-        <div class="video-status" id="live-status"></div>
-        <div class="live-grid" id="live-grid"></div>
-      </section>
-
       <section class="video-section" aria-labelledby="video-section-title">
         <div class="video-header">
           <h2 class="section-title" id="video-section-title">Community Content</h2>
+        </div>
+        <section class="live-section" id="live-section" aria-labelledby="live-section-title" hidden>
+          <div class="video-header">
+            <h2 class="section-title" id="live-section-title">Live Now</h2>
+          </div>
+          <div class="video-status" id="live-status"></div>
+          <div class="live-grid video-grid" id="live-grid"></div>
+        </section>
+        <div class="video-controls">
+          <div class="video-status" id="video-status"></div>
           <label class="sort-control" for="video-sort">
             Sort
             <select id="video-sort">
@@ -689,7 +699,6 @@
             </select>
           </label>
         </div>
-        <div class="video-status" id="video-status"></div>
         <nav class="pagination-bar" id="video-pagination-top" aria-label="Video pages"></nav>
         <div class="video-grid" id="video-grid"></div>
         <nav class="pagination-bar" id="video-pagination-bottom" aria-label="Video pages"></nav>
@@ -714,6 +723,7 @@
     const paginationBottomEl = document.getElementById("video-pagination-bottom");
     const liveStatusEl = document.getElementById("live-status");
     const liveGridEl = document.getElementById("live-grid");
+    const liveSectionEl = document.getElementById("live-section");
     const leagueTabs = Array.from(document.querySelectorAll(".tab-button[data-target]"));
     const leagueSections = Array.from(document.querySelectorAll(".league-section"));
 
@@ -1337,10 +1347,12 @@
     function renderLiveNow(list){
       liveGridEl.innerHTML = "";
       if(!list.length){
-        liveStatusEl.textContent = "No one is live right now.";
+        liveStatusEl.textContent = "";
+        liveSectionEl.hidden = true;
         return;
       }
 
+      liveSectionEl.hidden = false;
       liveStatusEl.textContent = `${list.length} live now`;
       const frag = document.createDocumentFragment();
 
@@ -1556,6 +1568,7 @@
       STATE.errors = [];
       gridEl.innerHTML = "";
       liveGridEl.innerHTML = "";
+      liveSectionEl.hidden = true;
 
       const proxyOk = await checkProxyHealth();
       if(!proxyOk){
@@ -1564,6 +1577,7 @@
           "Your Worker likely does NOT implement GET /proxy?url=...\n" +
           "Fix that first or YouTube feeds & oEmbed will never load.";
         liveStatusEl.textContent = "Live status unavailable while the proxy is offline.";
+        liveSectionEl.hidden = false;
         return;
       }
 
@@ -1593,6 +1607,7 @@
         if(!entries.length){
           statusEl.textContent = "No channels found in the sheet.";
           liveStatusEl.textContent = "No channels found in the sheet.";
+          liveSectionEl.hidden = false;
           return;
         }
 
@@ -1600,6 +1615,7 @@
         if(!parsedEntries.length){
           statusEl.textContent = "No valid YouTube URLs or channel IDs were found.";
           liveStatusEl.textContent = "No valid YouTube or Twitch channels were found.";
+          liveSectionEl.hidden = false;
           return;
         }
 
