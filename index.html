@@ -717,12 +717,6 @@
     const leagueTabs = Array.from(document.querySelectorAll(".tab-button[data-target]"));
     const leagueSections = Array.from(document.querySelectorAll(".league-section"));
 
-    const dateFormatter = new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-
     // === STATE ===
     const STATE = {
       channels: [],
@@ -731,7 +725,6 @@
       errors: [],
       currentPage: 1,
       pageSize: 25,
-      // Optional: you can use this for UI tweaks if you want
       viewsReady: false,
     };
 
@@ -749,7 +742,6 @@
       const range = `'${SHEET_NAME}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
 
-      // Prefer POST (your worker now supports POST body for sheets)
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -759,7 +751,6 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
-      // Fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -901,7 +892,6 @@
       const raw = String(entry ?? "").trim();
       if(!raw) return null;
 
-      // Allow storing UC... IDs directly in the sheet (recommended)
       if(/^UC[a-zA-Z0-9_-]{20,}$/.test(raw)){
         return { platform: "youtube", url: `https://www.youtube.com/channel/${raw}`, id: raw, raw };
       }
@@ -911,7 +901,7 @@
       return { platform: "youtube", url, id: null, raw };
     }
 
-    // === CHANNEL ID RESOLUTION (only needed if sheet uses @handles / custom URLs) ===
+    // === CHANNEL ID RESOLUTION ===
     function extractChannelIdFromHtml(html){
       return (
         html.match(/"channelId":"(UC[^"]+)"/)?.[1] ||
@@ -930,7 +920,6 @@
           if(maybe && maybe.startsWith("UC")) return maybe;
         }
 
-        // For @handles, /c/, /user/, etc.
         const html = await fetchTextViaProxy(url.href);
         return extractChannelIdFromHtml(html);
       }catch(error){
@@ -939,9 +928,8 @@
       }
     }
 
-    // === CHANNEL DISPLAY NAME + AVATAR (robust) ===
+    // === CHANNEL DISPLAY NAME + AVATAR ===
     async function fetchChannelOEmbed(channelUrl){
-      // Returns: { title, author_name, thumbnail_url, ... }
       const endpoint = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(channelUrl)}`;
       return fetchJsonViaProxy(endpoint);
     }
@@ -973,6 +961,64 @@
       }
     }
 
+    // =========================
+    // NEW: YouTube LIVE detection (HTML via /proxy)
+    // =========================
+    function decodeHtmlEntities(str){
+      if(!str) return "";
+      const el = document.createElement("textarea");
+      el.innerHTML = str;
+      return el.value;
+    }
+
+    function getMetaContent(html, prop){
+      const re = new RegExp(`<meta\\s+property="${prop}"\\s+content="([^"]+)"`, "i");
+      return decodeHtmlEntities(html.match(re)?.[1] || "");
+    }
+
+    function getCanonicalHref(html){
+      const m = html.match(/<link\\s+rel="canonical"\\s+href="([^"]+)"/i);
+      return decodeHtmlEntities(m?.[1] || "");
+    }
+
+    async function fetchYouTubeLiveNow(channelId, channelName){
+      // YouTube routes /live to the active broadcast if live
+      const liveLanding = `https://www.youtube.com/channel/${channelId}/live`;
+      const html = await fetchTextViaProxy(liveLanding);
+
+      const isLive =
+        /"isLiveContent"\s*:\s*true/.test(html) ||
+        /"isLive"\s*:\s*true/.test(html);
+
+      if(!isLive) return null;
+
+      const url = getMetaContent(html, "og:url") || getCanonicalHref(html);
+      if(!url || !/youtube\.com\/watch\?v=/.test(url)) return null;
+
+      const title = getMetaContent(html, "og:title") || "Live stream";
+      const ogImage = getMetaContent(html, "og:image");
+
+      return buildLiveModel({
+        title,
+        channel: channelName || "Unknown channel",
+        url,
+        // proxy the image so it always loads on your site
+        thumbnail: ogImage ? workerProxyUrl(ogImage) : "",
+        platform: "YouTube",
+      });
+    }
+
+    function dedupeByUrl(list){
+      const seen = new Set();
+      return list.filter(item => {
+        const u = item?.url;
+        if(!u) return false;
+        if(seen.has(u)) return false;
+        seen.add(u);
+        return true;
+      });
+    }
+
     // === FEED (VIDEOS) ===
     function parseFeed(xmlText){
       const parser = new DOMParser();
@@ -989,9 +1035,9 @@
         const published = entry.getElementsByTagName("published")[0]?.textContent?.trim();
         const channel = entry.getElementsByTagName("name")[0]?.textContent?.trim();
         const thumbnail = entry.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
+
         const liveStatus = entry.getElementsByTagName("yt:liveBroadcastContent")[0]?.textContent?.trim() || null;
 
-        // RSS usually does not provide views; keep if present, but we'll override via /yt/videos
         const viewsAttr = entry.getElementsByTagName("media:statistics")[0]?.getAttribute("views");
         const views = viewsAttr ? Number(viewsAttr) : null;
 
@@ -1278,7 +1324,6 @@
 
           metaLine.append(views, sep, published);
         }else{
-          // If views are missing (API quota, private video, etc.), don't show "— views"
           metaLine.append(published);
         }
 
@@ -1423,7 +1468,6 @@
     function sortVideos(list, mode){
       const sorted = [...list];
       if(mode === "views"){
-        // Real view counts are filled in via /yt/videos when available
         sorted.sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
       }else{
         sorted.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
@@ -1536,7 +1580,6 @@
           .filter(Boolean)
           .filter((entry, index) => !(index === 0 && entry.toLowerCase() === "channels"));
 
-        // ✅ UPDATED: support Twitch names OR twitch: OR full URLs in the sheet
         const twitchSheetEntries = twitchRows
           .map(entry => String(entry).trim())
           .filter(entry => entry && entry.toLowerCase() !== "twitch" && entry.toLowerCase() !== "channel")
@@ -1563,9 +1606,6 @@
         const youtubeEntries = parsedEntries.filter(entry => entry.platform === "youtube");
         const twitchEntries = parsedEntries.filter(entry => entry.platform === "twitch");
 
-        statusEl.textContent = "";
-        liveStatusEl.textContent = "";
-
         const { start, end } = getRolling90DaysWindow();
         const videos = [];
         const liveNow = [];
@@ -1573,10 +1613,8 @@
         const channels = await runWithConcurrency(youtubeEntries, 4, async (entry) => {
           const channelUrl = entry.url;
 
-          // 1) Resolve channel id if needed
           const id = entry.id || await resolveChannelId(channelUrl);
 
-          // 2) Get display name + avatar via Worker metadata (preferred)
           let name = null;
           let avatar = "";
           let subscribers = null;
@@ -1593,7 +1631,6 @@
             }
           }
 
-          // 3) Get display name + avatar via oEmbed (fallback)
           try{
             if(!name || !avatar){
               const o = await fetchChannelOEmbed(channelUrl);
@@ -1604,7 +1641,16 @@
             console.warn("oEmbed failed", channelUrl, e);
           }
 
-          // 4) Load feed (videos + author name fallback)
+          // ✅ NEW: YouTube LIVE detection via /channel/UC.../live
+          if(id){
+            try{
+              const live = await fetchYouTubeLiveNow(id, name);
+              if(live) liveNow.push(live);
+            }catch(e){
+              console.warn("YouTube live check failed", id, e);
+            }
+          }
+
           let previewCount = 0;
           let latest = null;
 
@@ -1631,6 +1677,7 @@
                 videos.push(model);
               }
 
+              // Keep RSS liveStatus path too, but it's unreliable
               if(item.liveStatus === "live"){
                 const liveModel = buildLiveModel({
                   title: item.title,
@@ -1646,7 +1693,6 @@
             console.warn("No channel ID resolved for", channelUrl);
           }
 
-          // Final fallbacks so UI never shows raw URL unless absolutely necessary
           if(!name){
             try{
               const u = new URL(channelUrl);
@@ -1675,8 +1721,7 @@
           if(item) liveNow.push(item);
         }
 
-        // ✅ NEW: Merge real YouTube views via /yt/videos
-        // (Do this after building the full `videos` list.)
+        // ✅ Merge real YouTube views via /yt/videos
         try{
           const statsMap = await fetchVideoStats(videos.map(v => v.id));
           for(const v of videos){
@@ -1692,23 +1737,7 @@
 
         STATE.channels = channels;
         STATE.videos = videos;
-        STATE.liveNow = liveNow;
-
-        if(!youtubeEntries.length){
-          statusEl.textContent = "No YouTube channels found in the sheet.";
-          gridEl.innerHTML = "";
-          setPaginationVisibility(false);
-          renderLiveNow(STATE.liveNow);
-          return;
-        }
-
-        if(sortEl.value !== "channels" && !STATE.videos.length){
-          statusEl.textContent =
-            "No videos were published in the last 90 days.\n" +
-            "If you expect videos here, confirm your Worker /proxy can fetch:\n" +
-            "https://www.youtube.com/feeds/videos.xml?channel_id=UC...";
-          gridEl.innerHTML = "";
-        }
+        STATE.liveNow = dedupeByUrl(liveNow);
 
         renderLiveNow(STATE.liveNow);
         renderFromState();
@@ -1724,7 +1753,6 @@
       renderFromState();
     });
 
-    // Optional: refresh when tab becomes visible again (keeps Live Now fresher)
     document.addEventListener("visibilitychange", () => {
       if(document.visibilityState === "visible"){
         loadData();
