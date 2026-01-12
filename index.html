@@ -114,6 +114,7 @@
       gap: 10px;
       flex-wrap: wrap;
       align-items:center;
+      justify-content: center;
       padding-top: 16px;
       border-top: 1px solid var(--border-lite);
     }
@@ -157,6 +158,7 @@
       margin-top: 18px;
       padding-top: 16px;
       border-top: 1px solid var(--border-lite);
+      text-align: center;
     }
 
     .league-section[hidden]{
@@ -168,15 +170,6 @@
       font-size: 14px;
       color: rgba(233,238,248,0.72);
       font-weight: 600;
-    }
-
-    .league-subtitle{
-      margin: 0 0 10px;
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.7);
     }
 
     .video-section{
@@ -200,6 +193,10 @@
       justify-content:space-between;
       gap: 16px;
       flex-wrap: wrap;
+    }
+
+    .video-controls .video-status{
+      margin-top: 0;
     }
 
     .section-title{
@@ -235,6 +232,7 @@
     }
 
     .video-status{
+      margin-top: 6px;
       font-size: 13px;
       color: rgba(233,238,248,0.7);
       font-weight: 600;
@@ -297,6 +295,7 @@
       display:grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 16px;
+      margin: 14px 0 12px;
     }
 
     .live-card{
@@ -646,19 +645,18 @@
     <div class="card">
       <h1 class="headline">Leagues &amp; Events</h1>
       <div class="league-tabs" role="tablist" aria-label="League sections">
-        <button class="tab-button tab-primary is-active" type="button" role="tab" aria-selected="true" aria-controls="happening-now-section" data-target="happening-now-section">
+        <button class="tab-button tab-primary is-active" id="happening-now-tab" type="button" role="tab" aria-selected="true" aria-controls="happening-now-section" data-target="happening-now-section">
           Happening Now
         </button>
-        <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="upcoming-section" data-target="upcoming-section">
+        <button class="tab-button" id="upcoming-tab" type="button" role="tab" aria-selected="false" aria-controls="upcoming-section" data-target="upcoming-section">
           Upcoming
         </button>
-        <button class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="archive-section" data-target="archive-section">
+        <button class="tab-button" id="archive-tab" type="button" role="tab" aria-selected="false" aria-controls="archive-section" data-target="archive-section">
           Archive
         </button>
       </div>
 
-      <div class="league-section" id="happening-now-section" aria-labelledby="happening-now-title">
-        <p class="league-subtitle" id="happening-now-title">Happening Now</p>
+      <div class="league-section" id="happening-now-section" aria-labelledby="happening-now-tab">
         <div class="actions">
           <a class="btn neon-red" href="https://teamupdiscord.com/leaderboard/client/DISCORD%7C1069003073311211601/leaderboard/Season_11/rating_type/player_global_all/format/global" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
             Ranked League - Season 11
@@ -674,13 +672,11 @@
         </div>
       </div>
 
-      <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-title" hidden>
-        <p class="league-subtitle" id="upcoming-title">Upcoming</p>
+      <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-tab" hidden>
         <p class="league-placeholder">Nothing here... yet.</p>
       </div>
 
-      <div class="league-section" id="archive-section" aria-labelledby="archive-title" hidden>
-        <p class="league-subtitle" id="archive-title">Archive</p>
+      <div class="league-section" id="archive-section" aria-labelledby="archive-tab" hidden>
         <p class="league-placeholder">Nothing here... yet.</p>
       </div>
 
