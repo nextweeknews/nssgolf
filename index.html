@@ -728,10 +728,11 @@
       channels: [],
       videos: [],
       liveNow: [],
-      viewsReady: false,
       errors: [],
       currentPage: 1,
       pageSize: 25,
+      // Optional: you can use this for UI tweaks if you want
+      viewsReady: false,
     };
 
     // === SHEETS ===
@@ -748,6 +749,7 @@
       const range = `'${SHEET_NAME}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
 
+      // Prefer POST (your worker now supports POST body for sheets)
       try{
         const r = await fetch(WORKER_URL, {
           method:"POST",
@@ -757,6 +759,7 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
+      // Fallback GET
       const u = new URL(WORKER_URL);
       u.searchParams.set("sheetId", SHEET_ID);
       u.searchParams.set("range", range);
@@ -776,7 +779,7 @@
       return { start, end };
     }
 
-    // === WORKER PROXY ===
+    // === WORKER PROXY / ENDPOINTS ===
     function workerProxyUrl(targetUrl){
       const base = WORKER_URL.endsWith("/") ? WORKER_URL : (WORKER_URL + "/");
       return `${base}proxy?url=${encodeURIComponent(targetUrl)}`;
@@ -821,6 +824,32 @@
         throw new Error(`Proxy fetch failed (${res.status}). ${text}`.trim());
       }
       return res.json();
+    }
+
+    // =========================
+    // NEW: YouTube video stats via Worker
+    // GET /yt/videos?ids=...
+    // =========================
+    async function fetchVideoStats(videoIds){
+      if(!videoIds?.length) return new Map();
+      const unique = Array.from(new Set(videoIds)).filter(Boolean);
+
+      const statsById = new Map();
+      for(let i = 0; i < unique.length; i += 50){
+        const batch = unique.slice(i, i + 50);
+        const endpoint = workerEndpoint("yt/videos", { ids: batch.join(",") });
+        const res = await fetchWithTimeout(endpoint, { timeoutMs: 20000 });
+        if(!res.ok){
+          console.warn("yt/videos failed", res.status);
+          continue;
+        }
+
+        const data = await res.json();
+        for(const item of (data?.items || [])){
+          statsById.set(item.id, item);
+        }
+      }
+      return statsById;
     }
 
     // === CHANNEL INPUT PARSING ===
@@ -911,7 +940,6 @@
     }
 
     // === CHANNEL DISPLAY NAME + AVATAR (robust) ===
-    // YouTube oEmbed is much more stable than scraping HTML for title/avatar.
     async function fetchChannelOEmbed(channelUrl){
       // Returns: { title, author_name, thumbnail_url, ... }
       const endpoint = `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(channelUrl)}`;
@@ -950,12 +978,10 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(xmlText, "application/xml");
 
-      // Root/author channel info
       const authorName = doc.getElementsByTagName("author")[0]
         ?.getElementsByTagName("name")[0]
         ?.textContent?.trim() || null;
 
-      // Entries
       const entries = Array.from(doc.getElementsByTagName("entry"));
       const items = entries.map(entry => {
         const id = entry.getElementsByTagName("yt:videoId")[0]?.textContent?.trim();
@@ -965,6 +991,7 @@
         const thumbnail = entry.getElementsByTagName("media:thumbnail")[0]?.getAttribute("url");
         const liveStatus = entry.getElementsByTagName("yt:liveBroadcastContent")[0]?.textContent?.trim() || null;
 
+        // RSS usually does not provide views; keep if present, but we'll override via /yt/videos
         const viewsAttr = entry.getElementsByTagName("media:statistics")[0]?.getAttribute("views");
         const views = viewsAttr ? Number(viewsAttr) : null;
 
@@ -1020,10 +1047,6 @@
       };
     }
 
-    function formatViewCount(value){
-      return formatCompactNumber(value);
-    }
-
     function formatCompactNumber(value){
       const count = Number(value);
       if(!Number.isFinite(count)) return "—";
@@ -1037,6 +1060,10 @@
       }
       const rounded = Math.round((count / 1000000) * 10) / 10;
       return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}M`;
+    }
+
+    function formatViewCount(value){
+      return formatCompactNumber(value);
     }
 
     const relativeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
@@ -1232,24 +1259,30 @@
         channelWrap.appendChild(channelLink);
         channelLine.appendChild(channelWrap);
 
-        const viewsLine = document.createElement("div");
-        viewsLine.className = "video-meta-line";
-
-        const views = document.createElement("span");
-        views.className = "video-meta-muted";
-        views.textContent = `${formatViewCount(video.views)} views`;
-
-        const sep = document.createElement("span");
-        sep.className = "video-meta-sep";
-        sep.textContent = "•";
+        const metaLine = document.createElement("div");
+        metaLine.className = "video-meta-line";
 
         const published = document.createElement("span");
         published.className = "video-meta-muted";
         published.textContent = formatRelativeDate(video.publishedAt);
 
-        viewsLine.append(views, sep, published);
+        const hasViews = Number.isFinite(video.views);
+        if(hasViews){
+          const views = document.createElement("span");
+          views.className = "video-meta-muted";
+          views.textContent = `${formatViewCount(video.views)} views`;
 
-        meta.append(channelLine, viewsLine);
+          const sep = document.createElement("span");
+          sep.className = "video-meta-sep";
+          sep.textContent = "•";
+
+          metaLine.append(views, sep, published);
+        }else{
+          // If views are missing (API quota, private video, etc.), don't show "— views"
+          metaLine.append(published);
+        }
+
+        meta.append(channelLine, metaLine);
         card.append(link, titleLink, meta);
         frag.appendChild(card);
       }
@@ -1390,7 +1423,7 @@
     function sortVideos(list, mode){
       const sorted = [...list];
       if(mode === "views"){
-        // Note: RSS usually does NOT include views; this will often be all 0/—.
+        // Real view counts are filled in via /yt/videos when available
         sorted.sort((a, b) => (Number(b.views) || 0) - (Number(a.views) || 0));
       }else{
         sorted.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
@@ -1467,7 +1500,6 @@
     }
 
     async function checkProxyHealth(){
-      // Quick sanity check: if /proxy is missing you'll see it immediately.
       try{
         const text = await fetchTextViaProxy("https://www.youtube.com/robots.txt");
         return Boolean(text && text.includes("User-agent"));
@@ -1504,12 +1536,16 @@
           .filter(Boolean)
           .filter((entry, index) => !(index === 0 && entry.toLowerCase() === "channels"));
 
-        const twitchEntries = twitchRows
+        // ✅ UPDATED: support Twitch names OR twitch: OR full URLs in the sheet
+        const twitchSheetEntries = twitchRows
           .map(entry => String(entry).trim())
           .filter(entry => entry && entry.toLowerCase() !== "twitch" && entry.toLowerCase() !== "channel")
-          .map(entry => `twitch:${entry}`);
+          .map(entry => {
+            if(/^https?:\/\//i.test(entry) || entry.toLowerCase().startsWith("twitch:")) return entry;
+            return `twitch:${entry}`;
+          });
 
-        const entries = [...youtubeSheetEntries, ...twitchEntries];
+        const entries = [...youtubeSheetEntries, ...twitchSheetEntries];
 
         if(!entries.length){
           statusEl.textContent = "No channels found in the sheet.";
@@ -1565,7 +1601,6 @@
               avatar = avatar || o?.thumbnail_url || "";
             }
           }catch(e){
-            // Keep going; we'll fall back to RSS author name below
             console.warn("oEmbed failed", channelUrl, e);
           }
 
@@ -1591,6 +1626,7 @@
                 channelAvatar: avatar,
               });
               if(!model?.publishedAt) continue;
+
               if(model.publishedAt >= start && model.publishedAt <= end){
                 videos.push(model);
               }
@@ -1639,6 +1675,21 @@
           if(item) liveNow.push(item);
         }
 
+        // ✅ NEW: Merge real YouTube views via /yt/videos
+        // (Do this after building the full `videos` list.)
+        try{
+          const statsMap = await fetchVideoStats(videos.map(v => v.id));
+          for(const v of videos){
+            const statsItem = statsMap.get(v.id);
+            const viewCount = statsItem?.statistics?.viewCount;
+            if(viewCount != null) v.views = Number(viewCount);
+          }
+          STATE.viewsReady = true;
+        }catch(e){
+          console.warn("Video stats merge failed", e);
+          STATE.viewsReady = false;
+        }
+
         STATE.channels = channels;
         STATE.videos = videos;
         STATE.liveNow = liveNow;
@@ -1671,6 +1722,13 @@
     sortEl.addEventListener("change", () => {
       STATE.currentPage = 1;
       renderFromState();
+    });
+
+    // Optional: refresh when tab becomes visible again (keeps Live Now fresher)
+    document.addEventListener("visibilitychange", () => {
+      if(document.visibilityState === "visible"){
+        loadData();
+      }
     });
 
     initLeagueTabs();
