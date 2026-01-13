@@ -191,6 +191,7 @@
       justify-content:space-between;
       gap: 16px;
       flex-wrap: wrap;
+      text-align: left;
     }
 
     .video-controls .video-status{
@@ -368,6 +369,7 @@
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(6,24,46,0.7);
+      text-align: left;
     }
 
     .video-thumb{
@@ -769,7 +771,9 @@
           <nav class="pagination-bar" id="video-pagination-bottom" aria-label="Video pages"></nav>
         </section>
         <section class="league-section" id="tutorials-section" aria-labelledby="tutorials-tab" hidden>
-          <div class="video-status" id="tutorial-status"></div>
+          <div class="video-controls">
+            <div class="video-status" id="tutorial-status"></div>
+          </div>
           <div class="video-grid" id="tutorials-grid"></div>
         </section>
         <section class="league-section" id="records-section" aria-labelledby="records-tab" hidden>
@@ -1001,6 +1005,24 @@
       }
     }
 
+    function getVideoIdFromUrl(value){
+      if(!value) return null;
+      try{
+        const url = new URL(value);
+        const host = url.hostname.replace(/^www\./, "");
+        if(host === "youtu.be"){
+          return url.pathname.replace("/", "") || null;
+        }
+        if(host === "youtube.com" || host === "m.youtube.com"){
+          if(url.pathname.startsWith("/shorts/")){
+            return url.pathname.split("/")[2] || null;
+          }
+          return url.searchParams.get("v") || null;
+        }
+      }catch{}
+      return null;
+    }
+
     function parseTwitchEntry(entry){
       const raw = String(entry ?? "").trim();
       if(!raw) return null;
@@ -1182,9 +1204,14 @@
       if(!item?.url) return null;
       return {
         url: item.url,
+        id: item.id || null,
         title: item.title || "Tutorial",
+        channel: item.channel || "Unknown channel",
+        channelUrl: item.channelUrl || "",
+        channelAvatar: item.channelAvatar || "",
         thumbnail: item.thumbnail || "",
         type: item.type || "Video",
+        views: Number.isFinite(item.views) ? item.views : null,
       };
     }
 
@@ -1511,15 +1538,59 @@
         const meta = document.createElement("div");
         meta.className = "video-meta";
 
+        const channelLine = document.createElement("div");
+        channelLine.className = "video-meta-line";
+
+        const channelWrap = document.createElement("div");
+        channelWrap.className = "video-channel";
+
+        if(tutorial.channelAvatar){
+          const avatar = document.createElement("img");
+          avatar.className = "video-channel-avatar";
+          avatar.src = tutorial.channelAvatar;
+          avatar.alt = `${tutorial.channel} avatar`;
+          avatar.loading = "lazy";
+          channelWrap.appendChild(avatar);
+        }else{
+          const avatarFallback = document.createElement("div");
+          avatarFallback.className = "video-channel-avatar video-channel-avatar-placeholder";
+          avatarFallback.textContent = safeInitial(tutorial.channel);
+          channelWrap.appendChild(avatarFallback);
+        }
+
+        const channelLink = document.createElement("a");
+        channelLink.className = "video-channel-name";
+        channelLink.textContent = tutorial.channel;
+        channelLink.href = tutorial.channelUrl || "#";
+        channelLink.target = "_blank";
+        channelLink.rel = "noopener noreferrer";
+
+        channelWrap.appendChild(channelLink);
+        channelLine.appendChild(channelWrap);
+
         const metaLine = document.createElement("div");
         metaLine.className = "video-meta-line";
 
-        const type = document.createElement("span");
-        type.className = "video-meta-muted";
-        type.textContent = tutorial.type;
+        const published = document.createElement("span");
+        published.className = "video-meta-muted";
+        published.textContent = formatRelativeDate(tutorial.publishedAt);
 
-        metaLine.append(type);
-        meta.append(metaLine);
+        const hasViews = Number.isFinite(tutorial.views);
+        if(hasViews){
+          const views = document.createElement("span");
+          views.className = "video-meta-muted";
+          views.textContent = `${formatViewCount(tutorial.views)} views`;
+
+          const sep = document.createElement("span");
+          sep.className = "video-meta-sep";
+          sep.textContent = "•";
+
+          metaLine.append(views, sep, published);
+        }else{
+          metaLine.append(published);
+        }
+
+        meta.append(channelLine, metaLine);
         card.append(link, titleLink, meta);
         frag.appendChild(card);
       }
@@ -1747,12 +1818,26 @@
       const urls = tutorialEntries.map(parseTutorialUrl).filter(Boolean);
       if(!urls.length) return [];
 
-      return runWithConcurrency(urls, 4, async (url) => {
+      const tutorials = await runWithConcurrency(urls, 4, async (url) => {
         try{
           const data = await fetchTutorialOEmbed(url);
+          const channelUrl = data?.author_url || "";
+          let channelAvatar = "";
+          if(channelUrl){
+            try{
+              const channelData = await fetchChannelOEmbed(channelUrl);
+              channelAvatar = channelData?.thumbnail_url || "";
+            }catch(e){
+              console.warn("Tutorial channel oEmbed failed", channelUrl, e);
+            }
+          }
           return buildTutorialModel({
             url,
+            id: getVideoIdFromUrl(url),
             title: data?.title || data?.author_name || "Tutorial",
+            channel: data?.author_name || "Unknown channel",
+            channelUrl,
+            channelAvatar,
             thumbnail: data?.thumbnail_url || "",
             type: getTutorialType(url),
           });
@@ -1760,12 +1845,25 @@
           console.warn("Tutorial oEmbed failed", url, e);
           return buildTutorialModel({
             url,
+            id: getVideoIdFromUrl(url),
             title: "Tutorial",
+            channel: "Unknown channel",
+            channelUrl: "",
+            channelAvatar: "",
             thumbnail: "",
             type: getTutorialType(url),
           });
         }
       });
+
+      const statsMap = await fetchVideoStats(tutorials.map(item => item?.id).filter(Boolean));
+      for(const tutorial of tutorials){
+        if(!tutorial?.id) continue;
+        const statsItem = statsMap.get(tutorial.id);
+        const viewCount = statsItem?.statistics?.viewCount;
+        if(viewCount != null) tutorial.views = Number(viewCount);
+      }
+      return tutorials;
     }
 
     function renderFromState(){
