@@ -1,1 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NSS Golf Lightning Cup</title>
 
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+
+      --border-lite: rgba(148,163,184,0.20);
+      --btn-bg: rgba(255,255,255,0.06);
+      --btn-bg-hover: rgba(255,255,255,0.10);
+      --btn-border: rgba(255,255,255,0.15);
+      --btn-border-hover: rgba(255,255,255,0.28);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+    .home-badge{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      user-select:none;
+    }
+    .home-badge img{
+      width:70%;
+      height:70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
+    }
+
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight:900;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 28px 18px 56px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .card{
+      width: min(820px, 100%);
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 26px 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .headline{
+      font-size: 22px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0 0 10px 0;
+    }
+
+    .coming-soon{
+      text-align: center;
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+    }
+
+    .coming-soon .headline{
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 760px){
+      .container{ padding: 20px 12px 44px; }
+      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .brand{ flex: 1; min-width: 0; }
+      .headline{ font-size: 18px; }
+      .card{ padding: 20px 14px; border-radius: 18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </div>
+        <div>
+          <div class="kicker">Lightning Cup</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div class="coming-soon">
+        <h1 class="headline">Coming Soon</h1>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
