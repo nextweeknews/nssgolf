@@ -587,6 +587,7 @@
     .btn.neon-gradient{
       border: 1px solid transparent;
       border-image: linear-gradient(90deg, #7dd3fc, #f6ff6a) 1;
+      border-radius: 14px;
       background-image: linear-gradient(90deg, #7dd3fc, #f6ff6a);
       -webkit-background-clip: text;
       background-clip: text;
@@ -599,6 +600,10 @@
       width: 16px;
       height: 16px;
       display: block;
+      fill: currentColor;
+    }
+    .btn-icon path{
+      fill: currentColor;
     }
     .btn:hover{
       background: var(--btn-bg-hover);
@@ -708,7 +713,6 @@
             Super League
           </a>
           <a class="btn neon-gradient" href="/lightningcup/index.html" aria-label="Go to 2026 Lightning Cup">
-            <img class="btn-icon" src="/lightningcup/lightning.svg" alt="" aria-hidden="true" />
             2026 Lightning Cup
           </a>
         </div>
