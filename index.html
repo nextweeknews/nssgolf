@@ -578,6 +578,23 @@
       box-shadow: 0 0 12px rgba(93,255,156,0.45), 0 0 24px rgba(93,255,156,0.2);
       text-shadow: 0 0 8px rgba(93,255,156,0.9);
     }
+    .btn.neon-yellow{
+      color: #f6ff6a;
+      border-color: rgba(246,255,106,0.9);
+      box-shadow: 0 0 12px rgba(246,255,106,0.45), 0 0 24px rgba(246,255,106,0.2);
+      text-shadow: 0 0 8px rgba(246,255,106,0.9);
+    }
+    .btn.neon-gradient{
+      border: 1px solid transparent;
+      border-image: linear-gradient(90deg, #7dd3fc, #f6ff6a) 1;
+      background-image: linear-gradient(90deg, #7dd3fc, #f6ff6a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      box-shadow: 0 0 12px rgba(125,211,252,0.45), 0 0 24px rgba(246,255,106,0.2);
+      filter: drop-shadow(0 0 6px rgba(125,211,252,0.5)) drop-shadow(0 0 8px rgba(246,255,106,0.35));
+    }
     .btn-icon{
       width: 16px;
       height: 16px;
@@ -586,6 +603,17 @@
     .btn:hover{
       background: var(--btn-bg-hover);
       border-color: var(--btn-border-hover);
+    }
+    .discord-button{
+      padding: 8px 12px;
+      font-size: 11px;
+      letter-spacing: .08em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .discord-button .btn-icon{
+      width: 14px;
+      height: 14px;
     }
 
     .footer{
@@ -675,7 +703,15 @@
       </div>
 
       <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-tab" hidden>
-        <p class="league-placeholder">Nothing here... yet.</p>
+        <div class="actions">
+          <a class="btn neon-yellow" href="/superleague/index.html" aria-label="Go to Super League">
+            Super League
+          </a>
+          <a class="btn neon-gradient" href="/lightningcup/index.html" aria-label="Go to 2026 Lightning Cup">
+            <img class="btn-icon" src="/lightningcup/lightning.svg" alt="" aria-hidden="true" />
+            2026 Lightning Cup
+          </a>
+        </div>
       </div>
 
       <div class="league-section" id="archive-section" aria-labelledby="archive-tab" hidden>
