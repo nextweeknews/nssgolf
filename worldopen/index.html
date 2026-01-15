@@ -790,6 +790,12 @@
       return String(s ?? "").trim().toLowerCase() === "bye";
     }
 
+    function isCompletedMatchup(matchup){
+      const s1 = String(matchup?.s1 ?? "").trim();
+      const s2 = String(matchup?.s2 ?? "").trim();
+      return s1 !== "" && s2 !== "";
+    }
+
     /* ===== Countdown (auto-hide banner after deadline) ===== */
     const signupBanner  = document.getElementById("signupBanner");
     const cdDays  = document.getElementById("cdDays");
@@ -954,9 +960,18 @@
 
       const byePlayers = [];
 
+      const fixed = [];
+      for(let i=0;i<expected;i++){
+        fixed.push(matchups?.[i] ?? { p1:"", s1:"", p2:"", s2:"" });
+      }
+
+      const orderedMatchups = allowMatchups
+        ? fixed.filter(isCompletedMatchup).concat(fixed.filter((m)=> !isCompletedMatchup(m)))
+        : fixed;
+
       // 1) Render standard matchup cards (skipping any matchup that contains a BYE)
       for(let i=0;i<expected;i++){
-        let m = matchups?.[i] ?? { p1:"", s1:"", p2:"", s2:"" };
+        let m = orderedMatchups[i] ?? { p1:"", s1:"", p2:"", s2:"" };
         if (!allowMatchups) m = { p1:"", s1:"", p2:"", s2:"" };
 
         const rawP1 = String(m.p1 ?? "").trim();
