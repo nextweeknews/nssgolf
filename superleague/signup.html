@@ -1,1 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NSS Golf Super League - Sign Up</title>
 
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+      --field-bg: rgba(15,23,42,0.6);
+      --field-border: rgba(148,163,184,0.35);
+      --field-border-focus: rgba(147,197,253,0.8);
+      --btn-bg: rgba(255,255,255,0.06);
+      --btn-bg-hover: rgba(255,255,255,0.10);
+      --btn-border: rgba(255,255,255,0.15);
+      --btn-border-hover: rgba(255,255,255,0.28);
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+    .home-badge{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      user-select:none;
+    }
+    .home-badge img{
+      width:70%;
+      height:70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
+    }
+
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight:900;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 28px 18px 56px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .card{
+      width: min(820px, 100%);
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 26px 24px 30px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+      display:grid;
+      gap: 18px;
+    }
+
+    .headline{
+      font-size: 22px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .subhead{
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    form{
+      display:grid;
+      gap: 18px;
+    }
+
+    .form-grid{
+      display:grid;
+      gap: 16px;
+    }
+
+    .field{
+      display:grid;
+      gap: 8px;
+    }
+
+    label{
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--title);
+    }
+
+    input,
+    select{
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--field-border);
+      background: var(--field-bg);
+      color: var(--text);
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: border 150ms ease, box-shadow 150ms ease;
+    }
+
+    input::placeholder{
+      color: rgba(226,232,240,0.6);
+    }
+
+    input:focus,
+    select:focus{
+      border-color: var(--field-border-focus);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+
+    select{
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, rgba(255,255,255,0.6) 50%),
+        linear-gradient(135deg, rgba(255,255,255,0.6) 50%, transparent 50%);
+      background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
+    .actions{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .button{
+      border-radius: 999px;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--text);
+      padding: 10px 20px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 150ms ease, border 150ms ease;
+    }
+
+    .button:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+
+    .note{
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0;
+    }
+
+    .success{
+      display:none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(34,197,94,0.15);
+      border: 1px solid rgba(34,197,94,0.35);
+      color: #d1fae5;
+      font-size: 14px;
+    }
+
+    .success.show{
+      display:block;
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    @media (max-width: 760px){
+      .container{ padding: 20px 12px 44px; }
+      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .brand{ flex: 1; min-width: 0; }
+      .headline{ font-size: 18px; }
+      .card{ padding: 20px 16px; border-radius: 18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </div>
+        <div>
+          <div class="kicker">Super League</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <div>
+        <h1 class="headline">Super League Qualifiers Sign-up</h1>
+        <p class="subhead">Submit your qualifiers information below. The form will send your entry to the official Super League Google Form.</p>
+      </div>
+
+      <div class="success" id="success-message">
+        <p class="note" style="margin:0 0 8px; color:inherit;">Thanks for signing up for Super League! Check Discord for further updates.</p>
+        <p class="note" style="margin:0 0 8px; color:inherit;">Your entry: <strong id="entry-name"></strong></p>
+        <p class="note" style="margin:0; color:inherit;">Please submit only one response. If you made an error or if you need to make changes, please message NWN Aidan</p>
+      </div>
+
+      <form
+        id="signup-form"
+        action="https://docs.google.com/forms/d/e/1FAIpQLSeUaVGBd3Os-1VpALZUX5R0Lush-pH-GwGgsr8WP22ey9khMQ/formResponse"
+        method="post"
+        target="submission-frame"
+      >
+        <div class="form-grid">
+          <div class="field">
+            <label for="player-name">What&#39;s your name (the name we know you by)?</label>
+            <input
+              id="player-name"
+              name="entry.1668500959"
+              type="text"
+              placeholder="Your name"
+              autocomplete="name"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="random-nine">What is your Random 9-hole personal best (random seed)?</label>
+            <input
+              id="random-nine"
+              name="entry.2121899324"
+              type="text"
+              inputmode="text"
+              pattern="-?\\d+"
+              placeholder="Ex. -10"
+              title="Please provide a valid score (ex. -10)"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="random-eighteen">What is your 18-hole personal best (random seed)?</label>
+            <input
+              id="random-eighteen"
+              name="entry.68876731"
+              type="text"
+              inputmode="text"
+              pattern="-?\\d+"
+              placeholder="Ex. -20"
+              title="Please provide a valid score (ex. -20)"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="global-score">What is your best Global Play score?</label>
+            <input
+              id="global-score"
+              name="entry.1935003223"
+              type="text"
+              inputmode="text"
+              pattern="-?\\d+"
+              placeholder="Enter a number"
+              title="Please enter a valid number (no additional text)"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="global-rating">What&#39;s your peak Global Play rating (achieved without cloud saves)?</label>
+            <select id="global-rating" name="entry.814580184" required>
+              <option value="" disabled selected>Select your rating</option>
+              <option value="E- through A20">E- through A20</option>
+              <option value="A21">A21</option>
+              <option value="A22">A22</option>
+              <option value="A23">A23</option>
+              <option value="A24">A24</option>
+              <option value="A25">A25</option>
+              <option value="A26">A26</option>
+              <option value="A27">A27</option>
+              <option value="A28">A28</option>
+              <option value="A29">A29</option>
+              <option value="S0">S0</option>
+              <option value="S1">S1</option>
+              <option value="S2">S2</option>
+              <option value="S3">S3</option>
+              <option value="S4">S4</option>
+              <option value="S5">S5</option>
+              <option value="S6">S6</option>
+              <option value="S7">S7</option>
+              <option value="S8">S8</option>
+              <option value="S9">S9</option>
+              <option value="∞0">∞0</option>
+              <option value="∞1">∞1</option>
+              <option value="∞3">∞3</option>
+              <option value="∞4">∞4</option>
+              <option value="∞5">∞5</option>
+              <option value="∞6">∞6</option>
+              <option value="∞7">∞7</option>
+              <option value="∞8">∞8</option>
+              <option value="∞9">∞9</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="button" type="submit">Submit Entry</button>
+          <p class="note">Entries are submitted directly to the official Google Form.</p>
+        </div>
+      </form>
+      <iframe name="submission-frame" title="submission" style="display:none"></iframe>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('signup-form');
+    const success = document.getElementById('success-message');
+    const entryName = document.getElementById('entry-name');
+    const iframe = document.querySelector('iframe[name="submission-frame"]');
+    const nameInput = document.getElementById('player-name');
+    let submitted = false;
+
+    form.addEventListener('submit', () => {
+      submitted = true;
+    });
+
+    iframe.addEventListener('load', () => {
+      if (!submitted) return;
+      success.classList.add('show');
+      form.classList.add('hidden');
+      entryName.textContent = nameInput.value.trim();
+      form.reset();
+      submitted = false;
+    });
+  </script>
+</body>
+</html>
