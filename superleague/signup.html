@@ -208,6 +208,10 @@
       display:block;
     }
 
+    .hidden{
+      display:none;
+    }
+
     @media (max-width: 760px){
       .container{ padding: 20px 12px 44px; }
       .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
@@ -239,7 +243,11 @@
         <p class="subhead">Submit your qualifiers information below. The form will send your entry to the official Super League Google Form.</p>
       </div>
 
-      <div class="success" id="success-message">Thanks for signing up for Super League! Check Discord for further updates.</div>
+      <div class="success" id="success-message">
+        <p class="note" style="margin:0 0 8px; color:inherit;">Thanks for signing up for Super League! Check Discord for further updates.</p>
+        <p class="note" style="margin:0 0 8px; color:inherit;">Your entry: <strong id="entry-name"></strong></p>
+        <p class="note" style="margin:0; color:inherit;">Please submit only one response. If you made an error or if you need to make changes, please message NWN Aidan</p>
+      </div>
 
       <form
         id="signup-form"
@@ -265,10 +273,11 @@
             <input
               id="random-nine"
               name="entry.2121899324"
-              type="number"
-              step="1"
+              type="text"
+              inputmode="text"
+              pattern="-?\\d+"
               placeholder="Ex. -10"
-              inputmode="numeric"
+              title="Please provide a valid score (ex. -10)"
               required
             />
           </div>
@@ -278,10 +287,11 @@
             <input
               id="random-eighteen"
               name="entry.68876731"
-              type="number"
-              step="1"
+              type="text"
+              inputmode="text"
+              pattern="-?\\d+"
               placeholder="Ex. -20"
-              inputmode="numeric"
+              title="Please provide a valid score (ex. -20)"
               required
             />
           </div>
@@ -291,10 +301,11 @@
             <input
               id="global-score"
               name="entry.1935003223"
-              type="number"
-              step="1"
+              type="text"
+              inputmode="text"
+              pattern="-?\\d+"
               placeholder="Enter a number"
-              inputmode="numeric"
+              title="Please enter a valid number (no additional text)"
               required
             />
           </div>
@@ -348,7 +359,9 @@
   <script>
     const form = document.getElementById('signup-form');
     const success = document.getElementById('success-message');
+    const entryName = document.getElementById('entry-name');
     const iframe = document.querySelector('iframe[name="submission-frame"]');
+    const nameInput = document.getElementById('player-name');
     let submitted = false;
 
     form.addEventListener('submit', () => {
@@ -358,6 +371,8 @@
     iframe.addEventListener('load', () => {
       if (!submitted) return;
       success.classList.add('show');
+      form.classList.add('hidden');
+      entryName.textContent = nameInput.value.trim();
       form.reset();
       submitted = false;
     });
