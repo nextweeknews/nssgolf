@@ -249,6 +249,9 @@
       margin-top: 16px;
     }
 
+    /* ------------------------------------------
+       RESULTS TABLE (Fix A: NO repeat(0, ...))
+       ------------------------------------------ */
     table{
       width: calc(100% + (var(--playoff-holes, 0) * var(--hole-width, 68px)));
       min-width: 100%;
@@ -256,10 +259,26 @@
       table-layout: fixed;
     }
 
-    thead tr,
-    tbody tr{
+    /* Give the results table an explicit class */
+    table.results-table thead tr,
+    table.results-table tbody tr{
       display: grid;
-      grid-template-columns: var(--pos-width, 68px) 1fr repeat(9, var(--hole-width, 68px)) var(--total-width, 72px) repeat(var(--playoff-holes, 0), var(--hole-width, 68px));
+      grid-template-columns:
+        var(--pos-width, 68px)
+        1fr
+        repeat(9, var(--hole-width, 68px))
+        var(--total-width, 72px);
+    }
+
+    /* Only add playoff columns when we *know* we have them */
+    table.results-table.has-playoff thead tr,
+    table.results-table.has-playoff tbody tr{
+      grid-template-columns:
+        var(--pos-width, 68px)
+        1fr
+        repeat(9, var(--hole-width, 68px))
+        var(--total-width, 72px)
+        repeat(var(--playoff-holes), var(--hole-width, 68px));
     }
 
     thead th{
@@ -354,6 +373,9 @@
       background: rgba(147,197,253,0.12);
     }
 
+    /* ------------------------------------------
+       STATS TABLE (unchanged)
+       ------------------------------------------ */
     .stats-table{
       width: 100%;
       min-width: 100%;
@@ -361,6 +383,7 @@
 
     .stats-table thead tr,
     .stats-table tbody tr{
+      display: grid;
       grid-template-columns: var(--pos-width, 68px) 1fr 97px 97px 100px 100px 100px 100px;
     }
 
@@ -669,34 +692,49 @@
       letter-spacing: .2em;
       text-transform: uppercase;
     }
+
+    /* A tiny accessibility improvement for the table captions */
+    .sr-only{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
   </style>
 </head>
+
 <body>
-    <div class="topbar">
-      <div class="topbar-inner">
-        <div class="brand">
-          <a class="home-btn" href="/" aria-label="Home">
-            <img src="/logos/golf.png" alt="Home" />
-          </a>
-          <div>
-            <div class="kicker">Weekly Matches</div>
-            <div class="page-title">Beat Aidan Challenge</div>
-          </div>
-        </div>
-        <div class="topbar-actions">
-          <label class="unit-toggle" for="wind-unit-toggle">
-            <span>MPH</span>
-            <span class="toggle-switch">
-              <input id="wind-unit-toggle" type="checkbox" aria-label="Toggle wind speed units" />
-              <span class="toggle-track">
-                <span class="toggle-thumb"></span>
-              </span>
-            </span>
-            <span>M/S</span>
-          </label>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="/" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" />
+        </a>
+        <div>
+          <div class="kicker">Weekly Matches</div>
+          <div class="page-title">Beat Aidan Challenge</div>
         </div>
       </div>
+
+      <div class="topbar-actions">
+        <label class="unit-toggle" for="wind-unit-toggle">
+          <span>MPH</span>
+          <span class="toggle-switch">
+            <input id="wind-unit-toggle" type="checkbox" aria-label="Toggle wind speed units" />
+            <span class="toggle-track">
+              <span class="toggle-thumb"></span>
+            </span>
+          </span>
+          <span>M/S</span>
+        </label>
+      </div>
     </div>
+  </div>
 
   <div class="container">
     <div class="card">
@@ -1096,27 +1134,9 @@
       const holeNumber = Number.parseInt(String(value ?? "").trim(), 10);
       if(Number.isNaN(holeNumber)) return null;
       const parMap = {
-        1: 4,
-        2: 3,
-        3: 5,
-        4: 3,
-        5: 5,
-        6: 4,
-        7: 4,
-        8: 3,
-        9: 5,
-        10: 4,
-        11: 3,
-        12: 5,
-        13: 3,
-        14: 5,
-        15: 4,
-        16: 4,
-        17: 3,
-        18: 5,
-        19: 4,
-        20: 4,
-        21: 4,
+        1: 4, 2: 3, 3: 5, 4: 3, 5: 5, 6: 4, 7: 4, 8: 3, 9: 5,
+        10: 4, 11: 3, 12: 5, 13: 3, 14: 5, 15: 4, 16: 4, 17: 3, 18: 5,
+        19: 4, 20: 4, 21: 4,
       };
       return parMap[holeNumber] ?? null;
     }
@@ -1264,15 +1284,22 @@
 
       const mainHoles = week.holeColumns.slice(0, 9);
       const playoffHoles = week.holeColumns.slice(9);
+      const hasPlayoff = playoffHoles.length > 0;
 
       const card = document.createElement("div");
       card.className = "week-card";
 
       const aidanFinish = week.playerRows.find(player => player.isAidan)?.finishValue;
 
+      /* IMPROVED MARKUP:
+         - results table uses .results-table + optional .has-playoff
+         - includes a caption (screen-reader only)
+         - th includes scope="col" to be more semantic
+      */
       card.innerHTML = `
         <button class="week-nav week-prev" type="button" aria-label="Previous week" ${index === 0 ? "disabled" : ""}>‹</button>
         <button class="week-nav week-next" type="button" aria-label="Next week" ${index === weeks.length - 1 ? "disabled" : ""}>›</button>
+
         <div class="week-header">
           <select class="week-select" aria-label="Select week">
             ${weeks.map((entry, i) => `
@@ -1280,7 +1307,8 @@
             `).join("")}
           </select>
         </div>
-        ${playoffHoles.length ? `
+
+        ${hasPlayoff ? `
           <div class="week-table-actions">
             <button class="playoff-btn" type="button">
               <span>Playoff</span>
@@ -1288,15 +1316,21 @@
             </button>
           </div>
         ` : ""}
+
         <div class="table-wrap">
-          <table style="--playoff-holes: ${playoffHoles.length};">
+          <table
+            class="results-table ${hasPlayoff ? "has-playoff" : ""}"
+            style="--playoff-holes:${playoffHoles.length};"
+            aria-label="Weekly results"
+          >
+            <caption class="sr-only">Weekly results table</caption>
             <thead>
               <tr>
-                <th class="col-pos">Pos.</th>
-                <th class="col-name">Player</th>
-                ${mainHoles.map(hole => `<th class="col-hole">${renderHoleHeader(hole)}</th>`).join("")}
-                <th class="col-total">Score</th>
-                ${playoffHoles.map(hole => `<th class="col-hole">${renderHoleHeader(hole)}</th>`).join("")}
+                <th class="col-pos" scope="col">Pos.</th>
+                <th class="col-name" scope="col">Player</th>
+                ${mainHoles.map(hole => `<th class="col-hole" scope="col">${renderHoleHeader(hole)}</th>`).join("")}
+                <th class="col-total" scope="col">Score</th>
+                ${playoffHoles.map(hole => `<th class="col-hole" scope="col">${renderHoleHeader(hole)}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
@@ -1304,58 +1338,84 @@
                 const hasValidAidanFinish = Number.isFinite(aidanFinish);
                 const hasValidFinish = Number.isFinite(player.finishValue);
                 const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
+
                 const rowClass = [
                   isBetterThanAidan ? "row-gold" : "",
                   player.isAidan ? "row-aidan" : "",
                 ].filter(Boolean).join(" ");
+
                 const starButton = isBetterThanAidan
                   ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
                   : "";
+
                 const playoffScores = playoffHoles.some((hole, i) => {
                   const score = String(player.holes[i + 9]?.score ?? "").trim();
                   return score !== "";
                 });
-                const playoffButton = playoffHoles.length && playoffScores
+
+                const playoffButton = hasPlayoff && playoffScores
                   ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
                   : "";
+
                 const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
+
                 return `
-                <tr class="${rowClass}">
-                  <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                  <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
-                  ${mainHoles.map((hole, i) => {
-                    const holeData = player.holes[i] ?? {};
-                    const scoreValue = holeData.score ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}" data-green-hit="${escapeHtml(holeData.greenHit ?? "")}" data-putts="${escapeHtml(holeData.putts ?? "")}" data-events="${escapeHtml(holeData.events ?? "")}" data-hole-out="${escapeHtml(holeData.holeOut ?? "")}">
-                      <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
-                    </td>`;
-                  }).join("")}
-                  <td class="total col-total">${escapeHtml(formatScoreDisplay(player.total))}</td>
-                  ${playoffHoles.map((hole, i) => {
-                    const holeData = player.holes[i + 9] ?? {};
-                    const scoreValue = holeData.score ?? "";
-                    return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}" data-hole-number="${escapeHtml(hole.holeNumber)}" data-green-hit="${escapeHtml(holeData.greenHit ?? "")}" data-putts="${escapeHtml(holeData.putts ?? "")}" data-events="${escapeHtml(holeData.events ?? "")}" data-hole-out="${escapeHtml(holeData.holeOut ?? "")}">
-                      <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
-                    </td>`;
-                  }).join("")}
-                </tr>
-              `;
+                  <tr class="${rowClass}">
+                    <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
+                    <td class="name col-name">
+                      <span class="name-text">${escapeHtml(player.name)}</span>
+                      ${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}
+                    </td>
+
+                    ${mainHoles.map((hole, i) => {
+                      const holeData = player.holes[i] ?? {};
+                      const scoreValue = holeData.score ?? "";
+                      return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}"
+                        data-hole-number="${escapeHtml(hole.holeNumber)}"
+                        data-green-hit="${escapeHtml(holeData.greenHit ?? "")}"
+                        data-putts="${escapeHtml(holeData.putts ?? "")}"
+                        data-events="${escapeHtml(holeData.events ?? "")}"
+                        data-hole-out="${escapeHtml(holeData.holeOut ?? "")}"
+                      >
+                        <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
+                      </td>`;
+                    }).join("")}
+
+                    <td class="total col-total">${escapeHtml(formatScoreDisplay(player.total))}</td>
+
+                    ${playoffHoles.map((hole, i) => {
+                      const holeData = player.holes[i + 9] ?? {};
+                      const scoreValue = holeData.score ?? "";
+                      return `<td class="hole-score col-hole ${getScoreClass(scoreValue)}"
+                        data-hole-number="${escapeHtml(hole.holeNumber)}"
+                        data-green-hit="${escapeHtml(holeData.greenHit ?? "")}"
+                        data-putts="${escapeHtml(holeData.putts ?? "")}"
+                        data-events="${escapeHtml(holeData.events ?? "")}"
+                        data-hole-out="${escapeHtml(holeData.holeOut ?? "")}"
+                      >
+                        <button class="score-button" type="button">${escapeHtml(formatHoleScoreDisplay(scoreValue))}</button>
+                      </td>`;
+                    }).join("")}
+                  </tr>
+                `;
               }).join("")}
             </tbody>
           </table>
         </div>
+
         <div class="table-wrap">
-          <table class="stats-table">
+          <table class="stats-table" aria-label="Weekly stats">
+            <caption class="sr-only">Weekly stats table</caption>
             <thead>
               <tr>
-                <th class="col-pos">Pos.</th>
-                <th class="col-name">Player</th>
-                <th>Vs. Aidan</th>
-                <th>Vs. All Players</th>
-                <th>Avg. Hole Score</th>
-                <th>Green %</th>
-                <th>Save %</th>
-                <th>Putt %</th>
+                <th class="col-pos" scope="col">Pos.</th>
+                <th class="col-name" scope="col">Player</th>
+                <th scope="col">Vs. Aidan</th>
+                <th scope="col">Vs. All Players</th>
+                <th scope="col">Avg. Hole Score</th>
+                <th scope="col">Green %</th>
+                <th scope="col">Save %</th>
+                <th scope="col">Putt %</th>
               </tr>
             </thead>
             <tbody>
@@ -1363,36 +1423,48 @@
                 const hasValidAidanFinish = Number.isFinite(aidanFinish);
                 const hasValidFinish = Number.isFinite(player.finishValue);
                 const isBetterThanAidan = hasValidAidanFinish && hasValidFinish && player.finishValue < aidanFinish;
+
                 const rowClass = [
                   isBetterThanAidan ? "row-gold" : "",
                   player.isAidan ? "row-aidan" : "",
                 ].filter(Boolean).join(" ");
+
                 const starButton = isBetterThanAidan
                   ? `<button class="beat-aidan-btn" type="button" aria-label="Beat Aidan">Beat Aidan</button>`
                   : "";
+
                 const playerStats = playerStatsMap.get(normalizeName(player.name));
                 const playoffScores = playoffHoles.some((hole, i) => {
                   const score = String(player.holes[i + 9]?.score ?? "").trim();
                   return score !== "";
                 });
-                const playoffButton = playoffHoles.length && playoffScores
+
+                const playoffButton = hasPlayoff && playoffScores
                   ? `<button class="playoff-place-btn ${getPlayoffPlaceClass(player.finish)}" type="button" aria-label="${escapeHtml(formatPlayoffLabel(player.finish))}">${escapeHtml(formatPlayoffLabel(player.finish))}</button>`
                   : "";
+
                 const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
+
                 const totals = getHoleTotals(player);
                 const avgHole = avgHoleMap.get(normalizeName(player.name));
                 const vsAidanText = player.isAidan ? "" : formatRecord(playerStats?.vsAidan);
+
                 const avgHoleValue = Number.parseFloat(String(avgHole ?? "").trim());
                 const avgHoleColor = Number.isFinite(avgHoleValue)
                   ? colorForScale(avgHoleValue, -0.5, -0.9, -1.3)
                   : "";
+
                 const greenPercentColor = colorForScale(totals.greenPercent, 50, 75, 100);
                 const puttPercentColor = colorForScale(totals.puttPercent, 50, 75, 100);
                 const savePercentColor = colorForScale(totals.savePercent, 0, 25, 50);
+
                 return `
                   <tr class="${rowClass}">
                     <td class="finish-pos col-pos ${getFinishClass(player.finish)}">${escapeHtml(player.finish)}</td>
-                    <td class="name col-name"><span class="name-text">${escapeHtml(player.name)}</span>${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}</td>
+                    <td class="name col-name">
+                      <span class="name-text">${escapeHtml(player.name)}</span>
+                      ${nameButtons ? `<div class="name-buttons">${nameButtons}</div>` : ""}
+                    </td>
                     <td class="stat-record">${escapeHtml(vsAidanText)}</td>
                     <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
                     <td style="${avgHoleColor ? `color: ${avgHoleColor};` : ""}">${escapeHtml(formatCell(avgHole))}</td>
@@ -1414,6 +1486,7 @@
       const nextBtn = card.querySelector(".week-next");
       const playoffBtn = card.querySelector(".playoff-btn");
       const tableWrap = card.querySelector(".table-wrap");
+
       select?.addEventListener("change", (event) => {
         const target = event.target;
         const nextIndex = Number.parseInt(target.value, 10);
@@ -1421,16 +1494,19 @@
         currentWeekIndex = nextIndex;
         renderWeek(weeks, currentWeekIndex);
       });
+
       prevBtn?.addEventListener("click", () => {
         if(currentWeekIndex <= 0) return;
         currentWeekIndex -= 1;
         renderWeek(weeks, currentWeekIndex);
       });
+
       nextBtn?.addEventListener("click", () => {
         if(currentWeekIndex >= weeks.length - 1) return;
         currentWeekIndex += 1;
         renderWeek(weeks, currentWeekIndex);
       });
+
       playoffBtn?.addEventListener("click", () => {
         if(!tableWrap) return;
         tableWrap.scrollTo({ left: tableWrap.scrollWidth, behavior: "smooth" });
