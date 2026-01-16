@@ -780,18 +780,36 @@
       return normalizeValues(await r2.json());
     }
 
+    function isPlaceholderValue(value){
+      const s = String(value ?? "").trim();
+      if(s === "") return true;
+      const normalized = s.toLowerCase();
+      return normalized === "-" || normalized === "—" || normalized === "–" || normalized === "dc";
+    }
+
+    function normalizeHeaderValue(value){
+      return isPlaceholderValue(value) ? "" : String(value ?? "").trim();
+    }
+
     function isRowEmpty(row){
-      return !row || row.every(cell => String(cell ?? "").trim() === "");
+      return !row || row.every(cell => isPlaceholderValue(cell));
     }
 
     function formatCell(value){
       const s = String(value ?? "").trim();
-      return s === "" ? "—" : s;
+      if(s === "") return "—";
+      const normalized = s.toLowerCase();
+      if(normalized === "dc") return "DC";
+      if(normalized === "-" || normalized === "—" || normalized === "–") return "—";
+      return s;
     }
 
     function formatScoreDisplay(value){
       const s = String(value ?? "").trim();
       if(s === "") return "—";
+      const normalized = s.toLowerCase();
+      if(normalized === "dc") return "DC";
+      if(normalized === "-" || normalized === "—" || normalized === "–") return "—";
       if(s === "0") return "E";
       return s;
     }
@@ -799,6 +817,9 @@
     function formatHoleScoreDisplay(value){
       const s = String(value ?? "").trim();
       if(s === "") return "";
+      const normalized = s.toLowerCase();
+      if(normalized === "dc") return "DC";
+      if(normalized === "-" || normalized === "—" || normalized === "–") return "";
       if(s === "0") return "E";
       return s;
     }
@@ -1161,8 +1182,8 @@
         );
 
         for(let col = 4; col < maxCols; col += 5){
-          const headerValue = String(header?.[col] ?? "").trim();
-          const hasPlayerValue = players.some(row => String(row?.[col] ?? "").trim() !== "");
+          const headerValue = normalizeHeaderValue(header?.[col]);
+          const hasPlayerValue = players.some(row => !isPlaceholderValue(row?.[col]));
           if(!headerValue && !hasPlayerValue){
             continue;
           }
