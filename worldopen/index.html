@@ -1093,13 +1093,17 @@
         // fields
         if(round.key === "r1"){
           renderRangeRound1(data.field); // no blanks in list
+        }else if(round.key === "r3"){
+          const combinedField = data.field.concat(data.byes);
+          renderRangeFixed("Field", combinedField, 32);
         }else if(round.key !== "r7"){
           renderRangeFixed("Field", data.field, round.fieldSize); // advanced first, TBD last
         }
 
         // round 3 "season 10 top 16" list
         if(round.key === "r3"){
-          renderByesFixed(data.byes, round.byesSize || 16);
+          byesBlock.classList.add("hidden");
+          byesList.innerHTML = "";
         }else{
           byesBlock.classList.add("hidden");
           byesList.innerHTML = "";
