@@ -808,6 +808,27 @@
       return s1 !== "" && s2 !== "";
     }
 
+    function hasMatchupData(matchups){
+      return (matchups || []).some((matchup)=>{
+        const p1 = String(matchup?.p1 ?? "").trim();
+        const p2 = String(matchup?.p2 ?? "").trim();
+        const s1 = String(matchup?.s1 ?? "").trim();
+        const s2 = String(matchup?.s2 ?? "").trim();
+        return p1 || p2 || s1 || s2;
+      });
+    }
+
+    async function findLatestRoundIndexWithMatchups(){
+      const roundData = await Promise.all(ROUNDS.map((round)=> fetchRoundData(round)));
+      let latestIndex = 0;
+      roundData.forEach((data, idx)=>{
+        if (data.allowMatchups && hasMatchupData(data.matchups)){
+          latestIndex = idx;
+        }
+      });
+      return latestIndex;
+    }
+
     /* ===== Countdown (auto-hide banner after deadline) ===== */
     const signupBanner  = document.getElementById("signupBanner");
     const cdDays  = document.getElementById("cdDays");
@@ -1141,7 +1162,7 @@
       }
     }
 
-    (function boot(){
+    (async function boot(){
       // countdown
       tickCountdown();
       setInterval(tickCountdown, 1000);
@@ -1151,6 +1172,8 @@
       const roundParam = Number(params.get("round"));
       if (Number.isFinite(roundParam) && roundParam >= 1 && roundParam <= ROUNDS.length){
         currentRoundIndex = roundParam - 1;
+      }else{
+        currentRoundIndex = await findLatestRoundIndexWithMatchups();
       }
 
       applyRoundSizing();
