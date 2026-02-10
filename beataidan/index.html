@@ -989,17 +989,11 @@
             losses: row?.[6],
             ties: row?.[7],
           },
+          avgHole: row?.[9],
+          greenPercent: row?.[10],
+          savePercent: row?.[11],
+          puttPercent: row?.[12],
         });
-      });
-      return map;
-    }
-
-    function buildAvgHoleMap(values){
-      const map = new Map();
-      values.forEach(row => {
-        const name = String(row?.[0] ?? "").trim();
-        if(!name || normalizeName(name) === "player") return;
-        map.set(normalizeName(name), String(row?.[9] ?? "").trim());
       });
       return map;
     }
@@ -1021,6 +1015,14 @@
         return `${rounded}%`;
       }
       return `${rounded.toFixed(1)}%`;
+    }
+
+    function parseStatNumber(value){
+      if(value === null || value === undefined) return null;
+      const cleaned = String(value).trim().replace(/%$/, "");
+      if(cleaned === "") return null;
+      const parsed = Number.parseFloat(cleaned);
+      return Number.isNaN(parsed) ? null : parsed;
     }
 
     function lerp(a, b, t){
@@ -1074,60 +1076,6 @@
       const g = lerp(from.g, to.g, t);
       const b = lerp(from.b, to.b, t);
       return `rgb(${r}, ${g}, ${b})`;
-    }
-
-    function getHoleTotals(player){
-      let totalHoles = 0;
-      let greens = 0;
-      let puttsMade = 0;
-      let puttsAttempted = 0;
-      let saves = 0;
-      let saveAttempts = 0;
-
-      player.holes.forEach(hole => {
-        const score = String(hole?.score ?? "").trim();
-        const greenHit = parseCheckboxValue(hole?.greenHit);
-        const puttsRaw = String(hole?.putts ?? "").trim();
-        const eventsRaw = String(hole?.events ?? "").trim();
-        const playedHole = score !== "";
-        if(playedHole){
-          totalHoles += 1;
-        }
-        if(playedHole && greenHit){
-          greens += 1;
-        }
-        const putts = Number.parseInt(puttsRaw, 10);
-        if(Number.isFinite(putts) && putts > 0){
-          puttsMade += 1;
-          puttsAttempted += putts;
-        }
-
-        if(eventsRaw){
-          eventsRaw
-            .split(",")
-            .map(entry => entry.trim().toLowerCase())
-            .filter(Boolean)
-            .forEach(entry => {
-              if(entry === "sv"){
-                saves += 1;
-                saveAttempts += 1;
-              }else if(entry === "xsv"){
-                saveAttempts += 1;
-              }
-            });
-        }
-      });
-
-      const greenPercent = totalHoles ? (greens / totalHoles) * 100 : null;
-      const puttPercent = puttsAttempted ? (puttsMade / puttsAttempted) * 100 : null;
-      const savePercent = saveAttempts ? (saves / saveAttempts) * 100 : null;
-
-      return {
-        totalHoles,
-        greenPercent,
-        savePercent,
-        puttPercent,
-      };
     }
 
     function getParForHole(value){
@@ -1445,18 +1393,21 @@
 
                 const nameButtons = [starButton, playoffButton].filter(Boolean).join("");
 
-                const totals = getHoleTotals(player);
-                const avgHole = avgHoleMap.get(normalizeName(player.name));
+                const avgHole = playerStats?.avgHole;
                 const vsAidanText = player.isAidan ? "" : formatRecord(playerStats?.vsAidan);
 
-                const avgHoleValue = Number.parseFloat(String(avgHole ?? "").trim());
+                const avgHoleValue = parseStatNumber(avgHole);
                 const avgHoleColor = Number.isFinite(avgHoleValue)
                   ? colorForScale(avgHoleValue, -0.5, -0.9, -1.3)
                   : "";
 
-                const greenPercentColor = colorForScale(totals.greenPercent, 50, 75, 100);
-                const puttPercentColor = colorForScale(totals.puttPercent, 50, 75, 100);
-                const savePercentColor = colorForScale(totals.savePercent, 0, 25, 50);
+                const greenPercentValue = parseStatNumber(playerStats?.greenPercent);
+                const savePercentValue = parseStatNumber(playerStats?.savePercent);
+                const puttPercentValue = parseStatNumber(playerStats?.puttPercent);
+
+                const greenPercentColor = colorForScale(greenPercentValue, 50, 75, 100);
+                const puttPercentColor = colorForScale(puttPercentValue, 50, 75, 100);
+                const savePercentColor = colorForScale(savePercentValue, 0, 25, 50);
 
                 return `
                   <tr class="${rowClass}">
@@ -1468,9 +1419,9 @@
                     <td class="stat-record">${escapeHtml(vsAidanText)}</td>
                     <td class="stat-record">${escapeHtml(formatRecord(playerStats?.vsAll))}</td>
                     <td style="${avgHoleColor ? `color: ${avgHoleColor};` : ""}">${escapeHtml(formatCell(avgHole))}</td>
-                    <td style="${greenPercentColor ? `color: ${greenPercentColor};` : ""}">${escapeHtml(formatPercent(totals.greenPercent))}</td>
-                    <td style="${savePercentColor ? `color: ${savePercentColor};` : ""}">${escapeHtml(formatPercent(totals.savePercent))}</td>
-                    <td style="${puttPercentColor ? `color: ${puttPercentColor};` : ""}">${escapeHtml(formatPercent(totals.puttPercent))}</td>
+                    <td style="${greenPercentColor ? `color: ${greenPercentColor};` : ""}">${escapeHtml(formatPercent(greenPercentValue))}</td>
+                    <td style="${savePercentColor ? `color: ${savePercentColor};` : ""}">${escapeHtml(formatPercent(savePercentValue))}</td>
+                    <td style="${puttPercentColor ? `color: ${puttPercentColor};` : ""}">${escapeHtml(formatPercent(puttPercentValue))}</td>
                   </tr>
                 `;
               }).join("")}
@@ -1643,12 +1594,11 @@
       try{
         const [values, playerStats] = await Promise.all([
           fetchRange("A1:CH500"),
-          fetchRange("A1:J500", PLAYER_STATS_SHEET),
+          fetchRange("A1:M500", PLAYER_STATS_SHEET),
         ]);
         const weeks = parseWeeks(values).sort((a, b) => getWeekSortValue(a) - getWeekSortValue(b));
         currentWeeks = weeks;
         playerStatsMap = buildPlayerStatsMap(playerStats);
-        avgHoleMap = buildAvgHoleMap(playerStats);
         currentWeekIndex = Math.max(weeks.length - 1, 0);
         status.remove();
         setupWindToggle();
@@ -1662,7 +1612,6 @@
 
     let currentWeekIndex = 0;
     let playerStatsMap = new Map();
-    let avgHoleMap = new Map();
     load();
     setInterval(load, REFRESH_MS);
   </script>
