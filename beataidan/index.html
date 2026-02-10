@@ -387,6 +387,19 @@
       grid-template-columns: var(--pos-width, 68px) 1fr 97px 97px 100px 100px 100px 100px;
     }
 
+    .stats-table thead tr.stats-group th{
+      font-size: 11px;
+      letter-spacing: .14em;
+      padding: 8px 6px;
+      background: rgba(30,41,59,0.85);
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+    }
+
+    .stats-table thead tr.stats-group .stats-group-label{
+      grid-column: 3 / span 6;
+      text-align: center;
+    }
+
     .stats-table tbody td{
       font-size: 25px;
       padding: 12px 10px;
@@ -1355,6 +1368,11 @@
           <table class="stats-table" aria-label="Weekly stats">
             <caption class="sr-only">Weekly stats table</caption>
             <thead>
+              <tr class="stats-group">
+                <th class="col-pos" scope="col"></th>
+                <th class="col-name" scope="col"></th>
+                <th class="stats-group-label" scope="col">Statistics Across All Weeks</th>
+              </tr>
               <tr>
                 <th class="col-pos" scope="col">Pos.</th>
                 <th class="col-name" scope="col">Player</th>
