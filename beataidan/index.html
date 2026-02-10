@@ -395,6 +395,18 @@
       border-bottom: 1px solid rgba(148,163,184,0.18);
     }
 
+    .stats-table thead tr.stats-group th.col-pos{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stats-table thead tr.stats-group th.col-name{
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
     .stats-table thead tr.stats-group .stats-group-label{
       grid-column: 3 / span 6;
       text-align: center;
@@ -1369,13 +1381,11 @@
             <caption class="sr-only">Weekly stats table</caption>
             <thead>
               <tr class="stats-group">
-                <th class="col-pos" scope="col"></th>
-                <th class="col-name" scope="col"></th>
-                <th class="stats-group-label" scope="col">Statistics Across All Weeks</th>
+                <th class="col-pos" scope="col" rowspan="2">Pos.</th>
+                <th class="col-name" scope="col" rowspan="2">Player</th>
+                <th class="stats-group-label" scope="col" colspan="6">Statistics Across All Weeks</th>
               </tr>
               <tr>
-                <th class="col-pos" scope="col">Pos.</th>
-                <th class="col-name" scope="col">Player</th>
                 <th scope="col">Vs. Aidan</th>
                 <th scope="col">Vs. All Players</th>
                 <th scope="col">Avg. Hole Score</th>
