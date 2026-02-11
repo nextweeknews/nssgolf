@@ -111,8 +111,17 @@
       max-width:1100px;
       margin:0 auto;
       padding: 28px 18px 56px;
+      display:grid;
+      gap: 12px;
+      justify-items:center;
+    }
+
+    .main-view-switch{
       display:flex;
       justify-content:center;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
     }
 
     .card{
@@ -465,7 +474,6 @@
 
     .player-modal-content{
       width: min(820px, calc(100% - 24px));
-      margin: 40px auto;
       border: 1px solid var(--border-lite);
       border-radius: 16px;
       background: rgba(15,23,42,0.98);
@@ -473,6 +481,13 @@
       padding: 18px;
       display: grid;
       gap: 12px;
+    }
+
+    .player-modal-shell{
+      width: min(820px, calc(100% - 24px));
+      margin: 28px auto;
+      display:grid;
+      gap: 10px;
     }
 
     .player-modal-close{
@@ -486,6 +501,36 @@
       cursor: pointer;
       font-size: 18px;
       line-height: 1;
+    }
+
+    .player-modal-meta{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .player-modal-meta-cell{
+      background: var(--row-bg);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align:center;
+    }
+
+    .player-modal-meta-label{
+      margin: 0;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .player-modal-meta-value{
+      margin: 4px 0 0;
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
     }
 
     .player-modal-name{
@@ -515,7 +560,7 @@
       border-collapse: separate;
       border-spacing: 0 8px;
       table-layout: fixed;
-      font-size: 12px;
+      font-size: 18px;
     }
 
     .player-weekly th,
@@ -532,7 +577,7 @@
     .player-weekly th{
       text-transform: uppercase;
       letter-spacing: .08em;
-      font-size: 10px;
+      font-size: 15px;
       font-weight: 800;
       background: var(--header-bg);
       color: var(--muted);
@@ -581,8 +626,6 @@
 
     .score-win{ color: #86efac; }
     .score-loss{ color: #fca5a5; }
-    .score-win strong,
-    .score-loss strong{ font-weight: 950; }
 
     .score-dash{
       color: #fff;
@@ -639,17 +682,32 @@
 
     .qualifier-seed-list{
       display:grid;
-      gap:8px;
+      gap:6px;
+    }
+
+    .qualifier-seed-head,
+    .qualifier-seed-row{
+      display:grid;
+      grid-template-columns: 68px 1fr;
+      align-items:center;
+      text-align:center;
+    }
+
+    .qualifier-seed-head{
+      background: var(--header-bg);
+      border-radius: 10px;
+      padding: 8px 6px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
     }
 
     .qualifier-seed-row{
       background: var(--row-bg);
       border-radius: 10px;
       padding: 8px 6px;
-      display:grid;
-      gap:2px;
-      justify-items:center;
-      text-align:center;
     }
 
     .qualifier-seed-number{
@@ -665,6 +723,7 @@
       font-weight: 850;
       text-transform: uppercase;
       overflow-wrap:anywhere;
+      text-align:center;
     }
 
     .qualifier-bracket-placeholder{
@@ -719,11 +778,6 @@
       color: #9ca3af;
     }
 
-    .round-score.bold-score{
-      font-weight: 950;
-      color: #fff;
-    }
-
     @media (max-width: 1080px){
       .division-grid{ grid-template-columns: 1fr; }
       .schedule-grid{ grid-template-columns: 1fr; }
@@ -742,8 +796,25 @@
 
       .player-modal-content{
         width: calc(100% - 16px);
-        margin: 18px auto;
         padding: 12px;
+      }
+
+      .player-modal-shell{
+        width: calc(100% - 16px);
+        margin: 12px auto;
+      }
+
+      .player-modal-meta{
+        gap: 6px;
+      }
+
+      .player-modal-meta-label{
+        font-size: 8px;
+        letter-spacing: .04em;
+      }
+
+      .player-modal-meta-value{
+        font-size: 12px;
       }
 
       table.player-weekly{
@@ -776,6 +847,10 @@
       .player-weekly .opponent-name{
         font-size: 10px;
       }
+
+      .main-view-switch{
+        margin-bottom: 2px;
+      }
     }
   </style>
 </head>
@@ -795,12 +870,12 @@
   </div>
 
   <div class="container">
-    <div class="card">
-      <div class="page-switch" role="tablist" aria-label="Super League page selector">
-        <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League Season 6</button>
-        <button class="view-btn" id="qualifiersViewBtn" type="button">Qualifiers</button>
-      </div>
+    <div class="main-view-switch" role="tablist" aria-label="Super League page selector">
+      <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League Season 6</button>
+      <button class="view-btn" id="qualifiersViewBtn" type="button">Qualifiers</button>
+    </div>
 
+    <div class="card">
       <section id="seasonPage">
         <div class="season-head">
           <h1 class="headline">Season 6 Standings</h1>
@@ -840,10 +915,29 @@
       </section>
 
       <dialog class="player-modal" id="playerModal" aria-labelledby="playerModalName">
-        <div class="player-modal-content">
+        <div class="player-modal-shell">
           <button class="player-modal-close" id="playerModalClose" type="button" aria-label="Close player details">×</button>
+          <div class="player-modal-content">
           <h2 class="player-modal-name" id="playerModalName"></h2>
           <p class="player-modal-division" id="playerModalDivision"></p>
+          <div class="player-modal-meta" id="playerModalMeta">
+            <div class="player-modal-meta-cell">
+              <p class="player-modal-meta-label">Rank</p>
+              <p class="player-modal-meta-value" id="playerMetaRank">—</p>
+            </div>
+            <div class="player-modal-meta-cell">
+              <p class="player-modal-meta-label">W-L</p>
+              <p class="player-modal-meta-value" id="playerMetaMatches">—</p>
+            </div>
+            <div class="player-modal-meta-cell">
+              <p class="player-modal-meta-label">Games</p>
+              <p class="player-modal-meta-value" id="playerMetaGames">—</p>
+            </div>
+            <div class="player-modal-meta-cell">
+              <p class="player-modal-meta-label">Diff.</p>
+              <p class="player-modal-meta-value" id="playerMetaDiff">—</p>
+            </div>
+          </div>
           <table class="player-weekly" id="playerWeeklyTable">
             <thead>
               <tr>
@@ -858,6 +952,7 @@
             </thead>
             <tbody id="playerWeeklyBody"></tbody>
           </table>
+          </div>
         </div>
       </dialog>
     </div>
@@ -878,6 +973,7 @@
     let scheduleWeeks = [];
     let currentWeekIdx = 0;
     const playerDivisionLookup = new Map();
+    const playerStatsLookup = new Map();
 
     function divisionClassFromLabel(label){
       const normalized = String(label ?? "").toLowerCase();
@@ -1038,9 +1134,9 @@
       return wrapper;
     }
 
-    function formatStatValue(value){
+    function formatStatValue(value, placeholder = "-"){
       const str = String(value ?? "").trim();
-      return str === "" ? "-" : escapeHtml(str);
+      return str === "" ? placeholder : escapeHtml(str);
     }
 
     function formatPlayerLabel(name){
@@ -1060,12 +1156,12 @@
 
     function getRoundCellHtml(playerScore, opponentScore, side){
       const score = side === "player" ? playerScore : opponentScore;
-      const safeScore = formatStatValue(score);
+      const safeScore = formatStatValue(score, "–");
 
       if(side !== "player") return `<span>${safeScore}</span>`;
 
       const winners = isRoundWinner(playerScore, opponentScore);
-      if(winners.a && !winners.b) return `<span class="score-win"><strong>${safeScore}</strong></span>`;
+      if(winners.a && !winners.b) return `<span class="score-win">${safeScore}</span>`;
       if(!winners.a && winners.b) return `<span class="score-loss">${safeScore}</span>`;
       return `<span>${safeScore}</span>`;
     }
@@ -1102,11 +1198,11 @@
 
       const resultHtml = hasRecordedResult
         ? formatResultChip(isWin ? "W" : "L", isWin)
-        : '<span class="result-pending">-</span>';
-      const gamesRecord = `${formatStatValue(playerSide.gamesWon)}-${formatStatValue(opponentSide.gamesWon)}`;
+        : '<span class="result-pending">—</span>';
+      const gamesRecord = `${formatStatValue(playerSide.gamesWon, "—")}-${formatStatValue(opponentSide.gamesWon, "—")}`;
       const gamesHtml = hasRecordedResult
         ? formatResultChip(gamesRecord, isWin)
-        : '<span class="result-pending">-</span>';
+        : '<span class="result-pending">—</span>';
 
       return {
         opponent: opponentSide.name || "TBD",
@@ -1114,7 +1210,7 @@
         gamesHtml,
         roundCells: [0, 1, 2].map((idx) => {
           if(idx === 2 && round3NotPlayed){
-            return { player: '<span class="score-dash">-</span>', opponent: '<span class="score-dash">-</span>' };
+            return { player: '<span class="score-dash">–</span>', opponent: '<span class="score-dash">–</span>' };
           }
           return {
             player: getRoundCellHtml(playerSide.rounds[idx], opponentSide.rounds[idx], "player"),
@@ -1130,11 +1226,17 @@
       const divisionEl = document.getElementById("playerModalDivision");
       const tbody = document.getElementById("playerWeeklyBody");
       const lookup = playerDivisionLookup.get(String(playerName ?? "").trim().toUpperCase());
+      const stats = playerStatsLookup.get(String(playerName ?? "").trim().toUpperCase());
 
       nameEl.textContent = playerName;
       divisionEl.className = "player-modal-division";
       divisionEl.textContent = lookup?.divisionTitle || "Division unavailable";
       if(lookup?.divisionClass) divisionEl.classList.add(lookup.divisionClass);
+
+      document.getElementById("playerMetaRank").textContent = stats?.rank || "—";
+      document.getElementById("playerMetaMatches").textContent = stats?.matches || "—";
+      document.getElementById("playerMetaGames").textContent = stats?.games || "—";
+      document.getElementById("playerMetaDiff").textContent = stats?.diff || "—";
 
       tbody.innerHTML = "";
       for(let week = 1; week <= 7; week += 1){
@@ -1146,11 +1248,11 @@
           row.innerHTML = `
             <td class="weekly-col-week">${week}</td>
             <td class="weekly-col-opponent"><span class="opponent-name">—</span></td>
-            <td class="weekly-col-result"><span class="result-pending">-</span></td>
-            <td class="weekly-col-games"><span class="result-pending">-</span></td>
-            <td class="weekly-col-round"><span class="score-dash">-</span></td>
-            <td class="weekly-col-round"><span class="score-dash">-</span></td>
-            <td class="weekly-col-round"><span class="score-dash">-</span></td>
+            <td class="weekly-col-result"><span class="result-pending">—</span></td>
+            <td class="weekly-col-games"><span class="result-pending">—</span></td>
+            <td class="weekly-col-round"><span class="score-dash">–</span></td>
+            <td class="weekly-col-round"><span class="score-dash">–</span></td>
+            <td class="weekly-col-round"><span class="score-dash">–</span></td>
           `;
           tbody.appendChild(row);
           continue;
@@ -1282,10 +1384,10 @@
       p1Row.innerHTML = `
         <div class="match-player${p1QfClass}">${formatPlayerLabel(matchup.p1.name)}</div>
         <div class="match-stats">
-          <div class="stat games">${formatStatValue(matchup.p1.gamesWon)}</div>
-          <span class="round-score${roundWinners[0].a ? " bold-score" : ""}${(!roundWinners[0].a && roundWinners[0].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</span>
-          <span class="round-score${roundWinners[1].a ? " bold-score" : ""}${(!roundWinners[1].a && roundWinners[1].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[1])}</span>
-          <span class="round-score${roundWinners[2].a ? " bold-score" : ""}${(!roundWinners[2].a && roundWinners[2].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[2])}</span>
+          <div class="stat games">${formatStatValue(matchup.p1.gamesWon, "—")}</div>
+          <span class="round-score${(!roundWinners[0].a && roundWinners[0].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[0], "–")}</span>
+          <span class="round-score${(!roundWinners[1].a && roundWinners[1].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[1], "–")}</span>
+          <span class="round-score${(!roundWinners[2].a && roundWinners[2].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[2], "–")}</span>
         </div>
       `;
 
@@ -1294,10 +1396,10 @@
       p2Row.innerHTML = `
         <div class="match-player${p2QfClass}">${formatPlayerLabel(matchup.p2.name)}</div>
         <div class="match-stats">
-          <div class="stat games">${formatStatValue(matchup.p2.gamesWon)}</div>
-          <span class="round-score${roundWinners[0].b ? " bold-score" : ""}${(!roundWinners[0].b && roundWinners[0].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</span>
-          <span class="round-score${roundWinners[1].b ? " bold-score" : ""}${(!roundWinners[1].b && roundWinners[1].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[1])}</span>
-          <span class="round-score${roundWinners[2].b ? " bold-score" : ""}${(!roundWinners[2].b && roundWinners[2].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[2])}</span>
+          <div class="stat games">${formatStatValue(matchup.p2.gamesWon, "—")}</div>
+          <span class="round-score${(!roundWinners[0].b && roundWinners[0].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[0], "–")}</span>
+          <span class="round-score${(!roundWinners[1].b && roundWinners[1].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[1], "–")}</span>
+          <span class="round-score${(!roundWinners[2].b && roundWinners[2].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[2], "–")}</span>
         </div>
       `;
 
@@ -1398,11 +1500,16 @@
         return;
       }
 
+      const head = document.createElement("div");
+      head.className = "qualifier-seed-head";
+      head.innerHTML = "<div>Seed</div><div>Player</div>";
+      listEl.appendChild(head);
+
       rows.forEach((row) => {
         const item = document.createElement("article");
         item.className = "qualifier-seed-row";
         item.innerHTML = `
-          <div class="qualifier-seed-number">Seed ${escapeHtml(row.seed || "-")}</div>
+          <div class="qualifier-seed-number">${escapeHtml(row.seed || "—")}</div>
           <div class="qualifier-seed-player">${escapeHtml(row.player || "TBD")}</div>
         `;
         listEl.appendChild(item);
@@ -1430,6 +1537,18 @@
 
         DIVISIONS.forEach((division, idx) => {
           gridEl.appendChild(renderDivision(division, all[idx]));
+        });
+
+        playerStatsLookup.clear();
+        Array.from(gridEl.querySelectorAll(".rankings tbody tr")).forEach((tr) => {
+          const playerName = tr.querySelector(".col-player .player-btn")?.textContent?.trim();
+          if(!playerName) return;
+          playerStatsLookup.set(playerName.toUpperCase(), {
+            rank: tr.querySelector(".col-rank")?.textContent?.trim() || "—",
+            matches: tr.querySelector(".col-matches")?.textContent?.trim() || "—",
+            games: tr.querySelector(".col-games")?.textContent?.trim() || "—",
+            diff: tr.querySelector(".col-diff")?.textContent?.trim() || "—",
+          });
         });
 
         const scheduleRows = all[DIVISIONS.length] || [];
