@@ -536,19 +536,33 @@
     .player-modal-name{
       margin: 0;
       text-align: center;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .03em;
     }
 
+    .player-modal-head{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+    }
+
     .player-modal-division{
       margin: 0;
       text-align: center;
-      font-size: 14px;
+      font-size: 18px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .08em;
+    }
+
+    .player-modal-divider{
+      color: var(--muted);
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1;
     }
 
     .player-modal-division.division-1{ color: #fcd34d; }
@@ -603,7 +617,7 @@
     .weekly-col-opponent{ width: 118px; text-align: left; }
     .weekly-col-result{ width: 56px; }
     .weekly-col-games{ width: 66px; }
-    .weekly-col-round{ width: 32px; }
+    .weekly-col-round{ width: 24px; }
 
     .weekly-round-group{ text-align: center; }
 
@@ -616,7 +630,7 @@
 
     .round-sep{
       color: rgba(233,238,248,0.72);
-      font-weight: 800;
+      font-weight: inherit;
     }
 
     .player-weekly .opponent-name{
@@ -808,6 +822,16 @@
         gap: 6px;
       }
 
+      .player-modal-head{
+        gap: 6px;
+      }
+
+      .player-modal-name,
+      .player-modal-division,
+      .player-modal-divider{
+        font-size: 14px;
+      }
+
       .player-modal-meta-label{
         font-size: 8px;
         letter-spacing: .03em;
@@ -840,7 +864,7 @@
 
       .round-pair{
         gap: 2px;
-        font-size: 9px;
+        font-size: 7px;
         white-space: nowrap;
       }
 
@@ -918,8 +942,11 @@
         <div class="player-modal-shell">
           <button class="player-modal-close" id="playerModalClose" type="button" aria-label="Close player details">×</button>
           <div class="player-modal-content">
-          <h2 class="player-modal-name" id="playerModalName"></h2>
-          <p class="player-modal-division" id="playerModalDivision"></p>
+          <div class="player-modal-head">
+            <h2 class="player-modal-name" id="playerModalName"></h2>
+            <span class="player-modal-divider" aria-hidden="true">|</span>
+            <p class="player-modal-division" id="playerModalDivision"></p>
+          </div>
           <div class="player-modal-meta" id="playerModalMeta">
             <div class="player-modal-meta-cell">
               <p class="player-modal-meta-label">Rank</p>
@@ -945,9 +972,9 @@
                 <th class="weekly-col-opponent">Opponent</th>
                 <th class="weekly-col-result">Result</th>
                 <th class="weekly-col-games">Games</th>
-                <th class="weekly-round-group">Round 1</th>
-                <th class="weekly-round-group">Round 2</th>
-                <th class="weekly-round-group">Round 3</th>
+                <th class="weekly-round-group">R1</th>
+                <th class="weekly-round-group">R2</th>
+                <th class="weekly-round-group">R3</th>
               </tr>
             </thead>
             <tbody id="playerWeeklyBody"></tbody>
@@ -1384,7 +1411,7 @@
       p1Row.innerHTML = `
         <div class="match-player${p1QfClass}">${formatPlayerLabel(matchup.p1.name)}</div>
         <div class="match-stats">
-          <div class="stat games">${formatStatValue(matchup.p1.gamesWon, "—")}</div>
+          <div class="stat games">${formatStatValue(matchup.p1.gamesWon, "–")}</div>
           <span class="round-score${(!roundWinners[0].a && roundWinners[0].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[0], "–")}</span>
           <span class="round-score${(!roundWinners[1].a && roundWinners[1].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[1], "–")}</span>
           <span class="round-score${(!roundWinners[2].a && roundWinners[2].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[2], "–")}</span>
@@ -1396,7 +1423,7 @@
       p2Row.innerHTML = `
         <div class="match-player${p2QfClass}">${formatPlayerLabel(matchup.p2.name)}</div>
         <div class="match-stats">
-          <div class="stat games">${formatStatValue(matchup.p2.gamesWon, "—")}</div>
+          <div class="stat games">${formatStatValue(matchup.p2.gamesWon, "–")}</div>
           <span class="round-score${(!roundWinners[0].b && roundWinners[0].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[0], "–")}</span>
           <span class="round-score${(!roundWinners[1].b && roundWinners[1].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[1], "–")}</span>
           <span class="round-score${(!roundWinners[2].b && roundWinners[2].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[2], "–")}</span>
