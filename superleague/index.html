@@ -573,6 +573,60 @@
     .result-loss{ color: #fca5a5; font-weight: 900; }
     .result-pending{ color: #fff; font-weight: 900; }
 
+    .qualifiers-wrap{
+      margin-top: 4px;
+      display:grid;
+      gap:10px;
+    }
+
+    .player-weekly thead tr:first-child th:last-child{
+      border-radius: 0 10px 0 0;
+    }
+
+    .player-weekly thead tr:last-child th:first-child{
+      border-radius: 0 0 0 10px;
+    }
+
+    .player-weekly thead tr:last-child th:last-child{
+      border-radius: 0 0 10px 0;
+    }
+
+    .player-weekly tbody td:first-child{
+      border-radius: 10px 0 0 10px;
+    }
+
+    .player-weekly tbody td:last-child{
+      border-radius: 0 10px 10px 0;
+    }
+
+    .weekly-col-week{ width: 52px; }
+    .weekly-col-opponent{ width: 118px; text-align: left; }
+    .weekly-col-result{ width: 56px; }
+    .weekly-col-games{ width: 66px; }
+    .weekly-col-round{ width: 48px; }
+
+    .weekly-round-group{ text-align: center; }
+    .weekly-round-score{ width: 48px; }
+
+    .player-weekly .opponent-name{
+      text-transform: uppercase;
+      font-weight: 900;
+    }
+
+    .score-win{ color: #86efac; }
+    .score-loss{ color: #fca5a5; }
+    .score-win strong,
+    .score-loss strong{ font-weight: 950; }
+
+    .score-dash{
+      color: #fff;
+      font-weight: 900;
+    }
+
+    .result-win{ color: #86efac; font-weight: 900; }
+    .result-loss{ color: #fca5a5; font-weight: 900; }
+    .result-pending{ color: #fff; font-weight: 900; }
+
     .match-stats{
       display:grid;
       grid-template-columns: minmax(28px, auto) repeat(3, minmax(20px, auto));
@@ -720,6 +774,7 @@
       { title: "Division 3", range: "B23:G30" },
     ];
     const SCHEDULE_RANGE = "I2:AB85";
+    const QUALIFIER_LIST_RANGE = "A:B";
     let scheduleWeeks = [];
     let currentWeekIdx = 0;
     const playerDivisionLookup = new Map();
