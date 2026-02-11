@@ -100,6 +100,7 @@
       letter-spacing: .035em;
       text-transform: uppercase;
       margin: 0;
+      text-align: center;
     }
 
     .subhead{
@@ -359,13 +360,18 @@
       background: rgba(255,255,255,0.95);
       color: #000;
       padding: 0 4px;
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 900;
     }
 
     .round-score{
       color: rgba(233,238,248,0.9);
       line-height: 1;
+      font-size: 11px;
+    }
+
+    .round-score.losing-score{
+      color: #9ca3af;
     }
 
     .round-score.bold-score{
@@ -406,7 +412,7 @@
   <div class="container">
     <div class="card">
       <div>
-        <h1 class="headline">Season 6 Rankings</h1>
+        <h1 class="headline">Season 6 Standings</h1>
       </div>
 
       <p class="status" id="status">Loading rankings…</p>
@@ -532,7 +538,7 @@
           <tr>
             <th class="col-rank">#</th>
             <th class="col-player">Player</th>
-            <th class="col-matches">Matches</th>
+            <th class="col-matches">W-L</th>
             <th class="col-games">Games</th>
             <th class="col-diff">Diff.</th>
           </tr>
@@ -649,9 +655,9 @@
         <div class="match-player">${escapeHtml(matchup.p1.name || "TBD")}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p1.gamesWon)}</div>
-          <span class="round-score${roundWinners[0].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</span>
-          <span class="round-score${roundWinners[1].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[1])}</span>
-          <span class="round-score${roundWinners[2].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[2])}</span>
+          <span class="round-score${roundWinners[0].a ? " bold-score" : ""}${(!roundWinners[0].a && roundWinners[0].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</span>
+          <span class="round-score${roundWinners[1].a ? " bold-score" : ""}${(!roundWinners[1].a && roundWinners[1].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[1])}</span>
+          <span class="round-score${roundWinners[2].a ? " bold-score" : ""}${(!roundWinners[2].a && roundWinners[2].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[2])}</span>
         </div>
       `;
 
@@ -661,9 +667,9 @@
         <div class="match-player">${escapeHtml(matchup.p2.name || "TBD")}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p2.gamesWon)}</div>
-          <span class="round-score${roundWinners[0].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</span>
-          <span class="round-score${roundWinners[1].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[1])}</span>
-          <span class="round-score${roundWinners[2].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[2])}</span>
+          <span class="round-score${roundWinners[0].b ? " bold-score" : ""}${(!roundWinners[0].b && roundWinners[0].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</span>
+          <span class="round-score${roundWinners[1].b ? " bold-score" : ""}${(!roundWinners[1].b && roundWinners[1].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[1])}</span>
+          <span class="round-score${roundWinners[2].b ? " bold-score" : ""}${(!roundWinners[2].b && roundWinners[2].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[2])}</span>
         </div>
       `;
 
