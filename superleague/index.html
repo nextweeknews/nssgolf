@@ -141,8 +141,9 @@
     table.rankings{
       width:100%;
       border-collapse: collapse;
-      min-width: 300px;
-      font-size: 14px;
+      min-width: 0;
+      table-layout: fixed;
+      font-size: 12px;
     }
 
     .rankings thead th{
@@ -150,17 +151,18 @@
       color: rgba(231,238,255,0.9);
       font-weight: 700;
       letter-spacing: .02em;
-      font-size: 12px;
+      font-size: 10px;
       text-transform: uppercase;
-      padding: 10px 10px;
+      padding: 8px 6px;
       border-bottom: 1px solid rgba(255,255,255,0.20);
     }
 
     .rankings tbody td{
-      padding: 10px 10px;
+      padding: 8px 6px;
       border-bottom: 1px solid rgba(148,163,184,0.16);
       color: var(--text);
       white-space: nowrap;
+      font-size: 12px;
     }
 
     .rankings tbody tr:last-child td{
@@ -171,13 +173,13 @@
     .col-matches,
     .col-games,
     .col-diff{
-      width: 64px;
+      width: 44px;
       text-align: center;
     }
 
     .col-player{
-      width: 140px;
-      min-width: 120px;
+      width: 96px;
+      min-width: 0;
     }
 
     .rankings tbody .col-player{
@@ -274,7 +276,7 @@
 
     .schedule-division-title{
       margin:0;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .12em;
@@ -284,7 +286,7 @@
     .schedule-empty{
       margin:0;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 12px;
     }
 
     .match-grid{
@@ -311,6 +313,14 @@
       background: rgba(34,197,94,0.12);
       border-color: rgba(34,197,94,0.55);
     }
+    .match-row.winner:first-child{
+      border-top-left-radius: 14px;
+      border-top-right-radius: 14px;
+    }
+    .match-row.winner:last-child{
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+    }
 
     .match-player{
       flex: 1 1 auto;
@@ -324,40 +334,48 @@
       text-overflow:ellipsis;
       display:flex;
       align-items:center;
-      font-size: 13px;
+      font-size: 11px;
     }
 
     .match-stats{
       display:grid;
-      grid-template-columns: repeat(4, minmax(40px, 1fr));
-      gap:6px;
-      padding: 7px 8px;
-      min-width: 186px;
+      grid-template-columns: minmax(28px, auto) repeat(3, minmax(20px, auto));
+      gap:8px;
+      padding: 6px 8px;
+      min-width: 124px;
       align-items:center;
-    }
-
-    .stat{
-      border-radius: 8px;
-      min-height: 26px;
-      display:grid;
-      place-items:center;
-      font-size: 12px;
+      justify-items:center;
+      font-size: 10px;
       font-weight: 850;
       font-variant-numeric: tabular-nums;
-      background: rgba(255,255,255,0.12);
-      color: var(--text);
-      padding: 0 4px;
     }
+
     .stat.games{
+      border-radius: 6px;
+      min-height: 18px;
+      min-width: 24px;
+      display:grid;
+      place-items:center;
       background: rgba(255,255,255,0.95);
       color: #000;
+      padding: 0 4px;
+      font-size: 10px;
+      font-weight: 900;
     }
-    .stat.bold-score{ font-weight: 950; }
+
+    .round-score{
+      color: rgba(233,238,248,0.9);
+      line-height: 1;
+    }
+
+    .round-score.bold-score{
+      font-weight: 950;
+      color: #fff;
+    }
 
     @media (max-width: 1080px){
       .division-grid{ grid-template-columns: 1fr; }
       .schedule-grid{ grid-template-columns: 1fr; }
-      table.rankings{ min-width: 480px; }
     }
 
     @media (max-width: 760px){
@@ -367,7 +385,6 @@
       .headline{ font-size: 18px; }
       .card{ padding: 20px 14px; border-radius: 18px; }
       .division-card{ padding: 10px; }
-      table.rankings{ min-width: 420px; }
     }
   </style>
 </head>
@@ -632,9 +649,9 @@
         <div class="match-player">${escapeHtml(matchup.p1.name || "TBD")}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p1.gamesWon)}</div>
-          <div class="stat${roundWinners[0].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</div>
-          <div class="stat${roundWinners[1].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[1])}</div>
-          <div class="stat${roundWinners[2].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[2])}</div>
+          <span class="round-score${roundWinners[0].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</span>
+          <span class="round-score${roundWinners[1].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[1])}</span>
+          <span class="round-score${roundWinners[2].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[2])}</span>
         </div>
       `;
 
@@ -644,9 +661,9 @@
         <div class="match-player">${escapeHtml(matchup.p2.name || "TBD")}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p2.gamesWon)}</div>
-          <div class="stat${roundWinners[0].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</div>
-          <div class="stat${roundWinners[1].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[1])}</div>
-          <div class="stat${roundWinners[2].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[2])}</div>
+          <span class="round-score${roundWinners[0].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</span>
+          <span class="round-score${roundWinners[1].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[1])}</span>
+          <span class="round-score${roundWinners[2].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[2])}</span>
         </div>
       `;
 
