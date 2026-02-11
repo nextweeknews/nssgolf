@@ -83,12 +83,14 @@
     }
 
     .card{
-      width: min(820px, 100%);
+      width: min(920px, 100%);
       background: var(--card-bg);
       border-radius: 20px;
       padding: 26px 20px;
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,0.10);
+      display:grid;
+      gap:16px;
     }
 
     .headline{
@@ -97,19 +99,97 @@
       color: var(--title);
       letter-spacing: .035em;
       text-transform: uppercase;
-      margin: 0 0 10px 0;
+      margin: 0;
     }
 
-    .coming-soon{
+    .subhead{
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .status{
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .division-grid{
+      display:grid;
+      gap:16px;
+    }
+
+    .division-card{
+      border: 1px solid var(--border-lite);
+      border-radius: 16px;
+      padding: 14px;
+      background: rgba(15,23,42,0.55);
+      overflow-x: auto;
+    }
+
+    .division-title{
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--title);
+    }
+
+    table.rankings{
+      width:100%;
+      border-collapse: collapse;
+      min-width: 520px;
+      font-size: 14px;
+    }
+
+    .rankings thead th{
+      text-align:left;
+      color: rgba(231,238,255,0.9);
+      font-weight: 700;
+      letter-spacing: .02em;
+      font-size: 12px;
+      text-transform: uppercase;
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.20);
+    }
+
+    .rankings tbody td{
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(148,163,184,0.16);
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .rankings tbody tr:last-child td{
+      border-bottom: 0;
+    }
+
+    .col-rank,
+    .col-matches,
+    .col-games,
+    .col-diff{
+      width: 86px;
       text-align: center;
-      display: grid;
-      gap: 8px;
-      justify-items: center;
     }
 
-    .coming-soon .headline{
-      margin-bottom: 0;
+    .col-player{
+      width: 100%;
+      min-width: 180px;
     }
+
+    .error{
+      margin: 0;
+      color: #fecaca;
+      font-size: 13px;
+      background: rgba(127,29,29,0.22);
+      border: 1px solid rgba(248,113,113,0.45);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display:none;
+    }
+
+    .error.show{ display:block; }
 
     @media (max-width: 760px){
       .container{ padding: 20px 12px 44px; }
@@ -117,6 +197,8 @@
       .brand{ flex: 1; min-width: 0; }
       .headline{ font-size: 18px; }
       .card{ padding: 20px 14px; border-radius: 18px; }
+      .division-card{ padding: 10px; }
+      table.rankings{ min-width: 480px; }
     }
   </style>
 </head>
@@ -137,10 +219,175 @@
 
   <div class="container">
     <div class="card">
-      <div class="coming-soon">
-        <h1 class="headline">Coming Soon</h1>
+      <div>
+        <h1 class="headline">Season 6 Rankings</h1>
+        <p class="subhead">Live rankings across all three Super League divisions.</p>
       </div>
+
+      <p class="status" id="status">Loading rankings…</p>
+      <p class="error" id="error"></p>
+
+      <div class="division-grid" id="divisionGrid"></div>
     </div>
   </div>
+
+  <script>
+    const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
+    const SHEET_NAME = "Season 6";
+
+    const DIVISIONS = [
+      { title: "Division 1", range: "B3:G10" },
+      { title: "Division 2", range: "B13:G20" },
+      { title: "Division 3", range: "B23:G30" },
+    ];
+
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function fetchRange(a1){
+      const range = `'${SHEET_NAME}'!${a1}`;
+      const payload = { sheetId: SHEET_ID, range };
+
+      try{
+        const r = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if(r.ok) return normalizeValues(await r.json());
+      }catch(e){}
+
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("sheetId", SHEET_ID);
+      u.searchParams.set("range", range);
+      const r2 = await fetch(u.toString());
+      if(!r2.ok){
+        const text = await r2.text().catch(() => "");
+        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      }
+      return normalizeValues(await r2.json());
+    }
+
+    function escapeHtml(s){
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function numOrZero(value){
+      const n = Number(String(value ?? "").trim());
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function formatDiff(value){
+      const n = numOrZero(value);
+      if(n > 0) return `+${n}`;
+      if(n < 0) return `${n}`;
+      return "0";
+    }
+
+    function mapRows(values){
+      return values
+        .map((row = []) => {
+          const player = String(row[0] ?? "").trim();
+          const matchesWon = numOrZero(row[1]);
+          const matchesLost = numOrZero(row[2]);
+          const gamesWon = numOrZero(row[3]);
+          const gamesLost = numOrZero(row[4]);
+          const diff = row[5];
+
+          return {
+            player,
+            matches: `${matchesWon}-${matchesLost}`,
+            games: `${gamesWon}-${gamesLost}`,
+            diff: formatDiff(diff),
+          };
+        })
+        .filter((row) => row.player !== "");
+    }
+
+    function renderDivision(division, values){
+      const rows = mapRows(values);
+
+      const wrapper = document.createElement("section");
+      wrapper.className = "division-card";
+
+      const title = document.createElement("h2");
+      title.className = "division-title";
+      title.textContent = division.title;
+      wrapper.appendChild(title);
+
+      const table = document.createElement("table");
+      table.className = "rankings";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th class="col-rank">#</th>
+            <th class="col-player">Player</th>
+            <th class="col-matches">Matches</th>
+            <th class="col-games">Games</th>
+            <th class="col-diff">Diff.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+
+      rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="col-rank">${index + 1}</td>
+          <td class="col-player">${escapeHtml(row.player)}</td>
+          <td class="col-matches">${escapeHtml(row.matches)}</td>
+          <td class="col-games">${escapeHtml(row.games)}</td>
+          <td class="col-diff">${escapeHtml(row.diff)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if(rows.length === 0){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5" style="text-align:center; color: var(--muted);">No data available.</td>`;
+        tbody.appendChild(tr);
+      }
+
+      wrapper.appendChild(table);
+      return wrapper;
+    }
+
+    async function loadRankings(){
+      const statusEl = document.getElementById("status");
+      const errorEl = document.getElementById("error");
+      const gridEl = document.getElementById("divisionGrid");
+
+      try{
+        const all = await Promise.all(DIVISIONS.map((division) => fetchRange(division.range)));
+        gridEl.innerHTML = "";
+
+        DIVISIONS.forEach((division, idx) => {
+          gridEl.appendChild(renderDivision(division, all[idx]));
+        });
+
+        statusEl.textContent = "Updated from Google Sheets.";
+      }catch(err){
+        statusEl.textContent = "Could not load rankings.";
+        errorEl.textContent = String(err?.message || err || "Unknown error");
+        errorEl.classList.add("show");
+      }
+    }
+
+    loadRankings();
+  </script>
 </body>
 </html>
