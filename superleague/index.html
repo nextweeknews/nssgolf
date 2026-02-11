@@ -579,83 +579,53 @@
       gap:10px;
     }
 
-    .qualifiers-title{
-      margin:0;
-      font-size: 20px;
-      font-weight: 950;
-      color: var(--title);
-      letter-spacing: .035em;
+    .player-weekly thead tr:first-child th:last-child{
+      border-radius: 0 10px 0 0;
+    }
+
+    .player-weekly thead tr:last-child th:first-child{
+      border-radius: 0 0 0 10px;
+    }
+
+    .player-weekly thead tr:last-child th:last-child{
+      border-radius: 0 0 10px 0;
+    }
+
+    .player-weekly tbody td:first-child{
+      border-radius: 10px 0 0 10px;
+    }
+
+    .player-weekly tbody td:last-child{
+      border-radius: 0 10px 10px 0;
+    }
+
+    .weekly-col-week{ width: 52px; }
+    .weekly-col-opponent{ width: 118px; text-align: left; }
+    .weekly-col-result{ width: 56px; }
+    .weekly-col-games{ width: 66px; }
+    .weekly-col-round{ width: 48px; }
+
+    .weekly-round-group{ text-align: center; }
+    .weekly-round-score{ width: 48px; }
+
+    .player-weekly .opponent-name{
       text-transform: uppercase;
-      text-align:center;
-    }
-
-    .qualifiers-grid{
-      display:grid;
-      grid-template-columns: minmax(240px, 1fr) minmax(360px, 2fr);
-      gap:12px;
-      align-items:stretch;
-    }
-
-    .qualifiers-pane{
-      border: 1px solid var(--border-lite);
-      border-radius: 16px;
-      padding: 12px;
-      background: rgba(15,23,42,0.55);
-      display:grid;
-      gap:10px;
-      align-content:start;
-      min-height: 120px;
-    }
-
-    .qualifiers-pane-title{
-      margin:0;
-      font-size: 12px;
       font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color: rgba(231,238,255,0.92);
-      text-align:center;
     }
 
-    table.qualifier-list{
-      width:100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-      font-size: 12px;
+    .score-win{ color: #86efac; }
+    .score-loss{ color: #fca5a5; }
+    .score-win strong,
+    .score-loss strong{ font-weight: 950; }
+
+    .score-dash{
+      color: #fff;
+      font-weight: 900;
     }
 
-    .qualifier-list th,
-    .qualifier-list td{
-      padding: 7px 6px;
-      border-bottom: 1px solid rgba(148,163,184,0.16);
-    }
-
-    .qualifier-list th{
-      text-align:left;
-      color: rgba(231,238,255,0.9);
-      font-weight: 800;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: .03em;
-      border-bottom-color: rgba(255,255,255,0.22);
-    }
-
-    .qualifier-list tbody tr:last-child td{
-      border-bottom:0;
-    }
-
-    .qualifier-seed-col{ width: 62px; text-align:center; }
-    .qualifier-player-col{ text-transform: uppercase; font-weight: 800; }
-
-    .qualifier-placeholder{
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      min-height: 100%;
-      display:grid;
-      place-items:center;
-      text-align:center;
-    }
+    .result-win{ color: #86efac; font-weight: 900; }
+    .result-loss{ color: #fca5a5; font-weight: 900; }
+    .result-pending{ color: #fff; font-weight: 900; }
 
     .match-stats{
       display:grid;
@@ -702,7 +672,6 @@
 
     @media (max-width: 1080px){
       .division-grid{ grid-template-columns: 1fr; }
-      .qualifiers-grid{ grid-template-columns: 1fr; }
       .schedule-grid{ grid-template-columns: 1fr; }
     }
 
@@ -731,8 +700,7 @@
         </div>
       </div>
       <div class="topbar-actions" role="tablist" aria-label="Super League page selector">
-        <button class="view-btn" id="seasonViewBtn" type="button" role="tab" aria-selected="true">Super League Season 6</button>
-        <button class="view-btn" id="qualifiersViewBtn" type="button" role="tab" aria-selected="false">Qualifiers</button>
+        <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League Season 6</button>
       </div>
     </div>
   </div>
@@ -757,28 +725,6 @@
           </div>
           <div class="schedule-grid" id="scheduleGrid"></div>
         </section>
-      </section>
-
-      <section class="qualifiers-wrap" id="qualifiersPage" hidden>
-        <h2 class="qualifiers-title">Season 6 Qualifying</h2>
-        <div class="qualifiers-grid">
-          <section class="qualifiers-pane">
-            <h3 class="qualifiers-pane-title">Signed Up Players</h3>
-            <table class="qualifier-list" id="qualifierListTable">
-              <thead>
-                <tr>
-                  <th class="qualifier-seed-col">Seed</th>
-                  <th>Player</th>
-                </tr>
-              </thead>
-              <tbody id="qualifierListBody"></tbody>
-            </table>
-          </section>
-          <section class="qualifiers-pane">
-            <h3 class="qualifiers-pane-title">Qualifier Bracket</h3>
-            <p class="qualifier-placeholder">Coming soon.</p>
-          </section>
-        </div>
       </section>
 
       <dialog class="player-modal" id="playerModal" aria-labelledby="playerModalName">
@@ -821,7 +767,6 @@
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
     const SHEET_NAME = "Season 6";
-    const QUALIFIER_SHEET_NAME = "Season 6 Qualifiers";
 
     const DIVISIONS = [
       { title: "Division 1", range: "B3:G10" },
@@ -832,7 +777,6 @@
     const QUALIFIER_LIST_RANGE = "A:B";
     let scheduleWeeks = [];
     let currentWeekIdx = 0;
-    let qualifiersLoaded = false;
     const playerDivisionLookup = new Map();
 
     function divisionClassFromLabel(label){
@@ -843,43 +787,12 @@
       return "";
     }
 
-    async function setActivePage(page){
-      const isQualifierPage = page === "qualifiers";
-      const seasonPage = document.getElementById("seasonPage");
-      const qualifiersPage = document.getElementById("qualifiersPage");
-      const seasonBtn = document.getElementById("seasonViewBtn");
-      const qualifiersBtn = document.getElementById("qualifiersViewBtn");
-
-      seasonPage.hidden = isQualifierPage;
-      qualifiersPage.hidden = !isQualifierPage;
-
-      seasonBtn.classList.toggle("is-active", !isQualifierPage);
-      qualifiersBtn.classList.toggle("is-active", isQualifierPage);
-      seasonBtn.setAttribute("aria-selected", String(!isQualifierPage));
-      qualifiersBtn.setAttribute("aria-selected", String(isQualifierPage));
-
-      if(isQualifierPage) await loadQualifiers();
-    }
-
     function setupViewNav(){
       const seasonBtn = document.getElementById("seasonViewBtn");
-      const qualifiersBtn = document.getElementById("qualifiersViewBtn");
 
       seasonBtn.addEventListener("click", () => {
-        location.hash = "#season";
+        window.scrollTo({ top: 0, behavior: "smooth" });
       });
-
-      qualifiersBtn.addEventListener("click", () => {
-        location.hash = "#qualifiers";
-      });
-
-      const syncPageFromHash = async () => {
-        const hash = String(location.hash || "").toLowerCase();
-        await setActivePage(hash === "#qualifiers" ? "qualifiers" : "season");
-      };
-
-      window.addEventListener("hashchange", syncPageFromHash);
-      syncPageFromHash();
     }
 
     function normalizeValues(resp){
@@ -1027,69 +940,6 @@
 
     function isQfPlayerName(name){
       return /^QF\b/i.test(String(name ?? "").trim());
-    }
-
-    function mapQualifierRows(values){
-      const rows = values
-        .slice(1)
-        .map((row = []) => {
-          const seedRaw = String(row[0] ?? "").trim();
-          const player = String(row[1] ?? "").trim();
-          if(!seedRaw || !player) return null;
-
-          const seedNum = Number(seedRaw);
-          return {
-            seed: seedRaw,
-            player,
-            seedNum: Number.isFinite(seedNum) ? seedNum : null,
-          };
-        })
-        .filter(Boolean);
-
-      rows.sort((a, b) => {
-        if(a.seedNum !== null && b.seedNum !== null) return a.seedNum - b.seedNum;
-        if(a.seedNum !== null) return -1;
-        if(b.seedNum !== null) return 1;
-        return a.seed.localeCompare(b.seed, undefined, { numeric: true, sensitivity: "base" });
-      });
-
-      return rows;
-    }
-
-    function renderQualifierList(values){
-      const body = document.getElementById("qualifierListBody");
-      body.innerHTML = "";
-      const rows = mapQualifierRows(values);
-
-      if(!rows.length){
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td colspan="2" style="color: var(--muted); text-align:center;">No qualifier signups available.</td>`;
-        body.appendChild(tr);
-        return;
-      }
-
-      rows.forEach((row) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="qualifier-seed-col">${escapeHtml(row.seed)}</td>
-          <td class="qualifier-player-col"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player)}</button></td>
-        `;
-        body.appendChild(tr);
-      });
-    }
-
-
-    async function loadQualifiers(){
-      if(qualifiersLoaded) return;
-      const body = document.getElementById("qualifierListBody");
-
-      try{
-        const qualifierRows = await fetchRange(QUALIFIER_LIST_RANGE, QUALIFIER_SHEET_NAME);
-        renderQualifierList(qualifierRows);
-        qualifiersLoaded = true;
-      }catch(err){
-        body.innerHTML = `<tr><td colspan="2" style="color: #fecaca; text-align:center;">Could not load qualifiers.</td></tr>`;
-      }
     }
 
     function formatResultChip(value, isWin){
