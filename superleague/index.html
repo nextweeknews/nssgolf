@@ -202,8 +202,161 @@
 
     .error.show{ display:block; }
 
+    .schedule-wrap{
+      margin-top: 8px;
+      display:grid;
+      gap:12px;
+    }
+
+    .schedule-head{
+      position: relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height: 44px;
+      padding: 2px 0;
+    }
+
+    .schedule-title{
+      margin:0;
+      font-size: 16px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align:center;
+      width:100%;
+      padding: 0 54px;
+      line-height: 1.1;
+    }
+
+    .nav-btn{
+      position:absolute;
+      top:50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,.92);
+      cursor:pointer;
+      font-weight: 950;
+      display:grid;
+      place-items:center;
+      user-select:none;
+    }
+    .nav-btn:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+    .nav-btn:disabled{ opacity:.35; cursor:not-allowed; }
+    .nav-left{ left:0; }
+    .nav-right{ right:0; }
+
+    .schedule-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:12px;
+      align-items:start;
+    }
+
+    .schedule-division{
+      border: 1px solid var(--border-lite);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(15,23,42,0.55);
+      min-height: 90px;
+      display:grid;
+      gap: 10px;
+      align-content:start;
+    }
+
+    .schedule-division-title{
+      margin:0;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(231,238,255,0.92);
+    }
+
+    .schedule-empty{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .match-grid{
+      display:grid;
+      gap:10px;
+    }
+
+    .match-card{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      overflow:hidden;
+    }
+
+    .match-row{
+      display:flex;
+      align-items:stretch;
+      min-height: 42px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid transparent;
+    }
+    .match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
+    .match-row.winner{
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.55);
+    }
+
+    .match-player{
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 8px 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:flex;
+      align-items:center;
+      font-size: 13px;
+    }
+
+    .match-stats{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(40px, 1fr));
+      gap:6px;
+      padding: 7px 8px;
+      min-width: 186px;
+      align-items:center;
+    }
+
+    .stat{
+      border-radius: 8px;
+      min-height: 26px;
+      display:grid;
+      place-items:center;
+      font-size: 12px;
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+      background: rgba(255,255,255,0.12);
+      color: var(--text);
+      padding: 0 4px;
+    }
+    .stat.games{
+      background: rgba(255,255,255,0.95);
+      color: #000;
+    }
+    .stat.bold-score{ font-weight: 950; }
+
     @media (max-width: 1080px){
       .division-grid{ grid-template-columns: 1fr; }
+      .schedule-grid{ grid-template-columns: 1fr; }
       table.rankings{ min-width: 480px; }
     }
 
@@ -243,6 +396,15 @@
       <p class="error" id="error"></p>
 
       <div class="division-grid" id="divisionGrid"></div>
+
+      <section class="schedule-wrap" id="scheduleWrap" hidden>
+        <div class="schedule-head">
+          <button class="nav-btn nav-left" id="weekPrev" type="button" aria-label="Previous week">←</button>
+          <h2 class="schedule-title" id="scheduleTitle">Week</h2>
+          <button class="nav-btn nav-right" id="weekNext" type="button" aria-label="Next week">→</button>
+        </div>
+        <div class="schedule-grid" id="scheduleGrid"></div>
+      </section>
     </div>
   </div>
 
@@ -256,6 +418,10 @@
       { title: "Division 2", range: "B13:G20" },
       { title: "Division 3", range: "B23:G30" },
     ];
+    const SCHEDULE_RANGE = "I2:AB85";
+
+    let scheduleWeeks = [];
+    let currentWeekIdx = 0;
 
     function normalizeValues(resp){
       if(!resp) return [];
@@ -382,18 +548,209 @@
       return wrapper;
     }
 
+    function formatStatValue(value){
+      const str = String(value ?? "").trim();
+      return str === "" ? "-" : escapeHtml(str);
+    }
+
+    function numericScore(value){
+      const str = String(value ?? "").trim();
+      if(str === "") return null;
+      const n = Number(str);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function parseScheduleRows(values){
+      const byWeek = new Map();
+
+      values.forEach((row = []) => {
+        const week = String(row[0] ?? "").trim();
+        const division = String(row[1] ?? "").trim();
+
+        const p1Name = String(row[3] ?? "").trim();
+        const p2Name = String(row[12] ?? "").trim();
+        if(!week || !division || (!p1Name && !p2Name)) return;
+
+        const round1P1 = row[4];
+        const round2P1 = row[5];
+        const round3P1 = row[6];
+        const gamesWonP1 = row[7];
+        const resultP1 = String(row[10] ?? "").trim().toUpperCase();
+
+        const round1P2 = row[13];
+        const round2P2 = row[14];
+        const round3P2 = row[15];
+        const gamesWonP2 = row[16];
+        const resultP2 = String(row[19] ?? "").trim().toUpperCase();
+
+        const matchup = {
+          division,
+          p1: { name: p1Name, rounds: [round1P1, round2P1, round3P1], gamesWon: gamesWonP1, result: resultP1 },
+          p2: { name: p2Name, rounds: [round1P2, round2P2, round3P2], gamesWon: gamesWonP2, result: resultP2 },
+        };
+
+        if(!byWeek.has(week)) byWeek.set(week, []);
+        byWeek.get(week).push(matchup);
+      });
+
+      const weekSort = (a, b) => {
+        const an = Number(a), bn = Number(b);
+        if(Number.isFinite(an) && Number.isFinite(bn)) return an - bn;
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+      };
+
+      return Array.from(byWeek.keys())
+        .sort(weekSort)
+        .map((week) => ({ week, matchups: byWeek.get(week) || [] }));
+    }
+
+    function isRoundWinner(roundA, roundB){
+      const a = numericScore(roundA);
+      const b = numericScore(roundB);
+      if(a === null || b === null) return { a: false, b: false };
+      if(a < b) return { a: true, b: false };
+      if(b < a) return { a: false, b: true };
+      return { a: true, b: true };
+    }
+
+    function renderMatchup(matchup){
+      const card = document.createElement("article");
+      card.className = "match-card";
+
+      const roundWinners = [
+        isRoundWinner(matchup.p1.rounds[0], matchup.p2.rounds[0]),
+        isRoundWinner(matchup.p1.rounds[1], matchup.p2.rounds[1]),
+        isRoundWinner(matchup.p1.rounds[2], matchup.p2.rounds[2]),
+      ];
+
+      const p1Winner = matchup.p1.result === "W";
+      const p2Winner = matchup.p2.result === "W";
+
+      const p1Row = document.createElement("div");
+      p1Row.className = `match-row${p1Winner ? " winner" : ""}`;
+      p1Row.innerHTML = `
+        <div class="match-player">${escapeHtml(matchup.p1.name || "TBD")}</div>
+        <div class="match-stats">
+          <div class="stat games">${formatStatValue(matchup.p1.gamesWon)}</div>
+          <div class="stat${roundWinners[0].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</div>
+          <div class="stat${roundWinners[1].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[1])}</div>
+          <div class="stat${roundWinners[2].a ? " bold-score" : ""}">${formatStatValue(matchup.p1.rounds[2])}</div>
+        </div>
+      `;
+
+      const p2Row = document.createElement("div");
+      p2Row.className = `match-row${p2Winner ? " winner" : ""}`;
+      p2Row.innerHTML = `
+        <div class="match-player">${escapeHtml(matchup.p2.name || "TBD")}</div>
+        <div class="match-stats">
+          <div class="stat games">${formatStatValue(matchup.p2.gamesWon)}</div>
+          <div class="stat${roundWinners[0].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</div>
+          <div class="stat${roundWinners[1].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[1])}</div>
+          <div class="stat${roundWinners[2].b ? " bold-score" : ""}">${formatStatValue(matchup.p2.rounds[2])}</div>
+        </div>
+      `;
+
+      card.appendChild(p1Row);
+      card.appendChild(p2Row);
+      return card;
+    }
+
+    function renderScheduleWeek(){
+      const wrap = document.getElementById("scheduleWrap");
+      const titleEl = document.getElementById("scheduleTitle");
+      const gridEl = document.getElementById("scheduleGrid");
+      const prevBtn = document.getElementById("weekPrev");
+      const nextBtn = document.getElementById("weekNext");
+
+      if(!scheduleWeeks.length){
+        wrap.hidden = true;
+        return;
+      }
+
+      wrap.hidden = false;
+      const weekData = scheduleWeeks[currentWeekIdx];
+      titleEl.textContent = `Week ${weekData.week} Schedule & Results`;
+      prevBtn.disabled = currentWeekIdx <= 0;
+      nextBtn.disabled = currentWeekIdx >= scheduleWeeks.length - 1;
+
+      const divisionMap = new Map([
+        ["1", []], ["2", []], ["3", []],
+        ["Division 1", []], ["Division 2", []], ["Division 3", []],
+      ]);
+
+      weekData.matchups.forEach((m) => {
+        if(divisionMap.has(m.division)) divisionMap.get(m.division).push(m);
+      });
+
+      const normalizeDivision = (idx) => {
+        if(divisionMap.get(String(idx)).length) return divisionMap.get(String(idx));
+        return divisionMap.get(`Division ${idx}`);
+      };
+
+      gridEl.innerHTML = "";
+      [1, 2, 3].forEach((divNum) => {
+        const pane = document.createElement("section");
+        pane.className = "schedule-division";
+
+        const h3 = document.createElement("h3");
+        h3.className = "schedule-division-title";
+        h3.textContent = `Division ${divNum}`;
+        pane.appendChild(h3);
+
+        const matchups = normalizeDivision(divNum) || [];
+        if(!matchups.length){
+          const empty = document.createElement("p");
+          empty.className = "schedule-empty";
+          empty.textContent = "No matchups available.";
+          pane.appendChild(empty);
+        }else{
+          const matchGrid = document.createElement("div");
+          matchGrid.className = "match-grid";
+          matchups.forEach((m) => matchGrid.appendChild(renderMatchup(m)));
+          pane.appendChild(matchGrid);
+        }
+
+        gridEl.appendChild(pane);
+      });
+    }
+
+    function setupScheduleNav(){
+      const prevBtn = document.getElementById("weekPrev");
+      const nextBtn = document.getElementById("weekNext");
+
+      prevBtn.addEventListener("click", () => {
+        if(currentWeekIdx <= 0) return;
+        currentWeekIdx -= 1;
+        renderScheduleWeek();
+      });
+
+      nextBtn.addEventListener("click", () => {
+        if(currentWeekIdx >= scheduleWeeks.length - 1) return;
+        currentWeekIdx += 1;
+        renderScheduleWeek();
+      });
+    }
+
     async function loadRankings(){
       const statusEl = document.getElementById("status");
       const errorEl = document.getElementById("error");
       const gridEl = document.getElementById("divisionGrid");
 
       try{
-        const all = await Promise.all(DIVISIONS.map((division) => fetchRange(division.range)));
+        const all = await Promise.all([
+          ...DIVISIONS.map((division) => fetchRange(division.range)),
+          fetchRange(SCHEDULE_RANGE),
+        ]);
         gridEl.innerHTML = "";
 
         DIVISIONS.forEach((division, idx) => {
           gridEl.appendChild(renderDivision(division, all[idx]));
         });
+
+        const scheduleRows = all[DIVISIONS.length] || [];
+        scheduleWeeks = parseScheduleRows(scheduleRows);
+        currentWeekIdx = 0;
+        renderScheduleWeek();
 
         statusEl.textContent = "Updated from Google Sheets.";
       }catch(err){
@@ -403,6 +760,7 @@
       }
     }
 
+    setupScheduleNav();
     loadRankings();
   </script>
 </body>
