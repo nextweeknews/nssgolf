@@ -242,7 +242,7 @@
 
     .player-btn:hover,
     .player-btn:focus-visible{
-      text-decoration: underline;
+      text-decoration: none;
       outline: none;
     }
 
@@ -332,6 +332,10 @@
       gap: 10px;
       align-content:start;
     }
+
+    .schedule-division.division-1{ background: linear-gradient(180deg, rgba(234,179,8,0.16), rgba(15,23,42,0.55)); }
+    .schedule-division.division-2{ background: linear-gradient(180deg, rgba(203,213,225,0.15), rgba(15,23,42,0.55)); }
+    .schedule-division.division-3{ background: linear-gradient(180deg, rgba(180,83,9,0.16), rgba(15,23,42,0.55)); }
 
     .schedule-division-title{
       text-align:center;
@@ -437,6 +441,7 @@
       border: 1px solid var(--border-lite);
       border-radius: 16px;
       background: rgba(15,23,42,0.98);
+      color: #fff;
       padding: 18px;
       display: grid;
       gap: 12px;
@@ -481,20 +486,22 @@
       width: 100%;
       border-collapse: collapse;
       table-layout: fixed;
-      font-size: 12px;
+      font-size: 18px;
     }
 
     .player-weekly th,
     .player-weekly td{
-      padding: 8px 6px;
+      padding: 12px 8px;
       border-bottom: 1px solid rgba(148,163,184,0.16);
       vertical-align: top;
+      color: #fff;
     }
 
     .player-weekly th{
       text-transform: uppercase;
       letter-spacing: .03em;
-      font-size: 10px;
+      font-size: 14px;
+      font-weight: 900;
       text-align: left;
     }
 
@@ -504,6 +511,7 @@
 
     .result-win{ color: #86efac; font-weight: 900; }
     .result-loss{ color: #fca5a5; font-weight: 900; }
+    .result-pending{ color: #fff; font-weight: 900; }
 
     .qualifiers-wrap{
       margin-top: 4px;
@@ -751,6 +759,7 @@
 
     let scheduleWeeks = [];
     let currentWeekIdx = 0;
+    let qualifiersLoaded = false;
     const playerDivisionLookup = new Map();
 
     function divisionClassFromLabel(label){
@@ -761,7 +770,7 @@
       return "";
     }
 
-    function setActivePage(page){
+    async function setActivePage(page){
       const isQualifierPage = page === "qualifiers";
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
@@ -775,6 +784,8 @@
       qualifiersBtn.classList.toggle("is-active", isQualifierPage);
       seasonBtn.setAttribute("aria-selected", String(!isQualifierPage));
       qualifiersBtn.setAttribute("aria-selected", String(isQualifierPage));
+
+      if(isQualifierPage) await loadQualifiers();
     }
 
     function setupViewNav(){
@@ -789,9 +800,9 @@
         location.hash = "#qualifiers";
       });
 
-      const syncPageFromHash = () => {
+      const syncPageFromHash = async () => {
         const hash = String(location.hash || "").toLowerCase();
-        setActivePage(hash === "#qualifiers" ? "qualifiers" : "season");
+        await setActivePage(hash === "#qualifiers" ? "qualifiers" : "season");
       };
 
       window.addEventListener("hashchange", syncPageFromHash);
@@ -994,6 +1005,20 @@
       });
     }
 
+
+    async function loadQualifiers(){
+      if(qualifiersLoaded) return;
+      const body = document.getElementById("qualifierListBody");
+
+      try{
+        const qualifierRows = await fetchRange(QUALIFIER_LIST_RANGE, QUALIFIER_SHEET_NAME);
+        renderQualifierList(qualifierRows);
+        qualifiersLoaded = true;
+      }catch(err){
+        body.innerHTML = `<tr><td colspan="2" style="color: #fecaca; text-align:center;">Could not load qualifiers.</td></tr>`;
+      }
+    }
+
     function formatResultChip(value, isWin){
       const cls = isWin ? "result-win" : "result-loss";
       return `<span class="${cls}">${escapeHtml(value)}</span>`;
@@ -1017,13 +1042,28 @@
       ));
 
       if(!matchup){
-        return { opponent: "—", resultHtml: '<span style="color: var(--muted);">No match recorded</span>' };
+        return { opponent: "—", resultHtml: '<span class="result-pending">-</span>' };
       }
 
       const isP1 = String(matchup.p1.name ?? "").trim().toUpperCase() === playerKey;
       const playerSide = isP1 ? matchup.p1 : matchup.p2;
       const opponentSide = isP1 ? matchup.p2 : matchup.p1;
       const isWin = playerSide.result === "W";
+      const hasRecordedResult = [
+        playerSide.result,
+        playerSide.gamesWon,
+        opponentSide.gamesWon,
+        ...playerSide.rounds,
+        ...opponentSide.rounds,
+      ].some((value) => String(value ?? "").trim() !== "");
+
+      if(!hasRecordedResult){
+        return {
+          opponent: opponentSide.name || "TBD",
+          resultHtml: '<span class="result-pending">-</span>',
+        };
+      }
+
       const gamesRecord = `${formatStatValue(playerSide.gamesWon)}-${formatStatValue(opponentSide.gamesWon)}`;
       const roundScores = playerSide.rounds
         .map((score, idx) => buildRoundDisplay(score, opponentSide.rounds[idx]))
@@ -1062,7 +1102,7 @@
           row.innerHTML = `
             <td class="weekly-col-week">${week}</td>
             <td class="weekly-col-opponent">—</td>
-            <td class="weekly-col-result"><span style="color: var(--muted);">No match recorded</span></td>
+            <td class="weekly-col-result"><span class="result-pending">-</span></td>
           `;
           tbody.appendChild(row);
           continue;
@@ -1301,7 +1341,6 @@
         const all = await Promise.all([
           ...DIVISIONS.map((division) => fetchRange(division.range)),
           fetchRange(SCHEDULE_RANGE),
-          fetchRange(QUALIFIER_LIST_RANGE, QUALIFIER_SHEET_NAME),
         ]);
         gridEl.innerHTML = "";
         playerDivisionLookup.clear();
@@ -1311,9 +1350,7 @@
         });
 
         const scheduleRows = all[DIVISIONS.length] || [];
-        const qualifierRows = all[DIVISIONS.length + 1] || [];
         scheduleWeeks = parseScheduleRows(scheduleRows);
-        renderQualifierList(qualifierRows);
         currentWeekIdx = 0;
         renderScheduleWeek();
 
