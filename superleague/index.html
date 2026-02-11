@@ -313,6 +313,9 @@
       background: rgba(255,255,255,0.06);
       border: 1px solid transparent;
     }
+    .match-row + .match-row{
+      border-top: 1px solid rgba(148,163,184,0.28);
+    }
     .match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
     .match-row.winner{
       background: rgba(34,197,94,0.12);
@@ -340,6 +343,10 @@
       display:flex;
       align-items:center;
       font-size: 11px;
+    }
+
+    .qf-prefix{
+      color: #9ca3af;
     }
 
     .match-stats{
@@ -580,6 +587,18 @@
       return str === "" ? "-" : escapeHtml(str);
     }
 
+    function formatPlayerLabel(name){
+      const value = String(name ?? "").trim();
+      if(!value) return "TBD";
+
+      if(/^QF\b/i.test(value)){
+        const suffix = value.slice(2).trimStart();
+        return `<span class="qf-prefix">QF</span>${suffix ? ` ${escapeHtml(suffix)}` : ""}`;
+      }
+
+      return escapeHtml(value);
+    }
+
     function numericScore(value){
       const str = String(value ?? "").trim();
       if(str === "") return null;
@@ -656,7 +675,7 @@
       const p1Row = document.createElement("div");
       p1Row.className = `match-row${p1Winner ? " winner" : ""}`;
       p1Row.innerHTML = `
-        <div class="match-player">${escapeHtml(matchup.p1.name || "TBD")}</div>
+        <div class="match-player">${formatPlayerLabel(matchup.p1.name)}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p1.gamesWon)}</div>
           <span class="round-score${roundWinners[0].a ? " bold-score" : ""}${(!roundWinners[0].a && roundWinners[0].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[0])}</span>
@@ -668,7 +687,7 @@
       const p2Row = document.createElement("div");
       p2Row.className = `match-row${p2Winner ? " winner" : ""}`;
       p2Row.innerHTML = `
-        <div class="match-player">${escapeHtml(matchup.p2.name || "TBD")}</div>
+        <div class="match-player">${formatPlayerLabel(matchup.p2.name)}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p2.gamesWon)}</div>
           <span class="round-score${roundWinners[0].b ? " bold-score" : ""}${(!roundWinners[0].b && roundWinners[0].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[0])}</span>
