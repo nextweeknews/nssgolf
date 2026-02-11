@@ -162,6 +162,10 @@
       overflow-x: auto;
     }
 
+    .division-card.division-1{ background: linear-gradient(180deg, rgba(234,179,8,0.16), rgba(15,23,42,0.55)); }
+    .division-card.division-2{ background: linear-gradient(180deg, rgba(203,213,225,0.15), rgba(15,23,42,0.55)); }
+    .division-card.division-3{ background: linear-gradient(180deg, rgba(180,83,9,0.16), rgba(15,23,42,0.55)); }
+
     .division-title{
       margin: 0 0 12px;
       font-size: 12px;
@@ -199,10 +203,6 @@
       font-size: 12px;
     }
 
-    .division-card.division-1 .rankings tbody td{ background: var(--division-1-bg); }
-    .division-card.division-2 .rankings tbody td{ background: var(--division-2-bg); }
-    .division-card.division-3 .rankings tbody td{ background: var(--division-3-bg); }
-
     .rankings tbody tr:last-child td{
       border-bottom: 0;
     }
@@ -224,6 +224,26 @@
     .rankings tbody .col-player{
       text-transform: uppercase;
       font-weight: 800;
+    }
+
+    .player-btn{
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      font-weight: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .player-btn:hover,
+    .player-btn:focus-visible{
+      text-decoration: underline;
+      outline: none;
     }
 
     .rankings tbody .col-player.qf-player{
@@ -387,6 +407,103 @@
     .match-player.qf-player{
       color: #9ca3af;
     }
+
+    .match-player .player-btn{
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .player-modal{
+      position: fixed;
+      inset: 0;
+      border: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      margin: 0;
+      padding: 0;
+      background: rgba(2, 8, 24, 0.72);
+      backdrop-filter: blur(4px);
+    }
+
+    .player-modal::backdrop{
+      background: rgba(2, 8, 24, 0.72);
+    }
+
+    .player-modal-content{
+      width: min(820px, calc(100% - 24px));
+      margin: 40px auto;
+      border: 1px solid var(--border-lite);
+      border-radius: 16px;
+      background: rgba(15,23,42,0.98);
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .player-modal-close{
+      justify-self: end;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,.92);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .player-modal-name{
+      margin: 0;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+
+    .player-modal-division{
+      margin: 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .player-modal-division.division-1{ color: #fcd34d; }
+    .player-modal-division.division-2{ color: #e5e7eb; }
+    .player-modal-division.division-3{ color: #fdba74; }
+
+    table.player-weekly{
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 12px;
+    }
+
+    .player-weekly th,
+    .player-weekly td{
+      padding: 8px 6px;
+      border-bottom: 1px solid rgba(148,163,184,0.16);
+      vertical-align: top;
+    }
+
+    .player-weekly th{
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      font-size: 10px;
+      text-align: left;
+    }
+
+    .weekly-col-week{ width: 56px; text-align: center; }
+    .weekly-col-opponent{ width: 96px; }
+    .weekly-col-result{ width: auto; }
+
+    .result-win{ color: #86efac; font-weight: 900; }
+    .result-loss{ color: #fca5a5; font-weight: 900; }
 
     .qualifiers-wrap{
       margin-top: 4px;
@@ -597,6 +714,24 @@
           </section>
         </div>
       </section>
+
+      <dialog class="player-modal" id="playerModal" aria-labelledby="playerModalName">
+        <div class="player-modal-content">
+          <button class="player-modal-close" id="playerModalClose" type="button" aria-label="Close player details">×</button>
+          <h2 class="player-modal-name" id="playerModalName"></h2>
+          <p class="player-modal-division" id="playerModalDivision"></p>
+          <table class="player-weekly" id="playerWeeklyTable">
+            <thead>
+              <tr>
+                <th class="weekly-col-week">Week</th>
+                <th class="weekly-col-opponent">Opponent</th>
+                <th class="weekly-col-result">Result</th>
+              </tr>
+            </thead>
+            <tbody id="playerWeeklyBody"></tbody>
+          </table>
+        </div>
+      </dialog>
     </div>
   </div>
 
@@ -616,6 +751,7 @@
 
     let scheduleWeeks = [];
     let currentWeekIdx = 0;
+    const playerDivisionLookup = new Map();
 
     function divisionClassFromLabel(label){
       const normalized = String(label ?? "").toLowerCase();
@@ -738,9 +874,10 @@
 
     function renderDivision(division, values){
       const rows = mapRows(values);
+      const divisionClass = divisionClassFromLabel(division.title);
 
       const wrapper = document.createElement("section");
-      wrapper.className = `division-card ${divisionClassFromLabel(division.title)}`.trim();
+      wrapper.className = `division-card ${divisionClass}`.trim();
 
       const title = document.createElement("h2");
       title.className = "division-title";
@@ -767,9 +904,15 @@
       rows.forEach((row, index) => {
         const tr = document.createElement("tr");
         const qfPlayerClass = row.player.toUpperCase().startsWith("QF") ? " qf-player" : "";
+        if(row.player){
+          playerDivisionLookup.set(row.player.toUpperCase(), {
+            divisionTitle: division.title,
+            divisionClass,
+          });
+        }
         tr.innerHTML = `
           <td class="col-rank">${index + 1}</td>
-          <td class="col-player${qfPlayerClass}">${escapeHtml(row.player)}</td>
+          <td class="col-player${qfPlayerClass}"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player)}</button></td>
           <td class="col-matches">${escapeHtml(row.matches)}</td>
           <td class="col-games">${escapeHtml(row.games)}</td>
           <td class="col-diff">${escapeHtml(row.diff)}</td>
@@ -795,7 +938,7 @@
     function formatPlayerLabel(name){
       const value = String(name ?? "").trim();
       if(!value) return "TBD";
-      return escapeHtml(value);
+      return `<button class="player-btn" type="button" data-player="${escapeHtml(value)}">${escapeHtml(value)}</button>`;
     }
 
     function isQfPlayerName(name){
@@ -845,9 +988,127 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td class="qualifier-seed-col">${escapeHtml(row.seed)}</td>
-          <td class="qualifier-player-col">${escapeHtml(row.player)}</td>
+          <td class="qualifier-player-col"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player)}</button></td>
         `;
         body.appendChild(tr);
+      });
+    }
+
+    function formatResultChip(value, isWin){
+      const cls = isWin ? "result-win" : "result-loss";
+      return `<span class="${cls}">${escapeHtml(value)}</span>`;
+    }
+
+    function buildRoundDisplay(playerScore, opponentScore){
+      const p = String(playerScore ?? "").trim();
+      const o = String(opponentScore ?? "").trim();
+      if(!p && !o) return "";
+      const winners = isRoundWinner(playerScore, opponentScore);
+      const playerDisplay = winners.a ? `<strong>${formatStatValue(playerScore)}</strong>` : formatStatValue(playerScore);
+      const oppDisplay = winners.b ? `<strong>${formatStatValue(opponentScore)}</strong>` : formatStatValue(opponentScore);
+      return `${playerDisplay}|${oppDisplay}`;
+    }
+
+    function getPlayerWeekResult(playerName, weekData){
+      const playerKey = String(playerName ?? "").trim().toUpperCase();
+      const matchup = weekData.matchups.find((m) => (
+        String(m.p1.name ?? "").trim().toUpperCase() === playerKey ||
+        String(m.p2.name ?? "").trim().toUpperCase() === playerKey
+      ));
+
+      if(!matchup){
+        return { opponent: "—", resultHtml: '<span style="color: var(--muted);">No match recorded</span>' };
+      }
+
+      const isP1 = String(matchup.p1.name ?? "").trim().toUpperCase() === playerKey;
+      const playerSide = isP1 ? matchup.p1 : matchup.p2;
+      const opponentSide = isP1 ? matchup.p2 : matchup.p1;
+      const isWin = playerSide.result === "W";
+      const gamesRecord = `${formatStatValue(playerSide.gamesWon)}-${formatStatValue(opponentSide.gamesWon)}`;
+      const roundScores = playerSide.rounds
+        .map((score, idx) => buildRoundDisplay(score, opponentSide.rounds[idx]))
+        .filter(Boolean)
+        .join(", ");
+
+      const resultParts = [
+        formatResultChip(isWin ? "W" : "L", isWin),
+        formatResultChip(gamesRecord, isWin),
+      ];
+      if(roundScores) resultParts.push(roundScores);
+
+      return {
+        opponent: opponentSide.name || "TBD",
+        resultHtml: resultParts.join(", "),
+      };
+    }
+
+    function openPlayerModal(playerName){
+      const modal = document.getElementById("playerModal");
+      const nameEl = document.getElementById("playerModalName");
+      const divisionEl = document.getElementById("playerModalDivision");
+      const tbody = document.getElementById("playerWeeklyBody");
+      const lookup = playerDivisionLookup.get(String(playerName ?? "").trim().toUpperCase());
+
+      nameEl.textContent = playerName;
+      divisionEl.className = "player-modal-division";
+      divisionEl.textContent = lookup?.divisionTitle || "Division unavailable";
+      if(lookup?.divisionClass) divisionEl.classList.add(lookup.divisionClass);
+
+      tbody.innerHTML = "";
+      for(let week = 1; week <= 7; week += 1){
+        const weekData = scheduleWeeks.find((w) => Number(w.week) === week);
+        const row = document.createElement("tr");
+        if(!weekData){
+          row.innerHTML = `
+            <td class="weekly-col-week">${week}</td>
+            <td class="weekly-col-opponent">—</td>
+            <td class="weekly-col-result"><span style="color: var(--muted);">No match recorded</span></td>
+          `;
+          tbody.appendChild(row);
+          continue;
+        }
+
+        const result = getPlayerWeekResult(playerName, weekData);
+        row.innerHTML = `
+          <td class="weekly-col-week">${week}</td>
+          <td class="weekly-col-opponent"><button class="player-btn" type="button" data-player="${escapeHtml(result.opponent)}">${escapeHtml(result.opponent)}</button></td>
+          <td class="weekly-col-result">${result.resultHtml}</td>
+        `;
+        tbody.appendChild(row);
+      }
+
+      if(typeof modal.showModal === "function"){
+        modal.showModal();
+      }else{
+        modal.setAttribute("open", "open");
+      }
+    }
+
+    function closePlayerModal(){
+      const modal = document.getElementById("playerModal");
+      if(typeof modal.close === "function"){
+        modal.close();
+      }else{
+        modal.removeAttribute("open");
+      }
+    }
+
+    function setupPlayerModal(){
+      const modal = document.getElementById("playerModal");
+      const closeBtn = document.getElementById("playerModalClose");
+
+      document.addEventListener("click", (event) => {
+        const trigger = event.target.closest(".player-btn[data-player]");
+        if(!trigger) return;
+        const player = String(trigger.getAttribute("data-player") || "").trim();
+        if(!player || /^TBD$/i.test(player) || /^QF\b/i.test(player)) return;
+        openPlayerModal(player);
+      });
+
+      closeBtn.addEventListener("click", closePlayerModal);
+
+      modal.addEventListener("click", (event) => {
+        if(event.target === modal) closePlayerModal();
       });
     }
 
@@ -1043,6 +1304,7 @@
           fetchRange(QUALIFIER_LIST_RANGE, QUALIFIER_SHEET_NAME),
         ]);
         gridEl.innerHTML = "";
+        playerDivisionLookup.clear();
 
         DIVISIONS.forEach((division, idx) => {
           gridEl.appendChild(renderDivision(division, all[idx]));
@@ -1065,6 +1327,7 @@
 
     setupViewNav();
     setupScheduleNav();
+    setupPlayerModal();
     loadRankings();
   </script>
 </body>
