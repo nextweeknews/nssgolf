@@ -11,6 +11,8 @@
 
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
 
       --text: #e9eef8;
       --title: #c7d7ff;
@@ -162,10 +164,6 @@
       overflow-x: auto;
     }
 
-    .division-card.division-1{ background: linear-gradient(180deg, rgba(234,179,8,0.16), rgba(15,23,42,0.55)); }
-    .division-card.division-2{ background: linear-gradient(180deg, rgba(203,213,225,0.15), rgba(15,23,42,0.55)); }
-    .division-card.division-3{ background: linear-gradient(180deg, rgba(180,83,9,0.16), rgba(15,23,42,0.55)); }
-
     .division-title{
       margin: 0 0 12px;
       font-size: 12px;
@@ -175,10 +173,17 @@
       color: rgba(231,238,255,0.92);
       text-align: center;
     }
+    .division-title.division-1,
+    .schedule-division-title.division-1{ color: #fcd34d; }
+    .division-title.division-2,
+    .schedule-division-title.division-2{ color: #e5e7eb; }
+    .division-title.division-3,
+    .schedule-division-title.division-3{ color: #fdba74; }
 
     table.rankings{
       width:100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0 6px;
       min-width: 0;
       table-layout: fixed;
       font-size: 12px;
@@ -186,25 +191,38 @@
 
     .rankings thead th{
       text-align:center;
-      color: rgba(231,238,255,0.9);
-      font-weight: 700;
-      letter-spacing: .02em;
+      color: var(--muted);
+      font-weight: 800;
+      letter-spacing: .08em;
       font-size: 10px;
       text-transform: uppercase;
       padding: 8px 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.20);
+      background: var(--header-bg);
+    }
+
+    .rankings thead th:first-child{
+      border-radius: 10px 0 0 10px;
+    }
+
+    .rankings thead th:last-child{
+      border-radius: 0 10px 10px 0;
     }
 
     .rankings tbody td{
       padding: 8px 6px;
-      border-bottom: 1px solid rgba(148,163,184,0.16);
+      border-bottom: 0;
+      background: var(--row-bg);
       color: var(--text);
       white-space: nowrap;
       font-size: 12px;
     }
 
-    .rankings tbody tr:last-child td{
-      border-bottom: 0;
+    .rankings tbody td:first-child{
+      border-radius: 10px 0 0 10px;
+    }
+
+    .rankings tbody td:last-child{
+      border-radius: 0 10px 10px 0;
     }
 
     .col-rank,
@@ -332,10 +350,6 @@
       gap: 10px;
       align-content:start;
     }
-
-    .schedule-division.division-1{ background: linear-gradient(180deg, rgba(234,179,8,0.16), rgba(15,23,42,0.55)); }
-    .schedule-division.division-2{ background: linear-gradient(180deg, rgba(203,213,225,0.15), rgba(15,23,42,0.55)); }
-    .schedule-division.division-3{ background: linear-gradient(180deg, rgba(180,83,9,0.16), rgba(15,23,42,0.55)); }
 
     .schedule-division-title{
       text-align:center;
@@ -891,7 +905,7 @@
       wrapper.className = `division-card ${divisionClass}`.trim();
 
       const title = document.createElement("h2");
-      title.className = "division-title";
+      title.className = `division-title ${divisionClass}`.trim();
       title.textContent = division.title;
       wrapper.appendChild(title);
 
@@ -1294,7 +1308,7 @@
         pane.className = `schedule-division ${divisionClassFromLabel(divNum)}`.trim();
 
         const h3 = document.createElement("h3");
-        h3.className = "schedule-division-title";
+        h3.className = `schedule-division-title ${divisionClassFromLabel(divNum)}`.trim();
         h3.textContent = `Division ${divNum}`;
         pane.appendChild(h3);
 
