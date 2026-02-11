@@ -538,8 +538,12 @@
       color: var(--muted);
     }
 
-    .player-weekly thead th{
-      border-radius: 10px;
+    .player-weekly thead th:first-child{
+      border-radius: 10px 0 0 10px;
+    }
+
+    .player-weekly thead th:last-child{
+      border-radius: 0 10px 10px 0;
     }
 
     .player-weekly tbody td:first-child{
@@ -595,6 +599,88 @@
       gap:10px;
     }
 
+    .page-switch{
+      min-height: 44px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom: 8px;
+    }
+
+    .qualifiers-layout{
+      display:grid;
+      grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .qualifier-seeds,
+    .qualifier-bracket{
+      border: 1px solid var(--border-lite);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(15,23,42,0.55);
+      display:grid;
+      gap:10px;
+      align-content:start;
+    }
+
+    .qualifier-title{
+      margin:0;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      text-align: center;
+      color: rgba(231,238,255,0.92);
+    }
+
+    .qualifier-seed-list{
+      display:grid;
+      gap:8px;
+    }
+
+    .qualifier-seed-row{
+      background: var(--row-bg);
+      border-radius: 10px;
+      padding: 8px 6px;
+      display:grid;
+      gap:2px;
+      justify-items:center;
+      text-align:center;
+    }
+
+    .qualifier-seed-number{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .qualifier-seed-player{
+      font-size: 13px;
+      font-weight: 850;
+      text-transform: uppercase;
+      overflow-wrap:anywhere;
+    }
+
+    .qualifier-bracket-placeholder{
+      min-height: 320px;
+      border: 1px dashed rgba(148,163,184,0.45);
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      font-weight: 850;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      text-align:center;
+      padding: 12px;
+    }
+
     .match-stats{
       display:grid;
       grid-template-columns: minmax(28px, auto) repeat(3, minmax(20px, auto));
@@ -641,6 +727,7 @@
     @media (max-width: 1080px){
       .division-grid{ grid-template-columns: 1fr; }
       .schedule-grid{ grid-template-columns: 1fr; }
+      .qualifiers-layout{ grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px){
@@ -704,14 +791,16 @@
           <div class="kicker">Super League</div>
         </div>
       </div>
-      <div class="topbar-actions" role="tablist" aria-label="Super League page selector">
-        <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League Season 6</button>
-      </div>
     </div>
   </div>
 
   <div class="container">
     <div class="card">
+      <div class="page-switch" role="tablist" aria-label="Super League page selector">
+        <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League Season 6</button>
+        <button class="view-btn" id="qualifiersViewBtn" type="button">Qualifiers</button>
+      </div>
+
       <section id="seasonPage">
         <div class="season-head">
           <h1 class="headline">Season 6 Standings</h1>
@@ -730,6 +819,24 @@
           </div>
           <div class="schedule-grid" id="scheduleGrid"></div>
         </section>
+      </section>
+
+      <section id="qualifiersPage" hidden>
+        <div class="season-head">
+          <h1 class="headline">Season 6 Qualifiers</h1>
+        </div>
+
+        <div class="qualifiers-layout">
+          <aside class="qualifier-seeds" aria-label="Qualifier seeds">
+            <h2 class="qualifier-title">Open Signups</h2>
+            <div class="qualifier-seed-list" id="qualifierSeedList"></div>
+          </aside>
+
+          <section class="qualifier-bracket" aria-label="Qualifier bracket">
+            <h2 class="qualifier-title">Double-Elimination Bracket</h2>
+            <div class="qualifier-bracket-placeholder">Coming soon</div>
+          </section>
+        </div>
       </section>
 
       <dialog class="player-modal" id="playerModal" aria-labelledby="playerModalName">
@@ -782,10 +889,21 @@
 
     function setupViewNav(){
       const seasonBtn = document.getElementById("seasonViewBtn");
+      const qualifiersBtn = document.getElementById("qualifiersViewBtn");
+      const seasonPage = document.getElementById("seasonPage");
+      const qualifiersPage = document.getElementById("qualifiersPage");
 
-      seasonBtn.addEventListener("click", () => {
+      const setPage = (page) => {
+        const showSeason = page === "season";
+        seasonPage.hidden = !showSeason;
+        qualifiersPage.hidden = showSeason;
+        seasonBtn.classList.toggle("is-active", showSeason);
+        qualifiersBtn.classList.toggle("is-active", !showSeason);
         window.scrollTo({ top: 0, behavior: "smooth" });
-      });
+      };
+
+      seasonBtn.addEventListener("click", () => setPage("season"));
+      qualifiersBtn.addEventListener("click", () => setPage("qualifiers"));
     }
 
     function normalizeValues(resp){
@@ -1264,6 +1382,38 @@
       });
     }
 
+    function renderQualifierSeeds(values){
+      const listEl = document.getElementById("qualifierSeedList");
+      const rows = values
+        .slice(1)
+        .map((row = []) => ({
+          seed: String(row[0] ?? "").trim(),
+          player: String(row[1] ?? "").trim(),
+        }))
+        .filter((row) => row.seed || row.player);
+
+      listEl.innerHTML = "";
+      if(!rows.length){
+        listEl.innerHTML = '<p class="schedule-empty" style="text-align:center;">No qualifier signups available.</p>';
+        return;
+      }
+
+      rows.forEach((row) => {
+        const item = document.createElement("article");
+        item.className = "qualifier-seed-row";
+        item.innerHTML = `
+          <div class="qualifier-seed-number">Seed ${escapeHtml(row.seed || "-")}</div>
+          <div class="qualifier-seed-player">${escapeHtml(row.player || "TBD")}</div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    async function loadQualifiers(){
+      const qualifierValues = await fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers");
+      renderQualifierSeeds(qualifierValues);
+    }
+
     async function loadRankings(){
       const statusEl = document.getElementById("status");
       const errorEl = document.getElementById("error");
@@ -1273,6 +1423,7 @@
         const all = await Promise.all([
           ...DIVISIONS.map((division) => fetchRange(division.range)),
           fetchRange(SCHEDULE_RANGE),
+          loadQualifiers(),
         ]);
         gridEl.innerHTML = "";
         playerDivisionLookup.clear();
