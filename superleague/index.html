@@ -636,6 +636,12 @@
     .player-weekly .opponent-name{
       text-transform: uppercase;
       font-weight: 900;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .player-weekly .opponent-name.qf-player{
+      color: #9ca3af;
     }
 
     .score-win{ color: #86efac; }
@@ -1296,9 +1302,10 @@
           tbody.appendChild(row);
           continue;
         }
+        const opponentQfClass = isQfPlayerName(result.opponent) ? " qf-player" : "";
         row.innerHTML = `
           <td class="weekly-col-week">${week}</td>
-          <td class="weekly-col-opponent"><button class="player-btn opponent-name" type="button" data-player="${escapeHtml(result.opponent)}">${escapeHtml(result.opponent)}</button></td>
+          <td class="weekly-col-opponent"><button class="player-btn opponent-name${opponentQfClass}" type="button" data-player="${escapeHtml(result.opponent)}">${escapeHtml(result.opponent)}</button></td>
           <td class="weekly-col-result">${result.resultHtml}</td>
           <td class="weekly-col-games">${result.gamesHtml}</td>
           <td class="weekly-col-round">${formatRoundPair(result.roundCells[0])}</td>
