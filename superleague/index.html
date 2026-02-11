@@ -136,6 +136,15 @@
       text-align: center;
     }
 
+    .season-head{
+      min-height: 44px;
+      padding: 2px 0;
+      margin-bottom: 12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
     .subhead{
       margin: 0;
       color: var(--muted);
@@ -165,7 +174,7 @@
     }
 
     .division-title{
-      margin: 0 0 12px;
+      margin: 0 0 10px;
       font-size: 12px;
       font-weight: 900;
       text-transform: uppercase;
@@ -234,14 +243,16 @@
     }
 
     .col-player{
-      width: 96px;
+      width: calc(100% - 132px);
       min-width: 0;
-      text-align: left;
+      text-align: center;
     }
 
     .rankings tbody .col-player{
       text-transform: uppercase;
       font-weight: 800;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
 
     .player-btn{
@@ -255,7 +266,13 @@
       letter-spacing: inherit;
       font-weight: inherit;
       cursor: pointer;
-      text-align: left;
+      text-align: inherit;
+    }
+
+    .rankings .player-btn{
+      text-align: center;
+      width: 100%;
+      display: block;
     }
 
     .player-btn:hover,
@@ -496,7 +513,7 @@
     table.player-weekly{
       width: 100%;
       border-collapse: separate;
-      border-spacing: 0 6px;
+      border-spacing: 0 8px;
       table-layout: fixed;
       font-size: 12px;
     }
@@ -521,20 +538,12 @@
       color: var(--muted);
     }
 
-    .player-weekly thead tr:first-child th:first-child{
-      border-radius: 10px 0 0 0;
+    .player-weekly thead th:first-child{
+      border-radius: 10px 0 0 10px;
     }
 
-    .player-weekly thead tr:first-child th:last-child{
-      border-radius: 0 10px 0 0;
-    }
-
-    .player-weekly thead tr:last-child th:first-child{
-      border-radius: 0 0 0 10px;
-    }
-
-    .player-weekly thead tr:last-child th:last-child{
-      border-radius: 0 0 10px 0;
+    .player-weekly thead th:last-child{
+      border-radius: 0 10px 10px 0;
     }
 
     .player-weekly tbody td:first-child{
@@ -549,10 +558,21 @@
     .weekly-col-opponent{ width: 118px; text-align: left; }
     .weekly-col-result{ width: 56px; }
     .weekly-col-games{ width: 66px; }
-    .weekly-col-round{ width: 48px; }
+    .weekly-col-round{ width: 78px; }
 
     .weekly-round-group{ text-align: center; }
-    .weekly-round-score{ width: 48px; }
+
+    .round-pair{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      justify-content:center;
+    }
+
+    .round-sep{
+      color: rgba(233,238,248,0.72);
+      font-weight: 800;
+    }
 
     .player-weekly .opponent-name{
       text-transform: uppercase;
@@ -640,7 +660,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .match-stats{ background: rgba(255,255,255,0.08); }
+    .match-stats{ background: transparent; }
 
     .stat.games{
       border-radius: 4px;
@@ -708,7 +728,7 @@
   <div class="container">
     <div class="card">
       <section id="seasonPage">
-        <div>
+        <div class="season-head">
           <h1 class="headline">Season 6 Standings</h1>
         </div>
 
@@ -739,21 +759,9 @@
                 <th class="weekly-col-opponent">Opponent</th>
                 <th class="weekly-col-result">Result</th>
                 <th class="weekly-col-games">Games</th>
-                <th class="weekly-round-group" colspan="2">Round 1</th>
-                <th class="weekly-round-group" colspan="2">Round 2</th>
-                <th class="weekly-round-group" colspan="2">Round 3</th>
-              </tr>
-              <tr>
-                <th class="weekly-col-week"></th>
-                <th class="weekly-col-opponent"></th>
-                <th class="weekly-col-result"></th>
-                <th class="weekly-col-games"></th>
-                <th class="weekly-round-score">You</th>
-                <th class="weekly-round-score">Opp</th>
-                <th class="weekly-round-score">You</th>
-                <th class="weekly-round-score">Opp</th>
-                <th class="weekly-round-score">You</th>
-                <th class="weekly-round-score">Opp</th>
+                <th class="weekly-round-group">Round 1</th>
+                <th class="weekly-round-group">Round 2</th>
+                <th class="weekly-round-group">Round 3</th>
               </tr>
             </thead>
             <tbody id="playerWeeklyBody"></tbody>
@@ -959,6 +967,10 @@
       return `<span>${safeScore}</span>`;
     }
 
+    function formatRoundPair(roundCell){
+      return `<span class="round-pair">${roundCell.player}<span class="round-sep">-</span>${roundCell.opponent}</span>`;
+    }
+
     function getPlayerWeekResult(playerName, weekData){
       const playerKey = String(playerName ?? "").trim().toUpperCase();
       const matchup = weekData.matchups.find((m) => (
@@ -1033,12 +1045,9 @@
             <td class="weekly-col-opponent"><span class="opponent-name">—</span></td>
             <td class="weekly-col-result"><span class="result-pending">-</span></td>
             <td class="weekly-col-games"><span class="result-pending">-</span></td>
-            <td class="weekly-col-round">-</td>
-            <td class="weekly-col-round">-</td>
-            <td class="weekly-col-round">-</td>
-            <td class="weekly-col-round">-</td>
-            <td class="weekly-col-round">-</td>
-            <td class="weekly-col-round">-</td>
+            <td class="weekly-col-round"><span class="score-dash">-</span></td>
+            <td class="weekly-col-round"><span class="score-dash">-</span></td>
+            <td class="weekly-col-round"><span class="score-dash">-</span></td>
           `;
           tbody.appendChild(row);
           continue;
@@ -1048,12 +1057,9 @@
           <td class="weekly-col-opponent"><button class="player-btn opponent-name" type="button" data-player="${escapeHtml(result.opponent)}">${escapeHtml(result.opponent)}</button></td>
           <td class="weekly-col-result">${result.resultHtml}</td>
           <td class="weekly-col-games">${result.gamesHtml}</td>
-          <td class="weekly-col-round">${result.roundCells[0].player}</td>
-          <td class="weekly-col-round">${result.roundCells[0].opponent}</td>
-          <td class="weekly-col-round">${result.roundCells[1].player}</td>
-          <td class="weekly-col-round">${result.roundCells[1].opponent}</td>
-          <td class="weekly-col-round">${result.roundCells[2].player}</td>
-          <td class="weekly-col-round">${result.roundCells[2].opponent}</td>
+          <td class="weekly-col-round">${formatRoundPair(result.roundCells[0])}</td>
+          <td class="weekly-col-round">${formatRoundPair(result.roundCells[1])}</td>
+          <td class="weekly-col-round">${formatRoundPair(result.roundCells[2])}</td>
         `;
         tbody.appendChild(row);
       }
