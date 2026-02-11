@@ -117,13 +117,15 @@
 
     .division-grid{
       display:grid;
-      gap:16px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+      align-items:start;
     }
 
     .division-card{
       border: 1px solid var(--border-lite);
       border-radius: 16px;
-      padding: 14px;
+      padding: 12px;
       background: rgba(15,23,42,0.55);
       overflow-x: auto;
     }
@@ -139,7 +141,7 @@
     table.rankings{
       width:100%;
       border-collapse: collapse;
-      min-width: 520px;
+      min-width: 300px;
       font-size: 14px;
     }
 
@@ -169,13 +171,22 @@
     .col-matches,
     .col-games,
     .col-diff{
-      width: 86px;
+      width: 64px;
       text-align: center;
     }
 
     .col-player{
-      width: 100%;
-      min-width: 180px;
+      width: 140px;
+      min-width: 120px;
+    }
+
+    .rankings tbody .col-player{
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    .rankings tbody .col-player.qf-player{
+      color: #9ca3af;
     }
 
     .error{
@@ -191,6 +202,11 @@
 
     .error.show{ display:block; }
 
+    @media (max-width: 1080px){
+      .division-grid{ grid-template-columns: 1fr; }
+      table.rankings{ min-width: 480px; }
+    }
+
     @media (max-width: 760px){
       .container{ padding: 20px 12px 44px; }
       .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
@@ -198,7 +214,7 @@
       .headline{ font-size: 18px; }
       .card{ padding: 20px 14px; border-radius: 18px; }
       .division-card{ padding: 10px; }
-      table.rankings{ min-width: 480px; }
+      table.rankings{ min-width: 420px; }
     }
   </style>
 </head>
@@ -221,7 +237,6 @@
     <div class="card">
       <div>
         <h1 class="headline">Season 6 Rankings</h1>
-        <p class="subhead">Live rankings across all three Super League divisions.</p>
       </div>
 
       <p class="status" id="status">Loading rankings…</p>
@@ -346,9 +361,10 @@
 
       rows.forEach((row, index) => {
         const tr = document.createElement("tr");
+        const qfPlayerClass = row.player.toUpperCase().startsWith("QF") ? " qf-player" : "";
         tr.innerHTML = `
           <td class="col-rank">${index + 1}</td>
-          <td class="col-player">${escapeHtml(row.player)}</td>
+          <td class="col-player${qfPlayerClass}">${escapeHtml(row.player)}</td>
           <td class="col-matches">${escapeHtml(row.matches)}</td>
           <td class="col-games">${escapeHtml(row.games)}</td>
           <td class="col-diff">${escapeHtml(row.diff)}</td>
