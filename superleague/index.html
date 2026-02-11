@@ -21,6 +21,10 @@
       --btn-bg-hover: rgba(255,255,255,0.10);
       --btn-border: rgba(255,255,255,0.15);
       --btn-border-hover: rgba(255,255,255,0.28);
+
+      --division-1-bg: rgba(234,179,8,0.16);
+      --division-2-bg: rgba(203,213,225,0.13);
+      --division-3-bg: rgba(180,83,9,0.14);
     }
 
     *{ box-sizing:border-box; }
@@ -49,6 +53,33 @@
       flex-wrap:wrap;
     }
     .brand{display:flex; gap:12px; align-items:center;}
+    .topbar-actions{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    .view-btn{
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,.92);
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .view-btn:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+    .view-btn.is-active{
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.45);
+      color: #fff;
+    }
     .home-badge{
       width:40px; height:40px;
       border-radius:16px;
@@ -167,6 +198,10 @@
       white-space: nowrap;
       font-size: 12px;
     }
+
+    .division-card.division-1 .rankings tbody td{ background: var(--division-1-bg); }
+    .division-card.division-2 .rankings tbody td{ background: var(--division-2-bg); }
+    .division-card.division-3 .rankings tbody td{ background: var(--division-3-bg); }
 
     .rankings tbody tr:last-child td{
       border-bottom: 0;
@@ -317,6 +352,9 @@
       border-top: 1px solid rgba(148,163,184,0.28);
     }
     .match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
+    .schedule-division.division-1 .match-row{ background: var(--division-1-bg); }
+    .schedule-division.division-2 .match-row{ background: var(--division-2-bg); }
+    .schedule-division.division-3 .match-row{ background: var(--division-3-bg); }
     .match-row.winner{
       background: rgba(34,197,94,0.12);
       border-color: rgba(34,197,94,0.55);
@@ -447,6 +485,10 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .schedule-division.division-1 .match-stats{ background: rgba(234,179,8,0.18); }
+    .schedule-division.division-2 .match-stats{ background: rgba(203,213,225,0.15); }
+    .schedule-division.division-3 .match-stats{ background: rgba(180,83,9,0.16); }
+
     .stat.games{
       border-radius: 4px;
       min-height: 18px;
@@ -485,6 +527,8 @@
       .container{ padding: 20px 12px 44px; }
       .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
       .brand{ flex: 1; min-width: 0; }
+      .topbar-actions{ gap:6px; }
+      .view-btn{ font-size: 11px; padding: 8px 10px; }
       .headline{ font-size: 18px; }
       .card{ padding: 20px 14px; border-radius: 18px; }
       .division-card{ padding: 10px; }
@@ -503,21 +547,36 @@
           <div class="kicker">Super League</div>
         </div>
       </div>
+      <div class="topbar-actions" role="tablist" aria-label="Super League page selector">
+        <button class="view-btn" id="seasonViewBtn" type="button" role="tab" aria-selected="true">Super League Season 6</button>
+        <button class="view-btn" id="qualifiersViewBtn" type="button" role="tab" aria-selected="false">Qualifiers</button>
+      </div>
     </div>
   </div>
 
   <div class="container">
     <div class="card">
-      <div>
-        <h1 class="headline">Season 6 Standings</h1>
-      </div>
+      <section id="seasonPage">
+        <div>
+          <h1 class="headline">Season 6 Standings</h1>
+        </div>
 
-      <p class="status" id="status"></p>
-      <p class="error" id="error"></p>
+        <p class="status" id="status"></p>
+        <p class="error" id="error"></p>
 
-      <div class="division-grid" id="divisionGrid"></div>
+        <div class="division-grid" id="divisionGrid"></div>
 
-      <section class="qualifiers-wrap" id="qualifiersWrap">
+        <section class="schedule-wrap" id="scheduleWrap" hidden>
+          <div class="schedule-head">
+            <button class="nav-btn nav-left" id="weekPrev" type="button" aria-label="Previous week">←</button>
+            <h2 class="schedule-title" id="scheduleTitle">Week</h2>
+            <button class="nav-btn nav-right" id="weekNext" type="button" aria-label="Next week">→</button>
+          </div>
+          <div class="schedule-grid" id="scheduleGrid"></div>
+        </section>
+      </section>
+
+      <section class="qualifiers-wrap" id="qualifiersPage" hidden>
         <h2 class="qualifiers-title">Season 6 Qualifying</h2>
         <div class="qualifiers-grid">
           <section class="qualifiers-pane">
@@ -538,15 +597,6 @@
           </section>
         </div>
       </section>
-
-      <section class="schedule-wrap" id="scheduleWrap" hidden>
-        <div class="schedule-head">
-          <button class="nav-btn nav-left" id="weekPrev" type="button" aria-label="Previous week">←</button>
-          <h2 class="schedule-title" id="scheduleTitle">Week</h2>
-          <button class="nav-btn nav-right" id="weekNext" type="button" aria-label="Next week">→</button>
-        </div>
-        <div class="schedule-grid" id="scheduleGrid"></div>
-      </section>
     </div>
   </div>
 
@@ -566,6 +616,51 @@
 
     let scheduleWeeks = [];
     let currentWeekIdx = 0;
+
+    function divisionClassFromLabel(label){
+      const normalized = String(label ?? "").toLowerCase();
+      if(normalized.includes("1")) return "division-1";
+      if(normalized.includes("2")) return "division-2";
+      if(normalized.includes("3")) return "division-3";
+      return "";
+    }
+
+    function setActivePage(page){
+      const isQualifierPage = page === "qualifiers";
+      const seasonPage = document.getElementById("seasonPage");
+      const qualifiersPage = document.getElementById("qualifiersPage");
+      const seasonBtn = document.getElementById("seasonViewBtn");
+      const qualifiersBtn = document.getElementById("qualifiersViewBtn");
+
+      seasonPage.hidden = isQualifierPage;
+      qualifiersPage.hidden = !isQualifierPage;
+
+      seasonBtn.classList.toggle("is-active", !isQualifierPage);
+      qualifiersBtn.classList.toggle("is-active", isQualifierPage);
+      seasonBtn.setAttribute("aria-selected", String(!isQualifierPage));
+      qualifiersBtn.setAttribute("aria-selected", String(isQualifierPage));
+    }
+
+    function setupViewNav(){
+      const seasonBtn = document.getElementById("seasonViewBtn");
+      const qualifiersBtn = document.getElementById("qualifiersViewBtn");
+
+      seasonBtn.addEventListener("click", () => {
+        location.hash = "#season";
+      });
+
+      qualifiersBtn.addEventListener("click", () => {
+        location.hash = "#qualifiers";
+      });
+
+      const syncPageFromHash = () => {
+        const hash = String(location.hash || "").toLowerCase();
+        setActivePage(hash === "#qualifiers" ? "qualifiers" : "season");
+      };
+
+      window.addEventListener("hashchange", syncPageFromHash);
+      syncPageFromHash();
+    }
 
     function normalizeValues(resp){
       if(!resp) return [];
@@ -645,7 +740,7 @@
       const rows = mapRows(values);
 
       const wrapper = document.createElement("section");
-      wrapper.className = "division-card";
+      wrapper.className = `division-card ${divisionClassFromLabel(division.title)}`.trim();
 
       const title = document.createElement("h2");
       title.className = "division-title";
@@ -895,7 +990,7 @@
       gridEl.innerHTML = "";
       [1, 2, 3].forEach((divNum) => {
         const pane = document.createElement("section");
-        pane.className = "schedule-division";
+        pane.className = `schedule-division ${divisionClassFromLabel(divNum)}`.trim();
 
         const h3 = document.createElement("h3");
         h3.className = "schedule-division-title";
@@ -968,6 +1063,7 @@
       }
     }
 
+    setupViewNav();
     setupScheduleNav();
     loadRankings();
   </script>
