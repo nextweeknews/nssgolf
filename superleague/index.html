@@ -861,6 +861,11 @@
     }
 
     .playoff-bracket-row{
+      --playoff-finals-offset: 0px;
+      --semi-top-center: 52px;
+      --semi-bottom-center: 180px;
+      --champ-center: 116px;
+      --connector-merge-x: 56%;
       display:grid;
       grid-template-columns: minmax(220px, 1fr) 78px minmax(220px, 1fr);
       grid-template-rows: auto;
@@ -877,6 +882,7 @@
       display:grid;
       gap:16px;
       align-self:start;
+      padding-top: var(--playoff-finals-offset);
     }
 
     .playoff-championship-slot{
@@ -890,27 +896,46 @@
       position:relative;
     }
 
-    .playoff-connector::before,
-    .playoff-connector::after{
-      content:"";
+    .playoff-connector-line{
       position:absolute;
+      background: rgba(148,163,184,0.72);
+      box-shadow: 0 0 0 1px rgba(148,163,184,0.2);
+    }
+
+    .playoff-connector-line.top,
+    .playoff-connector-line.bottom{
       left: 0;
+      width: var(--connector-merge-x);
+      height: 2px;
+      border-radius: 999px;
+    }
+
+    .playoff-connector-line.top{
+      top: var(--semi-top-center);
+      transform: translateY(-1px);
+    }
+
+    .playoff-connector-line.bottom{
+      top: var(--semi-bottom-center);
+      transform: translateY(-1px);
+    }
+
+    .playoff-connector-line.vertical{
+      left: var(--connector-merge-x);
+      top: var(--semi-top-center);
+      width: 2px;
+      height: calc(var(--semi-bottom-center) - var(--semi-top-center));
+      transform: translateX(-1px);
+      border-radius: 999px;
+    }
+
+    .playoff-connector-line.to-final{
+      left: var(--connector-merge-x);
       right: 0;
-      border-color: rgba(148,163,184,0.55);
-      border-style: solid;
-      border-radius: 12px;
-    }
-
-    .playoff-connector::before{
-      top: 18%;
-      height: 32%;
-      border-width: 2px 2px 0 0;
-    }
-
-    .playoff-connector::after{
-      top: 50%;
-      height: 32%;
-      border-width: 0 2px 2px 0;
+      height: 2px;
+      top: var(--champ-center);
+      transform: translateY(-1px);
+      border-radius: 999px;
     }
 
     .playoff-divider{
@@ -971,7 +996,7 @@
       .qualifiers-layout{ grid-template-columns: 1fr; }
       .playoff-bracket-row{ grid-template-columns: 1fr; }
       .playoff-connector{ display:none; }
-      .playoff-finals{ grid-template-columns: 1fr; }
+      .playoff-finals{ grid-template-columns: 1fr; padding-top: 0; }
       .playoff-oneoffs{ grid-template-columns: 1fr; }
     }
 
@@ -1156,7 +1181,12 @@
           <section class="playoffs-layout" aria-label="Playoff matchups">
             <div class="playoff-bracket-row">
               <div class="playoff-semifinals" id="playoffSemifinals"></div>
-              <div class="playoff-connector" aria-hidden="true"></div>
+              <div class="playoff-connector" aria-hidden="true">
+                <span class="playoff-connector-line top"></span>
+                <span class="playoff-connector-line bottom"></span>
+                <span class="playoff-connector-line vertical"></span>
+                <span class="playoff-connector-line to-final"></span>
+              </div>
               <div class="playoff-finals">
                 <div class="playoff-championship-slot" id="playoffChampionship"></div>
                 <div id="playoffThirdPlace"></div>
@@ -1260,6 +1290,9 @@
         seasonBtn.classList.toggle("is-active", showSeason);
         qualifiersBtn.classList.toggle("is-active", showQualifiers);
         playoffsBtn.classList.toggle("is-active", showPlayoffs);
+        if(showPlayoffs){
+          requestAnimationFrame(updatePlayoffBracketLayout);
+        }
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
 
@@ -1967,6 +2000,42 @@
       thirdPlaceEl.appendChild(renderLabeledMatch(playoffMatchups[3], "Division 1 3rd Place"));
       oneOffsEl.appendChild(renderLabeledMatch(playoffMatchups[4], "Division 1/2 Playoff"));
       oneOffsEl.appendChild(renderLabeledMatch(playoffMatchups[5], "Division 2/3 Playoff"));
+      requestAnimationFrame(updatePlayoffBracketLayout);
+    }
+
+    function updatePlayoffBracketLayout(){
+      const bracketRow = document.querySelector(".playoff-bracket-row");
+      const semifinalsEl = document.getElementById("playoffSemifinals");
+      const championshipEl = document.getElementById("playoffChampionship");
+      const connectorEl = document.querySelector(".playoff-connector");
+      if(!bracketRow || !semifinalsEl || !championshipEl || !connectorEl) return;
+
+      bracketRow.style.setProperty("--playoff-finals-offset", "0px");
+
+      if(getComputedStyle(connectorEl).display === "none") return;
+
+      const semifinalMatches = semifinalsEl.querySelectorAll(".match-labeled");
+      const championshipMatch = championshipEl.querySelector(".match-labeled");
+      if(semifinalMatches.length < 2 || !championshipMatch) return;
+
+      const topSemiRect = semifinalMatches[0].getBoundingClientRect();
+      const bottomSemiRect = semifinalMatches[1].getBoundingClientRect();
+      const champRect = championshipMatch.getBoundingClientRect();
+
+      if(!topSemiRect.height || !bottomSemiRect.height || !champRect.height) return;
+
+      const targetChampCenter = (topSemiRect.top + topSemiRect.height / 2 + bottomSemiRect.top + bottomSemiRect.height / 2) / 2;
+      const currentChampCenter = champRect.top + champRect.height / 2;
+      bracketRow.style.setProperty("--playoff-finals-offset", `${targetChampCenter - currentChampCenter}px`);
+
+      const rowRect = bracketRow.getBoundingClientRect();
+      const topSemiRectShifted = semifinalMatches[0].getBoundingClientRect();
+      const bottomSemiRectShifted = semifinalMatches[1].getBoundingClientRect();
+      const champRectShifted = championshipMatch.getBoundingClientRect();
+
+      bracketRow.style.setProperty("--semi-top-center", `${topSemiRectShifted.top + topSemiRectShifted.height / 2 - rowRect.top}px`);
+      bracketRow.style.setProperty("--semi-bottom-center", `${bottomSemiRectShifted.top + bottomSemiRectShifted.height / 2 - rowRect.top}px`);
+      bracketRow.style.setProperty("--champ-center", `${champRectShifted.top + champRectShifted.height / 2 - rowRect.top}px`);
     }
 
     function renderScheduleWeek(){
@@ -2134,6 +2203,7 @@
     setupViewNav();
     setupScheduleNav();
     setupPlayerModal();
+    window.addEventListener("resize", updatePlayoffBracketLayout);
     loadRankings();
   </script>
 </body>
