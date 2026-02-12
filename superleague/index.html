@@ -1317,22 +1317,35 @@
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
       const playoffsPage = document.getElementById("playoffsPage");
+      const validPages = new Set(["season", "qualifiers", "playoffs"]);
 
-      const setPage = (page) => {
-        const showSeason = page === "season";
-        const showQualifiers = page === "qualifiers";
-        const showPlayoffs = page === "playoffs";
+      const setPage = (page, options = {}) => {
+        const nextPage = validPages.has(page) ? page : "season";
+        const showSeason = nextPage === "season";
+        const showQualifiers = nextPage === "qualifiers";
+        const showPlayoffs = nextPage === "playoffs";
         seasonPage.hidden = !showSeason;
         qualifiersPage.hidden = !showQualifiers;
         playoffsPage.hidden = !showPlayoffs;
         seasonBtn.classList.toggle("is-active", showSeason);
         qualifiersBtn.classList.toggle("is-active", showQualifiers);
         playoffsBtn.classList.toggle("is-active", showPlayoffs);
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("page", nextPage);
+        window.history.replaceState({}, "", url);
+
         if(showPlayoffs){
           requestAnimationFrame(updatePlayoffBracketLayout);
         }
-        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        if(options.scroll !== false){
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
       };
+
+      const initialPage = new URLSearchParams(window.location.search).get("page");
+      setPage(initialPage, { scroll: false });
 
       seasonBtn.addEventListener("click", () => setPage("season"));
       qualifiersBtn.addEventListener("click", () => setPage("qualifiers"));
