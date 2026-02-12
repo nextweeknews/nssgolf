@@ -243,6 +243,8 @@
 
     .rankings tbody tr.row-highlight-gold td{ background: var(--row-highlight-gold); }
     .rankings tbody tr.row-highlight-green td{ background: var(--row-highlight-green); }
+    .rankings tbody tr.row-highlight-silver td{ background: rgba(203,213,225,0.22); }
+    .rankings tbody tr.row-highlight-bronze td{ background: rgba(180,83,9,0.2); }
     .rankings tbody tr.row-highlight-blue td{ background: var(--row-highlight-blue); }
     .rankings tbody tr.row-highlight-orange td{ background: var(--row-highlight-orange); }
     .rankings tbody tr.row-highlight-red td{ background: var(--row-highlight-red); }
@@ -494,6 +496,18 @@
       background: rgba(34,197,94,0.12);
       border-color: rgba(34,197,94,0.55);
     }
+    .match-row.highlight-gold{
+      background: rgba(234,179,8,0.16);
+      border-color: rgba(234,179,8,0.72);
+    }
+    .match-row.highlight-silver{
+      background: rgba(203,213,225,0.16);
+      border-color: rgba(203,213,225,0.72);
+    }
+    .match-row.highlight-bronze{
+      background: rgba(180,83,9,0.18);
+      border-color: rgba(180,83,9,0.74);
+    }
     .match-row.winner:first-child{
       border-top-left-radius: 13px;
       border-top-right-radius: 13px;
@@ -698,6 +712,18 @@
       border-radius: 0 10px 10px 0;
     }
 
+    .player-weekly tbody tr.weekly-section-row td{
+      border-radius: 10px;
+      background: rgba(148,163,184,0.18);
+      color: rgba(231,238,255,0.95);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 9px 10px;
+    }
+
     .weekly-col-week{ width: 80px; }
     .weekly-col-opponent{ width: 160px; text-align: left; }
     .weekly-col-result{ width: 90px; }
@@ -865,11 +891,13 @@
       --semi-top-center: 52px;
       --semi-bottom-center: 180px;
       --champ-center: 116px;
+      --playoff-cell-width: clamp(220px, 31vw, 320px);
       --connector-merge-x: 56%;
       display:grid;
-      grid-template-columns: minmax(220px, 1fr) 78px minmax(220px, 1fr);
+      grid-template-columns: minmax(220px, var(--playoff-cell-width)) 78px minmax(220px, var(--playoff-cell-width));
       grid-template-rows: auto;
       align-items:start;
+      justify-content: center;
       column-gap:0;
     }
 
@@ -945,8 +973,9 @@
 
     .playoff-oneoffs{
       display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap:12px;
+      grid-template-columns: repeat(2, minmax(220px, var(--playoff-cell-width)));
+      justify-content:center;
+      gap:16px;
     }
 
     .match-stats{
@@ -1579,13 +1608,22 @@
       return "";
     }
 
-    function applyRowHighlights(rows, divisionTitle){
+    function applyPlayoffMedalHighlight(row, metadata){
+      if(!row || !metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return;
+      const rank = metadata.d1FinalRanks.get(row.playerKey);
+      if(rank === 1) row.highlightClass = "row-highlight-gold";
+      if(rank === 2) row.highlightClass = "row-highlight-silver";
+      if(rank === 3) row.highlightClass = "row-highlight-bronze";
+    }
+
+    function applyRowHighlights(rows, divisionTitle, metadata){
       for(let idx = 0; idx < rows.length;){
         const row = rows[idx];
         const isTied = String(row.rank ?? "").startsWith("T");
 
         if(!isTied){
           row.highlightClass = getDivisionRankHighlight(divisionTitle, idx + 1);
+          applyPlayoffMedalHighlight(row, metadata);
           idx += 1;
           continue;
         }
@@ -1602,14 +1640,155 @@
         const groupHighlight = groupClasses.size === 1 ? [...groupClasses][0] : "";
         for(let i = idx; i < end; i += 1){
           rows[i].highlightClass = groupHighlight;
+          applyPlayoffMedalHighlight(rows[i], metadata);
         }
         idx = end;
       }
     }
 
-    function renderDivision(division, values, headToHeadByDivision){
-      const rows = rankDivisionRows(mapRows(values), division.title, headToHeadByDivision);
-      applyRowHighlights(rows, division.title);
+
+    function isMatchComplete(matchup){
+      if(!matchup) return false;
+      return matchup.p1.result === "W" || matchup.p2.result === "W";
+    }
+
+    function getMatchWinnerKey(matchup){
+      if(!isMatchComplete(matchup)) return "";
+      if(matchup.p1.result === "W") return String(matchup.p1.name ?? "").trim().toUpperCase();
+      if(matchup.p2.result === "W") return String(matchup.p2.name ?? "").trim().toUpperCase();
+      return "";
+    }
+
+    function getMatchLoserKey(matchup){
+      if(!isMatchComplete(matchup)) return "";
+      if(matchup.p1.result === "L") return String(matchup.p1.name ?? "").trim().toUpperCase();
+      if(matchup.p2.result === "L") return String(matchup.p2.name ?? "").trim().toUpperCase();
+      return "";
+    }
+
+    function derivePlayoffMetadata(matchups){
+      if(!Array.isArray(matchups) || matchups.length < 6) return null;
+
+      const championship = matchups[2];
+      const thirdPlace = matchups[3];
+      const oneOffs = [
+        { matchup: matchups[4], label: "Division 1/2 Playoff" },
+        { matchup: matchups[5], label: "Division 2/3 Playoff" },
+      ];
+
+      const championshipComplete = isMatchComplete(championship);
+      const thirdPlaceComplete = isMatchComplete(thirdPlace);
+      const d1FinalRanks = new Map();
+
+      if(championshipComplete && thirdPlaceComplete){
+        const championKey = getMatchWinnerKey(championship);
+        const runnerUpKey = getMatchLoserKey(championship);
+        const thirdKey = getMatchWinnerKey(thirdPlace);
+        const fourthKey = getMatchLoserKey(thirdPlace);
+
+        if(championKey) d1FinalRanks.set(championKey, 1);
+        if(runnerUpKey) d1FinalRanks.set(runnerUpKey, 2);
+        if(thirdKey) d1FinalRanks.set(thirdKey, 3);
+        if(fourthKey) d1FinalRanks.set(fourthKey, 4);
+      }
+
+      return {
+        championship,
+        thirdPlace,
+        oneOffs,
+        championshipComplete,
+        thirdPlaceComplete,
+        d1FinalRanks,
+      };
+    }
+
+    function applyDivisionOnePlayoffOverrides(rows, metadata){
+      if(!metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return;
+
+      const rankOrder = [];
+      rows.forEach((row, idx) => {
+        const playoffRank = metadata.d1FinalRanks.get(row.playerKey);
+        if(playoffRank){
+          row._forcedRank = playoffRank;
+          rankOrder.push({ row, playoffRank, idx });
+        }
+      });
+
+      if(!rankOrder.length) return;
+
+      rankOrder.sort((a, b) => a.playoffRank - b.playoffRank || a.idx - b.idx);
+
+      const orderedRows = rankOrder.map((entry) => entry.row);
+      const remainingRows = rows.filter((row) => !row._forcedRank);
+      rows.splice(0, rows.length, ...orderedRows, ...remainingRows);
+
+      rows.forEach((row, idx) => {
+        if(row._forcedRank){
+          row.rank = String(row._forcedRank);
+          row.tied = false;
+        }else{
+          row.rank = String(idx + 1);
+          row.tied = false;
+        }
+      });
+    }
+
+    function applyPlayoffStatTotals(baseRows, metadata){
+      const rows = baseRows.map((row) => ({ ...row }));
+      if(!metadata) return rows;
+
+      const statDeltas = new Map();
+      const addResult = (playerKey, matchWon, matchLost, gamesWon, gamesLost) => {
+        if(!playerKey) return;
+        if(!statDeltas.has(playerKey)){
+          statDeltas.set(playerKey, { matchesWon: 0, matchesLost: 0, gamesWon: 0, gamesLost: 0, diff: 0 });
+        }
+        const totals = statDeltas.get(playerKey);
+        totals.matchesWon += matchWon;
+        totals.matchesLost += matchLost;
+        totals.gamesWon += gamesWon;
+        totals.gamesLost += gamesLost;
+        totals.diff += gamesWon - gamesLost;
+      };
+
+      const addMatch = (matchup) => {
+        if(!isMatchComplete(matchup)) return;
+        const p1Key = String(matchup.p1.name ?? "").trim().toUpperCase();
+        const p2Key = String(matchup.p2.name ?? "").trim().toUpperCase();
+        const p1Games = numOrZero(matchup.p1.gamesWon);
+        const p2Games = numOrZero(matchup.p2.gamesWon);
+        const p1Win = matchup.p1.result === "W";
+        const p2Win = matchup.p2.result === "W";
+        addResult(p1Key, p1Win ? 1 : 0, p1Win ? 0 : 1, p1Games, p2Games);
+        addResult(p2Key, p2Win ? 1 : 0, p2Win ? 0 : 1, p2Games, p1Games);
+      };
+
+      addMatch(metadata.championship);
+      addMatch(metadata.thirdPlace);
+      metadata.oneOffs.forEach((entry) => addMatch(entry.matchup));
+
+      rows.forEach((row) => {
+        const delta = statDeltas.get(row.player.toUpperCase());
+        if(!delta) return;
+        row.matchesWon += delta.matchesWon;
+        row.matchesLost += delta.matchesLost;
+        row.gamesWon += delta.gamesWon;
+        row.gamesLost += delta.gamesLost;
+        row.diff += delta.diff;
+        row.matches = `${row.matchesWon}-${row.matchesLost}`;
+        row.games = `${row.gamesWon}-${row.gamesLost}`;
+        row.diffText = formatDiff(row.diff);
+      });
+
+      return rows;
+    }
+
+    function renderDivision(division, values, headToHeadByDivision, metadata){
+      const baseRows = mapRows(values);
+      const rowsWithPlayoffs = applyPlayoffStatTotals(baseRows, metadata);
+      const rows = rankDivisionRows(rowsWithPlayoffs, division.title, headToHeadByDivision);
+      if(normalizeDivisionValue(division.title) === "1") applyDivisionOnePlayoffOverrides(rows, metadata);
+      applyRowHighlights(rows, division.title, metadata);
       const divisionClass = divisionClassFromLabel(division.title);
 
       const wrapper = document.createElement("section");
@@ -1772,14 +1951,11 @@
       document.getElementById("playerMetaDiff").textContent = stats?.diff || "—";
 
       tbody.innerHTML = "";
-      for(let week = 1; week <= 7; week += 1){
-        const weekData = scheduleWeeks.find((w) => Number(w.week) === week);
+      const appendResultRow = (label, result) => {
         const row = document.createElement("tr");
-        const result = weekData ? getPlayerWeekResult(playerName, weekData) : null;
-
         if(!result){
           row.innerHTML = `
-            <td class="weekly-col-week">${week}</td>
+            <td class="weekly-col-week">${escapeHtml(label)}</td>
             <td class="weekly-col-opponent"><span class="opponent-name">—</span></td>
             <td class="weekly-col-result"><span class="result-pending">—</span></td>
             <td class="weekly-col-games"><span class="result-pending">—</span></td>
@@ -1788,11 +1964,12 @@
             <td class="weekly-col-round"><span class="score-dash">–</span></td>
           `;
           tbody.appendChild(row);
-          continue;
+          return;
         }
+
         const opponentQfClass = isQfPlayerName(result.opponent) ? " qf-player" : "";
         row.innerHTML = `
-          <td class="weekly-col-week">${week}</td>
+          <td class="weekly-col-week">${escapeHtml(label)}</td>
           <td class="weekly-col-opponent"><button class="player-btn opponent-name${opponentQfClass}" type="button" data-player="${escapeHtml(result.opponent)}">${escapeHtml(result.opponent)}</button></td>
           <td class="weekly-col-result">${result.resultHtml}</td>
           <td class="weekly-col-games">${result.gamesHtml}</td>
@@ -1801,6 +1978,36 @@
           <td class="weekly-col-round">${formatRoundPair(result.roundCells[2])}</td>
         `;
         tbody.appendChild(row);
+      };
+
+      for(let week = 1; week <= 7; week += 1){
+        const weekData = scheduleWeeks.find((w) => Number(w.week) === week);
+        const result = weekData ? getPlayerWeekResult(playerName, weekData) : null;
+        appendResultRow(String(week), result);
+      }
+
+      if(playoffMetadata){
+        const playerKey = String(playerName ?? "").trim().toUpperCase();
+        const playedPlayoff = [playoffMetadata.championship, playoffMetadata.thirdPlace, ...playoffMetadata.oneOffs.map((entry) => entry.matchup)]
+          .some((matchup) => [matchup?.p1?.name, matchup?.p2?.name].map((name) => String(name ?? "").trim().toUpperCase()).includes(playerKey));
+
+        if(playedPlayoff){
+          const sectionRow = document.createElement("tr");
+          sectionRow.className = "weekly-section-row";
+          sectionRow.innerHTML = '<td colspan="7">Playoffs</td>';
+          tbody.appendChild(sectionRow);
+
+          const playoffEntries = [
+            { label: "Division 1 Championship", matchup: playoffMetadata.championship },
+            { label: "Division 1 3rd Place", matchup: playoffMetadata.thirdPlace },
+            ...playoffMetadata.oneOffs.map((entry) => ({ label: entry.label, matchup: entry.matchup })),
+          ];
+
+          playoffEntries.forEach((entry) => {
+            const result = entry.matchup ? getPlayerWeekResult(playerName, { matchups: [entry.matchup] }) : null;
+            if(result) appendResultRow(entry.label, result);
+          });
+        }
       }
 
       if(typeof modal.showModal === "function"){
@@ -1904,6 +2111,8 @@
 
     function renderMatchupCard(matchup, options = {}){
       const showSeeds = options.showSeeds === true;
+      const winnerHighlight = options.winnerHighlight || "";
+      const loserHighlight = options.loserHighlight || "";
       const card = document.createElement("article");
       card.className = "match-card";
 
@@ -1919,7 +2128,8 @@
       const p2QfClass = isQfPlayerName(matchup.p2.name) ? " qf-player" : "";
 
       const p1Row = document.createElement("div");
-      p1Row.className = `match-row${p1Winner ? " winner" : ""}`;
+      const p1HighlightClass = p1Winner ? winnerHighlight : (p2Winner ? loserHighlight : "");
+      p1Row.className = `match-row${p1Winner ? " winner" : ""}${p1HighlightClass ? ` ${p1HighlightClass}` : ""}`;
       p1Row.innerHTML = `
         ${showSeeds ? `<div class="match-seed">${formatStatValue(matchup.p1.seed, "—")}</div>` : ""}
         <div class="match-player${p1QfClass}">${formatPlayerLabel(matchup.p1.name)}</div>
@@ -1932,7 +2142,8 @@
       `;
 
       const p2Row = document.createElement("div");
-      p2Row.className = `match-row${p2Winner ? " winner" : ""}`;
+      const p2HighlightClass = p2Winner ? winnerHighlight : (p1Winner ? loserHighlight : "");
+      p2Row.className = `match-row${p2Winner ? " winner" : ""}${p2HighlightClass ? ` ${p2HighlightClass}` : ""}`;
       p2Row.innerHTML = `
         ${showSeeds ? `<div class="match-seed">${formatStatValue(matchup.p2.seed, "—")}</div>` : ""}
         <div class="match-player${p2QfClass}">${formatPlayerLabel(matchup.p2.name)}</div>
@@ -1949,7 +2160,7 @@
       return card;
     }
 
-    function renderLabeledMatch(matchup, labelText){
+    function renderLabeledMatch(matchup, labelText, options = {}){
       const wrap = document.createElement("section");
       wrap.className = "match-labeled";
 
@@ -1958,7 +2169,7 @@
       label.textContent = labelText;
 
       wrap.appendChild(label);
-      wrap.appendChild(renderMatchupCard(matchup, { showSeeds: true }));
+      wrap.appendChild(renderMatchupCard(matchup, { showSeeds: true, ...options }));
       return wrap;
     }
 
@@ -1996,8 +2207,8 @@
 
       semifinalsEl.appendChild(renderLabeledMatch(playoffMatchups[0], "Division 1 Semi-Final"));
       semifinalsEl.appendChild(renderLabeledMatch(playoffMatchups[1], "Division 1 Semi-Final"));
-      championshipEl.appendChild(renderLabeledMatch(playoffMatchups[2], "Division 1 Championship"));
-      thirdPlaceEl.appendChild(renderLabeledMatch(playoffMatchups[3], "Division 1 3rd Place"));
+      championshipEl.appendChild(renderLabeledMatch(playoffMatchups[2], "Division 1 Championship", { winnerHighlight: "highlight-gold", loserHighlight: "highlight-silver" }));
+      thirdPlaceEl.appendChild(renderLabeledMatch(playoffMatchups[3], "Division 1 3rd Place", { winnerHighlight: "highlight-bronze" }));
       oneOffsEl.appendChild(renderLabeledMatch(playoffMatchups[4], "Division 1/2 Playoff"));
       oneOffsEl.appendChild(renderLabeledMatch(playoffMatchups[5], "Division 2/3 Playoff"));
       requestAnimationFrame(updatePlayoffBracketLayout);
@@ -2033,9 +2244,10 @@
       const bottomSemiRectShifted = semifinalMatches[1].getBoundingClientRect();
       const champRectShifted = championshipMatch.getBoundingClientRect();
 
-      bracketRow.style.setProperty("--semi-top-center", `${topSemiRectShifted.top + topSemiRectShifted.height / 2 - rowRect.top}px`);
-      bracketRow.style.setProperty("--semi-bottom-center", `${bottomSemiRectShifted.top + bottomSemiRectShifted.height / 2 - rowRect.top}px`);
-      bracketRow.style.setProperty("--champ-center", `${champRectShifted.top + champRectShifted.height / 2 - rowRect.top}px`);
+      const connectorYOffset = 2;
+      bracketRow.style.setProperty("--semi-top-center", `${topSemiRectShifted.top + topSemiRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
+      bracketRow.style.setProperty("--semi-bottom-center", `${bottomSemiRectShifted.top + bottomSemiRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
+      bracketRow.style.setProperty("--champ-center", `${champRectShifted.top + champRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
     }
 
     function renderScheduleWeek(){
@@ -2166,12 +2378,14 @@
         const scheduleRows = all[DIVISIONS.length] || [];
         const playoffRows = all[DIVISIONS.length + 1] || [];
         const headToHeadByDivision = buildHeadToHeadByDivision(scheduleRows);
+        playoffMatchups = parsePlayoffRows(playoffRows);
+        playoffMetadata = derivePlayoffMetadata(playoffMatchups);
 
         gridEl.innerHTML = "";
         playerDivisionLookup.clear();
 
         DIVISIONS.forEach((division, idx) => {
-          gridEl.appendChild(renderDivision(division, all[idx], headToHeadByDivision));
+          gridEl.appendChild(renderDivision(division, all[idx], headToHeadByDivision, playoffMetadata));
         });
 
         playerStatsLookup.clear();
@@ -2187,7 +2401,6 @@
         });
 
         scheduleWeeks = parseScheduleRows(scheduleRows);
-        playoffMatchups = parsePlayoffRows(playoffRows);
         currentWeekIdx = 0;
         renderScheduleWeek();
         renderPlayoffs();
