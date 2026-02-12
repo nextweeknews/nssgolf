@@ -457,6 +457,21 @@
       gap:10px;
     }
 
+    .match-labeled{
+      display:grid;
+      gap:4px;
+    }
+
+    .match-label{
+      margin:0;
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      text-align: center;
+    }
+
     .match-card{
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.08);
@@ -502,6 +517,18 @@
       display:flex;
       align-items:center;
       font-size: 11px;
+    }
+
+    .match-seed{
+      width: 28px;
+      flex: 0 0 28px;
+      border-right: 1px solid rgba(148,163,184,0.28);
+      display:grid;
+      place-items:center;
+      font-size: 11px;
+      font-weight: 850;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
     }
 
     .match-player.qf-player{
@@ -819,6 +846,72 @@
       padding: 12px;
     }
 
+    .playoffs-wrap{
+      margin-top: 4px;
+      display:grid;
+      gap:12px;
+    }
+
+    .playoffs-layout{
+      border: 1px solid var(--border-lite);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(15,23,42,0.55);
+      display:grid;
+      gap:18px;
+    }
+
+    .playoff-bracket-row{
+      display:grid;
+      grid-template-columns: minmax(220px, 1fr) 78px minmax(220px, 1fr);
+      align-items:start;
+      gap:12px;
+    }
+
+    .playoff-semifinals{
+      display:grid;
+      gap:16px;
+    }
+
+    .playoff-championship-slot{
+      align-self:center;
+    }
+
+    .playoff-connector{
+      align-self:center;
+      height: 100%;
+      min-height: 132px;
+      position:relative;
+    }
+
+    .playoff-connector::before,
+    .playoff-connector::after{
+      content:"";
+      position:absolute;
+      border-color: rgba(148,163,184,0.55);
+      border-style: solid;
+      right: 12px;
+      width: calc(100% - 12px);
+    }
+
+    .playoff-connector::before{
+      top: calc(25% - 1px);
+      height: calc(25% + 1px);
+      border-width: 2px 2px 0 0;
+    }
+
+    .playoff-connector::after{
+      top: 50%;
+      height: calc(25% + 1px);
+      border-width: 0 2px 2px 0;
+    }
+
+    .playoff-oneoffs{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px;
+    }
+
     .match-stats{
       display:grid;
       grid-template-columns: 36px repeat(3, 22px);
@@ -864,6 +957,9 @@
       .division-grid{ grid-template-columns: 1fr; }
       .schedule-grid{ grid-template-columns: 1fr; }
       .qualifiers-layout{ grid-template-columns: 1fr; }
+      .playoff-bracket-row{ grid-template-columns: 1fr; }
+      .playoff-connector{ display:none; }
+      .playoff-oneoffs{ grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px){
@@ -988,6 +1084,7 @@
     <div class="main-view-switch" role="tablist" aria-label="Super League page selector">
       <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League Season 6</button>
       <button class="view-btn" id="qualifiersViewBtn" type="button">Qualifiers</button>
+      <button class="view-btn" id="playoffsViewBtn" type="button">Playoffs</button>
     </div>
 
     <div class="card">
@@ -1033,6 +1130,24 @@
           <section class="qualifier-bracket" aria-label="Qualifier bracket">
             <h2 class="qualifier-title">Double-Elimination Bracket</h2>
             <div class="qualifier-bracket-placeholder">Coming soon</div>
+          </section>
+        </div>
+      </section>
+
+      <section id="playoffsPage" hidden>
+        <div class="season-head">
+          <h1 class="headline">Season 6 Playoffs</h1>
+        </div>
+
+        <div class="playoffs-wrap">
+          <section class="playoffs-layout" aria-label="Playoff matchups">
+            <div class="playoff-bracket-row">
+              <div class="playoff-semifinals" id="playoffSemifinals"></div>
+              <div class="playoff-connector" aria-hidden="true"></div>
+              <div class="playoff-championship-slot" id="playoffChampionship"></div>
+            </div>
+            <div id="playoffThirdPlace"></div>
+            <div class="playoff-oneoffs" id="playoffOneOffs"></div>
           </section>
         </div>
       </section>
@@ -1096,7 +1211,9 @@
     ];
     const SCHEDULE_RANGE = "I2:AB85";
     const QUALIFIER_LIST_RANGE = "A:B";
+    const PLAYOFF_RANGE = "I87:AB92";
     let scheduleWeeks = [];
+    let playoffMatchups = [];
     let currentWeekIdx = 0;
     const playerDivisionLookup = new Map();
     const playerStatsLookup = new Map();
@@ -1112,20 +1229,27 @@
     function setupViewNav(){
       const seasonBtn = document.getElementById("seasonViewBtn");
       const qualifiersBtn = document.getElementById("qualifiersViewBtn");
+      const playoffsBtn = document.getElementById("playoffsViewBtn");
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
+      const playoffsPage = document.getElementById("playoffsPage");
 
       const setPage = (page) => {
         const showSeason = page === "season";
+        const showQualifiers = page === "qualifiers";
+        const showPlayoffs = page === "playoffs";
         seasonPage.hidden = !showSeason;
-        qualifiersPage.hidden = showSeason;
+        qualifiersPage.hidden = !showQualifiers;
+        playoffsPage.hidden = !showPlayoffs;
         seasonBtn.classList.toggle("is-active", showSeason);
-        qualifiersBtn.classList.toggle("is-active", !showSeason);
+        qualifiersBtn.classList.toggle("is-active", showQualifiers);
+        playoffsBtn.classList.toggle("is-active", showPlayoffs);
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
 
       seasonBtn.addEventListener("click", () => setPage("season"));
       qualifiersBtn.addEventListener("click", () => setPage("qualifiers"));
+      playoffsBtn.addEventListener("click", () => setPage("playoffs"));
     }
 
     function normalizeValues(resp){
@@ -1726,6 +1850,11 @@
     }
 
     function renderMatchup(matchup){
+      return renderMatchupCard(matchup);
+    }
+
+    function renderMatchupCard(matchup, options = {}){
+      const showSeeds = options.showSeeds === true;
       const card = document.createElement("article");
       card.className = "match-card";
 
@@ -1743,6 +1872,7 @@
       const p1Row = document.createElement("div");
       p1Row.className = `match-row${p1Winner ? " winner" : ""}`;
       p1Row.innerHTML = `
+        ${showSeeds ? `<div class="match-seed">${formatStatValue(matchup.p1.seed, "—")}</div>` : ""}
         <div class="match-player${p1QfClass}">${formatPlayerLabel(matchup.p1.name)}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p1.gamesWon, "–")}</div>
@@ -1755,6 +1885,7 @@
       const p2Row = document.createElement("div");
       p2Row.className = `match-row${p2Winner ? " winner" : ""}`;
       p2Row.innerHTML = `
+        ${showSeeds ? `<div class="match-seed">${formatStatValue(matchup.p2.seed, "—")}</div>` : ""}
         <div class="match-player${p2QfClass}">${formatPlayerLabel(matchup.p2.name)}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p2.gamesWon, "–")}</div>
@@ -1767,6 +1898,59 @@
       card.appendChild(p1Row);
       card.appendChild(p2Row);
       return card;
+    }
+
+    function renderLabeledMatch(matchup, labelText){
+      const wrap = document.createElement("section");
+      wrap.className = "match-labeled";
+
+      const label = document.createElement("p");
+      label.className = "match-label";
+      label.textContent = labelText;
+
+      wrap.appendChild(label);
+      wrap.appendChild(renderMatchupCard(matchup, { showSeeds: true }));
+      return wrap;
+    }
+
+    function parsePlayoffRows(values){
+      return values.map((row = []) => ({
+        p1: {
+          seed: String(row[2] ?? "").trim(),
+          name: String(row[3] ?? "").trim(),
+          rounds: [row[4], row[5], row[6]],
+          gamesWon: row[7],
+          result: String(row[10] ?? "").trim().toUpperCase(),
+        },
+        p2: {
+          seed: String(row[11] ?? "").trim(),
+          name: String(row[12] ?? "").trim(),
+          rounds: [row[13], row[14], row[15]],
+          gamesWon: row[16],
+          result: String(row[19] ?? "").trim().toUpperCase(),
+        },
+      }));
+    }
+
+    function renderPlayoffs(){
+      const semifinalsEl = document.getElementById("playoffSemifinals");
+      const championshipEl = document.getElementById("playoffChampionship");
+      const thirdPlaceEl = document.getElementById("playoffThirdPlace");
+      const oneOffsEl = document.getElementById("playoffOneOffs");
+
+      semifinalsEl.innerHTML = "";
+      championshipEl.innerHTML = "";
+      thirdPlaceEl.innerHTML = "";
+      oneOffsEl.innerHTML = "";
+
+      if(playoffMatchups.length < 6) return;
+
+      semifinalsEl.appendChild(renderLabeledMatch(playoffMatchups[0], "Division 1 Semi-Final"));
+      semifinalsEl.appendChild(renderLabeledMatch(playoffMatchups[1], "Division 1 Semi-Final"));
+      championshipEl.appendChild(renderLabeledMatch(playoffMatchups[2], "Division 1 Championship"));
+      thirdPlaceEl.appendChild(renderLabeledMatch(playoffMatchups[3], "Division 1 3rd Place"));
+      oneOffsEl.appendChild(renderLabeledMatch(playoffMatchups[4], "Division 1/2 Playoff"));
+      oneOffsEl.appendChild(renderLabeledMatch(playoffMatchups[5], "Division 2/3 Playoff"));
     }
 
     function renderScheduleWeek(){
@@ -1891,9 +2075,11 @@
         const all = await Promise.all([
           ...DIVISIONS.map((division) => fetchRange(division.range)),
           fetchRange(SCHEDULE_RANGE),
+          fetchRange(PLAYOFF_RANGE),
           loadQualifiers(),
         ]);
         const scheduleRows = all[DIVISIONS.length] || [];
+        const playoffRows = all[DIVISIONS.length + 1] || [];
         const headToHeadByDivision = buildHeadToHeadByDivision(scheduleRows);
 
         gridEl.innerHTML = "";
@@ -1916,8 +2102,10 @@
         });
 
         scheduleWeeks = parseScheduleRows(scheduleRows);
+        playoffMatchups = parsePlayoffRows(playoffRows);
         currentWeekIdx = 0;
         renderScheduleWeek();
+        renderPlayoffs();
 
         statusEl.textContent = "";
       }catch(err){
