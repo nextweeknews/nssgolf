@@ -1026,13 +1026,14 @@
       .qualifiers-layout{ grid-template-columns: 1fr; }
       .playoff-bracket-row{ grid-template-columns: 1fr; }
       .playoff-connector{ display:none; }
-      .playoff-finals{ grid-template-columns: 1fr; padding-top: 0; }
-      .playoff-oneoffs{ grid-template-columns: 1fr; width: min(100%, var(--playoff-cell-width)); }
+      .playoff-finals{ grid-template-columns: 1fr; padding-top: 4px; }
+      .playoff-oneoffs{ grid-template-columns: 1fr; width: 100%; }
     }
 
     @media (max-width: 760px){
       .container{ padding: 20px 12px 44px; }
       .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .playoffs-layout{ padding: 8px; }
       .brand{ flex: 1; min-width: 0; }
       .topbar-actions{ gap:6px; }
       .view-btn{ font-size: 11px; padding: 8px 10px; }
@@ -1167,7 +1168,7 @@
         <div class="division-grid" id="divisionGrid"></div>
 
         <div class="standings-legend" aria-label="Standings legend">
-          <span class="legend-item"><span class="legend-swatch gold" aria-hidden="true"></span>Super League D1 Playoffs</span>
+          <span class="legend-item" id="legendD1Playoff"><span class="legend-swatch gold" aria-hidden="true"></span>Super League D1 Playoffs</span>
           <span class="legend-item"><span class="legend-swatch green" aria-hidden="true"></span>Moves up division</span>
           <span class="legend-item"><span class="legend-swatches" aria-hidden="true"><span class="legend-swatch blue"></span><span class="legend-swatch orange"></span></span>Playoff to move up/down division</span>
           <span class="legend-item"><span class="legend-swatch none" aria-hidden="true"></span>Remains in division, or tied between multiple outcomes</span>
@@ -1582,9 +1583,14 @@
         .filter((row) => row.player !== "");
     }
 
-    function getDivisionRankHighlight(divisionTitle, rankPosition){
+    function getDivisionRankHighlight(divisionTitle, rankPosition, metadata){
       const normalized = String(divisionTitle ?? "").toLowerCase();
       if(normalized.includes("1")){
+        if(metadata){
+          if(rankPosition === 6) return "row-highlight-orange";
+          if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
+          return "";
+        }
         if(rankPosition >= 1 && rankPosition <= 4) return "row-highlight-gold";
         if(rankPosition === 6) return "row-highlight-orange";
         if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
@@ -1615,6 +1621,7 @@
       if(rank === 1) row.highlightClass = "row-highlight-gold";
       if(rank === 2) row.highlightClass = "row-highlight-silver";
       if(rank === 3) row.highlightClass = "row-highlight-bronze";
+      if(rank === 4) row.highlightClass = "";
     }
 
     function applyRowHighlights(rows, divisionTitle, metadata){
@@ -1623,7 +1630,7 @@
         const isTied = String(row.rank ?? "").startsWith("T");
 
         if(!isTied){
-          row.highlightClass = getDivisionRankHighlight(divisionTitle, idx + 1);
+          row.highlightClass = getDivisionRankHighlight(divisionTitle, idx + 1, metadata);
           applyPlayoffMedalHighlight(row, metadata);
           idx += 1;
           continue;
@@ -1636,7 +1643,7 @@
 
         const groupClasses = new Set();
         for(let pos = idx + 1; pos <= end; pos += 1){
-          groupClasses.add(getDivisionRankHighlight(divisionTitle, pos));
+          groupClasses.add(getDivisionRankHighlight(divisionTitle, pos, metadata));
         }
         const groupHighlight = groupClasses.size === 1 ? [...groupClasses][0] : "";
         for(let i = idx; i < end; i += 1){
@@ -1746,6 +1753,12 @@
           row.tied = false;
         }
       });
+    }
+
+    function updateStandingsLegend(metadata){
+      const d1PlayoffLegendEl = document.getElementById("legendD1Playoff");
+      if(!d1PlayoffLegendEl) return;
+      d1PlayoffLegendEl.hidden = Boolean(metadata);
     }
 
     function applyPlayoffStatTotals(baseRows, metadata){
@@ -2394,6 +2407,7 @@
         const headToHeadByDivision = buildHeadToHeadByDivision(scheduleRows);
         playoffMatchups = parsePlayoffRows(playoffRows);
         playoffMetadata = derivePlayoffMetadata(playoffMatchups);
+        updateStandingsLegend(playoffMetadata);
 
         gridEl.innerHTML = "";
         playerDivisionLookup.clear();
