@@ -508,11 +508,11 @@
       background: rgba(180,83,9,0.18);
       border-color: rgba(180,83,9,0.74);
     }
-    .match-row.winner:first-child{
+    .match-row:is(.winner, .highlight-gold, .highlight-silver, .highlight-bronze):first-child{
       border-top-left-radius: 13px;
       border-top-right-radius: 13px;
     }
-    .match-row.winner:last-child{
+    .match-row:is(.winner, .highlight-gold, .highlight-silver, .highlight-bronze):last-child{
       border-bottom-left-radius: 13px;
       border-bottom-right-radius: 13px;
     }
@@ -973,8 +973,7 @@
 
     .playoff-oneoffs{
       display:grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      width: var(--playoff-cell-width);
+      grid-template-columns: repeat(2, minmax(220px, var(--playoff-cell-width)));
       justify-content:center;
       gap:16px;
       margin: 0 auto;
@@ -1028,6 +1027,7 @@
       .playoff-bracket-row{ grid-template-columns: 1fr; }
       .playoff-connector{ display:none; }
       .playoff-finals{ grid-template-columns: 1fr; padding-top: 0; }
+      .playoff-oneoffs{ grid-template-columns: 1fr; width: min(100%, var(--playoff-cell-width)); }
     }
 
     @media (max-width: 760px){
@@ -1655,15 +1655,23 @@
 
     function getMatchWinnerKey(matchup){
       if(!isMatchComplete(matchup)) return "";
-      if(matchup.p1.result === "W") return String(matchup.p1.name ?? "").trim().toUpperCase();
-      if(matchup.p2.result === "W") return String(matchup.p2.name ?? "").trim().toUpperCase();
+      const p1Key = String(matchup.p1.name ?? "").trim().toUpperCase();
+      const p2Key = String(matchup.p2.name ?? "").trim().toUpperCase();
+      if(matchup.p1.result === "W") return p1Key;
+      if(matchup.p2.result === "W") return p2Key;
+      if(matchup.p1.result === "L") return p2Key;
+      if(matchup.p2.result === "L") return p1Key;
       return "";
     }
 
     function getMatchLoserKey(matchup){
       if(!isMatchComplete(matchup)) return "";
-      if(matchup.p1.result === "L") return String(matchup.p1.name ?? "").trim().toUpperCase();
-      if(matchup.p2.result === "L") return String(matchup.p2.name ?? "").trim().toUpperCase();
+      const p1Key = String(matchup.p1.name ?? "").trim().toUpperCase();
+      const p2Key = String(matchup.p2.name ?? "").trim().toUpperCase();
+      if(matchup.p1.result === "L") return p1Key;
+      if(matchup.p2.result === "L") return p2Key;
+      if(matchup.p1.result === "W") return p2Key;
+      if(matchup.p2.result === "W") return p1Key;
       return "";
     }
 
@@ -1687,10 +1695,15 @@
         const thirdKey = getMatchWinnerKey(thirdPlace);
         const fourthKey = getMatchLoserKey(thirdPlace);
 
-        if(championKey) d1FinalRanks.set(championKey, 1);
-        if(runnerUpKey) d1FinalRanks.set(runnerUpKey, 2);
-        if(thirdKey) d1FinalRanks.set(thirdKey, 3);
-        if(fourthKey) d1FinalRanks.set(fourthKey, 4);
+        const topFour = [championKey, runnerUpKey, thirdKey, fourthKey].filter(Boolean);
+        const hasUniqueTopFour = topFour.length === 4 && new Set(topFour).size === 4;
+
+        if(hasUniqueTopFour){
+          d1FinalRanks.set(championKey, 1);
+          d1FinalRanks.set(runnerUpKey, 2);
+          d1FinalRanks.set(thirdKey, 3);
+          d1FinalRanks.set(fourthKey, 4);
+        }
       }
 
       return {
@@ -1705,6 +1718,7 @@
 
     function applyDivisionOnePlayoffOverrides(rows, metadata){
       if(!metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return;
+      if(metadata.d1FinalRanks.size !== 4) return;
 
       const rankOrder = [];
       rows.forEach((row, idx) => {
