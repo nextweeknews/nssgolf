@@ -531,6 +531,7 @@
 
       <div class="controls">
         <select id="seasonSelect" class="select" aria-label="Season">
+          <option value="7">Season 6, Stage 2</option>
           <option value="6">Season 6, Stage 1</option>
           <option value="5">Season 5</option>
           <option value="4">Season 4</option>
@@ -622,6 +623,7 @@
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 
     const SEASON_CONFIG = {
+      7: { sheet: "Season 6, Stage 2", rosters: "A3:S250", teamRank: "U4:X15" },
       6: { sheet: "Season 6, Stage 1", rosters: "A3:S250", teamRank: "U4:X15" },
       5: { sheet: "Season 5",         rosters: "A3:S250", teamRank: "U4:X15" },
       4: { sheet: "Season 4",         rosters: "A3:S250", teamRank: "U4:X13" },
@@ -1135,7 +1137,7 @@
 
     // ---------------- MAIN LOAD ----------------
     async function loadSeason(seasonNum){
-      const cfg = SEASON_CONFIG[seasonNum] || SEASON_CONFIG[6];
+      const cfg = SEASON_CONFIG[seasonNum] || SEASON_CONFIG[7];
       const sheet = cfg.sheet;
 
       statusEl.textContent = "Loading…";
@@ -1204,11 +1206,11 @@
     // boot
     (function boot(){
       const qs = new URLSearchParams(location.search);
-      const s = Number(qs.get("season") || 6);
+      const s = Number(qs.get("season") || 7);
       if (SEASON_CONFIG[s]) seasonSelect.value = String(s);
 
       reloadBtn.addEventListener("click", ()=>{
-        const seasonNum = Number(seasonSelect.value) || 6;
+        const seasonNum = Number(seasonSelect.value) || 7;
         loadSeason(seasonNum).catch(err=>{
           console.error(err);
           statusEl.textContent = "Load failed (see console).";
@@ -1222,7 +1224,7 @@
         history.replaceState(null, "", u.toString());
       });
 
-      loadSeason(Number(seasonSelect.value) || 6).catch(err=>{
+      loadSeason(Number(seasonSelect.value) || 7).catch(err=>{
         console.error(err);
         statusEl.textContent = "Load failed (see console).";
         alert(err.message || "Load failed.");
