@@ -522,7 +522,6 @@
     .match-seed{
       width: 28px;
       flex: 0 0 28px;
-      border-right: 1px solid rgba(148,163,184,0.28);
       display:grid;
       place-items:center;
       font-size: 11px;
@@ -864,8 +863,9 @@
     .playoff-bracket-row{
       display:grid;
       grid-template-columns: minmax(220px, 1fr) 78px minmax(220px, 1fr);
+      grid-template-rows: auto;
       align-items:start;
-      gap:12px;
+      column-gap:0;
     }
 
     .playoff-semifinals{
@@ -873,14 +873,20 @@
       gap:16px;
     }
 
+    .playoff-finals{
+      display:grid;
+      gap:16px;
+      align-self:start;
+    }
+
     .playoff-championship-slot{
       align-self:center;
     }
 
     .playoff-connector{
-      align-self:center;
+      align-self:start;
       height: 100%;
-      min-height: 132px;
+      min-height: 170px;
       position:relative;
     }
 
@@ -888,22 +894,28 @@
     .playoff-connector::after{
       content:"";
       position:absolute;
+      left: 0;
+      right: 0;
       border-color: rgba(148,163,184,0.55);
       border-style: solid;
-      right: 12px;
-      width: calc(100% - 12px);
+      border-radius: 12px;
     }
 
     .playoff-connector::before{
-      top: calc(25% - 1px);
-      height: calc(25% + 1px);
+      top: 18%;
+      height: 32%;
       border-width: 2px 2px 0 0;
     }
 
     .playoff-connector::after{
       top: 50%;
-      height: calc(25% + 1px);
+      height: 32%;
       border-width: 0 2px 2px 0;
+    }
+
+    .playoff-divider{
+      border-top: 1px solid var(--border-lite);
+      width: 100%;
     }
 
     .playoff-oneoffs{
@@ -959,6 +971,7 @@
       .qualifiers-layout{ grid-template-columns: 1fr; }
       .playoff-bracket-row{ grid-template-columns: 1fr; }
       .playoff-connector{ display:none; }
+      .playoff-finals{ grid-template-columns: 1fr; }
       .playoff-oneoffs{ grid-template-columns: 1fr; }
     }
 
@@ -1144,9 +1157,12 @@
             <div class="playoff-bracket-row">
               <div class="playoff-semifinals" id="playoffSemifinals"></div>
               <div class="playoff-connector" aria-hidden="true"></div>
-              <div class="playoff-championship-slot" id="playoffChampionship"></div>
+              <div class="playoff-finals">
+                <div class="playoff-championship-slot" id="playoffChampionship"></div>
+                <div id="playoffThirdPlace"></div>
+              </div>
             </div>
-            <div id="playoffThirdPlace"></div>
+            <div class="playoff-divider" aria-hidden="true"></div>
             <div class="playoff-oneoffs" id="playoffOneOffs"></div>
           </section>
         </div>
