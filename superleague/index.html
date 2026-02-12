@@ -2278,7 +2278,7 @@
       const bottomSemiRectShifted = semifinalMatches[1].getBoundingClientRect();
       const champRectShifted = championshipMatch.getBoundingClientRect();
 
-      const connectorYOffset = 2;
+      const connectorYOffset = 8;
       bracketRow.style.setProperty("--semi-top-center", `${topSemiRectShifted.top + topSemiRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
       bracketRow.style.setProperty("--semi-bottom-center", `${bottomSemiRectShifted.top + bottomSemiRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
       bracketRow.style.setProperty("--champ-center", `${champRectShifted.top + champRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
