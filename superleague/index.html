@@ -1111,8 +1111,8 @@
       const aTotal = aWins + aLosses;
       const bTotal = bWins + bLosses;
       if(aTotal === 0 && bTotal === 0) return 0;
-      if(aTotal === 0) return 1;
-      if(bTotal === 0) return -1;
+      if(aTotal === 0) return bWins > 0 ? 1 : -1;
+      if(bTotal === 0) return aWins > 0 ? -1 : 1;
 
       const left = aWins * bTotal;
       const right = bWins * aTotal;
@@ -1230,7 +1230,7 @@
             const gamesCmp = comparePctDesc(a.gamesWon, a.gamesLost, b.gamesWon, b.gamesLost);
             if(gamesCmp !== 0) return gamesCmp;
             if(a.diff !== b.diff) return a.diff - b.diff;
-            return a.player.localeCompare(b.player, undefined, { sensitivity: "base" });
+            return a.sourceOrder - b.sourceOrder;
           });
 
           for(let k = 0; k < withHeadToHead.length; k += 1){
@@ -1274,7 +1274,7 @@
 
     function mapRows(values){
       return values
-        .map((row = []) => {
+        .map((row = [], idx) => {
           const player = String(row[0] ?? "").trim();
           const matchesWon = numOrZero(row[1]);
           const matchesLost = numOrZero(row[2]);
@@ -1289,6 +1289,7 @@
             gamesWon,
             gamesLost,
             diff: numOrZero(diff),
+            sourceOrder: idx,
             matches: `${matchesWon}-${matchesLost}`,
             games: `${gamesWon}-${gamesLost}`,
             diffText: formatDiff(diff),
