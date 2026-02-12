@@ -1101,6 +1101,177 @@
       return "0";
     }
 
+    function normalizeDivisionValue(value){
+      const divText = String(value ?? "").trim();
+      const match = divText.match(/(\d+)/);
+      return match ? match[1] : divText;
+    }
+
+    function comparePctDesc(aWins, aLosses, bWins, bLosses){
+      const aTotal = aWins + aLosses;
+      const bTotal = bWins + bLosses;
+      if(aTotal === 0 && bTotal === 0) return 0;
+      if(aTotal === 0) return 1;
+      if(bTotal === 0) return -1;
+
+      const left = aWins * bTotal;
+      const right = bWins * aTotal;
+      if(left === right) return 0;
+      return left > right ? -1 : 1;
+    }
+
+    function getHeadToHeadOutcome(headToHeadMap, playerA, playerB){
+      const aKey = String(playerA ?? "").trim().toUpperCase();
+      const bKey = String(playerB ?? "").trim().toUpperCase();
+      if(!aKey || !bKey) return null;
+
+      const aVs = headToHeadMap.get(aKey);
+      if(aVs?.has(bKey)) return aVs.get(bKey);
+
+      const bVs = headToHeadMap.get(bKey);
+      if(bVs?.has(aKey)) return bVs.get(aKey) === 1 ? -1 : 1;
+      return null;
+    }
+
+    function buildHeadToHeadByDivision(scheduleRows){
+      const byDivision = new Map();
+
+      scheduleRows.forEach((row = []) => {
+        const division = normalizeDivisionValue(row[1]);
+        const p1Name = String(row[3] ?? "").trim();
+        const p2Name = String(row[12] ?? "").trim();
+        const p1Result = String(row[10] ?? "").trim().toUpperCase();
+        const p2Result = String(row[19] ?? "").trim().toUpperCase();
+
+        if(!division || !p1Name || !p2Name) return;
+        if(!((p1Result === "W" && p2Result === "L") || (p1Result === "L" && p2Result === "W"))) return;
+
+        if(!byDivision.has(division)) byDivision.set(division, new Map());
+        const divisionMap = byDivision.get(division);
+
+        const p1Key = p1Name.toUpperCase();
+        const p2Key = p2Name.toUpperCase();
+        if(!divisionMap.has(p1Key)) divisionMap.set(p1Key, new Map());
+        if(!divisionMap.has(p2Key)) divisionMap.set(p2Key, new Map());
+
+        const p1Won = p1Result === "W";
+        divisionMap.get(p1Key).set(p2Key, p1Won ? 1 : -1);
+        divisionMap.get(p2Key).set(p1Key, p1Won ? -1 : 1);
+      });
+
+      return byDivision;
+    }
+
+    function computeHeadToHeadPct(row, group, headToHeadMap){
+      let wins = 0;
+      let losses = 0;
+
+      group.forEach((other) => {
+        if(other.playerKey === row.playerKey) return;
+        const outcome = getHeadToHeadOutcome(headToHeadMap, row.playerKey, other.playerKey);
+        if(outcome === 1) wins += 1;
+        if(outcome === -1) losses += 1;
+      });
+
+      const played = wins + losses;
+      if(played === 0) return null;
+      return wins / played;
+    }
+
+    function rankDivisionRows(rows, divisionTitle, headToHeadByDivision){
+      const divisionKey = normalizeDivisionValue(divisionTitle);
+      const headToHeadMap = headToHeadByDivision.get(divisionKey) || new Map();
+
+      const withKeys = rows.map((row) => ({ ...row, playerKey: row.player.toUpperCase() }));
+      withKeys.sort((a, b) => comparePctDesc(a.matchesWon, a.matchesLost, b.matchesWon, b.matchesLost));
+
+      const ranked = [];
+      for(let i = 0; i < withKeys.length;){
+        const group = [withKeys[i]];
+        let j = i + 1;
+        while(
+          j < withKeys.length &&
+          comparePctDesc(
+            withKeys[i].matchesWon,
+            withKeys[i].matchesLost,
+            withKeys[j].matchesWon,
+            withKeys[j].matchesLost,
+          ) === 0
+        ){
+          group.push(withKeys[j]);
+          j += 1;
+        }
+
+        if(group.length === 2){
+          const h2h = getHeadToHeadOutcome(headToHeadMap, group[0].playerKey, group[1].playerKey);
+          if(h2h === -1) group.reverse();
+          group[0].tied = h2h === null;
+          group[1].tied = h2h === null;
+        }else if(group.length > 2){
+          const withHeadToHead = group.map((row) => ({
+            ...row,
+            headToHeadPct: computeHeadToHeadPct(row, group, headToHeadMap),
+          }));
+
+          const uniqueHeadToHeadPcts = new Set(withHeadToHead.map((row) => row.headToHeadPct));
+          const canUseHeadToHead = !(uniqueHeadToHeadPcts.size === 1 && uniqueHeadToHeadPcts.has(null));
+
+          withHeadToHead.sort((a, b) => {
+            if(canUseHeadToHead){
+              const aPct = a.headToHeadPct;
+              const bPct = b.headToHeadPct;
+              if(aPct !== bPct){
+                if(aPct === null) return 1;
+                if(bPct === null) return -1;
+                return bPct - aPct;
+              }
+            }
+
+            const gamesCmp = comparePctDesc(a.gamesWon, a.gamesLost, b.gamesWon, b.gamesLost);
+            if(gamesCmp !== 0) return gamesCmp;
+            if(a.diff !== b.diff) return a.diff - b.diff;
+            return a.player.localeCompare(b.player, undefined, { sensitivity: "base" });
+          });
+
+          for(let k = 0; k < withHeadToHead.length; k += 1){
+            const current = withHeadToHead[k];
+            const prev = withHeadToHead[k - 1];
+            if(!prev){
+              current.tied = false;
+              continue;
+            }
+            const sameHeadToHead = current.headToHeadPct === prev.headToHeadPct;
+            const sameGames = comparePctDesc(current.gamesWon, current.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
+            const sameDiff = current.diff === prev.diff;
+            current.tied = sameHeadToHead && sameGames && sameDiff;
+            if(current.tied) prev.tied = true;
+          }
+
+          group.splice(0, group.length, ...withHeadToHead);
+        }else{
+          group[0].tied = false;
+        }
+
+        ranked.push(...group);
+        i = j;
+      }
+
+      let displayRank = 1;
+      ranked.forEach((row, idx) => {
+        if(idx > 0){
+          const prev = ranked[idx - 1];
+          const samePrimary = comparePctDesc(row.matchesWon, row.matchesLost, prev.matchesWon, prev.matchesLost) === 0;
+          const sameGames = comparePctDesc(row.gamesWon, row.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
+          if(!(row.tied && prev.tied && samePrimary && sameGames && row.diff === prev.diff)){
+            displayRank = idx + 1;
+          }
+        }
+        row.rank = row.tied ? `T${displayRank}` : String(displayRank);
+      });
+
+      return ranked;
+    }
+
     function mapRows(values){
       return values
         .map((row = []) => {
@@ -1113,16 +1284,21 @@
 
           return {
             player,
+            matchesWon,
+            matchesLost,
+            gamesWon,
+            gamesLost,
+            diff: numOrZero(diff),
             matches: `${matchesWon}-${matchesLost}`,
             games: `${gamesWon}-${gamesLost}`,
-            diff: formatDiff(diff),
+            diffText: formatDiff(diff),
           };
         })
         .filter((row) => row.player !== "");
     }
 
-    function renderDivision(division, values){
-      const rows = mapRows(values);
+    function renderDivision(division, values, headToHeadByDivision){
+      const rows = rankDivisionRows(mapRows(values), division.title, headToHeadByDivision);
       const divisionClass = divisionClassFromLabel(division.title);
 
       const wrapper = document.createElement("section");
@@ -1150,7 +1326,7 @@
 
       const tbody = table.querySelector("tbody");
 
-      rows.forEach((row, index) => {
+      rows.forEach((row) => {
         const tr = document.createElement("tr");
         const qfPlayerClass = row.player.toUpperCase().startsWith("QF") ? " qf-player" : "";
         if(row.player){
@@ -1160,11 +1336,11 @@
           });
         }
         tr.innerHTML = `
-          <td class="col-rank">${index + 1}</td>
+          <td class="col-rank">${escapeHtml(row.rank)}</td>
           <td class="col-player${qfPlayerClass}"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player)}</button></td>
           <td class="col-matches">${escapeHtml(row.matches)}</td>
           <td class="col-games">${escapeHtml(row.games)}</td>
-          <td class="col-diff">${escapeHtml(row.diff)}</td>
+          <td class="col-diff">${escapeHtml(row.diffText)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -1578,11 +1754,14 @@
           fetchRange(SCHEDULE_RANGE),
           loadQualifiers(),
         ]);
+        const scheduleRows = all[DIVISIONS.length] || [];
+        const headToHeadByDivision = buildHeadToHeadByDivision(scheduleRows);
+
         gridEl.innerHTML = "";
         playerDivisionLookup.clear();
 
         DIVISIONS.forEach((division, idx) => {
-          gridEl.appendChild(renderDivision(division, all[idx]));
+          gridEl.appendChild(renderDivision(division, all[idx], headToHeadByDivision));
         });
 
         playerStatsLookup.clear();
@@ -1597,7 +1776,6 @@
           });
         });
 
-        const scheduleRows = all[DIVISIONS.length] || [];
         scheduleWeeks = parseScheduleRows(scheduleRows);
         currentWeekIdx = 0;
         renderScheduleWeek();
