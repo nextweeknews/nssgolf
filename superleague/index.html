@@ -878,6 +878,7 @@
     }
 
     .playoffs-layout{
+      --playoff-cell-width: clamp(220px, 31vw, 320px);
       border: 1px solid var(--border-lite);
       border-radius: 16px;
       padding: 12px;
@@ -891,7 +892,6 @@
       --semi-top-center: 52px;
       --semi-bottom-center: 180px;
       --champ-center: 116px;
-      --playoff-cell-width: clamp(220px, 31vw, 320px);
       --connector-merge-x: 56%;
       display:grid;
       grid-template-columns: minmax(220px, var(--playoff-cell-width)) 78px minmax(220px, var(--playoff-cell-width));
@@ -973,9 +973,11 @@
 
     .playoff-oneoffs{
       display:grid;
-      grid-template-columns: repeat(2, minmax(220px, var(--playoff-cell-width)));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: var(--playoff-cell-width);
       justify-content:center;
       gap:16px;
+      margin: 0 auto;
     }
 
     .match-stats{
@@ -1026,7 +1028,6 @@
       .playoff-bracket-row{ grid-template-columns: 1fr; }
       .playoff-connector{ display:none; }
       .playoff-finals{ grid-template-columns: 1fr; padding-top: 0; }
-      .playoff-oneoffs{ grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px){
@@ -1951,6 +1952,13 @@
       document.getElementById("playerMetaDiff").textContent = stats?.diff || "—";
 
       tbody.innerHTML = "";
+      const appendSectionRow = (label) => {
+        const sectionRow = document.createElement("tr");
+        sectionRow.className = "weekly-section-row";
+        sectionRow.innerHTML = `<td colspan="7">${escapeHtml(label)}</td>`;
+        tbody.appendChild(sectionRow);
+      };
+
       const appendResultRow = (label, result) => {
         const row = document.createElement("tr");
         if(!result){
@@ -1988,26 +1996,18 @@
 
       if(playoffMetadata){
         const playerKey = String(playerName ?? "").trim().toUpperCase();
-        const playedPlayoff = [playoffMetadata.championship, playoffMetadata.thirdPlace, ...playoffMetadata.oneOffs.map((entry) => entry.matchup)]
-          .some((matchup) => [matchup?.p1?.name, matchup?.p2?.name].map((name) => String(name ?? "").trim().toUpperCase()).includes(playerKey));
+        const playoffEntries = [
+          { label: "Division 1 Championship", matchup: playoffMetadata.championship },
+          { label: "Division 1 3rd Place", matchup: playoffMetadata.thirdPlace },
+          ...playoffMetadata.oneOffs.map((entry) => ({ label: entry.label, matchup: entry.matchup })),
+        ];
 
-        if(playedPlayoff){
-          const sectionRow = document.createElement("tr");
-          sectionRow.className = "weekly-section-row";
-          sectionRow.innerHTML = '<td colspan="7">Playoffs</td>';
-          tbody.appendChild(sectionRow);
-
-          const playoffEntries = [
-            { label: "Division 1 Championship", matchup: playoffMetadata.championship },
-            { label: "Division 1 3rd Place", matchup: playoffMetadata.thirdPlace },
-            ...playoffMetadata.oneOffs.map((entry) => ({ label: entry.label, matchup: entry.matchup })),
-          ];
-
-          playoffEntries.forEach((entry) => {
-            const result = entry.matchup ? getPlayerWeekResult(playerName, { matchups: [entry.matchup] }) : null;
-            if(result) appendResultRow(entry.label, result);
-          });
-        }
+        playoffEntries.forEach((entry) => {
+          const result = entry.matchup ? getPlayerWeekResult(playerName, { matchups: [entry.matchup] }) : null;
+          if(!result) return;
+          appendSectionRow(entry.label);
+          appendResultRow("-", result);
+        });
       }
 
       if(typeof modal.showModal === "function"){
