@@ -1613,10 +1613,29 @@
       }
 
       .container{ padding: 14px 12px 40px; }
-      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
-      .brand{ flex: 1; min-width: 0; }
+      .topbar-inner{
+        padding: 12px 12px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .brand{
+        flex: 1 1 100%;
+        min-width: 0;
+      }
       .brand > div{ min-width: 0; }
       .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
+      .header-controls{
+        flex: 1 1 100%;
+        width: 100%;
+      }
+      .select-wrap{
+        flex: 1 1 220px;
+        min-width: 0;
+      }
+      .select{
+        min-width: 0;
+        width: 100%;
+      }
 
       .card{ padding: 14px 12px; border-radius: 18px; }
       .card-head .h2{ font-size: 18px; }
