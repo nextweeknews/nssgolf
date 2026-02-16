@@ -578,7 +578,10 @@
     /* Mobile tweaks */
     @media (max-width: 760px){
       .container{ padding: 14px 12px 40px; }
-      .topbar-inner{ padding: 12px 12px; }
+      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .brand{ flex: 1; min-width: 0; }
+      .brand > div{ min-width: 0; }
+      .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
       .card{ padding: 14px 12px; border-radius: 18px; }
       .round-title{ font-size: 16px; padding: 0 52px; }
       .nav-btn{ width: 40px; height: 40px; border-radius: 14px; }
