@@ -897,6 +897,80 @@
       gap:12px;
     }
 
+    .format-wrap{
+      margin-top: 4px;
+      display:grid;
+      gap:12px;
+    }
+
+    .format-copy,
+    .format-note{
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .format-note{
+      color: rgba(233,238,248,0.92);
+      font-weight: 800;
+    }
+
+    .format-table-wrap{
+      border: 1px solid var(--border-lite);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(15,23,42,0.55);
+      overflow-x: auto;
+    }
+
+    table.format-table{
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .format-table th,
+    .format-table td{
+      border: 1px solid rgba(148,163,184,0.35);
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      vertical-align: middle;
+    }
+
+    .format-table th{
+      background: var(--header-bg);
+      color: rgba(231,238,255,0.95);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .format-table .axis-rank,
+    .format-table .axis-division{
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .format-table .rank-label{
+      font-weight: 900;
+      color: rgba(231,238,255,0.95);
+      width: 54px;
+    }
+
+    .format-table td{
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .format-table td.fill-gold{ background: var(--row-highlight-gold); }
+    .format-table td.fill-green{ background: var(--row-highlight-green); }
+    .format-table td.fill-blue{ background: var(--row-highlight-blue); }
+    .format-table td.fill-orange{ background: var(--row-highlight-orange); }
+    .format-table td.fill-red{ background: var(--row-highlight-red); }
+
     .playoffs-layout{
       --playoff-cell-width: clamp(220px, 31vw, 320px);
       border: 1px solid var(--border-lite);
@@ -1062,6 +1136,8 @@
       .headline{ font-size: 18px; }
       .card{ padding: 12px 14px 20px; border-radius: 18px; }
       .division-card{ padding: 10px; }
+      .format-table-wrap{ padding: 8px; }
+      table.format-table{ min-width: 680px; font-size: 11px; }
 
       .player-modal-content{
         width: calc(100% - 16px);
@@ -1187,6 +1263,7 @@
       <button class="view-btn is-active" id="seasonViewBtn" type="button">Super League</button>
       <button class="view-btn" id="qualifiersViewBtn" type="button">Qualifiers</button>
       <button class="view-btn" id="playoffsViewBtn" type="button">Playoffs</button>
+      <button class="view-btn" id="formatViewBtn" type="button">Format</button>
     </div>
 
     <div class="card">
@@ -1259,6 +1336,84 @@
             <div class="playoff-divider" aria-hidden="true"></div>
             <div class="playoff-oneoffs" id="playoffOneOffs"></div>
           </section>
+        </div>
+      </section>
+
+      <section id="formatPage" hidden>
+        <div class="season-head">
+          <h1 class="headline">Season 6 Format</h1>
+        </div>
+
+        <div class="format-wrap">
+          <p class="format-copy">Super League is an exclusive, twice-annual round robin 1v1 tournament.</p>
+          <p class="format-copy">Matches are played to a best of 3 using random 9 hole rounds. In the event of a tied round, closest to pin is not played, and playoff takes place on a new random 9 course until one player scores better than the other. Once the playoff is complete, that random 9 course is cancelled, and if another game is to be played, a new random 9 course</p>
+          <p class="format-note">Note:<br />To accommodate a smooth expansion to 10 players per division for Season 7, the Season 6 movement between divisions based on division standings has been changed as follows:</p>
+
+          <div class="format-table-wrap" aria-label="Division movement table">
+            <table class="format-table">
+              <thead>
+                <tr>
+                  <th rowspan="2" class="axis-rank">Rank</th>
+                  <th colspan="3" class="axis-division">Division</th>
+                </tr>
+                <tr>
+                  <th>1</th>
+                  <th>2</th>
+                  <th>3</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th class="rank-label">1</th>
+                  <td class="fill-gold">D1 Playoff</td>
+                  <td class="fill-green">Moves to D1</td>
+                  <td class="fill-green">Moves to D2</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">2</th>
+                  <td class="fill-gold">D1 Playoff</td>
+                  <td class="fill-green">Moves to D1</td>
+                  <td class="fill-green">Moves to D2</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">3</th>
+                  <td class="fill-gold">D1 Playoff</td>
+                  <td class="fill-blue">Playoff for D1</td>
+                  <td class="fill-blue">Playoff for D2</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">4</th>
+                  <td class="fill-gold">D1 Playoff</td>
+                  <td>Stays in D2</td>
+                  <td>Stays in D3</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">5</th>
+                  <td>Stays in D1</td>
+                  <td>Stays in D2</td>
+                  <td>Stays in D3</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">6</th>
+                  <td>Stays in D1</td>
+                  <td>Stays in D2</td>
+                  <td>Stays in D3</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">7</th>
+                  <td class="fill-orange">Playoff for D1</td>
+                  <td class="fill-orange">Playoff for D2</td>
+                  <td class="fill-red">Must re-qualify</td>
+                </tr>
+                <tr>
+                  <th class="rank-label">8</th>
+                  <td class="fill-red">Moves to D2</td>
+                  <td class="fill-red">Moves to D3</td>
+                  <td class="fill-red">Must re-qualify</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -1340,22 +1495,27 @@
       const seasonBtn = document.getElementById("seasonViewBtn");
       const qualifiersBtn = document.getElementById("qualifiersViewBtn");
       const playoffsBtn = document.getElementById("playoffsViewBtn");
+      const formatBtn = document.getElementById("formatViewBtn");
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
       const playoffsPage = document.getElementById("playoffsPage");
-      const validPages = new Set(["season", "qualifiers", "playoffs"]);
+      const formatPage = document.getElementById("formatPage");
+      const validPages = new Set(["season", "qualifiers", "playoffs", "format"]);
 
       const setPage = (page, options = {}) => {
         const nextPage = validPages.has(page) ? page : "season";
         const showSeason = nextPage === "season";
         const showQualifiers = nextPage === "qualifiers";
         const showPlayoffs = nextPage === "playoffs";
+        const showFormat = nextPage === "format";
         seasonPage.hidden = !showSeason;
         qualifiersPage.hidden = !showQualifiers;
         playoffsPage.hidden = !showPlayoffs;
+        formatPage.hidden = !showFormat;
         seasonBtn.classList.toggle("is-active", showSeason);
         qualifiersBtn.classList.toggle("is-active", showQualifiers);
         playoffsBtn.classList.toggle("is-active", showPlayoffs);
+        formatBtn.classList.toggle("is-active", showFormat);
 
         const url = new URL(window.location.href);
         url.searchParams.set("page", nextPage);
@@ -1376,6 +1536,7 @@
       seasonBtn.addEventListener("click", () => setPage("season"));
       qualifiersBtn.addEventListener("click", () => setPage("qualifiers"));
       playoffsBtn.addEventListener("click", () => setPage("playoffs"));
+      formatBtn.addEventListener("click", () => setPage("format"));
     }
 
     function normalizeValues(resp){
