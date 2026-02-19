@@ -2810,10 +2810,12 @@
         const baseGap = 8;
         const matchHeight = 52;
         const baseMatchStep = matchHeight + baseGap;
-        const roundMatchStep = baseMatchStep * (2 ** idx);
+        const roundMatchStep = idx === 0
+          ? baseMatchStep
+          : baseMatchStep * (2 ** (idx - 1));
         const spacerHeight = idx === 0
           ? 0
-          : (baseMatchStep * ((2 ** idx) - 1)) / 2;
+          : roundMatchStep / 2;
         const gapValue = roundMatchStep - matchHeight;
 
         if(spacerHeight > 0){
