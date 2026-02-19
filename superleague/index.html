@@ -2816,13 +2816,19 @@
         const prevRoundGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
 
         const topPadding = hasPrevRoundLayout
-          ? prevRoundTopPadding + ((2 * matchHeight + prevRoundGap) / 2) - (matchHeight / 2)
+          ? (matchHeight + prevRoundGap) / 2 - (matchHeight / 2)
           : 0;
         const roundGap = hasPrevRoundLayout
-          ? (2 * prevRoundGap) + (2 * matchHeight)
+          ? (prevRoundGap) + (2 * matchHeight)
           : baseGap;
 
-        stack.style.paddingTop = `${topPadding}px`;
+        if(topPadding > 0){
+          const spacer = document.createElement("div");
+          spacer.style.height = `${topPadding}px`;
+          spacer.setAttribute("aria-hidden", "true");
+          stack.appendChild(spacer);
+        }
+
         stack.style.gap = `${roundGap}px`;
         matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
 
