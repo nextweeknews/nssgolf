@@ -1006,6 +1006,10 @@
       color: #fff;
     }
 
+    .qualifier-player-name.is-bye{
+      color: #9ca3af;
+    }
+
     .qualifier-bracket-empty{
       margin: 0;
       min-height: 180px;
@@ -2767,6 +2771,10 @@
       return "";
     }
 
+    function isByePlayer(name){
+      return String(name ?? "").trim().toUpperCase() === "BYE";
+    }
+
     function renderQualifierBracketMatch(matchup){
       const wrap = document.createElement("article");
       wrap.className = "qualifier-bracket-match";
@@ -2780,12 +2788,14 @@
 
       const p1Winner = isQualifierRowWinner(matchup.p1.score, matchup.p2.score);
       const p2Winner = isQualifierRowWinner(matchup.p2.score, matchup.p1.score);
+      const p1ByeClass = isByePlayer(matchup.p1.name) ? " is-bye" : "";
+      const p2ByeClass = isByePlayer(matchup.p2.name) ? " is-bye" : "";
 
       const p1 = document.createElement("div");
       p1.className = `qualifier-match-row${p1Winner ? " winner" : ""}`;
       p1.innerHTML = `
         <div class="qualifier-player-seed">${escapeHtml(matchup.p1.seed)}</div>
-        <div class="qualifier-player-name">${escapeHtml(matchup.p1.name)}</div>
+        <div class="qualifier-player-name${p1ByeClass}">${escapeHtml(matchup.p1.name)}</div>
         <div class="qualifier-player-score">${escapeHtml(matchup.p1.score)}</div>
       `;
 
@@ -2793,7 +2803,7 @@
       p2.className = `qualifier-match-row${p2Winner ? " winner" : ""}`;
       p2.innerHTML = `
         <div class="qualifier-player-seed">${escapeHtml(matchup.p2.seed)}</div>
-        <div class="qualifier-player-name">${escapeHtml(matchup.p2.name)}</div>
+        <div class="qualifier-player-name${p2ByeClass}">${escapeHtml(matchup.p2.name)}</div>
         <div class="qualifier-player-score">${escapeHtml(matchup.p2.score)}</div>
       `;
 
