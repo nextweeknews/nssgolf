@@ -822,6 +822,12 @@
       align-content:start;
     }
 
+    .qualifier-bracket-group{
+      display:grid;
+      gap:12px;
+      align-content:start;
+    }
+
     .qualifier-bracket{
       overflow-x: auto;
       overflow-y: hidden;
@@ -1530,17 +1536,31 @@
             <div class="qualifier-seed-list" id="qualifierSeedList"></div>
           </aside>
 
-          <section class="qualifier-bracket" aria-label="Qualifier bracket">
-            <h2 class="qualifier-title">Winners Bracket</h2>
-            <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Bracket round navigation" hidden>
-              <button class="nav-btn nav-left qualifier-round-nav-btn" id="qualifierRoundPrev" type="button" aria-label="Previous qualifier round">←</button>
-              <div class="qualifier-bracket-round-label" id="qualifierRoundLabel">Round</div>
-              <button class="nav-btn nav-right qualifier-round-nav-btn" id="qualifierRoundNext" type="button" aria-label="Next qualifier round">→</button>
-            </div>
-            <div class="qualifier-bracket-scroll">
-              <div class="qualifier-bracket-grid" id="qualifierBracketGrid"></div>
-            </div>
-          </section>
+          <div class="qualifier-bracket-group">
+            <section class="qualifier-bracket" aria-label="Qualifier winners bracket">
+              <h2 class="qualifier-title">Winners Bracket</h2>
+              <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Winners bracket round navigation" hidden>
+                <button class="nav-btn nav-left qualifier-round-nav-btn" id="qualifierRoundPrev" type="button" aria-label="Previous winners bracket round">←</button>
+                <div class="qualifier-bracket-round-label" id="qualifierRoundLabel">Round</div>
+                <button class="nav-btn nav-right qualifier-round-nav-btn" id="qualifierRoundNext" type="button" aria-label="Next winners bracket round">→</button>
+              </div>
+              <div class="qualifier-bracket-scroll">
+                <div class="qualifier-bracket-grid" id="qualifierBracketGrid"></div>
+              </div>
+            </section>
+
+            <section class="qualifier-bracket" aria-label="Qualifier losers bracket">
+              <h2 class="qualifier-title">Losers Bracket</h2>
+              <div class="qualifier-bracket-controls" id="loserBracketControls" aria-label="Losers bracket round navigation" hidden>
+                <button class="nav-btn nav-left qualifier-round-nav-btn" id="loserRoundPrev" type="button" aria-label="Previous losers bracket round">←</button>
+                <div class="qualifier-bracket-round-label" id="loserRoundLabel">Round</div>
+                <button class="nav-btn nav-right qualifier-round-nav-btn" id="loserRoundNext" type="button" aria-label="Next losers bracket round">→</button>
+              </div>
+              <div class="qualifier-bracket-scroll">
+                <div class="qualifier-bracket-grid" id="loserBracketGrid"></div>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -1711,13 +1731,18 @@
     const QUALIFIER_LIST_RANGE = "A:B";
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
     const QUALIFIER_BRACKET_SHEET = "S6 Winners Bracket";
+    const LOSER_BRACKET_RANGE = "A4:H62";
+    const LOSER_BRACKET_SHEET = "S6 Losers Bracket";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
+    const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"];
     const PLAYOFF_RANGE = "I87:AB92";
     let scheduleWeeks = [];
     let playoffMatchups = [];
     let currentWeekIdx = 0;
     let qualifierBracketRowsCache = [];
+    let loserBracketRowsCache = [];
     let qualifierMobileRoundIndex = 0;
+    let loserMobileRoundIndex = 0;
     const qualifierMobileQuery = window.matchMedia("(max-width: 760px)");
     const playerDivisionLookup = new Map();
     const playerStatsLookup = new Map();
@@ -2866,6 +2891,12 @@
       return "";
     }
 
+    function normalizeLoserRoundLabel(round){
+      const text = String(round ?? "").trim().toUpperCase();
+      if(/^L[1-7]$/.test(text)) return text;
+      return "";
+    }
+
     function isByePlayer(name){
       return String(name ?? "").trim().toUpperCase() === "BYE";
     }
@@ -2880,6 +2911,12 @@
         case "FINAL": return "Finals";
         default: return String(round ?? "").trim();
       }
+    }
+
+    function getLoserRoundDisplayLabel(round, visibleRoundOrder){
+      const idx = visibleRoundOrder.indexOf(round);
+      if(idx === -1) return String(round ?? "").trim();
+      return `Round ${idx + 1}`;
     }
 
     function renderQualifierBracketMatch(matchup){
@@ -2923,12 +2960,18 @@
       return wrap;
     }
 
-    function updateQualifierBracketPagination(){
-      const controlsEl = document.getElementById("qualifierBracketControls");
-      const prevBtn = document.getElementById("qualifierRoundPrev");
-      const nextBtn = document.getElementById("qualifierRoundNext");
-      const labelEl = document.getElementById("qualifierRoundLabel");
-      const columns = Array.from(document.querySelectorAll("#qualifierBracketGrid .qualifier-round-column"));
+    function isByeOnlyRound(matches){
+      return matches.length > 0 && matches.every((matchup) => (
+        isByePlayer(matchup.p1.name) || isByePlayer(matchup.p2.name)
+      ));
+    }
+
+    function updateBracketPagination(config){
+      const controlsEl = document.getElementById(config.controlsId);
+      const prevBtn = document.getElementById(config.prevBtnId);
+      const nextBtn = document.getElementById(config.nextBtnId);
+      const labelEl = document.getElementById(config.labelId);
+      const columns = Array.from(document.querySelectorAll(`#${config.gridId} .qualifier-round-column`));
 
       if(!controlsEl || !prevBtn || !nextBtn || !labelEl) return;
 
@@ -2948,51 +2991,62 @@
       }
 
       controlsEl.hidden = false;
-      qualifierMobileRoundIndex = Math.min(Math.max(qualifierMobileRoundIndex, 0), availableRounds.length - 1);
-      const activeRound = availableRounds[qualifierMobileRoundIndex];
+      const currentIndex = Math.min(Math.max(config.getRoundIndex(), 0), availableRounds.length - 1);
+      config.setRoundIndex(currentIndex);
+      const activeRound = availableRounds[currentIndex];
       labelEl.textContent = activeRound;
 
       columns.forEach((col) => {
         col.hidden = col.dataset.round !== activeRound;
       });
 
-      prevBtn.disabled = qualifierMobileRoundIndex <= 0;
-      nextBtn.disabled = qualifierMobileRoundIndex >= availableRounds.length - 1;
+      prevBtn.disabled = currentIndex <= 0;
+      nextBtn.disabled = currentIndex >= availableRounds.length - 1;
     }
 
-    function renderQualifierBracket(values) {
-      const bracketEl = document.getElementById("qualifierBracketGrid");
+    function renderBracket(values, config) {
+      const bracketEl = document.getElementById(config.gridId);
       const rows = parseQualifierBracketRows(values);
       const isMobile = qualifierMobileQuery.matches;
-      qualifierBracketRowsCache = values;
+      config.setCache(values);
+
+      if(!bracketEl) return;
 
       bracketEl.innerHTML = "";
 
       if(!rows.length) {
         bracketEl.innerHTML =
-          '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
-        updateQualifierBracketPagination();
+          `<p class="qualifier-bracket-empty">No ${escapeHtml(config.emptyLabel)} bracket data available yet.</p>`;
+        updateBracketPagination(config);
         return;
       }
 
       const baseGap = 8;
       let prevStep = null;
-      let prevMatchHeight = null;
       let cumulativeTopPadding = 0;
+      let prevRoundMatchCount = null;
 
-      QUALIFIER_ROUNDS.forEach((roundLabel, idx) => {
+      const visibleRounds = config.rounds.filter((roundLabel) => {
+        const matches = rows.filter((row) => config.normalizeRound(row.round) === roundLabel);
+        if(!matches.length) return false;
+        if(config.hideByeOnlyRounds && isByeOnlyRound(matches)) return false;
+        return true;
+      });
+
+      visibleRounds.forEach((roundLabel, idx) => {
         const matches = rows.filter(
-          (row) => normalizeQualifierRoundLabel(row.round) === roundLabel
+          (row) => config.normalizeRound(row.round) === roundLabel
         );
         if(!matches.length) return;
 
         const col = document.createElement("section");
         col.className = "qualifier-round-column";
-        col.dataset.round = getQualifierRoundDisplayLabel(roundLabel);
+        const displayLabel = config.getRoundDisplayLabel(roundLabel, visibleRounds);
+        col.dataset.round = displayLabel;
 
         const title = document.createElement("h3");
         title.className = "qualifier-round-title";
-        title.textContent = getQualifierRoundDisplayLabel(roundLabel);
+        title.textContent = displayLabel;
 
         const stack = document.createElement("div");
         stack.className = "qualifier-round-stack";
@@ -3022,63 +3076,108 @@
 
         const r0Pre = matchEls[0].getBoundingClientRect();
         const currMatchHeight = r0Pre.height;
-        const hasPrev = idx > 0 && prevStep != null && prevMatchHeight != null;
-        const roundGap = hasPrev ? (2 * prevStep) - currMatchHeight : baseGap;
+        const hasPrev = idx > 0 && prevStep != null;
+        const isHalvedRound = hasPrev && prevRoundMatchCount != null && matchEls.length < prevRoundMatchCount;
+        const roundGap = isHalvedRound ? (2 * prevStep) - currMatchHeight : baseGap;
 
         stack.style.gap = `${roundGap}px`;
         stack.style.setProperty("--qualifier-round-gap", `${roundGap}px`);
 
-        if(hasPrev) {
+        if(isHalvedRound) {
           cumulativeTopPadding += (prevStep / 2);
-        } else {
+        } else if(!hasPrev) {
           cumulativeTopPadding = 0;
         }
         stack.style.paddingTop = `${cumulativeTopPadding}px`;
         stack.style.setProperty("--qualifier-round-padding-top", `${cumulativeTopPadding}px`);
 
         const r0 = matchEls[0].getBoundingClientRect();
-        prevMatchHeight = r0.height;
-
         if(matchEls.length >= 2) {
           const r1 = matchEls[1].getBoundingClientRect();
           prevStep = r1.top - r0.top;
         } else {
-          prevStep = prevMatchHeight + roundGap;
+          prevStep = r0.height + roundGap;
         }
+        prevRoundMatchCount = matchEls.length;
       });
 
-      updateQualifierBracketPagination();
+      updateBracketPagination(config);
     }
 
+    const winnerBracketConfig = {
+      gridId: "qualifierBracketGrid",
+      controlsId: "qualifierBracketControls",
+      prevBtnId: "qualifierRoundPrev",
+      nextBtnId: "qualifierRoundNext",
+      labelId: "qualifierRoundLabel",
+      rounds: QUALIFIER_ROUNDS,
+      normalizeRound: normalizeQualifierRoundLabel,
+      getRoundDisplayLabel: (round) => getQualifierRoundDisplayLabel(round),
+      hideByeOnlyRounds: false,
+      emptyLabel: "winners",
+      getRoundIndex: () => qualifierMobileRoundIndex,
+      setRoundIndex: (value) => { qualifierMobileRoundIndex = value; },
+      setCache: (value) => { qualifierBracketRowsCache = value; },
+      getCache: () => qualifierBracketRowsCache,
+    };
+
+    const loserBracketConfig = {
+      gridId: "loserBracketGrid",
+      controlsId: "loserBracketControls",
+      prevBtnId: "loserRoundPrev",
+      nextBtnId: "loserRoundNext",
+      labelId: "loserRoundLabel",
+      rounds: LOSER_ROUNDS,
+      normalizeRound: normalizeLoserRoundLabel,
+      getRoundDisplayLabel: getLoserRoundDisplayLabel,
+      hideByeOnlyRounds: true,
+      emptyLabel: "losers",
+      getRoundIndex: () => loserMobileRoundIndex,
+      setRoundIndex: (value) => { loserMobileRoundIndex = value; },
+      setCache: (value) => { loserBracketRowsCache = value; },
+      getCache: () => loserBracketRowsCache,
+    };
+
     function setupQualifierRoundNav(){
-      const prevBtn = document.getElementById("qualifierRoundPrev");
-      const nextBtn = document.getElementById("qualifierRoundNext");
+      const setupNavForBracket = (config) => {
+        const prevBtn = document.getElementById(config.prevBtnId);
+        const nextBtn = document.getElementById(config.nextBtnId);
+        if(!prevBtn || !nextBtn) return;
 
-      prevBtn.addEventListener("click", () => {
-        if(qualifierMobileRoundIndex <= 0) return;
-        qualifierMobileRoundIndex -= 1;
-        updateQualifierBracketPagination();
-      });
+        prevBtn.addEventListener("click", () => {
+          const current = config.getRoundIndex();
+          if(current <= 0) return;
+          config.setRoundIndex(current - 1);
+          updateBracketPagination(config);
+        });
 
-      nextBtn.addEventListener("click", () => {
-        const availableCount = document.querySelectorAll("#qualifierBracketGrid .qualifier-round-column").length;
-        if(qualifierMobileRoundIndex >= availableCount - 1) return;
-        qualifierMobileRoundIndex += 1;
-        updateQualifierBracketPagination();
-      });
+        nextBtn.addEventListener("click", () => {
+          const availableCount = document.querySelectorAll(`#${config.gridId} .qualifier-round-column`).length;
+          const current = config.getRoundIndex();
+          if(current >= availableCount - 1) return;
+          config.setRoundIndex(current + 1);
+          updateBracketPagination(config);
+        });
+      };
+
+      setupNavForBracket(winnerBracketConfig);
+      setupNavForBracket(loserBracketConfig);
 
       qualifierMobileQuery.addEventListener("change", () => {
-        renderQualifierBracket(qualifierBracketRowsCache);
+        renderBracket(winnerBracketConfig.getCache(), winnerBracketConfig);
+        renderBracket(loserBracketConfig.getCache(), loserBracketConfig);
       });
     }
 
     async function loadQualifiers(){
-      const [qualifierValues, bracketValues] = await Promise.all([
+      const [qualifierValues, winnerBracketValues, loserBracketValues] = await Promise.all([
         fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers"),
         fetchRange(QUALIFIER_BRACKET_RANGE, QUALIFIER_BRACKET_SHEET),
+        fetchRange(LOSER_BRACKET_RANGE, LOSER_BRACKET_SHEET),
       ]);
       renderQualifierSeeds(qualifierValues);
-      renderQualifierBracket(bracketValues);
+      renderBracket(winnerBracketValues, winnerBracketConfig);
+      renderBracket(loserBracketValues, loserBracketConfig);
     }
 
     async function loadRankings(){
