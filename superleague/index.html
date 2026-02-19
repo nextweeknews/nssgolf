@@ -1062,6 +1062,14 @@
       color: #9ca3af;
     }
 
+    .qualifier-player-name.is-loser-placeholder{
+      color: #9ca3af;
+      font-style: italic;
+      font-weight: 500;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
     .qualifier-bracket-empty{
       margin: 0;
       min-height: 180px;
@@ -2901,6 +2909,10 @@
       return String(name ?? "").trim().toUpperCase() === "BYE";
     }
 
+    function isLoserOfPlaceholder(name){
+      return String(name ?? "").trim().toUpperCase().startsWith("LOSER OF");
+    }
+
     function getQualifierRoundDisplayLabel(round){
       switch(String(round ?? "").trim().toUpperCase()){
         case "R64": return "Round 1";
@@ -2919,10 +2931,11 @@
       return `Round ${idx + 1}`;
     }
 
-    function renderQualifierBracketMatch(matchup){
+    function renderQualifierBracketMatch(matchup, options = {}){
       const wrap = document.createElement("article");
       wrap.className = "qualifier-bracket-match";
       const hasByePlayer = isByePlayer(matchup.p1.name) || isByePlayer(matchup.p2.name);
+      const styleLoserPlaceholders = !!options.styleLoserPlaceholders;
 
       const label = document.createElement("div");
       label.className = "qualifier-match-number";
@@ -2935,12 +2948,14 @@
       const p2Winner = isQualifierRowWinner(matchup.p2.score, matchup.p1.score);
       const p1ByeClass = isByePlayer(matchup.p1.name) ? " is-bye" : "";
       const p2ByeClass = isByePlayer(matchup.p2.name) ? " is-bye" : "";
+      const p1LoserPlaceholderClass = styleLoserPlaceholders && isLoserOfPlaceholder(matchup.p1.name) ? " is-loser-placeholder" : "";
+      const p2LoserPlaceholderClass = styleLoserPlaceholders && isLoserOfPlaceholder(matchup.p2.name) ? " is-loser-placeholder" : "";
 
       const p1 = document.createElement("div");
       p1.className = `qualifier-match-row${p1Winner ? " winner" : ""}`;
       p1.innerHTML = `
         <div class="qualifier-player-seed">${escapeHtml(matchup.p1.seed)}</div>
-        <div class="qualifier-player-name${p1ByeClass}">${escapeHtml(matchup.p1.name)}</div>
+        <div class="qualifier-player-name${p1ByeClass}${p1LoserPlaceholderClass}">${escapeHtml(matchup.p1.name)}</div>
         <div class="qualifier-player-score">${escapeHtml(matchup.p1.score)}</div>
       `;
 
@@ -2948,7 +2963,7 @@
       p2.className = `qualifier-match-row${p2Winner ? " winner" : ""}`;
       p2.innerHTML = `
         <div class="qualifier-player-seed">${escapeHtml(matchup.p2.seed)}</div>
-        <div class="qualifier-player-name${p2ByeClass}">${escapeHtml(matchup.p2.name)}</div>
+        <div class="qualifier-player-name${p2ByeClass}${p2LoserPlaceholderClass}">${escapeHtml(matchup.p2.name)}</div>
         <div class="qualifier-player-score">${escapeHtml(matchup.p2.score)}</div>
       `;
 
@@ -3023,6 +3038,7 @@
 
       const baseGap = 8;
       let prevStep = null;
+      let prevRoundGap = baseGap;
       let cumulativeTopPadding = 0;
       let prevRoundMatchCount = null;
 
@@ -3052,7 +3068,9 @@
         stack.className = "qualifier-round-stack";
 
         matches.forEach((matchup) => {
-          const matchEl = renderQualifierBracketMatch(matchup);
+          const matchEl = renderQualifierBracketMatch(matchup, {
+            styleLoserPlaceholders: !!config.styleLoserPlaceholders
+          });
           if(isMobile && matchEl.classList.contains("is-placeholder")) return;
           stack.appendChild(matchEl);
         });
@@ -3078,7 +3096,8 @@
         const currMatchHeight = r0Pre.height;
         const hasPrev = idx > 0 && prevStep != null;
         const isHalvedRound = hasPrev && prevRoundMatchCount != null && matchEls.length < prevRoundMatchCount;
-        const roundGap = isHalvedRound ? (2 * prevStep) - currMatchHeight : baseGap;
+        const keepPreviousSpacing = !!config.updateSpacingOnlyOnReduction && hasPrev && !isHalvedRound;
+        const roundGap = isHalvedRound ? (2 * prevStep) - currMatchHeight : (keepPreviousSpacing ? prevRoundGap : baseGap);
 
         stack.style.gap = `${roundGap}px`;
         stack.style.setProperty("--qualifier-round-gap", `${roundGap}px`);
@@ -3086,6 +3105,8 @@
         if(isHalvedRound) {
           cumulativeTopPadding += (prevStep / 2);
         } else if(!hasPrev) {
+          cumulativeTopPadding = 0;
+        } else if(!keepPreviousSpacing) {
           cumulativeTopPadding = 0;
         }
         stack.style.paddingTop = `${cumulativeTopPadding}px`;
@@ -3098,6 +3119,7 @@
         } else {
           prevStep = r0.height + roundGap;
         }
+        prevRoundGap = roundGap;
         prevRoundMatchCount = matchEls.length;
       });
 
@@ -3131,6 +3153,8 @@
       normalizeRound: normalizeLoserRoundLabel,
       getRoundDisplayLabel: getLoserRoundDisplayLabel,
       hideByeOnlyRounds: true,
+      updateSpacingOnlyOnReduction: true,
+      styleLoserPlaceholders: true,
       emptyLabel: "losers",
       getRoundIndex: () => loserMobileRoundIndex,
       setRoundIndex: (value) => { loserMobileRoundIndex = value; },
