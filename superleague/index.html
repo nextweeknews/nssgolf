@@ -987,7 +987,12 @@
     }
 
     .qualifier-player-score{
-      color: #fff;
+      color: #000;
+      background: #fff;
+      border-radius: 4px;
+      min-height: 16px;
+      display:grid;
+      place-items:center;
     }
 
     .qualifier-player-name{
@@ -998,6 +1003,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       letter-spacing: .02em;
+      color: #fff;
     }
 
     .qualifier-bracket-empty{
@@ -1259,6 +1265,13 @@
       .division-card{ padding: 10px; }
       .format-table-wrap{ padding: 8px; }
       table.format-table{ min-width: 680px; font-size: 11px; }
+      .qualifier-round-stack{ gap: var(--qualifier-round-gap, 8px); }
+      .qualifier-round-stack .qualifier-bracket-match:first-child{
+        padding-top: var(--qualifier-round-padding-top, 0px);
+      }
+      .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{
+        padding-top: var(--qualifier-round-gap, 8px);
+      }
 
       .player-modal-content{
         width: calc(100% - 16px);
@@ -2851,8 +2864,9 @@
         const roundGap = hasPrev
           ? (2 * prevStep) - currMatchHeight
           : baseGap;
-    
+
         stack.style.gap = `${roundGap}px`;
+        stack.style.setProperty("--qualifier-round-gap", `${roundGap}px`);
     
         // ✅ Keep R32 exactly as before, but increase padding for later rounds by accumulating.
         if (hasPrev) {
@@ -2861,6 +2875,7 @@
           cumulativeTopPadding = 0;
         }
         stack.style.paddingTop = `${cumulativeTopPadding}px`;
+        stack.style.setProperty("--qualifier-round-padding-top", `${cumulativeTopPadding}px`);
     
         // IMPORTANT: re-measure AFTER applying gap + paddingTop
         const r0 = matchEls[0].getBoundingClientRect();
