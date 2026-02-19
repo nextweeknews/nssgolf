@@ -899,6 +899,10 @@
       overflow-wrap: anywhere;
     }
 
+    .qualification-description{
+      line-height: 1.35;
+    }
+
     .qualification-division-pill{
       display:inline-grid;
       place-items:center;
@@ -1427,8 +1431,22 @@
         display:flex;
         flex-direction:column;
       }
-      .qualifier-bracket{
-        order: -1;
+      .qualifier-bracket-group{
+        order: 1;
+      }
+      .qualifier-seeds{
+        order: 2;
+        width: 100%;
+      }
+      .qualifier-seed-list,
+      .qualifier-seed-row,
+      .qualifier-seed-head{
+        width: 100%;
+      }
+      .qualifier-seed-head,
+      .qualifier-seed-row{
+        grid-template-columns: 42px minmax(0, 1fr);
+        padding-inline: 10px;
       }
       .qualifier-bracket-scroll{
         overflow-x: hidden;
@@ -1637,18 +1655,6 @@
               <div class="qualification-table-wrap" id="qualificationTableWrap"></div>
             </section>
 
-            <div class="qualifier-third-place-grid" aria-label="Qualifier third place games">
-              <section class="qualifier-bracket" aria-label="Winners bracket third place game">
-                <h2 class="qualifier-title">Winners Bracket 3rd Place</h2>
-                <div class="qualifier-third-place-match" id="winnerThirdPlaceMatch"></div>
-              </section>
-
-              <section class="qualifier-bracket" aria-label="Losers bracket third place game">
-                <h2 class="qualifier-title">Losers Bracket 3rd Place</h2>
-                <div class="qualifier-third-place-match" id="loserThirdPlaceMatch"></div>
-              </section>
-            </div>
-
             <section class="qualifier-bracket" aria-label="Qualifier winners bracket">
               <h2 class="qualifier-title">Winners Bracket</h2>
               <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Winners bracket round navigation" hidden>
@@ -1660,6 +1666,18 @@
                 <div class="qualifier-bracket-grid" id="qualifierBracketGrid"></div>
               </div>
             </section>
+
+            <div class="qualifier-third-place-grid" aria-label="Qualifier third place games">
+              <section class="qualifier-bracket" aria-label="Winners bracket third place game">
+                <h2 class="qualifier-title">Winners Bracket 3rd Place</h2>
+                <div class="qualifier-third-place-match" id="winnerThirdPlaceMatch"></div>
+              </section>
+
+              <section class="qualifier-bracket" aria-label="Losers bracket third place game">
+                <h2 class="qualifier-title">Losers Bracket 3rd Place</h2>
+                <div class="qualifier-third-place-match" id="loserThirdPlaceMatch"></div>
+              </section>
+            </div>
 
             <section class="qualifier-bracket" aria-label="Qualifier losers bracket">
               <h2 class="qualifier-title">Losers Bracket</h2>
@@ -3005,12 +3023,16 @@
         const playerValue = String(row?.[1] ?? "");
         const descriptionValue = String(row?.[2] ?? "");
         const divisionClass = divisionClassFromLabel(divisionValue);
+        const descriptionParts = descriptionValue.split(/\b(bracket)\b/i);
+        const formattedDescription = descriptionParts.length >= 3
+          ? `${escapeHtml(descriptionParts.slice(0, 2).join(""))}<br>${escapeHtml(descriptionParts.slice(2).join(""))}`
+          : escapeHtml(descriptionValue);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><span class="qualification-division-pill ${divisionClass}">${escapeHtml(divisionValue || "—")}</span></td>
           <td class="qualification-player">${escapeHtml(playerValue)}</td>
-          <td class="qualification-description">${escapeHtml(descriptionValue)}</td>
+          <td class="qualification-description">${formattedDescription}</td>
         `;
         bodyEl.appendChild(tr);
       });
