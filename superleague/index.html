@@ -2781,62 +2781,87 @@
       return wrap;
     }
 
-   function renderQualifierBracket(values){
-      const bracketEl = document.getElementById("qualifierBracketGrid");
-      const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
-      const rows = parseQualifierBracketRows(values);
-
-      bracketEl.innerHTML = "";
-      delete bracketEl.dataset.prevRoundGap;
-
-      if(!rows.length){
-        bracketEl.innerHTML = '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
-        return;
+  function renderQualifierBracket(values) {
+    const bracketEl = document.getElementById("qualifierBracketGrid");
+    const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
+    const rows = parseQualifierBracketRows(values);
+  
+    bracketEl.innerHTML = "";
+  
+    if (!rows.length) {
+      bracketEl.innerHTML =
+        '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
+      return;
+    }
+  
+    // Fallbacks only (we'll measure real values after first render)
+    const fallbackBaseGap = 8;
+  
+    // These will be measured from the DOM after each round renders
+    let prevStep = null;        // center-to-center (or top-to-top) distance between consecutive matches
+    let prevMatchHeight = null; // actual rendered height of a match element
+  
+    rounds.forEach((roundLabel, idx) => {
+      const matches = rows.filter(
+        (row) => normalizeQualifierRoundLabel(row.round) === roundLabel
+      );
+      if (!matches.length) return;
+  
+      const col = document.createElement("section");
+      col.className = "qualifier-round-column";
+  
+      const title = document.createElement("h3");
+      title.className = "qualifier-round-title";
+      title.textContent = roundLabel;
+  
+      const stack = document.createElement("div");
+      stack.className = "qualifier-round-stack";
+  
+      // Use measured values if we have them; otherwise fallback for the first round
+      const hasPrev = idx > 0 && prevStep != null && prevMatchHeight != null;
+  
+      const topPadding = hasPrev ? (prevStep / 2) : 0;
+      const roundGap = hasPrev
+        ? (2 * prevStep) - prevMatchHeight
+        : fallbackBaseGap;
+  
+      if (topPadding > 0) {
+        const spacer = document.createElement("div");
+        spacer.style.height = `${topPadding}px`;
+        spacer.setAttribute("aria-hidden", "true");
+        stack.appendChild(spacer);
       }
 
-      const baseGap = 8;
-      const matchHeight = 52;
-
-      rounds.forEach((roundLabel, idx) => {
-        const matches = rows.filter((row) => normalizeQualifierRoundLabel(row.round) === roundLabel);
-        if(!matches.length) return;
-
-        const col = document.createElement("section");
-        col.className = "qualifier-round-column";
-
-        const title = document.createElement("h3");
-        title.className = "qualifier-round-title";
-        title.textContent = roundLabel;
-
-        const stack = document.createElement("div");
-        stack.className = "qualifier-round-stack";
-
-        const hasPrevRoundLayout = idx > 0;
-        const prevGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
-
-        const prevStep = matchHeight + prevGap;
-
-        const topPadding = hasPrevRoundLayout ? (prevStep / 2) : 0;
-
-        const step = hasPrevRoundLayout ? (2 * prevStep) : (matchHeight + baseGap);
-
-        const roundGap = step - matchHeight;
-
-        if(topPadding > 0){
-          const spacer = document.createElement("div");
-          spacer.style.height = `${topPadding}px`;
-          spacer.setAttribute("aria-hidden", "true");
-          stack.appendChild(spacer);
+      stack.style.gap = `${roundGap}px`;
+  
+      // Append match elements
+      matches.forEach((matchup) => {
+        stack.appendChild(renderQualifierBracketMatch(matchup));
+      });
+  
+      col.appendChild(title);
+      col.appendChild(stack);
+      bracketEl.appendChild(col);
+  
+      // ---- Measure actual layout for the NEXT round ----
+      // Ignore the spacer if present (it's the first child when idx > 0)
+      const matchEls = Array.from(stack.children).filter(
+        (el) => el.nodeType === 1 && !el.hasAttribute("aria-hidden")
+      );
+  
+      if (matchEls.length) {
+        const r0 = matchEls[0].getBoundingClientRect();
+        prevMatchHeight = r0.height;
+  
+        // If we have at least two matches, measure the actual vertical "step"
+        if (matchEls.length >= 2) {
+          const r1 = matchEls[1].getBoundingClientRect();
+          prevStep = r1.top - r0.top; // top-to-top distance between consecutive matches
+        } else {
+            // If only one match in a round, fall back to height + current gap
+            prevStep = prevMatchHeight + roundGap;
+          }
         }
-
-        stack.style.gap = `${roundGap}px`;
-        matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
-
-        bracketEl.dataset.prevRoundGap = String(roundGap);
-
-        col.appendChild(title);
-        col.appendChild(stack);
-        bracketEl.appendChild(col);
       });
     }
 
