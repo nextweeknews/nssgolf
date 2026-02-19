@@ -872,7 +872,7 @@
       font-weight: 800;
       letter-spacing: .03em;
       text-transform: uppercase;
-      color: var(--muted);
+      color: #93c5fd;
     }
 
     .qualifier-seed-player{
@@ -945,8 +945,8 @@
       width: 100%;
       border-radius: 10px;
       overflow: hidden;
-      border: 1px solid rgba(148,163,184,0.3);
-      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
     }
 
     .qualifier-match-row{
@@ -955,11 +955,15 @@
       align-items:center;
       gap: 6px;
       min-height: 24px;
-      background: rgba(255,255,255,0.95);
-      color: #0f172a;
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
       padding: 3px 6px;
       border: 1px solid transparent;
       font-size: 10px;
+    }
+
+    .qualifier-match-row:nth-child(2){
+      background: rgba(255,255,255,0.045);
     }
 
     .qualifier-match-row + .qualifier-match-row{
@@ -967,8 +971,8 @@
     }
 
     .qualifier-match-row.winner{
-      background: rgba(220,252,231,0.96);
-      border-color: rgba(34,197,94,0.5);
+      background: rgba(34,197,94,0.12);
+      border-color: rgba(34,197,94,0.55);
     }
 
     .qualifier-player-seed,
@@ -976,7 +980,14 @@
       text-align:center;
       font-variant-numeric: tabular-nums;
       font-weight: 800;
-      color: #334155;
+    }
+
+    .qualifier-player-seed{
+      color: #93c5fd;
+    }
+
+    .qualifier-player-score{
+      color: #fff;
     }
 
     .qualifier-player-name{
@@ -2760,17 +2771,17 @@
       const p1 = document.createElement("div");
       p1.className = `qualifier-match-row${p1Winner ? " winner" : ""}`;
       p1.innerHTML = `
-        <div class="qualifier-player-seed">${escapeHtml(matchup.p1.seed || "—")}</div>
-        <div class="qualifier-player-name">${escapeHtml(matchup.p1.name || "TBD")}</div>
-        <div class="qualifier-player-score">${escapeHtml(matchup.p1.score || "—")}</div>
+        <div class="qualifier-player-seed">${escapeHtml(matchup.p1.seed)}</div>
+        <div class="qualifier-player-name">${escapeHtml(matchup.p1.name)}</div>
+        <div class="qualifier-player-score">${escapeHtml(matchup.p1.score)}</div>
       `;
 
       const p2 = document.createElement("div");
       p2.className = `qualifier-match-row${p2Winner ? " winner" : ""}`;
       p2.innerHTML = `
-        <div class="qualifier-player-seed">${escapeHtml(matchup.p2.seed || "—")}</div>
-        <div class="qualifier-player-name">${escapeHtml(matchup.p2.name || "TBD")}</div>
-        <div class="qualifier-player-score">${escapeHtml(matchup.p2.score || "—")}</div>
+        <div class="qualifier-player-seed">${escapeHtml(matchup.p2.seed)}</div>
+        <div class="qualifier-player-name">${escapeHtml(matchup.p2.name)}</div>
+        <div class="qualifier-player-score">${escapeHtml(matchup.p2.score)}</div>
       `;
 
       card.appendChild(p1);
