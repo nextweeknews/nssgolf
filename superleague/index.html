@@ -829,28 +829,35 @@
 
     .qualifier-bracket-controls{
       display:none;
-      grid-template-columns: 38px minmax(0, 1fr) 38px;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items:center;
-      gap: 8px;
+      gap: 10px;
       border: 1px solid rgba(148,163,184,0.26);
       border-radius: 12px;
-      padding: 4px;
+      padding: 8px 10px;
       background: rgba(2,8,24,0.60);
     }
 
     .qualifier-bracket-round-label{
       text-align:center;
-      font-size: 11px;
+      font-size: 15px;
       font-weight: 900;
-      letter-spacing: .08em;
+      letter-spacing: .1em;
       color: var(--muted);
       text-transform: uppercase;
+      line-height: 1.1;
     }
 
     .qualifier-round-nav-btn{
-      width: 100%;
-      min-width: 0;
-      justify-self: stretch;
+      position: static;
+      top: auto;
+      left: auto;
+      right: auto;
+      transform: none;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      justify-self: center;
       padding-inline: 0;
     }
 
