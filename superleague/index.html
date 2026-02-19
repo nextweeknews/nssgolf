@@ -828,6 +828,17 @@
       align-content:start;
     }
 
+    .qualifier-third-place-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap:12px;
+      align-items:start;
+    }
+
+    .qualifier-third-place-match{
+      min-height: 56px;
+    }
+
     .qualifier-qualifications{
       border: 1px solid var(--border-lite);
       border-radius: 16px;
@@ -1384,6 +1395,7 @@
       .division-grid{ grid-template-columns: 1fr; }
       .schedule-grid{ grid-template-columns: 1fr; }
       .qualifiers-layout{ grid-template-columns: 1fr; }
+      .qualifier-third-place-grid{ grid-template-columns: 1fr; }
       .playoff-bracket-row{ grid-template-columns: 1fr; }
       .playoff-connector{ display:none; }
       .playoff-finals{ grid-template-columns: 1fr; padding-top: 16px; }
@@ -1625,6 +1637,18 @@
               <div class="qualification-table-wrap" id="qualificationTableWrap"></div>
             </section>
 
+            <div class="qualifier-third-place-grid" aria-label="Qualifier third place games">
+              <section class="qualifier-bracket" aria-label="Winners bracket third place game">
+                <h2 class="qualifier-title">Winners Bracket 3rd Place</h2>
+                <div class="qualifier-third-place-match" id="winnerThirdPlaceMatch"></div>
+              </section>
+
+              <section class="qualifier-bracket" aria-label="Losers bracket third place game">
+                <h2 class="qualifier-title">Losers Bracket 3rd Place</h2>
+                <div class="qualifier-third-place-match" id="loserThirdPlaceMatch"></div>
+              </section>
+            </div>
+
             <section class="qualifier-bracket" aria-label="Qualifier winners bracket">
               <h2 class="qualifier-title">Winners Bracket</h2>
               <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Winners bracket round navigation" hidden>
@@ -1821,8 +1845,10 @@
     const DIVISION_QUALIFICATIONS_SHEET = "S6 Divisions";
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
     const QUALIFIER_BRACKET_SHEET = "S6 Winners Bracket";
+    const WINNER_THIRD_PLACE_RANGE = "A68:H68";
     const LOSER_BRACKET_RANGE = "A4:H62";
     const LOSER_BRACKET_SHEET = "S6 Losers Bracket";
+    const LOSER_THIRD_PLACE_RANGE = "A62:H62";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"];
     const PLAYOFF_RANGE = "I87:AB92";
@@ -3254,6 +3280,23 @@
       updateBracketPagination(config);
     }
 
+    function renderThirdPlaceMatch(values, elementId, emptyLabel, options = {}){
+      const containerEl = document.getElementById(elementId);
+      if(!containerEl) return;
+      containerEl.innerHTML = "";
+
+      const matchup = parseQualifierBracketRows(values)[0];
+      if(!matchup){
+        containerEl.innerHTML = `<p class="schedule-empty" style="text-align:center;">No ${escapeHtml(emptyLabel)} data available yet.</p>`;
+        return;
+      }
+
+      const matchEl = renderQualifierBracketMatch(matchup, {
+        styleLoserPlaceholders: !!options.styleLoserPlaceholders,
+      });
+      containerEl.appendChild(matchEl);
+    }
+
     const winnerBracketConfig = {
       gridId: "qualifierBracketGrid",
       controlsId: "qualifierBracketControls",
@@ -3322,14 +3365,27 @@
     }
 
     async function loadQualifiers(){
-      const [qualifierValues, divisionQualificationValues, winnerBracketValues, loserBracketValues] = await Promise.all([
+      const [
+        qualifierValues,
+        divisionQualificationValues,
+        winnerBracketValues,
+        loserBracketValues,
+        winnerThirdPlaceValues,
+        loserThirdPlaceValues,
+      ] = await Promise.all([
         fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers"),
         fetchRange(DIVISION_QUALIFICATIONS_RANGE, DIVISION_QUALIFICATIONS_SHEET),
         fetchRange(QUALIFIER_BRACKET_RANGE, QUALIFIER_BRACKET_SHEET),
         fetchRange(LOSER_BRACKET_RANGE, LOSER_BRACKET_SHEET),
+        fetchRange(WINNER_THIRD_PLACE_RANGE, QUALIFIER_BRACKET_SHEET),
+        fetchRange(LOSER_THIRD_PLACE_RANGE, LOSER_BRACKET_SHEET),
       ]);
       renderQualifierSeeds(qualifierValues);
       renderDivisionQualifications(divisionQualificationValues);
+      renderThirdPlaceMatch(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+      renderThirdPlaceMatch(loserThirdPlaceValues, "loserThirdPlaceMatch", "losers bracket 3rd place game", {
+        styleLoserPlaceholders: true,
+      });
       renderBracket(winnerBracketValues, winnerBracketConfig);
       renderBracket(loserBracketValues, loserBracketConfig);
     }
