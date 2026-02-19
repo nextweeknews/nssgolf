@@ -829,9 +829,13 @@
 
     .qualifier-bracket-controls{
       display:none;
-      grid-template-columns: auto 1fr auto;
+      grid-template-columns: 38px minmax(0, 1fr) 38px;
       align-items:center;
       gap: 8px;
+      border: 1px solid rgba(148,163,184,0.26);
+      border-radius: 12px;
+      padding: 4px;
+      background: rgba(2,8,24,0.60);
     }
 
     .qualifier-bracket-round-label{
@@ -841,6 +845,13 @@
       letter-spacing: .08em;
       color: var(--muted);
       text-transform: uppercase;
+    }
+
+    .qualifier-round-nav-btn{
+      width: 100%;
+      min-width: 0;
+      justify-self: stretch;
+      padding-inline: 0;
     }
 
     .qualifier-title{
@@ -1316,6 +1327,25 @@
       .qualifier-round-column[hidden]{
         display:none;
       }
+      .qualifier-round-title{
+        display:none;
+      }
+      .qualifier-match-number{
+        width: 28px;
+        flex: 0 0 28px;
+        font-size: 11px;
+      }
+      .qualifier-match-row{
+        grid-template-columns: 28px minmax(0, 1fr) 28px;
+        font-size: 13px;
+      }
+      .qualifier-player-seed,
+      .qualifier-player-score{
+        font-size: 12px;
+      }
+      .qualifier-player-name{
+        font-size: 14px;
+      }
 
       .player-modal-content{
         width: calc(100% - 16px);
@@ -1487,9 +1517,9 @@
           <section class="qualifier-bracket" aria-label="Qualifier bracket">
             <h2 class="qualifier-title">Double-Elimination Bracket</h2>
             <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Bracket round navigation" hidden>
-              <button class="nav-btn nav-left" id="qualifierRoundPrev" type="button" aria-label="Previous qualifier round">←</button>
+              <button class="nav-btn nav-left qualifier-round-nav-btn" id="qualifierRoundPrev" type="button" aria-label="Previous qualifier round">←</button>
               <div class="qualifier-bracket-round-label" id="qualifierRoundLabel">Round</div>
-              <button class="nav-btn nav-right" id="qualifierRoundNext" type="button" aria-label="Next qualifier round">→</button>
+              <button class="nav-btn nav-right qualifier-round-nav-btn" id="qualifierRoundNext" type="button" aria-label="Next qualifier round">→</button>
             </div>
             <div class="qualifier-bracket-scroll">
               <div class="qualifier-bracket-grid" id="qualifierBracketGrid"></div>
@@ -2877,6 +2907,7 @@
       const availableRounds = columns.map((col) => col.dataset.round).filter(Boolean);
       if(!availableRounds.length){
         controlsEl.hidden = true;
+        labelEl.textContent = "Round";
         return;
       }
 
@@ -2939,8 +2970,12 @@
         stack.className = "qualifier-round-stack";
 
         matches.forEach((matchup) => {
-          stack.appendChild(renderQualifierBracketMatch(matchup));
+          const matchEl = renderQualifierBracketMatch(matchup);
+          if(isMobile && matchEl.classList.contains("is-placeholder")) return;
+          stack.appendChild(matchEl);
         });
+
+        if(!stack.children.length) return;
 
         col.appendChild(title);
         col.appendChild(stack);
