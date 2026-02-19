@@ -2840,18 +2840,6 @@
       });
     }
 
-        stack.style.gap = `${roundGap}px`;
-        matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
-
-        bracketEl.dataset.prevTopPadding = String(topPadding);
-        bracketEl.dataset.prevRoundGap = String(roundGap);
-
-        col.appendChild(title);
-        col.appendChild(stack);
-        bracketEl.appendChild(col);
-      });
-    }
-
     async function loadQualifiers(){
       const [qualifierValues, bracketValues] = await Promise.all([
         fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers"),
