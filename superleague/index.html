@@ -2816,7 +2816,7 @@
         const prevRoundGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
 
         const topPadding = hasPrevRoundLayout
-          ? prevRoundTopPadding + ((matchHeight + prevRoundGap) / 2) - (matchHeight / 2)
+          ? ((2 * matchHeight + prevRoundGap) / 2) - (matchHeight / 2)
           : 0;
         const roundGap = hasPrevRoundLayout
           ? (prevRoundGap) + (2 * matchHeight)
