@@ -2811,15 +2811,17 @@
 
         const baseGap = 8;
         const matchHeight = 52;
+
         const hasPrevRoundLayout = idx > 0;
-        const prevRoundTopPadding = Number(bracketEl.dataset.prevTopPadding ?? 0);
-        const prevRoundGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
+        const prevTopPadding = Number(bracketEl.dataset.prevTopPadding ?? 0);
+        const prevGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
 
         const topPadding = hasPrevRoundLayout
-          ? ((matchHeight + prevRoundGap) / 2) - (matchHeight / 2)
+          ? prevTopPadding + (matchHeight + prevGap) / 2
           : 0;
+
         const roundGap = hasPrevRoundLayout
-          ? (prevRoundGap) + (2 * matchHeight)
+          ? matchHeight + (2 * prevGap)
           : baseGap;
 
         if(topPadding > 0){
