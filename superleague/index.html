@@ -2780,7 +2780,7 @@
       return wrap;
     }
 
-    function renderQualifierBracket(values) {
+   function renderQualifierBracket(values) {
       const bracketEl = document.getElementById("qualifierBracketGrid");
       const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
       const rows = parseQualifierBracketRows(values);
@@ -2795,9 +2795,12 @@
     
       const baseGap = 8;
     
-      // From previous round (measured after layout)
-      let prevStep = null;        // top-to-top distance between consecutive matches
-      let prevMatchHeight = null; // height of a match element
+      // Previous round measurements (measured AFTER styles are applied)
+      let prevStep = null;         // top-to-top distance between consecutive matches in previous round
+      let prevMatchHeight = null;  // height of a match in previous round
+    
+      // ✅ Cumulative top offset so later rounds don't "reset" to baseline
+      let cumulativeTopPadding = 0;
     
       rounds.forEach((roundLabel, idx) => {
         const matches = rows.filter(
@@ -2815,7 +2818,7 @@
         const stack = document.createElement("div");
         stack.className = "qualifier-round-stack";
     
-        // Render match elements
+        // Render matches first
         matches.forEach((matchup) => {
           stack.appendChild(renderQualifierBracketMatch(matchup));
         });
@@ -2833,22 +2836,22 @@
     
         const hasPrev = idx > 0 && prevStep != null && prevMatchHeight != null;
     
-        // This round's gap (doubling step from previous round)
+        // Gap growth: doubles previous step, then subtract current match height
         const roundGap = hasPrev
           ? (2 * prevStep) - currMatchHeight
           : baseGap;
     
         stack.style.gap = `${roundGap}px`;
     
-        // ✅ Correct top padding: half of the SPACE between the two feeder matches
-        // prevGap = prevStep - prevMatchHeight
-        const topPadding = hasPrev
-          ? Math.max(0, (prevStep - prevMatchHeight) / 2)
-          : 0;
+        // ✅ Keep R32 exactly as before, but increase padding for later rounds by accumulating.
+        if (hasPrev) {
+          cumulativeTopPadding += (prevStep / 2);
+        } else {
+          cumulativeTopPadding = 0;
+        }
+        stack.style.paddingTop = `${cumulativeTopPadding}px`;
     
-        stack.style.paddingTop = `${topPadding}px`;
-    
-        // Re-measure AFTER applying styles to get accurate prevStep for next round
+        // IMPORTANT: re-measure AFTER applying gap + paddingTop
         const r0 = matchEls[0].getBoundingClientRect();
         prevMatchHeight = r0.height;
     
