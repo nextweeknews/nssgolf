@@ -1013,6 +1013,14 @@
       border-color: rgba(34,197,94,0.55);
     }
 
+    .qualifier-match-row.winner:first-child{
+      border-radius: 10px 10px 0 0;
+    }
+
+    .qualifier-match-row.winner:last-child{
+      border-radius: 0 0 10px 10px;
+    }
+
     .qualifier-player-seed,
     .qualifier-player-score{
       text-align:center;
@@ -1344,6 +1352,7 @@
       }
       .qualifier-match-row{
         grid-template-columns: 28px minmax(0, 1fr) 28px;
+        min-height: 32px;
         font-size: 13px;
       }
       .qualifier-player-seed,
