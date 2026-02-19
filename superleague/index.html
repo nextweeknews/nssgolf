@@ -931,6 +931,10 @@
       min-height: 52px;
     }
 
+    .qualifier-bracket-match.is-placeholder{
+      visibility: hidden;
+    }
+
     .qualifier-match-number{
       width: 20px;
       flex: 0 0 20px;
@@ -2778,6 +2782,7 @@
     function renderQualifierBracketMatch(matchup){
       const wrap = document.createElement("article");
       wrap.className = "qualifier-bracket-match";
+      const hasByePlayer = isByePlayer(matchup.p1.name) || isByePlayer(matchup.p2.name);
 
       const label = document.createElement("div");
       label.className = "qualifier-match-number";
@@ -2811,6 +2816,7 @@
       card.appendChild(p2);
       wrap.appendChild(label);
       wrap.appendChild(card);
+      if(hasByePlayer) wrap.classList.add("is-placeholder");
       return wrap;
     }
 
