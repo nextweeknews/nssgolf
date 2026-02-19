@@ -2787,6 +2787,8 @@
       const rows = parseQualifierBracketRows(values);
 
       bracketEl.innerHTML = "";
+      delete bracketEl.dataset.prevTopPadding;
+      delete bracketEl.dataset.prevRoundGap;
 
       if(!rows.length){
         bracketEl.innerHTML = '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
@@ -2809,24 +2811,29 @@
 
         const baseGap = 8;
         const matchHeight = 52;
-        const baseMatchStep = matchHeight + baseGap;
-        const roundMatchStep = idx === 0
-          ? baseMatchStep
-          : baseMatchStep * (2 ** (idx - 1));
-        const spacerHeight = idx === 0
-          ? 0
-          : roundMatchStep / 2;
-        const gapValue = roundMatchStep - matchHeight;
+        const hasPrevRoundLayout = idx > 0;
+        const prevRoundTopPadding = Number(bracketEl.dataset.prevTopPadding ?? 0);
+        const prevRoundGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
 
-        if(spacerHeight > 0){
+        const topPadding = hasPrevRoundLayout
+          ? prevRoundTopPadding + ((2 * matchHeight + prevRoundGap) / 2) - (matchHeight / 2)
+          : 0;
+        const roundGap = hasPrevRoundLayout
+          ? (2 * prevRoundGap) + (2 * matchHeight)
+          : baseGap;
+
+        if(topPadding > 0){
           const spacer = document.createElement("div");
-          spacer.style.height = `${spacerHeight}px`;
+          spacer.style.height = `${topPadding}px`;
           spacer.setAttribute("aria-hidden", "true");
           stack.appendChild(spacer);
         }
 
-        stack.style.gap = `${Math.max(baseGap, gapValue)}px`;
+        stack.style.gap = `${roundGap}px`;
         matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
+
+        bracketEl.dataset.prevTopPadding = String(topPadding);
+        bracketEl.dataset.prevRoundGap = String(roundGap);
 
         col.appendChild(title);
         col.appendChild(stack);
