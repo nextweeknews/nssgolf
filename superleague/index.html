@@ -2780,7 +2780,7 @@
       return wrap;
     }
 
-     function renderQualifierBracket(values) {
+    function renderQualifierBracket(values) {
       const bracketEl = document.getElementById("qualifierBracketGrid");
       const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
       const rows = parseQualifierBracketRows(values);
@@ -2795,9 +2795,9 @@
     
       const baseGap = 8;
     
-      // Measured values from the PREVIOUS round (after layout)
-      let prevStep = null;        // top-to-top distance between consecutive matches in previous round
-      let prevMatchHeight = null; // match height in previous round
+      // From previous round (measured after layout)
+      let prevStep = null;        // top-to-top distance between consecutive matches
+      let prevMatchHeight = null; // height of a match element
     
       rounds.forEach((roundLabel, idx) => {
         const matches = rows.filter(
@@ -2827,23 +2827,28 @@
         const matchEls = Array.from(stack.children);
         if (!matchEls.length) return;
     
-        // Measure this round's match height (force layout)
+        // Measure current match height
         const r0Pre = matchEls[0].getBoundingClientRect();
         const currMatchHeight = r0Pre.height;
     
         const hasPrev = idx > 0 && prevStep != null && prevMatchHeight != null;
     
-        // Apply layout for THIS round using PREVIOUS round's measured step
-        const topPadding = hasPrev ? (prevStep / 2) : 0;
-    
+        // This round's gap (doubling step from previous round)
         const roundGap = hasPrev
           ? (2 * prevStep) - currMatchHeight
           : baseGap;
     
-        stack.style.paddingTop = `${Math.max(0, topPadding)}px`;
         stack.style.gap = `${roundGap}px`;
     
-        // IMPORTANT: re-measure AFTER styles are applied, to get the true step for next round
+        // ✅ Correct top padding: half of the SPACE between the two feeder matches
+        // prevGap = prevStep - prevMatchHeight
+        const topPadding = hasPrev
+          ? Math.max(0, (prevStep - prevMatchHeight) / 2)
+          : 0;
+    
+        stack.style.paddingTop = `${topPadding}px`;
+    
+        // Re-measure AFTER applying styles to get accurate prevStep for next round
         const r0 = matchEls[0].getBoundingClientRect();
         prevMatchHeight = r0.height;
     
@@ -2851,7 +2856,6 @@
           const r1 = matchEls[1].getBoundingClientRect();
           prevStep = r1.top - r0.top;
         } else {
-          // One match: approximate step
           prevStep = prevMatchHeight + roundGap;
         }
       });
