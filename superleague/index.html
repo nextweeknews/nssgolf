@@ -827,6 +827,33 @@
       overflow-y: hidden;
     }
 
+    .qualifier-bracket-controls{
+      display:none;
+      grid-template-columns: 38px minmax(0, 1fr) 38px;
+      align-items:center;
+      gap: 8px;
+      border: 1px solid rgba(148,163,184,0.26);
+      border-radius: 12px;
+      padding: 4px;
+      background: rgba(2,8,24,0.60);
+    }
+
+    .qualifier-bracket-round-label{
+      text-align:center;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .qualifier-round-nav-btn{
+      width: 100%;
+      min-width: 0;
+      justify-self: stretch;
+      padding-inline: 0;
+    }
+
     .qualifier-title{
       margin:0;
       font-size: 12px;
@@ -1280,6 +1307,45 @@
       .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{
         padding-top: var(--qualifier-round-gap, 8px);
       }
+      .qualifiers-layout{
+        display:flex;
+        flex-direction:column;
+      }
+      .qualifier-bracket{
+        order: -1;
+      }
+      .qualifier-bracket-scroll{
+        overflow-x: hidden;
+      }
+      .qualifier-bracket-grid{
+        display:block;
+        min-width: 0;
+      }
+      .qualifier-bracket-controls{
+        display:grid;
+      }
+      .qualifier-round-column[hidden]{
+        display:none;
+      }
+      .qualifier-round-title{
+        display:none;
+      }
+      .qualifier-match-number{
+        width: 28px;
+        flex: 0 0 28px;
+        font-size: 11px;
+      }
+      .qualifier-match-row{
+        grid-template-columns: 28px minmax(0, 1fr) 28px;
+        font-size: 13px;
+      }
+      .qualifier-player-seed,
+      .qualifier-player-score{
+        font-size: 12px;
+      }
+      .qualifier-player-name{
+        font-size: 14px;
+      }
 
       .player-modal-content{
         width: calc(100% - 16px);
@@ -1450,6 +1516,11 @@
 
           <section class="qualifier-bracket" aria-label="Qualifier bracket">
             <h2 class="qualifier-title">Double-Elimination Bracket</h2>
+            <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Bracket round navigation" hidden>
+              <button class="nav-btn nav-left qualifier-round-nav-btn" id="qualifierRoundPrev" type="button" aria-label="Previous qualifier round">←</button>
+              <div class="qualifier-bracket-round-label" id="qualifierRoundLabel">Round</div>
+              <button class="nav-btn nav-right qualifier-round-nav-btn" id="qualifierRoundNext" type="button" aria-label="Next qualifier round">→</button>
+            </div>
             <div class="qualifier-bracket-scroll">
               <div class="qualifier-bracket-grid" id="qualifierBracketGrid"></div>
             </div>
@@ -1624,10 +1695,14 @@
     const QUALIFIER_LIST_RANGE = "A:B";
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
     const QUALIFIER_BRACKET_SHEET = "S6 Winners Bracket";
+    const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const PLAYOFF_RANGE = "I87:AB92";
     let scheduleWeeks = [];
     let playoffMatchups = [];
     let currentWeekIdx = 0;
+    let qualifierBracketRowsCache = [];
+    let qualifierMobileRoundIndex = 0;
+    const qualifierMobileQuery = window.matchMedia("(max-width: 760px)");
     const playerDivisionLookup = new Map();
     const playerStatsLookup = new Map();
 
@@ -2820,89 +2895,152 @@
       return wrap;
     }
 
-   function renderQualifierBracket(values) {
-      const bracketEl = document.getElementById("qualifierBracketGrid");
-      const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
-      const rows = parseQualifierBracketRows(values);
-    
-      bracketEl.innerHTML = "";
-    
-      if (!rows.length) {
-        bracketEl.innerHTML =
-          '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
+    function updateQualifierBracketPagination(){
+      const controlsEl = document.getElementById("qualifierBracketControls");
+      const prevBtn = document.getElementById("qualifierRoundPrev");
+      const nextBtn = document.getElementById("qualifierRoundNext");
+      const labelEl = document.getElementById("qualifierRoundLabel");
+      const columns = Array.from(document.querySelectorAll("#qualifierBracketGrid .qualifier-round-column"));
+
+      if(!controlsEl || !prevBtn || !nextBtn || !labelEl) return;
+
+      const availableRounds = columns.map((col) => col.dataset.round).filter(Boolean);
+      if(!availableRounds.length){
+        controlsEl.hidden = true;
+        labelEl.textContent = "Round";
         return;
       }
-    
+
+      if(!qualifierMobileQuery.matches){
+        controlsEl.hidden = true;
+        columns.forEach((col) => {
+          col.hidden = false;
+        });
+        return;
+      }
+
+      controlsEl.hidden = false;
+      qualifierMobileRoundIndex = Math.min(Math.max(qualifierMobileRoundIndex, 0), availableRounds.length - 1);
+      const activeRound = availableRounds[qualifierMobileRoundIndex];
+      labelEl.textContent = activeRound;
+
+      columns.forEach((col) => {
+        col.hidden = col.dataset.round !== activeRound;
+      });
+
+      prevBtn.disabled = qualifierMobileRoundIndex <= 0;
+      nextBtn.disabled = qualifierMobileRoundIndex >= availableRounds.length - 1;
+    }
+
+    function renderQualifierBracket(values) {
+      const bracketEl = document.getElementById("qualifierBracketGrid");
+      const rows = parseQualifierBracketRows(values);
+      const isMobile = qualifierMobileQuery.matches;
+      qualifierBracketRowsCache = values;
+
+      bracketEl.innerHTML = "";
+
+      if(!rows.length) {
+        bracketEl.innerHTML =
+          '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
+        updateQualifierBracketPagination();
+        return;
+      }
+
       const baseGap = 8;
-    
-      // Previous round measurements (measured AFTER styles are applied)
-      let prevStep = null;         // top-to-top distance between consecutive matches in previous round
-      let prevMatchHeight = null;  // height of a match in previous round
-    
-      // ✅ Cumulative top offset so later rounds don't "reset" to baseline
+      let prevStep = null;
+      let prevMatchHeight = null;
       let cumulativeTopPadding = 0;
-    
-      rounds.forEach((roundLabel, idx) => {
+
+      QUALIFIER_ROUNDS.forEach((roundLabel, idx) => {
         const matches = rows.filter(
           (row) => normalizeQualifierRoundLabel(row.round) === roundLabel
         );
-        if (!matches.length) return;
-    
+        if(!matches.length) return;
+
         const col = document.createElement("section");
         col.className = "qualifier-round-column";
-    
+        col.dataset.round = roundLabel;
+
         const title = document.createElement("h3");
         title.className = "qualifier-round-title";
         title.textContent = roundLabel;
-    
+
         const stack = document.createElement("div");
         stack.className = "qualifier-round-stack";
-    
-        // Render matches first
+
         matches.forEach((matchup) => {
-          stack.appendChild(renderQualifierBracketMatch(matchup));
+          const matchEl = renderQualifierBracketMatch(matchup);
+          if(isMobile && matchEl.classList.contains("is-placeholder")) return;
+          stack.appendChild(matchEl);
         });
-    
+
+        if(!stack.children.length) return;
+
         col.appendChild(title);
         col.appendChild(stack);
         bracketEl.appendChild(col);
-    
+
+        if(isMobile) {
+          stack.style.gap = `${baseGap}px`;
+          stack.style.paddingTop = "0px";
+          stack.style.setProperty("--qualifier-round-gap", `${baseGap}px`);
+          stack.style.setProperty("--qualifier-round-padding-top", "0px");
+          return;
+        }
+
         const matchEls = Array.from(stack.children);
-        if (!matchEls.length) return;
-    
-        // Measure current match height
+        if(!matchEls.length) return;
+
         const r0Pre = matchEls[0].getBoundingClientRect();
         const currMatchHeight = r0Pre.height;
-    
         const hasPrev = idx > 0 && prevStep != null && prevMatchHeight != null;
-    
-        // Gap growth: doubles previous step, then subtract current match height
-        const roundGap = hasPrev
-          ? (2 * prevStep) - currMatchHeight
-          : baseGap;
+        const roundGap = hasPrev ? (2 * prevStep) - currMatchHeight : baseGap;
 
         stack.style.gap = `${roundGap}px`;
         stack.style.setProperty("--qualifier-round-gap", `${roundGap}px`);
-    
-        // ✅ Keep R32 exactly as before, but increase padding for later rounds by accumulating.
-        if (hasPrev) {
+
+        if(hasPrev) {
           cumulativeTopPadding += (prevStep / 2);
         } else {
           cumulativeTopPadding = 0;
         }
         stack.style.paddingTop = `${cumulativeTopPadding}px`;
         stack.style.setProperty("--qualifier-round-padding-top", `${cumulativeTopPadding}px`);
-    
-        // IMPORTANT: re-measure AFTER applying gap + paddingTop
+
         const r0 = matchEls[0].getBoundingClientRect();
         prevMatchHeight = r0.height;
-    
-        if (matchEls.length >= 2) {
+
+        if(matchEls.length >= 2) {
           const r1 = matchEls[1].getBoundingClientRect();
           prevStep = r1.top - r0.top;
         } else {
           prevStep = prevMatchHeight + roundGap;
         }
+      });
+
+      updateQualifierBracketPagination();
+    }
+
+    function setupQualifierRoundNav(){
+      const prevBtn = document.getElementById("qualifierRoundPrev");
+      const nextBtn = document.getElementById("qualifierRoundNext");
+
+      prevBtn.addEventListener("click", () => {
+        if(qualifierMobileRoundIndex <= 0) return;
+        qualifierMobileRoundIndex -= 1;
+        updateQualifierBracketPagination();
+      });
+
+      nextBtn.addEventListener("click", () => {
+        const availableCount = document.querySelectorAll("#qualifierBracketGrid .qualifier-round-column").length;
+        if(qualifierMobileRoundIndex >= availableCount - 1) return;
+        qualifierMobileRoundIndex += 1;
+        updateQualifierBracketPagination();
+      });
+
+      qualifierMobileQuery.addEventListener("change", () => {
+        renderQualifierBracket(qualifierBracketRowsCache);
       });
     }
 
@@ -2968,6 +3106,7 @@
 
     setupViewNav();
     setupScheduleNav();
+    setupQualifierRoundNav();
     setupPlayerModal();
     window.addEventListener("resize", updatePlayoffBracketLayout);
     loadRankings();
