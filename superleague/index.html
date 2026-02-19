@@ -2784,7 +2784,6 @@
     function renderQualifierBracket(values){
       const bracketEl = document.getElementById("qualifierBracketGrid");
       const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
-      const roundSpacingMultiplier = [1, 2, 4, 8, 16, 32];
       const rows = parseQualifierBracketRows(values);
 
       bracketEl.innerHTML = "";
@@ -2809,8 +2808,13 @@
         stack.className = "qualifier-round-stack";
 
         const baseGap = 8;
-        const spacerHeight = idx === 0 ? 0 : ((roundSpacingMultiplier[idx] / 2) * 52) + ((roundSpacingMultiplier[idx] / 2) * baseGap);
-        const gapValue = (roundSpacingMultiplier[idx] * 52) + ((roundSpacingMultiplier[idx] - 1) * baseGap);
+        const matchHeight = 52;
+        const baseMatchStep = matchHeight + baseGap;
+        const roundMatchStep = baseMatchStep * (2 ** idx);
+        const spacerHeight = idx === 0
+          ? 0
+          : (baseMatchStep * ((2 ** idx) - 1)) / 2;
+        const gapValue = roundMatchStep - matchHeight;
 
         if(spacerHeight > 0){
           const spacer = document.createElement("div");
