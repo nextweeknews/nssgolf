@@ -822,6 +822,11 @@
       align-content:start;
     }
 
+    .qualifier-bracket{
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
     .qualifier-title{
       margin:0;
       font-size: 12px;
@@ -878,18 +883,123 @@
       text-align:center;
     }
 
-    .qualifier-bracket-placeholder{
-      min-height: 320px;
+    .qualifier-bracket-scroll{
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
+    }
+
+    .qualifier-bracket-grid{
+      display:grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(172px, 196px);
+      gap: 14px;
+      align-items: start;
+      min-width: max-content;
+      padding: 2px;
+    }
+
+    .qualifier-round-column{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .qualifier-round-title{
+      margin:0;
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .09em;
+      color: var(--muted);
+      text-align:center;
+      min-height: 16px;
+    }
+
+    .qualifier-round-stack{
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      min-height: 100%;
+    }
+
+    .qualifier-bracket-match{
+      display:flex;
+      align-items:center;
+      gap: 3px;
+      min-height: 52px;
+    }
+
+    .qualifier-match-number{
+      width: 20px;
+      flex: 0 0 20px;
+      text-align:center;
+      color: rgba(233,238,248,0.68);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .02em;
+    }
+
+    .qualifier-match-card{
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .qualifier-match-row{
+      display:grid;
+      grid-template-columns: 24px minmax(0, 1fr) 24px;
+      align-items:center;
+      gap: 6px;
+      min-height: 24px;
+      background: rgba(255,255,255,0.95);
+      color: #0f172a;
+      padding: 3px 6px;
+      border: 1px solid transparent;
+      font-size: 10px;
+    }
+
+    .qualifier-match-row + .qualifier-match-row{
+      border-top: 1px solid rgba(148,163,184,0.38);
+    }
+
+    .qualifier-match-row.winner{
+      background: rgba(220,252,231,0.96);
+      border-color: rgba(34,197,94,0.5);
+    }
+
+    .qualifier-player-seed,
+    .qualifier-player-score{
+      text-align:center;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      color: #334155;
+    }
+
+    .qualifier-player-name{
+      min-width: 0;
+      font-weight: 900;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: .02em;
+    }
+
+    .qualifier-bracket-empty{
+      margin: 0;
+      min-height: 180px;
       border: 1px dashed rgba(148,163,184,0.45);
-      border-radius: 14px;
+      border-radius: 12px;
       display:grid;
       place-items:center;
-      font-weight: 850;
       color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
       text-align:center;
-      padding: 12px;
+      font-size: 12px;
     }
 
     .playoffs-wrap{
@@ -1309,7 +1419,9 @@
 
           <section class="qualifier-bracket" aria-label="Qualifier bracket">
             <h2 class="qualifier-title">Double-Elimination Bracket</h2>
-            <div class="qualifier-bracket-placeholder">Coming soon</div>
+            <div class="qualifier-bracket-scroll">
+              <div class="qualifier-bracket-grid" id="qualifierBracketGrid"></div>
+            </div>
           </section>
         </div>
       </section>
@@ -1479,6 +1591,8 @@
     ];
     const SCHEDULE_RANGE = "I2:AB85";
     const QUALIFIER_LIST_RANGE = "A:B";
+    const QUALIFIER_BRACKET_RANGE = "A3:H80";
+    const QUALIFIER_BRACKET_SHEET = "S6 Winners Bracket";
     const PLAYOFF_RANGE = "I87:AB92";
     let scheduleWeeks = [];
     let playoffMatchups = [];
@@ -2595,9 +2709,132 @@
       });
     }
 
+    function parseQualifierBracketRows(values){
+      return values
+        .map((row = []) => ({
+          matchNumber: String(row[0] ?? "").trim(),
+          round: String(row[1] ?? "").trim().toUpperCase(),
+          p1: {
+            seed: String(row[2] ?? "").trim(),
+            name: String(row[3] ?? "").trim(),
+            score: String(row[4] ?? "").trim(),
+          },
+          p2: {
+            seed: String(row[5] ?? "").trim(),
+            name: String(row[6] ?? "").trim(),
+            score: String(row[7] ?? "").trim(),
+          },
+        }))
+        .filter((row) => row.matchNumber && row.round);
+    }
+
+    function isQualifierRowWinner(playerScore, opponentScore){
+      const p = Number(String(playerScore ?? "").trim());
+      const o = Number(String(opponentScore ?? "").trim());
+      if(!Number.isFinite(p) || !Number.isFinite(o)) return false;
+      return p > o;
+    }
+
+    function normalizeQualifierRoundLabel(round){
+      const text = String(round ?? "").trim().toUpperCase();
+      if(text === "R64" || text === "R32" || text === "R16" || text === "QF" || text === "SF" || text === "FINAL") return text;
+      if(text === "R8") return "QF";
+      if(text === "R4") return "SF";
+      if(text === "R2") return "FINAL";
+      return "";
+    }
+
+    function renderQualifierBracketMatch(matchup){
+      const wrap = document.createElement("article");
+      wrap.className = "qualifier-bracket-match";
+
+      const label = document.createElement("div");
+      label.className = "qualifier-match-number";
+      label.textContent = matchup.matchNumber || "—";
+
+      const card = document.createElement("div");
+      card.className = "qualifier-match-card";
+
+      const p1Winner = isQualifierRowWinner(matchup.p1.score, matchup.p2.score);
+      const p2Winner = isQualifierRowWinner(matchup.p2.score, matchup.p1.score);
+
+      const p1 = document.createElement("div");
+      p1.className = `qualifier-match-row${p1Winner ? " winner" : ""}`;
+      p1.innerHTML = `
+        <div class="qualifier-player-seed">${escapeHtml(matchup.p1.seed || "—")}</div>
+        <div class="qualifier-player-name">${escapeHtml(matchup.p1.name || "TBD")}</div>
+        <div class="qualifier-player-score">${escapeHtml(matchup.p1.score || "—")}</div>
+      `;
+
+      const p2 = document.createElement("div");
+      p2.className = `qualifier-match-row${p2Winner ? " winner" : ""}`;
+      p2.innerHTML = `
+        <div class="qualifier-player-seed">${escapeHtml(matchup.p2.seed || "—")}</div>
+        <div class="qualifier-player-name">${escapeHtml(matchup.p2.name || "TBD")}</div>
+        <div class="qualifier-player-score">${escapeHtml(matchup.p2.score || "—")}</div>
+      `;
+
+      card.appendChild(p1);
+      card.appendChild(p2);
+      wrap.appendChild(label);
+      wrap.appendChild(card);
+      return wrap;
+    }
+
+    function renderQualifierBracket(values){
+      const bracketEl = document.getElementById("qualifierBracketGrid");
+      const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
+      const roundSpacingMultiplier = [1, 2, 4, 8, 16, 32];
+      const rows = parseQualifierBracketRows(values);
+
+      bracketEl.innerHTML = "";
+
+      if(!rows.length){
+        bracketEl.innerHTML = '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
+        return;
+      }
+
+      rounds.forEach((roundLabel, idx) => {
+        const matches = rows.filter((row) => normalizeQualifierRoundLabel(row.round) === roundLabel);
+        if(!matches.length) return;
+
+        const col = document.createElement("section");
+        col.className = "qualifier-round-column";
+
+        const title = document.createElement("h3");
+        title.className = "qualifier-round-title";
+        title.textContent = roundLabel;
+
+        const stack = document.createElement("div");
+        stack.className = "qualifier-round-stack";
+
+        const baseGap = 8;
+        const spacerHeight = idx === 0 ? 0 : ((roundSpacingMultiplier[idx] / 2) * 52) + ((roundSpacingMultiplier[idx] / 2) * baseGap);
+        const gapValue = (roundSpacingMultiplier[idx] * 52) + ((roundSpacingMultiplier[idx] - 1) * baseGap);
+
+        if(spacerHeight > 0){
+          const spacer = document.createElement("div");
+          spacer.style.height = `${spacerHeight}px`;
+          spacer.setAttribute("aria-hidden", "true");
+          stack.appendChild(spacer);
+        }
+
+        stack.style.gap = `${Math.max(baseGap, gapValue)}px`;
+        matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
+
+        col.appendChild(title);
+        col.appendChild(stack);
+        bracketEl.appendChild(col);
+      });
+    }
+
     async function loadQualifiers(){
-      const qualifierValues = await fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers");
+      const [qualifierValues, bracketValues] = await Promise.all([
+        fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers"),
+        fetchRange(QUALIFIER_BRACKET_RANGE, QUALIFIER_BRACKET_SHEET),
+      ]);
       renderQualifierSeeds(qualifierValues);
+      renderQualifierBracket(bracketValues);
     }
 
     async function loadRankings(){
