@@ -2743,44 +2743,7 @@
       return "";
     }
 
-    function renderQualifierBracketMatch(matchup){
-      const wrap = document.createElement("article");
-      wrap.className = "qualifier-bracket-match";
-
-      const label = document.createElement("div");
-      label.className = "qualifier-match-number";
-      label.textContent = matchup.matchNumber || "—";
-
-      const card = document.createElement("div");
-      card.className = "qualifier-match-card";
-
-      const p1Winner = isQualifierRowWinner(matchup.p1.score, matchup.p2.score);
-      const p2Winner = isQualifierRowWinner(matchup.p2.score, matchup.p1.score);
-
-      const p1 = document.createElement("div");
-      p1.className = `qualifier-match-row${p1Winner ? " winner" : ""}`;
-      p1.innerHTML = `
-        <div class="qualifier-player-seed">${escapeHtml(matchup.p1.seed || "—")}</div>
-        <div class="qualifier-player-name">${escapeHtml(matchup.p1.name || "TBD")}</div>
-        <div class="qualifier-player-score">${escapeHtml(matchup.p1.score || "—")}</div>
-      `;
-
-      const p2 = document.createElement("div");
-      p2.className = `qualifier-match-row${p2Winner ? " winner" : ""}`;
-      p2.innerHTML = `
-        <div class="qualifier-player-seed">${escapeHtml(matchup.p2.seed || "—")}</div>
-        <div class="qualifier-player-name">${escapeHtml(matchup.p2.name || "TBD")}</div>
-        <div class="qualifier-player-score">${escapeHtml(matchup.p2.score || "—")}</div>
-      `;
-
-      card.appendChild(p1);
-      card.appendChild(p2);
-      wrap.appendChild(label);
-      wrap.appendChild(card);
-      return wrap;
-    }
-
-     function renderQualifierBracket(values) {
+    function renderQualifierBracket(values) {
       const bracketEl = document.getElementById("qualifierBracketGrid");
       const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
       const rows = parseQualifierBracketRows(values);
@@ -2793,11 +2756,11 @@
         return;
       }
     
-      const fallbackGap = 8;
+      const baseGap = 8;
     
-      // Measurements from the previous rendered round
-      let prevStep = null;        // top-to-top distance between consecutive matches
-      let prevMatchHeight = null; // height of a match element
+      // Measured values from the PREVIOUS round (after layout)
+      let prevStep = null;        // top-to-top distance between consecutive matches in previous round
+      let prevMatchHeight = null; // match height in previous round
     
       rounds.forEach((roundLabel, idx) => {
         const matches = rows.filter(
@@ -2815,7 +2778,7 @@
         const stack = document.createElement("div");
         stack.className = "qualifier-round-stack";
     
-        // Append match elements first
+        // Render match elements
         matches.forEach((matchup) => {
           stack.appendChild(renderQualifierBracketMatch(matchup));
         });
@@ -2824,35 +2787,35 @@
         col.appendChild(stack);
         bracketEl.appendChild(col);
     
-        // Measure current round match height (real DOM)
         const matchEls = Array.from(stack.children);
         if (!matchEls.length) return;
     
-        const r0 = matchEls[0].getBoundingClientRect();
-        const currMatchHeight = r0.height;
+        // Measure this round's match height (force layout)
+        const r0Pre = matchEls[0].getBoundingClientRect();
+        const currMatchHeight = r0Pre.height;
     
         const hasPrev = idx > 0 && prevStep != null && prevMatchHeight != null;
     
-        // Compute this round's gap
+        // Apply layout for THIS round using PREVIOUS round's measured step
+        const topPadding = hasPrev ? (prevStep / 2) : 0;
+    
         const roundGap = hasPrev
           ? (2 * prevStep) - currMatchHeight
-          : fallbackGap;
+          : baseGap;
     
+        stack.style.paddingTop = `${Math.max(0, topPadding)}px`;
         stack.style.gap = `${roundGap}px`;
     
-        // Compute this round's top offset (CENTER between previous two matches)
-        // Using padding-top avoids the "spacer + gap" double offset bug.
-        const topPadding = hasPrev ? (prevStep / 2) : 0;
-        stack.style.paddingTop = `${Math.max(0, topPadding)}px`;
-    
-        // Save measurements for next round
-        prevMatchHeight = currMatchHeight;
+        // IMPORTANT: re-measure AFTER styles are applied, to get the true step for next round
+        const r0 = matchEls[0].getBoundingClientRect();
+        prevMatchHeight = r0.height;
     
         if (matchEls.length >= 2) {
           const r1 = matchEls[1].getBoundingClientRect();
-          prevStep = r1.top - r0.top; // top-to-top distance including gap
+          prevStep = r1.top - r0.top;
         } else {
-          prevStep = currMatchHeight + roundGap;
+          // One match: approximate step
+          prevStep = prevMatchHeight + roundGap;
         }
       });
     }
