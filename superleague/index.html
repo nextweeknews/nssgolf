@@ -2782,63 +2782,63 @@
     }
 
    function renderQualifierBracket(values){
-  const bracketEl = document.getElementById("qualifierBracketGrid");
-  const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
-  const rows = parseQualifierBracketRows(values);
+      const bracketEl = document.getElementById("qualifierBracketGrid");
+      const rounds = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
+      const rows = parseQualifierBracketRows(values);
 
-  bracketEl.innerHTML = "";
-  delete bracketEl.dataset.prevRoundGap;
+      bracketEl.innerHTML = "";
+      delete bracketEl.dataset.prevRoundGap;
 
-  if(!rows.length){
-    bracketEl.innerHTML = '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
-    return;
-  }
+      if(!rows.length){
+        bracketEl.innerHTML = '<p class="qualifier-bracket-empty">No qualifier bracket data available yet.</p>';
+        return;
+      }
 
-  const baseGap = 8;
-  const matchHeight = 52;
+      const baseGap = 8;
+      const matchHeight = 52;
 
-  rounds.forEach((roundLabel, idx) => {
-    const matches = rows.filter((row) => normalizeQualifierRoundLabel(row.round) === roundLabel);
-    if(!matches.length) return;
+      rounds.forEach((roundLabel, idx) => {
+        const matches = rows.filter((row) => normalizeQualifierRoundLabel(row.round) === roundLabel);
+        if(!matches.length) return;
 
-    const col = document.createElement("section");
-    col.className = "qualifier-round-column";
+        const col = document.createElement("section");
+        col.className = "qualifier-round-column";
 
-    const title = document.createElement("h3");
-    title.className = "qualifier-round-title";
-    title.textContent = roundLabel;
+        const title = document.createElement("h3");
+        title.className = "qualifier-round-title";
+        title.textContent = roundLabel;
 
-    const stack = document.createElement("div");
-    stack.className = "qualifier-round-stack";
+        const stack = document.createElement("div");
+        stack.className = "qualifier-round-stack";
 
-    const hasPrevRoundLayout = idx > 0;
-    const prevGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
+        const hasPrevRoundLayout = idx > 0;
+        const prevGap = Number(bracketEl.dataset.prevRoundGap ?? baseGap);
 
-    const prevStep = matchHeight + prevGap;
+        const prevStep = matchHeight + prevGap;
 
-    const topPadding = hasPrevRoundLayout ? (prevStep / 2) : 0;
+        const topPadding = hasPrevRoundLayout ? (prevStep / 2) : 0;
 
-    const step = hasPrevRoundLayout ? (2 * prevStep) : (matchHeight + baseGap);
+        const step = hasPrevRoundLayout ? (2 * prevStep) : (matchHeight + baseGap);
 
-    const roundGap = step - matchHeight;
+        const roundGap = step - matchHeight;
 
-    if(topPadding > 0){
-      const spacer = document.createElement("div");
-      spacer.style.height = `${topPadding}px`;
-      spacer.setAttribute("aria-hidden", "true");
-      stack.appendChild(spacer);
+        if(topPadding > 0){
+          const spacer = document.createElement("div");
+          spacer.style.height = `${topPadding}px`;
+          spacer.setAttribute("aria-hidden", "true");
+          stack.appendChild(spacer);
+        }
+
+        stack.style.gap = `${roundGap}px`;
+        matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
+
+        bracketEl.dataset.prevRoundGap = String(roundGap);
+
+        col.appendChild(title);
+        col.appendChild(stack);
+        bracketEl.appendChild(col);
+      });
     }
-
-    stack.style.gap = `${roundGap}px`;
-    matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
-
-    bracketEl.dataset.prevRoundGap = String(roundGap);
-
-    col.appendChild(title);
-    col.appendChild(stack);
-    bracketEl.appendChild(col);
-  });
-}
 
         stack.style.gap = `${roundGap}px`;
         matches.forEach((matchup) => stack.appendChild(renderQualifierBracketMatch(matchup)));
