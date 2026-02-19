@@ -1531,7 +1531,7 @@
           </aside>
 
           <section class="qualifier-bracket" aria-label="Qualifier bracket">
-            <h2 class="qualifier-title">Double-Elimination Bracket</h2>
+            <h2 class="qualifier-title">Winners Bracket</h2>
             <div class="qualifier-bracket-controls" id="qualifierBracketControls" aria-label="Bracket round navigation" hidden>
               <button class="nav-btn nav-left qualifier-round-nav-btn" id="qualifierRoundPrev" type="button" aria-label="Previous qualifier round">←</button>
               <div class="qualifier-bracket-round-label" id="qualifierRoundLabel">Round</div>
@@ -2870,6 +2870,18 @@
       return String(name ?? "").trim().toUpperCase() === "BYE";
     }
 
+    function getQualifierRoundDisplayLabel(round){
+      switch(String(round ?? "").trim().toUpperCase()){
+        case "R64": return "Round 1";
+        case "R32": return "Round 3";
+        case "R16": return "Round 3";
+        case "QF": return "Quarters";
+        case "SF": return "Semis";
+        case "FINAL": return "Finals";
+        default: return String(round ?? "").trim();
+      }
+    }
+
     function renderQualifierBracketMatch(matchup){
       const wrap = document.createElement("article");
       wrap.className = "qualifier-bracket-match";
@@ -2976,11 +2988,11 @@
 
         const col = document.createElement("section");
         col.className = "qualifier-round-column";
-        col.dataset.round = roundLabel;
+        col.dataset.round = getQualifierRoundDisplayLabel(roundLabel);
 
         const title = document.createElement("h3");
         title.className = "qualifier-round-title";
-        title.textContent = roundLabel;
+        title.textContent = getQualifierRoundDisplayLabel(roundLabel);
 
         const stack = document.createElement("div");
         stack.className = "qualifier-round-stack";
