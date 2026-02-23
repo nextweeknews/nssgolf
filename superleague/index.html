@@ -1941,6 +1941,12 @@
           requestAnimationFrame(updatePlayoffBracketLayout);
         }
 
+        if(showQualifiers){
+          requestAnimationFrame(() => {
+            rerenderQualifierBracketsFromCache();
+          });
+        }
+
         if(options.scroll !== false){
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -3373,6 +3379,14 @@
       getCache: () => loserBracketRowsCache,
     };
 
+    function rerenderQualifierBracketsFromCache(){
+      if(!Array.isArray(winnerBracketConfig.getCache()) || !Array.isArray(loserBracketConfig.getCache())) return;
+      if(!winnerBracketConfig.getCache().length && !loserBracketConfig.getCache().length) return;
+      renderBracket(winnerBracketConfig.getCache(), winnerBracketConfig);
+      renderBracket(loserBracketConfig.getCache(), loserBracketConfig);
+    }
+
+
     function setupQualifierRoundNav(){
       const setupNavForBracket = (config) => {
         const prevBtn = document.getElementById(config.prevBtnId);
@@ -3428,6 +3442,12 @@
       });
       renderBracket(winnerBracketValues, winnerBracketConfig);
       renderBracket(loserBracketValues, loserBracketConfig);
+
+      if(!document.getElementById("qualifiersPage")?.hidden){
+        requestAnimationFrame(() => {
+          rerenderQualifierBracketsFromCache();
+        });
+      }
     }
 
     async function loadRankings(){
