@@ -213,11 +213,26 @@
           <label>Email <input id="signupEmailInput" type="email" autocomplete="email" required /></label>
           <label>Password <input id="signupPasswordInput" type="password" autocomplete="new-password" required /></label>
           <label>Confirm Password <input id="signupConfirmPasswordInput" type="password" autocomplete="new-password" required /></label>
-          <label>Public Username <input id="signupUsernameInput" type="text" maxlength="32" required /></label>
           <p class="message is-hidden" id="signupModalMessage"></p>
           <div class="modal-footer">
             <button class="btn" id="signupCancelBtn" type="button">Cancel</button>
             <button class="btn btn-primary" id="signupSubmitBtn" type="submit" data-submit-btn="signup">Sign Up</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="chooseUsernameModal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="chooseUsernameModalTitle">
+        <div class="modal-head">
+          <h2 class="modal-title" id="chooseUsernameModalTitle">Choose Username</h2>
+        </div>
+        <form class="modal-form" id="chooseUsernameForm">
+          <label>Username <input id="chooseUsernameInput" type="text" maxlength="32" required /></label>
+          <p class="message is-hidden" id="chooseUsernameModalMessage"></p>
+          <div class="modal-footer">
+            <button class="btn" id="chooseUsernameCancelBtn" type="button">Cancel</button>
+            <button class="btn btn-primary" id="chooseUsernameSubmitBtn" type="submit">Save Username</button>
           </div>
         </form>
       </div>
@@ -238,7 +253,7 @@
     /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
     /** @typedef {{id:number,round:string,roundNumber:number,region:number,top:PlayerSlot,bottom:PlayerSlot,pickedWinner:string}} PredictedMatch */
-    /** @typedef {{user_id:string,username:string}} ProfileRow */
+    /** @typedef {{user_id:string,username:string|null}} ProfileRow */
     /** @typedef {{id:string,user_id:string,bracket_name:string,submitted_at:string|null}} BracketRow */
     /** @typedef {{bracket_id:string,match_id:number,round_code:string,round_number:number,selected_winner_name:string,selected_winner_seed:number|null,is_correct:boolean|null,points_awarded:number|null}} PickRow */
 
@@ -305,14 +320,19 @@
       signupEmailInput: document.getElementById("signupEmailInput"),
       signupPasswordInput: document.getElementById("signupPasswordInput"),
       signupConfirmPasswordInput: document.getElementById("signupConfirmPasswordInput"),
-      signupUsernameInput: document.getElementById("signupUsernameInput"),
       signupCancelBtn: document.getElementById("signupCancelBtn"),
       signupModalMessage: document.getElementById("signupModalMessage"),
       signupSubmitBtn: document.getElementById("signupSubmitBtn"),
+      chooseUsernameModal: document.getElementById("chooseUsernameModal"),
+      chooseUsernameForm: document.getElementById("chooseUsernameForm"),
+      chooseUsernameInput: document.getElementById("chooseUsernameInput"),
+      chooseUsernameCancelBtn: document.getElementById("chooseUsernameCancelBtn"),
+      chooseUsernameSubmitBtn: document.getElementById("chooseUsernameSubmitBtn"),
+      chooseUsernameModalMessage: document.getElementById("chooseUsernameModalMessage"),
     };
 
     const normalizeName = (value) => String(value || "").trim();
-    const modalState = { loginSubmitting: false, signupSubmitting: false };
+    const modalState = { loginSubmitting: false, signupSubmitting: false, chooseUsernameSubmitting: false };
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
@@ -735,15 +755,58 @@
       element.className = `message ${type} ${clean ? "" : "is-hidden"}`.trim();
     }
 
+    function hasProfileUsername(profile = state.profile){
+      return !!normalizeName(profile?.username);
+    }
+
+    async function isUsernameAvailable(username){
+      const desired = normalizeName(username);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("username", desired)
+        .maybeSingle();
+      if(error) throw error;
+      if(!data) return true;
+      return !!state.session && data.user_id === state.session.user.id;
+    }
+
+    async function saveUsernameForCurrentUser(rawUsername){
+      if(!state.session) throw new Error("Log in first.");
+      const username = normalizeName(rawUsername);
+      if(!username) throw new Error("Username is required.");
+      const available = await isUsernameAvailable(username);
+      if(!available) throw new Error("That username is already taken.");
+
+      const { data: updatedProfile, error } = await supabase
+        .from("profiles")
+        .update({ username })
+        .eq("user_id", state.session.user.id)
+        .select("user_id,username")
+        .maybeSingle();
+      if(error) throw error;
+      if(!updatedProfile){
+        throw new Error("Profile setup is incomplete. Please try again.");
+      }
+
+      await refreshAuthDrivenUI("save username", { syncSession: false });
+      await ensureUserBracket();
+      await refreshAuthDrivenUI("save username after bracket", { syncSession: false });
+    }
+
     function setModalSubmitting(which, isSubmitting){
       if(which === "login"){
         modalState.loginSubmitting = isSubmitting;
         els.loginSubmitBtn.disabled = isSubmitting;
         els.loginCancelBtn.disabled = isSubmitting;
-      }else{
+      }else if(which === "signup"){
         modalState.signupSubmitting = isSubmitting;
         els.signupSubmitBtn.disabled = isSubmitting;
         els.signupCancelBtn.disabled = isSubmitting;
+      }else{
+        modalState.chooseUsernameSubmitting = isSubmitting;
+        els.chooseUsernameSubmitBtn.disabled = isSubmitting;
+        els.chooseUsernameCancelBtn.disabled = isSubmitting;
       }
     }
 
@@ -781,9 +844,29 @@
       closeModal(els.signupModal);
     }
 
+    function openChooseUsernameModal(){
+      setInlineModalMessage(els.chooseUsernameModalMessage, "");
+      setModalSubmitting("chooseUsername", false);
+      els.chooseUsernameForm.reset();
+      els.chooseUsernameInput.value = normalizeName(state.profile?.username);
+      openModal(els.chooseUsernameModal);
+      els.chooseUsernameInput.focus();
+    }
+
+    function closeChooseUsernameModal(){
+      closeModal(els.chooseUsernameModal);
+    }
+
+    function openChooseUsernameModalIfMissing(){
+      if(!state.session) return;
+      if(hasProfileUsername()) return;
+      openChooseUsernameModal();
+    }
+
     function closeAuthModals(){
       closeLoginModal();
       closeSignupModal();
+      closeChooseUsernameModal();
     }
 
     async function ensureUserBracket(){
@@ -872,7 +955,7 @@
         state.userPicks = new Map();
       }
 
-      if(state.profile?.username) els.usernameInput.value = state.profile.username;
+      els.usernameInput.value = normalizeName(state.profile?.username);
       renderAuthShell();
     }
 
@@ -931,20 +1014,12 @@
     }
 
     async function saveProfile(){
-      if(!state.session) return setMessage("Log in first.", "error");
-      const username = normalizeName(els.usernameInput.value);
-      if(!username) return setMessage("Username is required.", "error");
-      const { error } = await supabase.from("profiles").upsert({ user_id: state.session.user.id, username });
-      if(error){
-        if(String(error.message || "").toLowerCase().includes("duplicate") || error.code === "23505"){
-          return setMessage("That username is already taken.", "error");
-        }
-        return setMessage(error.message || "Failed to save username.", "error");
+      try{
+        await saveUsernameForCurrentUser(els.usernameInput.value);
+        setMessage("Username saved.", "ok");
+      }catch(error){
+        setMessage(error.message || "Failed to save username.", "error");
       }
-      await refreshAuthDrivenUI("saveProfile", { syncSession: false });
-      await ensureUserBracket();
-      await refreshAuthDrivenUI("saveProfile after bracket", { syncSession: false });
-      setMessage("Username saved.", "ok");
     }
 
     async function savePicks(){
@@ -1057,11 +1132,17 @@
       els.signupBtn.addEventListener("click", openSignupModal);
       els.loginCancelBtn.addEventListener("click", closeLoginModal);
       els.signupCancelBtn.addEventListener("click", closeSignupModal);
+      els.chooseUsernameCancelBtn.addEventListener("click", () => {
+        if(!modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
+      });
       els.loginModal.addEventListener("click", (event) => {
         if(event.target === els.loginModal && !modalState.loginSubmitting) closeLoginModal();
       });
       els.signupModal.addEventListener("click", (event) => {
         if(event.target === els.signupModal && !modalState.signupSubmitting) closeSignupModal();
+      });
+      els.chooseUsernameModal.addEventListener("click", (event) => {
+        if(event.target === els.chooseUsernameModal && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
 
       els.loginForm.addEventListener("submit", async (event) => {
@@ -1083,6 +1164,7 @@
         }
         closeLoginModal();
         await refreshAuthDrivenUI("login submit");
+        openChooseUsernameModalIfMissing();
         setMessage("Logged in.", "ok");
       });
 
@@ -1093,8 +1175,7 @@
         const email = normalizeName(els.signupEmailInput.value);
         const password = els.signupPasswordInput.value;
         const confirmPassword = els.signupConfirmPasswordInput.value;
-        const username = normalizeName(els.signupUsernameInput.value);
-        if(!email || !password || !confirmPassword || !username){
+        if(!email || !password || !confirmPassword){
           setInlineModalMessage(els.signupModalMessage, "All fields are required.", "error");
           return;
         }
@@ -1103,51 +1184,45 @@
           return;
         }
         setModalSubmitting("signup", true);
-        const { data: existingProfile, error: existingProfileError } = await supabase
-          .from("profiles")
-          .select("user_id")
-          .eq("username", username)
-          .maybeSingle();
-        if(existingProfileError){
-          setModalSubmitting("signup", false);
-          setInlineModalMessage(els.signupModalMessage, existingProfileError.message || "Could not check username.", "error");
-          return;
-        }
-        if(existingProfile){
-          setModalSubmitting("signup", false);
-          setInlineModalMessage(els.signupModalMessage, "That username is already taken.", "error");
-          return;
-        }
-
         const { data: signupData, error: signupError } = await supabase.auth.signUp({ email, password });
         if(signupError){
           setModalSubmitting("signup", false);
           setInlineModalMessage(els.signupModalMessage, signupError.message || "Signup failed.", "error");
           return;
         }
-        const signupSession = signupData?.session;
-        const signupUser = signupData?.user;
-        if(signupSession){
-          state.session = signupSession;
-          renderAuthShell();
-        }
-        const activeSession = signupSession || (await supabase.auth.getSession()).data.session;
-        const userId = activeSession?.user?.id || signupUser?.id || null;
-        if(!userId){
-          setModalSubmitting("signup", false);
-          setInlineModalMessage(els.signupModalMessage, "Account created, but session was not started. Please log in.", "error");
-          return;
-        }
-        const { error: profileError } = await supabase.from("profiles").upsert({ user_id: userId, username });
-        if(profileError){
-          setModalSubmitting("signup", false);
-          setInlineModalMessage(els.signupModalMessage, profileError.message || "Account created but profile setup failed. Please contact support.", "error");
-          return;
-        }
         setModalSubmitting("signup", false);
+        const signupSession = signupData?.session || (await supabase.auth.getSession()).data.session;
+        if(!signupSession){
+          setInlineModalMessage(els.signupModalMessage, "Account created. Please log in.", "error");
+          return;
+        }
+        state.session = signupSession;
+        renderAuthShell();
         closeSignupModal();
         await refreshAuthDrivenUI("signup submit");
+        openChooseUsernameModalIfMissing();
         setMessage("Account created.", "ok");
+      });
+
+      els.chooseUsernameForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if(modalState.chooseUsernameSubmitting) return;
+        setInlineModalMessage(els.chooseUsernameModalMessage, "");
+        const username = normalizeName(els.chooseUsernameInput.value);
+        if(!username){
+          setInlineModalMessage(els.chooseUsernameModalMessage, "Username is required.", "error");
+          return;
+        }
+        setModalSubmitting("chooseUsername", true);
+        try{
+          await saveUsernameForCurrentUser(username);
+          closeChooseUsernameModal();
+          setMessage("Username saved.", "ok");
+        }catch(error){
+          setInlineModalMessage(els.chooseUsernameModalMessage, error.message || "Failed to save username.", "error");
+        }finally{
+          setModalSubmitting("chooseUsername", false);
+        }
       });
 
       els.logoutBtn.addEventListener("click", async () => {
@@ -1173,6 +1248,7 @@
         if(els.matchModal.classList.contains("is-open")) closeMatchModal();
         if(els.loginModal.classList.contains("is-open") && !modalState.loginSubmitting) closeLoginModal();
         if(els.signupModal.classList.contains("is-open") && !modalState.signupSubmitting) closeSignupModal();
+        if(els.chooseUsernameModal.classList.contains("is-open") && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
 
       state.authSub = supabase.auth.onAuthStateChange(async (eventName) => {
