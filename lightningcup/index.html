@@ -93,6 +93,8 @@
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
 
     .auth-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
+    .auth-buttons{ justify-content:center; margin-top:2px; }
+    .auth-buttons.is-logged-in{ justify-content:flex-end; }
     label{ display:grid; gap:4px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
     input, select{ width:100%; border:1px solid rgba(148,163,184,.35); border-radius:10px; background: rgba(2,8,24,.70); color:#fff; padding:10px; font:inherit; }
     .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -111,6 +113,9 @@
     .modal-backdrop.is-open{ display:grid; }
     .modal-card{ width:min(420px, 100%); border-radius:14px; border:1px solid var(--border-lite); background: rgba(15,23,42,0.98); padding:12px; display:grid; gap:8px; }
     .modal-head{ display:flex; justify-content:space-between; align-items:center; }
+    .modal-title{ margin:0; font-size:16px; letter-spacing:.03em; text-transform:uppercase; }
+    .modal-form{ display:grid; gap:10px; }
+    .modal-footer{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
 
     table.leaderboard{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:12px; }
     .leaderboard th{ text-align:center; color:var(--muted); font-size:8px; text-transform:uppercase; letter-spacing:.03em; padding:8px 6px; background: var(--header-bg); }
@@ -132,17 +137,13 @@
       <p class="status" id="globalStatus">Loading tournament data…</p>
       <p class="message is-hidden" id="flashMessage"></p>
 
-      <div class="auth-grid">
-        <label>Email <input id="emailInput" type="email" autocomplete="email" /></label>
-        <label>Password <input id="passwordInput" type="password" autocomplete="current-password" /></label>
-        <label class="auth-only">Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
-      </div>
-      <div class="row">
+      <div class="row auth-buttons" id="authButtonsRow">
         <button class="btn" id="signupBtn" type="button">Sign Up</button>
         <button class="btn" id="loginBtn" type="button">Log In</button>
         <button class="btn auth-only" id="logoutBtn" type="button">Log Out</button>
       </div>
       <div class="auth-grid auth-only" id="controlsGrid">
+        <label>Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
         <label>Selected Bracket <select id="bracketSelect"></select></label>
         <label>Lock Status <input id="lockStatusInput" type="text" readonly /></label>
       </div>
@@ -183,6 +184,42 @@
           <button class="btn" id="closeMatchModal" type="button">Close</button>
         </div>
         <p class="status" id="matchModalBody"></p>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="loginModal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+        <div class="modal-head">
+          <h2 class="modal-title" id="loginModalTitle">Log In</h2>
+        </div>
+        <form class="modal-form" id="loginForm">
+          <label>Email <input id="loginEmailInput" type="email" autocomplete="email" required /></label>
+          <label>Password <input id="loginPasswordInput" type="password" autocomplete="current-password" required /></label>
+          <p class="message is-hidden" id="loginModalMessage"></p>
+          <div class="modal-footer">
+            <button class="btn" id="loginCancelBtn" type="button">Cancel</button>
+            <button class="btn btn-primary" id="loginSubmitBtn" type="submit" data-submit-btn="login">Log In</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="signupModal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="signupModalTitle">
+        <div class="modal-head">
+          <h2 class="modal-title" id="signupModalTitle">Sign Up</h2>
+        </div>
+        <form class="modal-form" id="signupForm">
+          <label>Email <input id="signupEmailInput" type="email" autocomplete="email" required /></label>
+          <label>Password <input id="signupPasswordInput" type="password" autocomplete="new-password" required /></label>
+          <label>Confirm Password <input id="signupConfirmPasswordInput" type="password" autocomplete="new-password" required /></label>
+          <label>Public Username <input id="signupUsernameInput" type="text" maxlength="32" required /></label>
+          <p class="message is-hidden" id="signupModalMessage"></p>
+          <div class="modal-footer">
+            <button class="btn" id="signupCancelBtn" type="button">Cancel</button>
+            <button class="btn btn-primary" id="signupSubmitBtn" type="submit" data-submit-btn="signup">Sign Up</button>
+          </div>
+        </form>
       </div>
     </div>
   </main>
@@ -243,22 +280,38 @@
       detailHeader: document.getElementById("detailHeader"),
       summaryRow: document.getElementById("summaryRow"),
       leaderboardTable: document.getElementById("leaderboardTable"),
-      emailInput: document.getElementById("emailInput"),
-      passwordInput: document.getElementById("passwordInput"),
       usernameInput: document.getElementById("usernameInput"),
       bracketSelect: document.getElementById("bracketSelect"),
       signupBtn: document.getElementById("signupBtn"),
       loginBtn: document.getElementById("loginBtn"),
       logoutBtn: document.getElementById("logoutBtn"),
+      authButtonsRow: document.getElementById("authButtonsRow"),
       saveProfileBtn: document.getElementById("saveProfileBtn"),
       savePicksBtn: document.getElementById("savePicksBtn"),
       reloadBtn: document.getElementById("reloadBtn"),
       matchModal: document.getElementById("matchModal"),
       matchModalBody: document.getElementById("matchModalBody"),
       closeMatchModal: document.getElementById("closeMatchModal"),
+      loginModal: document.getElementById("loginModal"),
+      loginForm: document.getElementById("loginForm"),
+      loginEmailInput: document.getElementById("loginEmailInput"),
+      loginPasswordInput: document.getElementById("loginPasswordInput"),
+      loginCancelBtn: document.getElementById("loginCancelBtn"),
+      loginModalMessage: document.getElementById("loginModalMessage"),
+      loginSubmitBtn: document.getElementById("loginSubmitBtn"),
+      signupModal: document.getElementById("signupModal"),
+      signupForm: document.getElementById("signupForm"),
+      signupEmailInput: document.getElementById("signupEmailInput"),
+      signupPasswordInput: document.getElementById("signupPasswordInput"),
+      signupConfirmPasswordInput: document.getElementById("signupConfirmPasswordInput"),
+      signupUsernameInput: document.getElementById("signupUsernameInput"),
+      signupCancelBtn: document.getElementById("signupCancelBtn"),
+      signupModalMessage: document.getElementById("signupModalMessage"),
+      signupSubmitBtn: document.getElementById("signupSubmitBtn"),
     };
 
     const normalizeName = (value) => String(value || "").trim();
+    const modalState = { loginSubmitting: false, signupSubmitting: false };
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
@@ -537,11 +590,11 @@
       els.lockStatusInput.value = locked ? "YES (LOCKED)" : "NO (OPEN)";
       els.savePicksBtn.disabled = locked;
       if(!state.session){
-        els.pickStatus.textContent = "Log in to make and save your bracket picks.";
+        els.pickStatus.textContent = "Log in to save picks.";
       }else if(!state.profile?.username){
-        els.pickStatus.textContent = "Save a username first.";
+        els.pickStatus.textContent = "Set a username to continue.";
       }else if(locked && !state.userBracket){
-        els.pickStatus.textContent = "Bracket is locked. Bracket creation is closed.";
+        els.pickStatus.textContent = "Bracket locked. New entries closed.";
       }else{
         els.pickStatus.textContent = locked ? "Bracket is locked. Picks are read-only." : "Pick all 63 matches. Future rounds are derived from your earlier picks.";
       }
@@ -564,18 +617,18 @@
     function renderSummary(){
       if(!state.userBracket){
         if(!state.profile?.username){
-          els.summaryRow.innerHTML = `<span class="pill warn">Save a username to start.</span>`;
+          els.summaryRow.innerHTML = `<span class="pill warn">Set a username.</span>`;
           return;
         }
         if(state.lockFlag === "yes"){
-          els.summaryRow.innerHTML = `<span class="pill warn">Bracket is locked. Creation is closed.</span>`;
+          els.summaryRow.innerHTML = `<span class="pill warn">Bracket locked. New entries closed.</span>`;
           return;
         }
         els.summaryRow.innerHTML = `<span class="pill warn">Make picks, then save.</span>`;
         return;
       }
       if(state.validUserPicks.size === 0){
-        els.summaryRow.innerHTML = `<span class="pill warn">No saved picks yet. Make picks, then save.</span>`;
+        els.summaryRow.innerHTML = `<span class="pill warn">No saved picks yet.</span>`;
         return;
       }
       const scores = computeScoresFromPicks(state.validUserPicks);
@@ -602,7 +655,7 @@
       [...new Set(rows.map((r) => r.actual))].forEach((score, idx) => rankByScore.set(score, idx + 1));
 
       if(!rows.length){
-        els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody><tr><td colspan="7">No leaderboard entries yet.</td></tr></tbody>`;
+        els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody><tr><td colspan="7">No entries yet.</td></tr></tbody>`;
         els.bracketSelect.innerHTML = "";
         state.selectedBracketId = null;
         return;
@@ -626,7 +679,7 @@
     function renderBracketDetail(){
       const selected = state.allBrackets.find((b) => b.id === state.selectedBracketId);
       if(!selected){
-        els.detailHeader.innerHTML = `<span class="pill warn">No bracket selected yet.</span>`;
+        els.detailHeader.innerHTML = `<span class="pill warn">Select a bracket.</span>`;
         els.detailBracketGrid.innerHTML = "";
         state.detailPredicted = new Map();
         return;
@@ -662,6 +715,67 @@
     function renderAuthUI(){
       const loggedIn = !!state.session;
       document.querySelectorAll(".auth-only").forEach((el) => { el.style.display = loggedIn ? "" : "none"; });
+      els.loginBtn.style.display = loggedIn ? "none" : "";
+      els.signupBtn.style.display = loggedIn ? "none" : "";
+      els.authButtonsRow.classList.toggle("is-logged-in", loggedIn);
+      if(!loggedIn) state.mainTab = "Actual Bracket";
+    }
+
+    function setInlineModalMessage(element, text, type = ""){
+      const clean = normalizeName(text);
+      element.textContent = clean;
+      element.className = `message ${type} ${clean ? "" : "is-hidden"}`.trim();
+    }
+
+    function setModalSubmitting(which, isSubmitting){
+      if(which === "login"){
+        modalState.loginSubmitting = isSubmitting;
+        els.loginSubmitBtn.disabled = isSubmitting;
+        els.loginCancelBtn.disabled = isSubmitting;
+      }else{
+        modalState.signupSubmitting = isSubmitting;
+        els.signupSubmitBtn.disabled = isSubmitting;
+        els.signupCancelBtn.disabled = isSubmitting;
+      }
+    }
+
+    function openModal(modal){
+      modal.classList.add("is-open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeModal(modal){
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function openLoginModal(){
+      setInlineModalMessage(els.loginModalMessage, "");
+      setModalSubmitting("login", false);
+      els.loginForm.reset();
+      openModal(els.loginModal);
+      els.loginEmailInput.focus();
+    }
+
+    function closeLoginModal(){
+      closeModal(els.loginModal);
+    }
+
+    function openSignupModal(){
+      setInlineModalMessage(els.signupModalMessage, "");
+      setModalSubmitting("signup", false);
+      els.signupForm.reset();
+      openModal(els.signupModal);
+      els.signupEmailInput.focus();
+    }
+
+    function closeSignupModal(){
+      closeModal(els.signupModal);
+    }
+
+    function closeAuthModals(){
+      closeLoginModal();
+      closeSignupModal();
     }
 
     async function ensureUserBracket(){
@@ -742,6 +856,20 @@
 
       if(state.profile?.username) els.usernameInput.value = state.profile.username;
       renderAuthUI();
+    }
+
+    let authRefreshPromise = null;
+    async function refreshAuthDrivenUI(){
+      if(authRefreshPromise) return authRefreshPromise;
+      authRefreshPromise = (async () => {
+      await loadAuthState();
+      if(state.context) refreshPredictedFromUserPicks();
+      await loadLeaderboardData();
+      renderView();
+      })().finally(() => {
+        authRefreshPromise = null;
+      });
+      return authRefreshPromise;
     }
 
     async function loadLeaderboardData(){
@@ -892,21 +1020,104 @@
         if(event.target === els.matchModal) closeMatchModal();
       });
 
-      els.signupBtn.addEventListener("click", async () => {
-        const { error } = await supabase.auth.signUp({ email: els.emailInput.value.trim(), password: els.passwordInput.value });
-        if(error) return setMessage(error.message || "Signup failed.", "error");
-        setMessage("Signup successful. Check your email if confirmation is required.", "ok");
+      els.loginBtn.addEventListener("click", openLoginModal);
+      els.signupBtn.addEventListener("click", openSignupModal);
+      els.loginCancelBtn.addEventListener("click", closeLoginModal);
+      els.signupCancelBtn.addEventListener("click", closeSignupModal);
+      els.loginModal.addEventListener("click", (event) => {
+        if(event.target === els.loginModal && !modalState.loginSubmitting) closeLoginModal();
+      });
+      els.signupModal.addEventListener("click", (event) => {
+        if(event.target === els.signupModal && !modalState.signupSubmitting) closeSignupModal();
       });
 
-      els.loginBtn.addEventListener("click", async () => {
-        const { error } = await supabase.auth.signInWithPassword({ email: els.emailInput.value.trim(), password: els.passwordInput.value });
-        if(error) return setMessage(error.message || "Login failed.", "error");
+      els.loginForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if(modalState.loginSubmitting) return;
+        setInlineModalMessage(els.loginModalMessage, "");
+        const email = normalizeName(els.loginEmailInput.value);
+        const password = els.loginPasswordInput.value;
+        if(!email || !password){
+          setInlineModalMessage(els.loginModalMessage, "Email and password are required.", "error");
+          return;
+        }
+        setModalSubmitting("login", true);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        setModalSubmitting("login", false);
+        if(error){
+          setInlineModalMessage(els.loginModalMessage, error.message || "Login failed.", "error");
+          return;
+        }
+        closeLoginModal();
+        await refreshAuthDrivenUI();
         setMessage("Logged in.", "ok");
+      });
+
+      els.signupForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if(modalState.signupSubmitting) return;
+        setInlineModalMessage(els.signupModalMessage, "");
+        const email = normalizeName(els.signupEmailInput.value);
+        const password = els.signupPasswordInput.value;
+        const confirmPassword = els.signupConfirmPasswordInput.value;
+        const username = normalizeName(els.signupUsernameInput.value);
+        if(!email || !password || !confirmPassword || !username){
+          setInlineModalMessage(els.signupModalMessage, "All fields are required.", "error");
+          return;
+        }
+        if(password !== confirmPassword){
+          setInlineModalMessage(els.signupModalMessage, "Passwords must match.", "error");
+          return;
+        }
+        setModalSubmitting("signup", true);
+        const { data: existingProfile, error: existingProfileError } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("username", username)
+          .maybeSingle();
+        if(existingProfileError){
+          setModalSubmitting("signup", false);
+          setInlineModalMessage(els.signupModalMessage, existingProfileError.message || "Could not check username.", "error");
+          return;
+        }
+        if(existingProfile){
+          setModalSubmitting("signup", false);
+          setInlineModalMessage(els.signupModalMessage, "That username is already taken.", "error");
+          return;
+        }
+
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({ email, password });
+        if(signupError){
+          setModalSubmitting("signup", false);
+          setInlineModalMessage(els.signupModalMessage, signupError.message || "Signup failed.", "error");
+          return;
+        }
+        const signupSession = signupData?.session;
+        const signupUser = signupData?.user;
+        const activeSession = signupSession || (await supabase.auth.getSession()).data.session;
+        const userId = activeSession?.user?.id || signupUser?.id || null;
+        if(!userId){
+          setModalSubmitting("signup", false);
+          setInlineModalMessage(els.signupModalMessage, "Account created, but session was not started. Please log in.", "error");
+          return;
+        }
+        const { error: profileError } = await supabase.from("profiles").upsert({ user_id: userId, username });
+        if(profileError){
+          setModalSubmitting("signup", false);
+          setInlineModalMessage(els.signupModalMessage, profileError.message || "Account created but profile setup failed. Please contact support.", "error");
+          return;
+        }
+        setModalSubmitting("signup", false);
+        closeSignupModal();
+        await refreshAuthDrivenUI();
+        setMessage("Account created.", "ok");
       });
 
       els.logoutBtn.addEventListener("click", async () => {
         const { error } = await supabase.auth.signOut();
         if(error) return setMessage(error.message || "Logout failed.", "error");
+        closeAuthModals();
+        await refreshAuthDrivenUI();
         setMessage("Logged out.", "ok");
       });
 
@@ -920,11 +1131,18 @@
         setMessage("Data refreshed.", "ok");
       });
 
-      state.authSub = supabase.auth.onAuthStateChange(async () => {
-        await loadAuthState();
-        if(state.context) refreshPredictedFromUserPicks();
-        await loadLeaderboardData();
-        renderView();
+      document.addEventListener("keydown", (event) => {
+        if(event.key !== "Escape") return;
+        if(els.matchModal.classList.contains("is-open")) closeMatchModal();
+        if(els.loginModal.classList.contains("is-open") && !modalState.loginSubmitting) closeLoginModal();
+        if(els.signupModal.classList.contains("is-open") && !modalState.signupSubmitting) closeSignupModal();
+      });
+
+      state.authSub = supabase.auth.onAuthStateChange(async (eventName) => {
+        if(eventName === "SIGNED_IN" || eventName === "SIGNED_OUT"){
+          closeAuthModals();
+        }
+        await refreshAuthDrivenUI();
       });
     }
 
