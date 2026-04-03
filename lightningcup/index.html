@@ -11,25 +11,26 @@
   <style>
     :root{
       --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
-
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
-
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
       --text: #e9eef8;
       --title: #c7d7ff;
       --muted: #9ca3c7;
-
       --border-lite: rgba(148,163,184,0.20);
       --btn-bg: rgba(255,255,255,0.06);
       --btn-bg-hover: rgba(255,255,255,0.10);
       --btn-border: rgba(255,255,255,0.15);
       --btn-border-hover: rgba(255,255,255,0.28);
+      --success: rgba(34,197,94,0.20);
+      --danger: rgba(239,68,68,0.22);
+      --pending: rgba(148,163,184,0.20);
+      --pick: rgba(56,189,248,0.18);
+      --warning: rgba(251,191,36,0.22);
     }
-
     *{ box-sizing:border-box; }
-    html{
-      background-color: var(--bg3);
-    }
+    html{ background-color: var(--bg3); }
     body{
       margin:0;
       min-height:100vh;
@@ -38,142 +39,812 @@
       background-color: var(--bg3);
       background-image: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
     }
-
-    .topbar{
-      position: sticky; top:0; z-index:10;
-      border-bottom: 1px solid rgba(255,255,255,.10);
-      background: rgba(3,18,42,.70);
-      backdrop-filter: blur(10px);
-    }
-    .topbar-inner{
-      max-width:1100px;
-      margin:0 auto;
-      padding: 14px 18px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
+    .topbar{ position: sticky; top:0; z-index:10; border-bottom:1px solid rgba(255,255,255,.10); background: rgba(3,18,42,.70); backdrop-filter: blur(10px); }
+    .topbar-inner{ max-width:1260px; margin:0 auto; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
     .brand{display:flex; gap:12px; align-items:center;}
-    .home-badge{
-      width:40px; height:40px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.15);
-      background: rgba(255,255,255,.05);
-      display:grid; place-items:center;
-      overflow:hidden;
-      user-select:none;
-    }
-    .home-badge img{
-      width:70%;
-      height:70%;
-      object-fit: contain;
-      display:block;
-      pointer-events:none;
-    }
+    .home-badge{ width:40px; height:40px; border-radius:16px; border:1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.05); display:grid; place-items:center; overflow:hidden; user-select:none; }
+    .home-badge img{ width:70%; height:70%; object-fit:contain; display:block; pointer-events:none; }
+    .kicker{ font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65); font-weight:900; }
+    .page-nav-select{ background: rgba(2,6,23,.85); color: inherit; border: 1px solid rgba(125,211,252,.35); border-radius: 10px; padding: 6px 32px 6px 10px; font: inherit; letter-spacing: inherit; text-transform: uppercase; max-width: min(56vw, 420px); cursor: pointer; }
 
-    .kicker{
-      font-size:11px;
-      letter-spacing:.25em;
-      text-transform:uppercase;
-      color: rgba(255,255,255,.65);
-      font-weight:900;
-    }
-    .page-nav-select{
-      background: rgba(2,6,23,.85);
-      color: inherit;
-      border: 1px solid rgba(125,211,252,.35);
-      border-radius: 10px;
-      padding: 6px 32px 6px 10px;
-      font: inherit;
-      letter-spacing: inherit;
-      text-transform: uppercase;
-      max-width: min(56vw, 420px);
-      cursor: pointer;
-    }
-    .page-nav-select:focus-visible{
-      outline: 2px solid rgba(125,211,252,.6);
-      outline-offset: 2px;
-    }
+    .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
+    .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
+    .headline{ margin:0; font-size:20px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
+    .status{ margin:0; color:var(--muted); font-size:12px; text-align:center; }
 
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .tab-btn,.btn{ border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(255,255,255,.92); border-radius:999px; padding:8px 12px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:850; cursor:pointer; }
+    .tab-btn.is-active,.btn:hover{ background: var(--btn-bg-hover); border-color:var(--btn-border-hover); }
+    .btn-primary{ background: rgba(56,189,248,0.18); border-color: rgba(56,189,248,0.42); }
+    .btn[disabled]{ opacity:.45; cursor:not-allowed; }
 
-    .container{
-      max-width:1100px;
-      margin:0 auto;
-      padding: 28px 18px 56px;
-      display:flex;
-      justify-content:center;
-    }
+    .two-col{ display:grid; grid-template-columns: minmax(220px,300px) minmax(0,1fr); gap:12px; }
+    .panel{ border:1px solid var(--border-lite); border-radius:16px; padding:12px; background: rgba(15,23,42,0.55); }
 
-    .card{
-      width: min(820px, 100%);
-      background: var(--card-bg);
-      border-radius: 20px;
-      padding: 26px 20px;
-      box-shadow: var(--card-shadow);
-      border: 1px solid rgba(255,255,255,0.10);
-    }
+    .qualifier-seed-list{ display:grid; gap:6px; }
+    .qualifier-seed-head,.qualifier-seed-row{ display:grid; grid-template-columns: 44px 1fr; align-items:center; text-align:center; }
+    .qualifier-seed-head{ background: var(--header-bg); border-radius:10px; padding:8px 6px; color:var(--muted); font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; }
+    .qualifier-seed-row{ background: var(--row-bg); border-radius:10px; padding:8px 6px; }
+    .qualifier-seed-number{ font-size:12px; font-weight:800; color:#93c5fd; }
+    .qualifier-seed-player{ font-size:12px; font-weight:850; text-transform: uppercase; overflow-wrap:anywhere; }
 
-    .headline{
-      font-size: 22px;
-      font-weight: 950;
-      color: var(--title);
-      letter-spacing: .035em;
-      text-transform: uppercase;
-      margin: 0 0 10px 0;
-    }
+    .qualifier-bracket-scroll{ width:100%; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; }
+    .qualifier-bracket-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(188px,210px); gap:14px; align-items:start; min-width:max-content; padding:2px; }
+    .qualifier-round-column{ display:flex; flex-direction:column; gap:8px; }
+    .qualifier-round-title{ margin:0; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); text-align:center; }
+    .qualifier-round-stack{ display:flex; flex-direction:column; gap:8px; }
+    .qualifier-bracket-match{ display:flex; gap:3px; align-items:center; min-height:52px; }
+    .qualifier-match-number{ width:22px; flex:0 0 22px; text-align:center; color: rgba(233,238,248,0.68); font-size:10px; font-weight:900; }
+    .qualifier-match-card{ width:100%; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
+    .qualifier-match-row{ display:grid; grid-template-columns:26px minmax(0,1fr) 40px; align-items:center; gap:6px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; }
+    .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
+    .qualifier-match-row + .qualifier-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
+    .qualifier-match-row.winner{ background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.55); }
+    .qualifier-match-row.selected{ box-shadow: inset 0 0 0 999px var(--pick); }
+    .qualifier-match-row.correct{ box-shadow: inset 0 0 0 999px var(--success); }
+    .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
+    .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
+    .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
+    .qualifier-player-seed,.qualifier-player-meta{ text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
+    .qualifier-player-seed{ color:#93c5fd; }
+    .qualifier-player-meta{ color:#000; background:#fff; border-radius:4px; min-height:16px; display:grid; place-items:center; padding:0 4px; }
+    .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
 
-    .coming-soon{
-      text-align: center;
-      display: grid;
-      gap: 8px;
-      justify-items: center;
-    }
+    .auth-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
+    label{ display:grid; gap:4px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
+    input, select{ width:100%; border:1px solid rgba(148,163,184,.35); border-radius:10px; background: rgba(2,8,24,.70); color:#fff; padding:10px; font:inherit; }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pill{ border:1px solid rgba(148,163,184,.35); border-radius:999px; padding:6px 10px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:800; }
+    .pill.warn{ background: var(--warning); }
+    .pill.good{ background: var(--success); }
 
-    .coming-soon .headline{
-      margin-bottom: 0;
-    }
+    .message{ margin:0; font-size:12px; padding:10px; border-radius:10px; border:1px solid rgba(148,163,184,.30); background: rgba(2,8,24,.60); }
+    .message.error{ border-color: rgba(239,68,68,.45); color:#fecaca; }
+    .message.ok{ border-color: rgba(34,197,94,.45); color:#bbf7d0; }
 
-    @media (max-width: 760px){
-      .container{ padding: 20px 12px 44px; }
-      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
-      .brand{ flex: 1; min-width: 0; }
-      .brand > div{ min-width: 0; }
-      .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
-      .headline{ font-size: 18px; }
-      .card{ padding: 20px 14px; border-radius: 18px; }
-    }
+    table.leaderboard{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:12px; }
+    .leaderboard th{ text-align:center; color:var(--muted); font-size:8px; text-transform:uppercase; letter-spacing:.03em; padding:8px 6px; background: var(--header-bg); }
+    .leaderboard td{ text-align:center; padding:8px 6px; background: var(--row-bg); }
+    .leaderboard tr.is-selected td{ outline: 1px solid rgba(56,189,248,.65); }
+    .leaderboard .winner-badge{ color:#fde68a; font-weight:900; }
+
+    .detail-head{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
+
+    @media (max-width:980px){ .two-col{ grid-template-columns:1fr; } .auth-grid{ grid-template-columns:1fr; } }
   </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="home-badge" aria-hidden="true">
-          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
-        </div>
-        <div>
-                    <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
-            <option value="/index.html">Home</option>
-            <option value="/worldopen/index.html">World Open</option>
-            <option value="/proleague/index.html">Shotgun Pro League</option>
-            <option value="/superleague/index.html">Super League</option>
-            <option value="/lightningcup/index.html" selected>Lightning Cup</option>
-            <option value="/beataidan/index.html">Beat Aidan</option>
-          </select>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="topbar"><div class="topbar-inner"><div class="brand"><div class="home-badge" aria-hidden="true"><img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" /></div><div><select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;"><option value="/index.html">Home</option><option value="/worldopen/index.html">World Open</option><option value="/proleague/index.html">Shotgun Pro League</option><option value="/superleague/index.html">Super League</option><option value="/lightningcup/index.html" selected>Lightning Cup</option><option value="/beataidan/index.html">Beat Aidan</option></select></div></div></div></div>
 
-  <div class="container">
-    <div class="card">
-      <div class="coming-soon">
-        <h1 class="headline">Coming Soon</h1>
+  <main class="container">
+    <section class="card" id="userCard">
+      <h1 class="headline">Lightning Cup</h1>
+      <p class="status" id="globalStatus">Loading tournament data…</p>
+      <p class="message" id="flashMessage">Ready.</p>
+
+      <div class="auth-grid">
+        <label>Email <input id="emailInput" type="email" autocomplete="email" /></label>
+        <label>Password <input id="passwordInput" type="password" autocomplete="current-password" /></label>
+        <label>Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
       </div>
-    </div>
-  </div>
+      <div class="row">
+        <button class="btn" id="signupBtn" type="button">Sign Up</button>
+        <button class="btn" id="loginBtn" type="button">Log In</button>
+        <button class="btn" id="logoutBtn" type="button">Log Out</button>
+      </div>
+      <div class="auth-grid">
+        <label>Bracket Name <input id="bracketNameInput" type="text" maxlength="60" /></label>
+        <label>Selected Bracket <select id="bracketSelect"></select></label>
+        <label>Lock Status <input id="lockStatusInput" type="text" readonly /></label>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" id="saveProfileBtn" type="button">Save Username</button>
+        <button class="btn btn-primary" id="saveBracketBtn" type="button">Create/Update Bracket</button>
+        <button class="btn btn-primary" id="savePicksBtn" type="button">Save Picks</button>
+        <button class="btn" id="reloadBtn" type="button">Refresh Data</button>
+      </div>
+      <div class="row" id="summaryRow"></div>
+    </section>
+
+    <section class="card">
+      <div class="tabs" id="regionTabs"></div>
+      <div class="two-col">
+        <div class="panel"><div class="qualifier-seed-list" id="seedList"></div></div>
+        <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="actualBracketGrid"></div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="headline" style="font-size:16px;">Your Predictive Bracket</h2>
+      <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
+      <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="pickBracketGrid"></div></div>
+    </section>
+
+    <section class="card">
+      <h2 class="headline" style="font-size:16px;">Leaderboard</h2>
+      <div style="overflow:auto;"><table class="leaderboard" id="leaderboardTable"></table></div>
+    </section>
+
+    <section class="card">
+      <h2 class="headline" style="font-size:16px;">Bracket Detail</h2>
+      <div class="detail-head" id="detailHeader"></div>
+      <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="detailBracketGrid"></div></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
+    const SUPABASE_URL = "https://kwaprkwemtxizorpnrzq.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_gJ6-wdgZYpDBF1YxxNrlLg_BrtYUeL_";
+    const ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final"];
+    const ROUND_NUMBER = { R64: 1, R32: 2, R16: 3, R8: 4, R4: 5, Final: 6 };
+    const REGION_TABS = ["Region 1", "Region 2", "Region 3", "Region 4", "Finals"];
+
+    /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
+    /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
+    /** @typedef {{id:number,round:string,roundNumber:number,region:number,top:PlayerSlot,bottom:PlayerSlot,pickedWinner:string}} PredictedMatch */
+    /** @typedef {{user_id:string,username:string}} ProfileRow */
+    /** @typedef {{id:string,user_id:string,bracket_name:string,submitted_at:string|null}} BracketRow */
+    /** @typedef {{bracket_id:string,match_id:number,round_code:string,round_number:number,selected_winner_name:string,selected_winner_seed:number|null,is_correct:boolean|null,points_awarded:number|null}} PickRow */
+
+    const state = {
+      actualMatches: /** @type {ActualMatch[]} */ ([]),
+      players: new Map(),
+      lockFlag: "no",
+      activeTab: "Region 1",
+      context: null,
+      session: null,
+      profile: /** @type {ProfileRow|null} */ (null),
+      userBracket: /** @type {BracketRow|null} */ (null),
+      userPicks: /** @type {Map<number, PickRow>} */ (new Map()),
+      predicted: /** @type {Map<number, PredictedMatch>} */ (new Map()),
+      validUserPicks: /** @type {Map<number, PickRow>} */ (new Map()),
+      allBrackets: /** @type {(BracketRow & {username:string})[]} */ ([]),
+      allPicks: /** @type {PickRow[]} */ ([]),
+      selectedBracketId: null,
+      authSub: null,
+    };
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const els = {
+      globalStatus: document.getElementById("globalStatus"),
+      flashMessage: document.getElementById("flashMessage"),
+      lockStatusInput: document.getElementById("lockStatusInput"),
+      pickStatus: document.getElementById("pickStatus"),
+      regionTabs: document.getElementById("regionTabs"),
+      seedList: document.getElementById("seedList"),
+      actualBracketGrid: document.getElementById("actualBracketGrid"),
+      pickBracketGrid: document.getElementById("pickBracketGrid"),
+      detailBracketGrid: document.getElementById("detailBracketGrid"),
+      detailHeader: document.getElementById("detailHeader"),
+      summaryRow: document.getElementById("summaryRow"),
+      leaderboardTable: document.getElementById("leaderboardTable"),
+      emailInput: document.getElementById("emailInput"),
+      passwordInput: document.getElementById("passwordInput"),
+      usernameInput: document.getElementById("usernameInput"),
+      bracketNameInput: document.getElementById("bracketNameInput"),
+      bracketSelect: document.getElementById("bracketSelect"),
+      signupBtn: document.getElementById("signupBtn"),
+      loginBtn: document.getElementById("loginBtn"),
+      logoutBtn: document.getElementById("logoutBtn"),
+      saveProfileBtn: document.getElementById("saveProfileBtn"),
+      saveBracketBtn: document.getElementById("saveBracketBtn"),
+      savePicksBtn: document.getElementById("savePicksBtn"),
+      reloadBtn: document.getElementById("reloadBtn"),
+    };
+
+    const normalizeName = (value) => String(value || "").trim();
+    const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
+    const setMessage = (text, type = "") => {
+      els.flashMessage.textContent = text;
+      els.flashMessage.className = `message ${type}`.trim();
+    };
+
+    async function fetchSheet(range){
+      const url = new URL(WORKER_BASE);
+      url.searchParams.set("sheetId", SHEET_ID);
+      url.searchParams.set("range", range);
+      const res = await fetch(url.toString());
+      if(!res.ok) throw new Error(`Worker fetch failed (${res.status})`);
+      return res.json();
+    }
+
+    function buildActualMatchesFromSheet(raw){
+      const rows = Array.isArray(raw?.values) ? raw.values : [];
+      return rows.slice(1).map((r) => ({
+        id: Number(r[0]),
+        round: normalizeName(r[1]),
+        region: Number(r[2]) || 0,
+        top: { seed: Number(r[3]) || null, name: normalizeName(r[4]), score: normalizeName(r[5]) || null },
+        bottom: { seed: Number(r[6]) || null, name: normalizeName(r[7]), score: normalizeName(r[8]) || null },
+        winner: normalizeName(r[9]),
+      })).filter((m) => Number.isFinite(m.id) && ROUND_ORDER.includes(m.round));
+    }
+
+    function parsePlayers(raw){
+      const rows = Array.isArray(raw?.values) ? raw.values : [];
+      const map = new Map();
+      rows.slice(1).forEach((r) => {
+        const name = normalizeName(r[0]);
+        if(!name) return;
+        map.set(name, { name, best9: normalizeName(r[1]), best18: normalizeName(r[2]), bestGlobalScore: normalizeName(r[3]), bestGlobalRating: normalizeName(r[4]), discordId: normalizeName(r[6]) });
+      });
+      return map;
+    }
+
+    function parseLock(raw){
+      return normalizeName(raw?.values?.[0]?.[0]).toLowerCase() === "yes" ? "yes" : "no";
+    }
+
+    function buildBracketContext(actualMatches){
+      const byRoundRegion = new Map();
+      const byId = new Map(actualMatches.map((m) => [m.id, m]));
+      actualMatches.forEach((m) => {
+        const key = `${m.round}:${m.region}`;
+        if(!byRoundRegion.has(key)) byRoundRegion.set(key, []);
+        byRoundRegion.get(key).push(m);
+      });
+      for(const list of byRoundRegion.values()) list.sort((a,b)=>a.id-b.id);
+
+      /** @type {Map<number,{nextId:number,slot:'top'|'bottom'}>} */
+      const nextMap = new Map();
+      /** @type {Map<number,{topSource:number|null,bottomSource:number|null}>} */
+      const prevMap = new Map();
+      const setEdge = (fromId, toId, slot) => {
+        if(!fromId || !toId) return;
+        nextMap.set(fromId, { nextId: toId, slot });
+        const prev = prevMap.get(toId) || { topSource: null, bottomSource: null };
+        prev[slot === "top" ? "topSource" : "bottomSource"] = fromId;
+        prevMap.set(toId, prev);
+      };
+
+      const regionChampions = new Map();
+      [1,2,3,4].forEach((region) => {
+        const r64 = byRoundRegion.get(`R64:${region}`) || [];
+        const r32 = byRoundRegion.get(`R32:${region}`) || [];
+        const r16 = byRoundRegion.get(`R16:${region}`) || [];
+        const r8 = byRoundRegion.get(`R8:${region}`) || [];
+
+        r64.forEach((m, i) => setEdge(m.id, r32[Math.floor(i/2)]?.id, i % 2 === 0 ? "top" : "bottom"));
+        r32.forEach((m, i) => setEdge(m.id, r16[Math.floor(i/2)]?.id, i % 2 === 0 ? "top" : "bottom"));
+        r16.forEach((m, i) => setEdge(m.id, r8[Math.floor(i/2)]?.id, i % 2 === 0 ? "top" : "bottom"));
+        if(r8[0]) regionChampions.set(region, r8[0].id);
+      });
+
+      const semifinals = [...(byRoundRegion.get("R4:0") || []), ...(byRoundRegion.get("R4:1") || []), ...(byRoundRegion.get("R4:2") || []), ...(byRoundRegion.get("R4:3") || []), ...(byRoundRegion.get("R4:4") || [])]
+        .filter((m) => m.round === "R4")
+        .sort((a,b)=>a.id-b.id);
+      const finals = [...byRoundRegion.entries()].flatMap(([key, list]) => key.startsWith("Final:") ? list : []).sort((a,b)=>a.id-b.id);
+      const finalMatch = finals[0];
+
+      setEdge(regionChampions.get(1), semifinals[0]?.id, "top");
+      setEdge(regionChampions.get(2), semifinals[0]?.id, "bottom");
+      setEdge(regionChampions.get(3), semifinals[1]?.id, "top");
+      setEdge(regionChampions.get(4), semifinals[1]?.id, "bottom");
+      setEdge(semifinals[0]?.id, finalMatch?.id, "top");
+      setEdge(semifinals[1]?.id, finalMatch?.id, "bottom");
+
+      return { byId, byRoundRegion, nextMap, prevMap };
+    }
+
+    function buildInitialUserBracketFromActualR64(context){
+      const predicted = new Map();
+      const actualSorted = [...context.byId.values()].sort((a,b)=>a.id-b.id);
+      actualSorted.forEach((m) => {
+        predicted.set(m.id, {
+          id: m.id,
+          round: m.round,
+          roundNumber: ROUND_NUMBER[m.round] || 0,
+          region: m.region,
+          top: m.round === "R64" ? { ...m.top } : { seed: null, name: "", score: null },
+          bottom: m.round === "R64" ? { ...m.bottom } : { seed: null, name: "", score: null },
+          pickedWinner: "",
+        });
+      });
+      return predicted;
+    }
+
+    function getParticipantFromPicked(match, pickedName){
+      if(match.top.name && match.top.name === pickedName) return { ...match.top };
+      if(match.bottom.name && match.bottom.name === pickedName) return { ...match.bottom };
+      return null;
+    }
+
+    function propagateWinnerToNextMatch(predicted, context, matchId, pickedName){
+      const link = context.nextMap.get(matchId);
+      if(!link) return;
+      const current = predicted.get(matchId);
+      const next = predicted.get(link.nextId);
+      if(!current || !next) return;
+      const participant = getParticipantFromPicked(current, pickedName);
+      const fallback = { seed: null, name: "", score: null };
+      next[link.slot] = participant || fallback;
+    }
+
+    function applyUserPicksToPredictedBracket(context, picksMap){
+      const predicted = buildInitialUserBracketFromActualR64(context);
+      const validPicks = new Map();
+      const matchOrder = [...predicted.keys()].sort((a,b)=>a-b);
+      matchOrder.forEach((matchId) => {
+        const pick = picksMap.get(matchId);
+        if(!pick) return;
+        const match = predicted.get(matchId);
+        const chosen = normalizeName(pick.selected_winner_name);
+        if(!chosen) return;
+        const participant = getParticipantFromPicked(match, chosen);
+        if(!participant) return;
+
+        const normalizedPick = {
+          ...pick,
+          selected_winner_seed: participant.seed ?? pick.selected_winner_seed ?? null,
+          round_code: match.round,
+          round_number: match.roundNumber,
+        };
+        match.pickedWinner = chosen;
+        validPicks.set(matchId, normalizedPick);
+        propagateWinnerToNextMatch(predicted, context, matchId, chosen);
+      });
+      return { predicted, validPicks };
+    }
+
+    function clearDependentDownstreamPicks(changedMatchId, picksMap, context){
+      const queue = [changedMatchId];
+      const toDelete = new Set();
+      while(queue.length){
+        const cur = queue.shift();
+        const next = context.nextMap.get(cur);
+        if(!next) continue;
+        if(!toDelete.has(next.nextId)){
+          toDelete.add(next.nextId);
+          queue.push(next.nextId);
+        }
+      }
+      const nextMapCopy = new Map(picksMap);
+      toDelete.forEach((id) => nextMapCopy.delete(id));
+      return nextMapCopy;
+    }
+
+    function hydratePickCorrectnessAgainstActualResults(pick, actualById){
+      const actual = actualById.get(pick.match_id);
+      if(!actual || !actual.winner) return { ...pick, is_correct: null, points_awarded: null };
+      const isCorrect = actual.winner === pick.selected_winner_name;
+      return {
+        ...pick,
+        is_correct: isCorrect,
+        points_awarded: isCorrect ? roundBasePoints(pick.round_code) + (pick.selected_winner_seed || 0) : 0,
+      };
+    }
+
+    function computeActualPossibleWinnerSets(context){
+      const memo = new Map();
+      const recurse = (matchId) => {
+        if(memo.has(matchId)) return memo.get(matchId);
+        const actual = context.byId.get(matchId);
+        if(!actual){ const empty = new Set(); memo.set(matchId, empty); return empty; }
+        if(actual.winner){ const done = new Set([actual.winner]); memo.set(matchId, done); return done; }
+        const prev = context.prevMap.get(matchId);
+        if(!prev){
+          const set = new Set([actual.top.name, actual.bottom.name].filter(Boolean));
+          memo.set(matchId, set);
+          return set;
+        }
+        const set = new Set();
+        if(prev.topSource) recurse(prev.topSource).forEach((name) => set.add(name));
+        if(prev.bottomSource) recurse(prev.bottomSource).forEach((name) => set.add(name));
+        memo.set(matchId, set);
+        return set;
+      };
+      [...context.byId.keys()].forEach((id) => recurse(id));
+      return memo;
+    }
+
+    function calculateActualScore(hydratedPicks){
+      return hydratedPicks.reduce((sum, p) => sum + (p.is_correct ? (p.points_awarded || 0) : 0), 0);
+    }
+
+    function calculatePossibleRemainingScore(hydratedPicks, validPicks, actualPossibleSets){
+      return hydratedPicks.reduce((sum, p) => {
+        if(p.is_correct !== null) return sum;
+        if(!validPicks.has(p.match_id)) return sum;
+        const possibleSet = actualPossibleSets.get(p.match_id) || new Set();
+        if(!possibleSet.has(p.selected_winner_name)) return sum;
+        return sum + roundBasePoints(p.round_code) + (p.selected_winner_seed || 0);
+      }, 0);
+    }
+
+    function calculatePossibleTotalScore(actualScore, possibleRemaining){
+      return actualScore + possibleRemaining;
+    }
+
+    function getMatchesForTab(tab, matchesMap){
+      const all = [...matchesMap.values()];
+      if(tab === "Finals") return all.filter((m) => m.round === "R4" || m.round === "Final").sort((a,b)=>a.id-b.id);
+      const region = Number(tab.replace("Region ", ""));
+      return all.filter((m) => m.region === region && ["R64","R32","R16","R8"].includes(m.round)).sort((a,b)=>a.id-b.id);
+    }
+
+    function groupByRound(matches){
+      return ROUND_ORDER.map((round) => ({ round, matches: matches.filter((m) => m.round === round) })).filter((g) => g.matches.length);
+    }
+
+    function renderSeeds(tab){
+      const region = tab.startsWith("Region") ? Number(tab.replace("Region ", "")) : null;
+      if(!region){ els.seedList.innerHTML = ""; return; }
+      const regionR64 = state.actualMatches.filter((m) => m.round === "R64" && m.region === region);
+      const seedRows = regionR64.flatMap((m) => [m.top, m.bottom]).filter((p) => p.name).sort((a,b)=>(a.seed||99)-(b.seed||99));
+      els.seedList.innerHTML = `<div class="qualifier-seed-head"><div>Seed</div><div>Player</div></div>` + seedRows.map((p) => `<div class="qualifier-seed-row"><div class="qualifier-seed-number">${p.seed ?? "-"}</div><div class="qualifier-seed-player">${p.name}</div></div>`).join("");
+    }
+
+    function renderBracketGrid(target, matches, options = {}){
+      const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false } = options;
+      const groups = groupByRound(matches);
+      target.innerHTML = groups.map((group) => `
+        <div class="qualifier-round-column">
+          <h3 class="qualifier-round-title">${group.round}</h3>
+          <div class="qualifier-round-stack">
+            ${group.matches.map((match) => {
+              const pick = picksMap.get(match.id);
+              const hydrated = hydratedMap.get(match.id);
+              const renderRow = (slot) => {
+                const name = slot.name || "TBD";
+                const isPicked = pick && pick.selected_winner_name === name;
+                const stateClass = !isPicked ? "" : hydrated?.is_correct === true ? "selected correct" : hydrated?.is_correct === false ? "selected incorrect" : "selected pending";
+                const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
+                const disabled = !clickable || lockPicking || !slot.name;
+                const meta = isPicked && hydrated?.is_correct === true ? `+${hydrated.points_awarded}` : (mode === "actual" ? (slot.score || "") : "");
+                return `<button class="qualifier-match-row ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? "-"}</span><span class="qualifier-player-name">${name}</span><span class="qualifier-player-meta">${meta}</span></button>`;
+              };
+              return `<div class="qualifier-bracket-match"><div class="qualifier-match-number">${match.id}</div><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
+            }).join("")}
+          </div>
+        </div>`).join("");
+    }
+
+    function renderTabs(){
+      els.regionTabs.innerHTML = REGION_TABS.map((tab) => `<button class="tab-btn ${state.activeTab===tab ? "is-active" : ""}" data-tab="${tab}" type="button">${tab}</button>`).join("");
+    }
+
+    function updateLockUI(){
+      const locked = state.lockFlag === "yes";
+      els.lockStatusInput.value = locked ? "YES (LOCKED)" : "NO (OPEN)";
+      els.saveBracketBtn.disabled = locked;
+      els.savePicksBtn.disabled = locked;
+      els.pickStatus.textContent = locked ? "Bracket is locked. Picks are read-only." : "Pick all 63 matches. Future rounds are derived from your earlier picks.";
+      if(locked){
+        setMessage("Bracket lock is ON (Bracket!I1 = yes). Edits are disabled.", "");
+      }
+    }
+
+    function hydrateMapFromPicks(picks){
+      const map = new Map();
+      picks.forEach((p) => map.set(p.match_id, hydratePickCorrectnessAgainstActualResults(p, state.context.byId)));
+      return map;
+    }
+
+    function computeScoresFromPicks(validPicks){
+      const actualPossibleSets = computeActualPossibleWinnerSets(state.context);
+      const hydrated = [...validPicks.values()].map((p) => hydratePickCorrectnessAgainstActualResults(p, state.context.byId));
+      const actual = calculateActualScore(hydrated);
+      const possibleRemaining = calculatePossibleRemainingScore(hydrated, validPicks, actualPossibleSets);
+      return { actual, possibleRemaining, possibleTotal: calculatePossibleTotalScore(actual, possibleRemaining), hydratedMap: new Map(hydrated.map((p)=>[p.match_id,p])) };
+    }
+
+    function renderSummary(){
+      if(!state.userBracket){
+        els.summaryRow.innerHTML = `<span class="pill warn">No bracket created yet.</span>`;
+        return;
+      }
+      const scores = computeScoresFromPicks(state.validUserPicks);
+      els.summaryRow.innerHTML = `<span class="pill">Bracket: ${state.userBracket.bracket_name}</span><span class="pill">Actual: ${scores.actual}</span><span class="pill">Possible Remaining: ${scores.possibleRemaining}</span><span class="pill">Possible Total: ${scores.possibleTotal}</span>${state.lockFlag === "yes" ? '<span class="pill warn">Locked</span>' : '<span class="pill good">Editable</span>'}`;
+    }
+
+    function renderLeaderboard(){
+      const pickByBracket = new Map();
+      state.allPicks.forEach((p) => {
+        if(!pickByBracket.has(p.bracket_id)) pickByBracket.set(p.bracket_id, []);
+        pickByBracket.get(p.bracket_id).push(p);
+      });
+      const rows = state.allBrackets.map((b) => {
+        const raw = pickByBracket.get(b.id) || [];
+        const rawMap = new Map(raw.map((p) => [p.match_id, p]));
+        const { validPicks } = applyUserPicksToPredictedBracket(state.context, rawMap);
+        const scores = computeScoresFromPicks(validPicks);
+        return { ...b, ...scores, validPicks };
+      }).sort((a,b) => b.actual - a.actual);
+
+      const topScore = rows[0]?.actual ?? null;
+      const topCount = rows.filter((r) => r.actual === topScore).length;
+      const rankByScore = new Map();
+      [...new Set(rows.map((r) => r.actual))].forEach((score, idx) => rankByScore.set(score, idx + 1));
+
+      els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody>${rows.map((row) => {
+        const rank = rankByScore.get(row.actual);
+        const tiedCount = rows.filter((r) => r.actual === row.actual).length;
+        const rankLabel = tiedCount > 1 ? `T-${rank}` : `${rank}`;
+        const coWinner = topCount > 1 && row.actual === topScore;
+        const selectedClass = row.id === state.selectedBracketId ? "is-selected" : "";
+        return `<tr class="${selectedClass}"><td>${rankLabel}${coWinner ? ' <span class="winner-badge">Co-Winner</span>' : ''}</td><td>${row.bracket_name}</td><td>${row.username || "-"}</td><td>${row.actual}</td><td>${row.possibleTotal}</td><td>${row.possibleRemaining}</td><td><button class="btn" data-select-bracket="${row.id}" type="button">Open</button></td></tr>`;
+      }).join("")}</tbody>`;
+
+      els.bracketSelect.innerHTML = rows.map((r) => `<option value="${r.id}">${r.bracket_name} (${r.username || "Unknown"})</option>`).join("");
+      if(!state.selectedBracketId && rows[0]) state.selectedBracketId = rows[0].id;
+      if(state.selectedBracketId) els.bracketSelect.value = state.selectedBracketId;
+    }
+
+    function renderBracketDetail(){
+      const selected = state.allBrackets.find((b) => b.id === state.selectedBracketId);
+      if(!selected){
+        els.detailHeader.innerHTML = `<span class="pill warn">No bracket selected.</span>`;
+        els.detailBracketGrid.innerHTML = "";
+        return;
+      }
+      const rawPicks = new Map(state.allPicks.filter((p) => p.bracket_id === selected.id).map((p) => [p.match_id, p]));
+      const { predicted, validPicks } = applyUserPicksToPredictedBracket(state.context, rawPicks);
+      const { actual, possibleRemaining, possibleTotal, hydratedMap } = computeScoresFromPicks(validPicks);
+
+      els.detailHeader.innerHTML = `<span class="pill">Bracket: ${selected.bracket_name}</span><span class="pill">User: ${selected.username || "-"}</span><span class="pill">Actual: ${actual}</span><span class="pill">Possible Remaining: ${possibleRemaining}</span><span class="pill">Possible Total: ${possibleTotal}</span>`;
+      const matches = getMatchesForTab(state.activeTab, predicted);
+      renderBracketGrid(els.detailBracketGrid, matches, { mode: "detail", picksMap: validPicks, hydratedMap, clickable: false, lockPicking: true });
+    }
+
+    function renderView(){
+      if(!state.context) return;
+      renderTabs();
+      renderSeeds(state.activeTab);
+      const actualSubset = getMatchesForTab(state.activeTab, new Map(state.actualMatches.map((m)=>[m.id,m])));
+      renderBracketGrid(els.actualBracketGrid, actualSubset, { mode: "actual" });
+
+      const userScores = computeScoresFromPicks(state.validUserPicks);
+      const userSubset = getMatchesForTab(state.activeTab, state.predicted);
+      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, clickable: !!state.userBracket && state.lockFlag !== "yes", lockPicking: state.lockFlag === "yes" });
+
+      renderSummary();
+      renderLeaderboard();
+      renderBracketDetail();
+      updateLockUI();
+      els.globalStatus.textContent = `Loaded ${state.actualMatches.length} matches and ${state.players.size} players.`;
+    }
+
+    async function loadTournament(){
+      const [bracketRaw, lockRaw, playersRaw] = await Promise.all([
+        fetchSheet("Bracket!A:J"),
+        fetchSheet("Bracket!I1"),
+        fetchSheet("Form Responses!B:H"),
+      ]);
+      state.actualMatches = buildActualMatchesFromSheet(bracketRaw);
+      state.players = parsePlayers(playersRaw);
+      state.lockFlag = parseLock(lockRaw);
+      state.context = buildBracketContext(state.actualMatches);
+      const applied = applyUserPicksToPredictedBracket(state.context, state.userPicks);
+      state.predicted = applied.predicted;
+      state.validUserPicks = applied.validPicks;
+    }
+
+    async function loadAuthState(){
+      const { data: { session } } = await supabase.auth.getSession();
+      state.session = session;
+      if(!session){
+        state.profile = null;
+        state.userBracket = null;
+        state.userPicks = new Map();
+        return;
+      }
+
+      const userId = session.user.id;
+      const [{ data: profile }, { data: bracketRows }] = await Promise.all([
+        supabase.from("profiles").select("user_id,username").eq("user_id", userId).maybeSingle(),
+        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at").eq("user_id", userId).maybeSingle(),
+      ]);
+      state.profile = profile || null;
+      state.userBracket = bracketRows || null;
+
+      if(state.userBracket?.id){
+        const { data: picks } = await supabase
+          .from("bracket_picks")
+          .select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded")
+          .eq("bracket_id", state.userBracket.id);
+        state.userPicks = new Map((picks || []).map((p) => [p.match_id, p]));
+      }else{
+        state.userPicks = new Map();
+      }
+
+      if(state.profile?.username) els.usernameInput.value = state.profile.username;
+      if(state.userBracket?.bracket_name) els.bracketNameInput.value = state.userBracket.bracket_name;
+    }
+
+    async function loadLeaderboardData(){
+      const [profilesRes, bracketsRes, picksRes] = await Promise.all([
+        supabase.from("profiles").select("user_id,username"),
+        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at"),
+        supabase.from("bracket_picks").select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded"),
+      ]);
+      const profileByUser = new Map((profilesRes.data || []).map((p) => [p.user_id, p.username]));
+      state.allBrackets = (bracketsRes.data || []).map((b) => ({ ...b, username: profileByUser.get(b.user_id) || "" }));
+      state.allPicks = picksRes.data || [];
+      if(!state.selectedBracketId && state.userBracket?.id) state.selectedBracketId = state.userBracket.id;
+    }
+
+    function refreshPredictedFromUserPicks(){
+      const applied = applyUserPicksToPredictedBracket(state.context, state.userPicks);
+      state.predicted = applied.predicted;
+      state.validUserPicks = applied.validPicks;
+    }
+
+    async function saveProfile(){
+      if(!state.session) return setMessage("Log in first.", "error");
+      const username = normalizeName(els.usernameInput.value);
+      if(!username) return setMessage("Username is required.", "error");
+      const { error } = await supabase.from("profiles").upsert({ user_id: state.session.user.id, username });
+      if(error){
+        if(String(error.message || "").toLowerCase().includes("duplicate") || error.code === "23505"){
+          return setMessage("That username is already taken.", "error");
+        }
+        return setMessage(error.message || "Failed to save username.", "error");
+      }
+      await loadAuthState();
+      await loadLeaderboardData();
+      renderView();
+      setMessage("Username saved.", "ok");
+    }
+
+    async function saveBracket(){
+      if(!state.session) return setMessage("Log in first.", "error");
+      if(state.lockFlag === "yes") return setMessage("Bracket is locked.", "error");
+      const bracketName = normalizeName(els.bracketNameInput.value);
+      if(!bracketName) return setMessage("Bracket name is required.", "error");
+
+      const payload = { user_id: state.session.user.id, bracket_name: bracketName };
+      if(state.userBracket?.id) payload.id = state.userBracket.id;
+      const { error } = await supabase.from("brackets").upsert(payload);
+      if(error) return setMessage(error.message || "Failed to save bracket.", "error");
+
+      await loadAuthState();
+      refreshPredictedFromUserPicks();
+      await loadLeaderboardData();
+      renderView();
+      setMessage("Bracket saved.", "ok");
+    }
+
+    async function savePicks(){
+      if(!state.session) return setMessage("Log in first.", "error");
+      if(state.lockFlag === "yes") return setMessage("Bracket is locked.", "error");
+      if(!state.userBracket?.id) return setMessage("Create your bracket first.", "error");
+
+      refreshPredictedFromUserPicks();
+      const rows = [...state.validUserPicks.values()].map((p) => {
+        const hydrated = hydratePickCorrectnessAgainstActualResults(p, state.context.byId);
+        return {
+          bracket_id: state.userBracket.id,
+          match_id: p.match_id,
+          round_code: p.round_code,
+          round_number: p.round_number,
+          selected_winner_name: p.selected_winner_name,
+          selected_winner_seed: p.selected_winner_seed,
+          is_correct: hydrated.is_correct,
+          points_awarded: hydrated.points_awarded,
+        };
+      });
+      const { error } = await supabase.from("bracket_picks").upsert(rows, { onConflict: "bracket_id,match_id" });
+      if(error) return setMessage(error.message || "Failed to save picks.", "error");
+
+      await loadAuthState();
+      refreshPredictedFromUserPicks();
+      await loadLeaderboardData();
+      renderView();
+      setMessage("Picks saved.", "ok");
+    }
+
+    function handlePickClick(event){
+      const row = event.target.closest("button[data-match-id]");
+      if(!row || state.lockFlag === "yes" || !state.userBracket?.id) return;
+      const matchId = Number(row.dataset.matchId);
+      const selected_winner_name = normalizeName(row.dataset.name);
+      if(!matchId || !selected_winner_name) return;
+
+      const targetMatch = state.predicted.get(matchId);
+      if(!targetMatch) return;
+      const participant = getParticipantFromPicked(targetMatch, selected_winner_name);
+      if(!participant) return;
+
+      const basePick = {
+        bracket_id: state.userBracket.id,
+        match_id: matchId,
+        round_code: targetMatch.round,
+        round_number: targetMatch.roundNumber,
+        selected_winner_name,
+        selected_winner_seed: participant.seed ?? null,
+        is_correct: null,
+        points_awarded: null,
+      };
+
+      let nextPickMap = clearDependentDownstreamPicks(matchId, state.userPicks, state.context);
+      nextPickMap.set(matchId, basePick);
+      state.userPicks = nextPickMap;
+      refreshPredictedFromUserPicks();
+      renderView();
+    }
+
+    function bindEvents(){
+      els.regionTabs.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-tab]");
+        if(!btn) return;
+        state.activeTab = btn.dataset.tab;
+        renderView();
+      });
+
+      els.pickBracketGrid.addEventListener("click", handlePickClick);
+
+      els.leaderboardTable.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-select-bracket]");
+        if(!btn) return;
+        state.selectedBracketId = btn.dataset.selectBracket;
+        els.bracketSelect.value = state.selectedBracketId;
+        renderView();
+      });
+
+      els.bracketSelect.addEventListener("change", () => {
+        state.selectedBracketId = els.bracketSelect.value;
+        renderView();
+      });
+
+      els.signupBtn.addEventListener("click", async () => {
+        const { error } = await supabase.auth.signUp({ email: els.emailInput.value.trim(), password: els.passwordInput.value });
+        if(error) return setMessage(error.message || "Signup failed.", "error");
+        setMessage("Signup successful. Check your email if confirmation is required.", "ok");
+      });
+
+      els.loginBtn.addEventListener("click", async () => {
+        const { error } = await supabase.auth.signInWithPassword({ email: els.emailInput.value.trim(), password: els.passwordInput.value });
+        if(error) return setMessage(error.message || "Login failed.", "error");
+        setMessage("Logged in.", "ok");
+      });
+
+      els.logoutBtn.addEventListener("click", async () => {
+        const { error } = await supabase.auth.signOut();
+        if(error) return setMessage(error.message || "Logout failed.", "error");
+        setMessage("Logged out.", "ok");
+      });
+
+      els.saveProfileBtn.addEventListener("click", saveProfile);
+      els.saveBracketBtn.addEventListener("click", saveBracket);
+      els.savePicksBtn.addEventListener("click", savePicks);
+      els.reloadBtn.addEventListener("click", async () => {
+        await loadTournament();
+        refreshPredictedFromUserPicks();
+        await loadLeaderboardData();
+        renderView();
+        setMessage("Data refreshed.", "ok");
+      });
+
+      state.authSub = supabase.auth.onAuthStateChange(async () => {
+        await loadAuthState();
+        if(state.context) refreshPredictedFromUserPicks();
+        await loadLeaderboardData();
+        renderView();
+      });
+    }
+
+    async function init(){
+      bindEvents();
+      try{
+        await loadAuthState();
+        await loadTournament();
+        refreshPredictedFromUserPicks();
+        await loadLeaderboardData();
+        renderView();
+        setMessage("Ready.");
+      }catch(error){
+        console.error(error);
+        setMessage(error.message || "Initialization failed.", "error");
+        els.globalStatus.textContent = "Failed to load initial data.";
+      }
+    }
+
+    init();
+  </script>
 </body>
 </html>
