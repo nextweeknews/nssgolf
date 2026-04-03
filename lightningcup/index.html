@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#020B18" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
-  <title>NSS Golf Lightning Cup</title>
+  <title>Lightning Cup 2026</title>
 
   <style>
     :root{
@@ -58,7 +58,7 @@
     .btn-primary{ background: rgba(56,189,248,0.18); border-color: rgba(56,189,248,0.42); }
     .btn[disabled]{ opacity:.45; cursor:not-allowed; }
 
-    .two-col{ display:grid; grid-template-columns: minmax(220px,300px) minmax(0,1fr); gap:12px; }
+    .two-col{ display:grid; grid-template-columns: minmax(0,1fr); gap:12px; }
     .panel{ border:1px solid var(--border-lite); border-radius:16px; padding:12px; background: rgba(15,23,42,0.55); }
 
     .qualifier-seed-list{ display:grid; gap:6px; }
@@ -72,9 +72,11 @@
     .qualifier-bracket-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(188px,210px); gap:14px; align-items:start; min-width:max-content; padding:2px; }
     .qualifier-round-column{ display:flex; flex-direction:column; gap:8px; }
     .qualifier-round-title{ margin:0; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); text-align:center; }
-    .qualifier-round-stack{ display:flex; flex-direction:column; gap:8px; }
+    .qualifier-round-stack{ display:flex; flex-direction:column; gap: var(--qualifier-round-gap, 8px); }
+    .qualifier-round-stack .qualifier-bracket-match:first-child{ padding-top: var(--qualifier-round-padding-top, 0px); }
+    .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{ padding-top: var(--qualifier-round-gap, 8px); }
     .qualifier-bracket-match{ display:flex; gap:3px; align-items:center; min-height:52px; }
-    .qualifier-match-number{ width:22px; flex:0 0 22px; text-align:center; color: rgba(233,238,248,0.68); font-size:10px; font-weight:900; }
+    .qualifier-match-info{ width:22px; flex:0 0 22px; height:22px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.86); font-size:11px; font-weight:900; cursor:pointer; }
     .qualifier-match-card{ width:100%; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
     .qualifier-match-row{ display:grid; grid-template-columns:26px minmax(0,1fr) 40px; align-items:center; gap:6px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
@@ -101,6 +103,14 @@
     .message{ margin:0; font-size:12px; padding:10px; border-radius:10px; border:1px solid rgba(148,163,184,.30); background: rgba(2,8,24,.60); }
     .message.error{ border-color: rgba(239,68,68,.45); color:#fecaca; }
     .message.ok{ border-color: rgba(34,197,94,.45); color:#bbf7d0; }
+    .message.is-hidden{ display:none; }
+    .auth-only{ display:none; }
+    .main-tab-panel{ display:none; }
+    .main-tab-panel.is-active{ display:grid; gap:10px; }
+    .modal-backdrop{ position:fixed; inset:0; background: rgba(2,8,24,.65); display:none; place-items:center; z-index:50; padding:16px; }
+    .modal-backdrop.is-open{ display:grid; }
+    .modal-card{ width:min(420px, 100%); border-radius:14px; border:1px solid var(--border-lite); background: rgba(15,23,42,0.98); padding:12px; display:grid; gap:8px; }
+    .modal-head{ display:flex; justify-content:space-between; align-items:center; }
 
     table.leaderboard{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:12px; }
     .leaderboard th{ text-align:center; color:var(--muted); font-size:8px; text-transform:uppercase; letter-spacing:.03em; padding:8px 6px; background: var(--header-bg); }
@@ -118,58 +128,63 @@
 
   <main class="container">
     <section class="card" id="userCard">
-      <h1 class="headline">Lightning Cup</h1>
+      <h1 class="headline">Lightning Cup 2026</h1>
       <p class="status" id="globalStatus">Loading tournament data…</p>
-      <p class="message" id="flashMessage">Ready.</p>
+      <p class="message is-hidden" id="flashMessage"></p>
 
       <div class="auth-grid">
         <label>Email <input id="emailInput" type="email" autocomplete="email" /></label>
         <label>Password <input id="passwordInput" type="password" autocomplete="current-password" /></label>
-        <label>Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
+        <label class="auth-only">Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
       </div>
       <div class="row">
         <button class="btn" id="signupBtn" type="button">Sign Up</button>
         <button class="btn" id="loginBtn" type="button">Log In</button>
-        <button class="btn" id="logoutBtn" type="button">Log Out</button>
+        <button class="btn auth-only" id="logoutBtn" type="button">Log Out</button>
       </div>
-      <div class="auth-grid">
-        <label>Bracket Name <input id="bracketNameInput" type="text" maxlength="60" /></label>
+      <div class="auth-grid auth-only" id="controlsGrid">
         <label>Selected Bracket <select id="bracketSelect"></select></label>
         <label>Lock Status <input id="lockStatusInput" type="text" readonly /></label>
       </div>
-      <div class="row">
+      <div class="row auth-only" id="controlsRow">
         <button class="btn btn-primary" id="saveProfileBtn" type="button">Save Username</button>
-        <button class="btn btn-primary" id="saveBracketBtn" type="button">Create/Update Bracket</button>
         <button class="btn btn-primary" id="savePicksBtn" type="button">Save Picks</button>
         <button class="btn" id="reloadBtn" type="button">Refresh Data</button>
       </div>
-      <div class="row" id="summaryRow"></div>
+      <div class="row auth-only" id="summaryRow"></div>
     </section>
 
     <section class="card">
+      <div class="tabs" id="mainTabs"></div>
+      <div id="actualPanel" class="main-tab-panel">
       <div class="tabs" id="regionTabs"></div>
       <div class="two-col">
-        <div class="panel"><div class="qualifier-seed-list" id="seedList"></div></div>
         <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="actualBracketGrid"></div></div>
       </div>
-    </section>
-
-    <section class="card">
+      </div>
+      <div id="yourPanel" class="main-tab-panel">
       <h2 class="headline" style="font-size:16px;">Your Predictive Bracket</h2>
       <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
       <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="pickBracketGrid"></div></div>
-    </section>
-
-    <section class="card">
+      </div>
+      <div id="leaderboardPanel" class="main-tab-panel">
       <h2 class="headline" style="font-size:16px;">Leaderboard</h2>
       <div style="overflow:auto;"><table class="leaderboard" id="leaderboardTable"></table></div>
-    </section>
-
-    <section class="card">
       <h2 class="headline" style="font-size:16px;">Bracket Detail</h2>
       <div class="detail-head" id="detailHeader"></div>
       <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="detailBracketGrid"></div></div>
+      </div>
     </section>
+
+    <div class="modal-backdrop" id="matchModal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
+        <div class="modal-head">
+          <strong id="matchModalTitle">Match Info</strong>
+          <button class="btn" id="closeMatchModal" type="button">Close</button>
+        </div>
+        <p class="status" id="matchModalBody"></p>
+      </div>
+    </div>
   </main>
 
   <script type="module">
@@ -194,6 +209,7 @@
       actualMatches: /** @type {ActualMatch[]} */ ([]),
       players: new Map(),
       lockFlag: "no",
+      mainTab: "Actual Bracket",
       activeTab: "Region 1",
       context: null,
       session: null,
@@ -204,6 +220,7 @@
       validUserPicks: /** @type {Map<number, PickRow>} */ (new Map()),
       allBrackets: /** @type {(BracketRow & {username:string})[]} */ ([]),
       allPicks: /** @type {PickRow[]} */ ([]),
+      detailPredicted: /** @type {Map<number, PredictedMatch>} */ (new Map()),
       selectedBracketId: null,
       authSub: null,
     };
@@ -213,35 +230,40 @@
     const els = {
       globalStatus: document.getElementById("globalStatus"),
       flashMessage: document.getElementById("flashMessage"),
+      mainTabs: document.getElementById("mainTabs"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
       regionTabs: document.getElementById("regionTabs"),
-      seedList: document.getElementById("seedList"),
       actualBracketGrid: document.getElementById("actualBracketGrid"),
       pickBracketGrid: document.getElementById("pickBracketGrid"),
       detailBracketGrid: document.getElementById("detailBracketGrid"),
+      actualPanel: document.getElementById("actualPanel"),
+      yourPanel: document.getElementById("yourPanel"),
+      leaderboardPanel: document.getElementById("leaderboardPanel"),
       detailHeader: document.getElementById("detailHeader"),
       summaryRow: document.getElementById("summaryRow"),
       leaderboardTable: document.getElementById("leaderboardTable"),
       emailInput: document.getElementById("emailInput"),
       passwordInput: document.getElementById("passwordInput"),
       usernameInput: document.getElementById("usernameInput"),
-      bracketNameInput: document.getElementById("bracketNameInput"),
       bracketSelect: document.getElementById("bracketSelect"),
       signupBtn: document.getElementById("signupBtn"),
       loginBtn: document.getElementById("loginBtn"),
       logoutBtn: document.getElementById("logoutBtn"),
       saveProfileBtn: document.getElementById("saveProfileBtn"),
-      saveBracketBtn: document.getElementById("saveBracketBtn"),
       savePicksBtn: document.getElementById("savePicksBtn"),
       reloadBtn: document.getElementById("reloadBtn"),
+      matchModal: document.getElementById("matchModal"),
+      matchModalBody: document.getElementById("matchModalBody"),
+      closeMatchModal: document.getElementById("closeMatchModal"),
     };
 
     const normalizeName = (value) => String(value || "").trim();
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
     const setMessage = (text, type = "") => {
-      els.flashMessage.textContent = text;
-      els.flashMessage.className = `message ${type}`.trim();
+      const clean = normalizeName(text);
+      els.flashMessage.textContent = clean;
+      els.flashMessage.className = `message ${type} ${clean ? "" : "is-hidden"}`.trim();
     };
 
     async function fetchSheet(range){
@@ -315,10 +337,8 @@
         if(r8[0]) regionChampions.set(region, r8[0].id);
       });
 
-      const semifinals = [...(byRoundRegion.get("R4:0") || []), ...(byRoundRegion.get("R4:1") || []), ...(byRoundRegion.get("R4:2") || []), ...(byRoundRegion.get("R4:3") || []), ...(byRoundRegion.get("R4:4") || [])]
-        .filter((m) => m.round === "R4")
-        .sort((a,b)=>a.id-b.id);
-      const finals = [...byRoundRegion.entries()].flatMap(([key, list]) => key.startsWith("Final:") ? list : []).sort((a,b)=>a.id-b.id);
+      const semifinals = actualMatches.filter((m) => m.round === "R4").sort((a,b)=>a.id-b.id);
+      const finals = actualMatches.filter((m) => m.round === "Final").sort((a,b)=>a.id-b.id);
       const finalMatch = finals[0];
 
       setEdge(regionChampions.get(1), semifinals[0]?.id, "top");
@@ -471,19 +491,13 @@
       return ROUND_ORDER.map((round) => ({ round, matches: matches.filter((m) => m.round === round) })).filter((g) => g.matches.length);
     }
 
-    function renderSeeds(tab){
-      const region = tab.startsWith("Region") ? Number(tab.replace("Region ", "")) : null;
-      if(!region){ els.seedList.innerHTML = ""; return; }
-      const regionR64 = state.actualMatches.filter((m) => m.round === "R64" && m.region === region);
-      const seedRows = regionR64.flatMap((m) => [m.top, m.bottom]).filter((p) => p.name).sort((a,b)=>(a.seed||99)-(b.seed||99));
-      els.seedList.innerHTML = `<div class="qualifier-seed-head"><div>Seed</div><div>Player</div></div>` + seedRows.map((p) => `<div class="qualifier-seed-row"><div class="qualifier-seed-number">${p.seed ?? "-"}</div><div class="qualifier-seed-player">${p.name}</div></div>`).join("");
-    }
-
     function renderBracketGrid(target, matches, options = {}){
-      const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false } = options;
+      const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false, infoSource = "actual" } = options;
       const groups = groupByRound(matches);
+      const roundGapByRound = { R64: 8, R32: 34, R16: 86, R8: 190, R4: 8, Final: 8 };
+      const roundTopPaddingByRound = { R64: 0, R32: 30, R16: 80, R8: 185, R4: 116, Final: 52 };
       target.innerHTML = groups.map((group) => `
-        <div class="qualifier-round-column">
+        <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGapByRound[group.round] ?? 8}px;--qualifier-round-padding-top:${roundTopPaddingByRound[group.round] ?? 0}px;">
           <h3 class="qualifier-round-title">${group.round}</h3>
           <div class="qualifier-round-stack">
             ${group.matches.map((match) => {
@@ -498,10 +512,20 @@
                 const meta = isPicked && hydrated?.is_correct === true ? `+${hydrated.points_awarded}` : (mode === "actual" ? (slot.score || "") : "");
                 return `<button class="qualifier-match-row ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? "-"}</span><span class="qualifier-player-name">${name}</span><span class="qualifier-player-meta">${meta}</span></button>`;
               };
-              return `<div class="qualifier-bracket-match"><div class="qualifier-match-number">${match.id}</div><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
+              return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
           </div>
         </div>`).join("");
+    }
+
+    function renderMainTabs(){
+      const loggedIn = !!state.session;
+      const tabs = loggedIn ? ["Actual Bracket", "Your Bracket", "Leaderboard"] : ["Actual Bracket"];
+      if(!tabs.includes(state.mainTab)) state.mainTab = "Actual Bracket";
+      els.mainTabs.innerHTML = tabs.map((tab) => `<button class="tab-btn ${state.mainTab===tab ? "is-active" : ""}" data-main-tab="${tab}" type="button">${tab}</button>`).join("");
+      els.actualPanel.classList.toggle("is-active", state.mainTab === "Actual Bracket");
+      els.yourPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Your Bracket");
+      els.leaderboardPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Leaderboard");
     }
 
     function renderTabs(){
@@ -511,11 +535,15 @@
     function updateLockUI(){
       const locked = state.lockFlag === "yes";
       els.lockStatusInput.value = locked ? "YES (LOCKED)" : "NO (OPEN)";
-      els.saveBracketBtn.disabled = locked;
       els.savePicksBtn.disabled = locked;
-      els.pickStatus.textContent = locked ? "Bracket is locked. Picks are read-only." : "Pick all 63 matches. Future rounds are derived from your earlier picks.";
-      if(locked){
-        setMessage("Bracket lock is ON (Bracket!I1 = yes). Edits are disabled.", "");
+      if(!state.session){
+        els.pickStatus.textContent = "Log in to make and save your bracket picks.";
+      }else if(!state.profile?.username){
+        els.pickStatus.textContent = "Save a username first.";
+      }else if(locked && !state.userBracket){
+        els.pickStatus.textContent = "Bracket is locked. Bracket creation is closed.";
+      }else{
+        els.pickStatus.textContent = locked ? "Bracket is locked. Picks are read-only." : "Pick all 63 matches. Future rounds are derived from your earlier picks.";
       }
     }
 
@@ -535,11 +563,23 @@
 
     function renderSummary(){
       if(!state.userBracket){
-        els.summaryRow.innerHTML = `<span class="pill warn">No bracket created yet.</span>`;
+        if(!state.profile?.username){
+          els.summaryRow.innerHTML = `<span class="pill warn">Save a username to start.</span>`;
+          return;
+        }
+        if(state.lockFlag === "yes"){
+          els.summaryRow.innerHTML = `<span class="pill warn">Bracket is locked. Creation is closed.</span>`;
+          return;
+        }
+        els.summaryRow.innerHTML = `<span class="pill warn">Make picks, then save.</span>`;
+        return;
+      }
+      if(state.validUserPicks.size === 0){
+        els.summaryRow.innerHTML = `<span class="pill warn">No saved picks yet. Make picks, then save.</span>`;
         return;
       }
       const scores = computeScoresFromPicks(state.validUserPicks);
-      els.summaryRow.innerHTML = `<span class="pill">Bracket: ${state.userBracket.bracket_name}</span><span class="pill">Actual: ${scores.actual}</span><span class="pill">Possible Remaining: ${scores.possibleRemaining}</span><span class="pill">Possible Total: ${scores.possibleTotal}</span>${state.lockFlag === "yes" ? '<span class="pill warn">Locked</span>' : '<span class="pill good">Editable</span>'}`;
+      els.summaryRow.innerHTML = `<span class="pill">User: ${state.profile?.username || "-"}</span><span class="pill">Actual: ${scores.actual}</span><span class="pill">Possible Remaining: ${scores.possibleRemaining}</span><span class="pill">Possible Total: ${scores.possibleTotal}</span>${state.lockFlag === "yes" ? '<span class="pill warn">Locked</span>' : '<span class="pill good">Editable</span>'}`;
     }
 
     function renderLeaderboard(){
@@ -561,6 +601,13 @@
       const rankByScore = new Map();
       [...new Set(rows.map((r) => r.actual))].forEach((score, idx) => rankByScore.set(score, idx + 1));
 
+      if(!rows.length){
+        els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody><tr><td colspan="7">No leaderboard entries yet.</td></tr></tbody>`;
+        els.bracketSelect.innerHTML = "";
+        state.selectedBracketId = null;
+        return;
+      }
+
       els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody>${rows.map((row) => {
         const rank = rankByScore.get(row.actual);
         const tiedCount = rows.filter((r) => r.actual === row.actual).length;
@@ -571,6 +618,7 @@
       }).join("")}</tbody>`;
 
       els.bracketSelect.innerHTML = rows.map((r) => `<option value="${r.id}">${r.bracket_name} (${r.username || "Unknown"})</option>`).join("");
+      if(state.selectedBracketId && !rows.some((r) => r.id === state.selectedBracketId)) state.selectedBracketId = null;
       if(!state.selectedBracketId && rows[0]) state.selectedBracketId = rows[0].id;
       if(state.selectedBracketId) els.bracketSelect.value = state.selectedBracketId;
     }
@@ -578,35 +626,75 @@
     function renderBracketDetail(){
       const selected = state.allBrackets.find((b) => b.id === state.selectedBracketId);
       if(!selected){
-        els.detailHeader.innerHTML = `<span class="pill warn">No bracket selected.</span>`;
+        els.detailHeader.innerHTML = `<span class="pill warn">No bracket selected yet.</span>`;
         els.detailBracketGrid.innerHTML = "";
+        state.detailPredicted = new Map();
         return;
       }
       const rawPicks = new Map(state.allPicks.filter((p) => p.bracket_id === selected.id).map((p) => [p.match_id, p]));
       const { predicted, validPicks } = applyUserPicksToPredictedBracket(state.context, rawPicks);
+      state.detailPredicted = predicted;
       const { actual, possibleRemaining, possibleTotal, hydratedMap } = computeScoresFromPicks(validPicks);
 
       els.detailHeader.innerHTML = `<span class="pill">Bracket: ${selected.bracket_name}</span><span class="pill">User: ${selected.username || "-"}</span><span class="pill">Actual: ${actual}</span><span class="pill">Possible Remaining: ${possibleRemaining}</span><span class="pill">Possible Total: ${possibleTotal}</span>`;
       const matches = getMatchesForTab(state.activeTab, predicted);
-      renderBracketGrid(els.detailBracketGrid, matches, { mode: "detail", picksMap: validPicks, hydratedMap, clickable: false, lockPicking: true });
+      renderBracketGrid(els.detailBracketGrid, matches, { mode: "detail", picksMap: validPicks, hydratedMap, clickable: false, lockPicking: true, infoSource: "detail" });
     }
 
     function renderView(){
       if(!state.context) return;
+      renderMainTabs();
       renderTabs();
-      renderSeeds(state.activeTab);
       const actualSubset = getMatchesForTab(state.activeTab, new Map(state.actualMatches.map((m)=>[m.id,m])));
-      renderBracketGrid(els.actualBracketGrid, actualSubset, { mode: "actual" });
+      renderBracketGrid(els.actualBracketGrid, actualSubset, { mode: "actual", infoSource: "actual" });
 
       const userScores = computeScoresFromPicks(state.validUserPicks);
       const userSubset = getMatchesForTab(state.activeTab, state.predicted);
-      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, clickable: !!state.userBracket && state.lockFlag !== "yes", lockPicking: state.lockFlag === "yes" });
+      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, clickable: !!state.userBracket && state.lockFlag !== "yes", lockPicking: state.lockFlag === "yes", infoSource: "pick" });
 
       renderSummary();
       renderLeaderboard();
       renderBracketDetail();
       updateLockUI();
       els.globalStatus.textContent = `Loaded ${state.actualMatches.length} matches and ${state.players.size} players.`;
+    }
+
+    function renderAuthUI(){
+      const loggedIn = !!state.session;
+      document.querySelectorAll(".auth-only").forEach((el) => { el.style.display = loggedIn ? "" : "none"; });
+    }
+
+    async function ensureUserBracket(){
+      if(!state.session) return null;
+      const username = normalizeName(state.profile?.username);
+      if(!username) return null;
+      const payload = { user_id: state.session.user.id, bracket_name: username };
+      if(state.userBracket?.id) payload.id = state.userBracket.id;
+      const { data, error } = await supabase.from("brackets").upsert(payload).select("id,user_id,bracket_name,submitted_at").maybeSingle();
+      if(error) throw error;
+      state.userBracket = data || state.userBracket;
+      return state.userBracket;
+    }
+
+    function openMatchModal(matchId, source){
+      const parsedId = Number(matchId);
+      if(!parsedId) return;
+      const sourceMap = source === "actual"
+        ? new Map(state.actualMatches.map((m) => [m.id, m]))
+        : source === "detail"
+          ? state.detailPredicted
+          : state.predicted;
+      const match = sourceMap?.get(parsedId);
+      if(!match) return;
+      const winnerLine = source === "actual" && match.winner ? `Winner: ${match.winner}` : "Winner: TBD";
+      els.matchModalBody.textContent = `Round: ${match.round} • ${match.top?.name || "TBD"} (${match.top?.seed ?? "-"}) vs ${match.bottom?.name || "TBD"} (${match.bottom?.seed ?? "-"}) • ${winnerLine} • Matchup stats coming soon`;
+      els.matchModal.classList.add("is-open");
+      els.matchModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeMatchModal(){
+      els.matchModal.classList.remove("is-open");
+      els.matchModal.setAttribute("aria-hidden", "true");
     }
 
     async function loadTournament(){
@@ -653,7 +741,7 @@
       }
 
       if(state.profile?.username) els.usernameInput.value = state.profile.username;
-      if(state.userBracket?.bracket_name) els.bracketNameInput.value = state.userBracket.bracket_name;
+      renderAuthUI();
     }
 
     async function loadLeaderboardData(){
@@ -663,7 +751,10 @@
         supabase.from("bracket_picks").select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded"),
       ]);
       const profileByUser = new Map((profilesRes.data || []).map((p) => [p.user_id, p.username]));
-      state.allBrackets = (bracketsRes.data || []).map((b) => ({ ...b, username: profileByUser.get(b.user_id) || "" }));
+      state.allBrackets = (bracketsRes.data || []).map((b) => {
+        const username = profileByUser.get(b.user_id) || "";
+        return { ...b, username, bracket_name: username || b.bracket_name || "Unknown" };
+      });
       state.allPicks = picksRes.data || [];
       if(!state.selectedBracketId && state.userBracket?.id) state.selectedBracketId = state.userBracket.id;
     }
@@ -686,33 +777,21 @@
         return setMessage(error.message || "Failed to save username.", "error");
       }
       await loadAuthState();
+      await ensureUserBracket();
       await loadLeaderboardData();
       renderView();
       setMessage("Username saved.", "ok");
     }
 
-    async function saveBracket(){
-      if(!state.session) return setMessage("Log in first.", "error");
-      if(state.lockFlag === "yes") return setMessage("Bracket is locked.", "error");
-      const bracketName = normalizeName(els.bracketNameInput.value);
-      if(!bracketName) return setMessage("Bracket name is required.", "error");
-
-      const payload = { user_id: state.session.user.id, bracket_name: bracketName };
-      if(state.userBracket?.id) payload.id = state.userBracket.id;
-      const { error } = await supabase.from("brackets").upsert(payload);
-      if(error) return setMessage(error.message || "Failed to save bracket.", "error");
-
-      await loadAuthState();
-      refreshPredictedFromUserPicks();
-      await loadLeaderboardData();
-      renderView();
-      setMessage("Bracket saved.", "ok");
-    }
-
     async function savePicks(){
       if(!state.session) return setMessage("Log in first.", "error");
+      if(state.lockFlag === "yes" && !state.userBracket) return setMessage("Bracket is locked. Bracket creation is closed.", "error");
       if(state.lockFlag === "yes") return setMessage("Bracket is locked.", "error");
-      if(!state.userBracket?.id) return setMessage("Create your bracket first.", "error");
+      if(!state.profile?.username) return setMessage("Set your username first.", "error");
+      if(!state.userBracket?.id){
+        await ensureUserBracket();
+      }
+      if(!state.userBracket?.id) return setMessage("Could not create bracket yet.", "error");
 
       refreshPredictedFromUserPicks();
       const rows = [...state.validUserPicks.values()].map((p) => {
@@ -777,6 +856,24 @@
       });
 
       els.pickBracketGrid.addEventListener("click", handlePickClick);
+      els.actualBracketGrid.addEventListener("click", (event) => {
+        const infoBtn = event.target.closest("button[data-match-info]");
+        if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
+      });
+      els.pickBracketGrid.addEventListener("click", (event) => {
+        const infoBtn = event.target.closest("button[data-match-info]");
+        if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
+      });
+      els.detailBracketGrid.addEventListener("click", (event) => {
+        const infoBtn = event.target.closest("button[data-match-info]");
+        if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
+      });
+      els.mainTabs.addEventListener("click", (event) => {
+        const btn = event.target.closest("button[data-main-tab]");
+        if(!btn) return;
+        state.mainTab = btn.dataset.mainTab;
+        renderView();
+      });
 
       els.leaderboardTable.addEventListener("click", (event) => {
         const btn = event.target.closest("button[data-select-bracket]");
@@ -789,6 +886,10 @@
       els.bracketSelect.addEventListener("change", () => {
         state.selectedBracketId = els.bracketSelect.value;
         renderView();
+      });
+      els.closeMatchModal.addEventListener("click", closeMatchModal);
+      els.matchModal.addEventListener("click", (event) => {
+        if(event.target === els.matchModal) closeMatchModal();
       });
 
       els.signupBtn.addEventListener("click", async () => {
@@ -810,7 +911,6 @@
       });
 
       els.saveProfileBtn.addEventListener("click", saveProfile);
-      els.saveBracketBtn.addEventListener("click", saveBracket);
       els.savePicksBtn.addEventListener("click", savePicks);
       els.reloadBtn.addEventListener("click", async () => {
         await loadTournament();
@@ -836,7 +936,7 @@
         refreshPredictedFromUserPicks();
         await loadLeaderboardData();
         renderView();
-        setMessage("Ready.");
+        setMessage("");
       }catch(error){
         console.error(error);
         setMessage(error.message || "Initialization failed.", "error");
