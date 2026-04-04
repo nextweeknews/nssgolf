@@ -916,7 +916,7 @@
       state.predicted = applied.predicted;
       state.validUserPicks = applied.validPicks;
       state.tournamentLoaded = true;
-      console.log("[lightningcup auth] tournament loaded", { loaded: state.tournamentLoaded, matches: state.actualMatches.length });
+      console.log("[lightningcup auth] tournament loaded", { tournamentLoaded: state.tournamentLoaded });
     }
 
     async function syncSessionFromSupabase(reason = "unknown"){
@@ -1268,7 +1268,7 @@
         await refreshAuthDrivenUI("init", { syncSession: false });
         setMessage("");
       }catch(error){
-        console.error(error);
+        console.error("[lightningcup init] failed", { message: error?.message || "Unknown error" });
         setMessage(error.message || "Initialization failed.", "error");
         els.globalStatus.textContent = "Failed to load initial data.";
       }
