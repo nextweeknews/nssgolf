@@ -99,21 +99,27 @@
     .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{ padding-top: var(--qualifier-round-gap, 8px); }
     .qualifier-bracket-match{ display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:6px; align-items:center; width:100%; min-height:var(--qualifier-match-height); }
     .qualifier-match-info{ width:22px; flex:0 0 22px; height:22px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.86); font-size:11px; font-weight:900; cursor:pointer; }
-    .qualifier-match-card{ width:100%; min-width:0; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
-    .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; text-align:left; position:relative; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
+    .qualifier-match-card{ position:relative; width:100%; min-width:0; border-radius:10px; overflow:hidden; background: rgba(255,255,255,0.05); isolation:isolate; }
+    .qualifier-match-card::before{ content:""; position:absolute; inset:0; border:1px solid rgba(255,255,255,0.08); border-radius:inherit; pointer-events:none; z-index:3; transition: border-color 120ms ease, box-shadow 120ms ease; }
+    .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:0; font-size:10px; text-align:left; position:relative; z-index:1; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
     .qualifier-match-row.no-score{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr); }
-    .qualifier-match-row:first-child{ border-top-left-radius:9px; border-top-right-radius:9px; }
-    .qualifier-match-row:last-child{ border-bottom-left-radius:9px; border-bottom-right-radius:9px; }
+    .qualifier-match-row:first-child{ border-top-left-radius:10px; border-top-right-radius:10px; }
+    .qualifier-match-row:last-child{ border-bottom-left-radius:10px; border-bottom-right-radius:10px; }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
     .qualifier-match-row + .qualifier-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .qualifier-match-row.winner{ background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.55); }
     .qualifier-match-row.selected{ box-shadow: inset 0 0 0 999px var(--pick); }
-    .qualifier-match-row.selected::after{ content:""; position:absolute; inset:0; border-top:1px solid rgba(125,211,252,.58); border-bottom:1px solid rgba(125,211,252,.45); border-radius:inherit; pointer-events:none; }
     .qualifier-match-row.correct{ box-shadow: inset 0 0 0 999px var(--success); }
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(56,189,248,0.10); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected::before{ border-color: rgba(125,211,252,.72); box-shadow: 0 0 0 1px rgba(56,189,248,.2); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(125,211,252,.72); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected,
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending{ box-shadow: inset 0 0 0 999px rgba(125,211,252,.18); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected-top .qualifier-match-row:first-child{ border-top-left-radius:10px; border-top-right-radius:10px; }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected-bottom .qualifier-match-row:last-child{ border-bottom-left-radius:10px; border-bottom-right-radius:10px; }
     .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
     .qualifier-player-seed{ width:100%; text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
@@ -1009,6 +1015,15 @@
             ${group.matches.map((match) => {
               const pick = picksMap.get(match.id);
               const hydrated = hydratedMap.get(match.id);
+              const selectedWinnerName = normalizeName(pick?.selected_winner_name);
+              const topSelected = !!selectedWinnerName && selectedWinnerName === normalizeName(match.top?.name);
+              const bottomSelected = !!selectedWinnerName && selectedWinnerName === normalizeName(match.bottom?.name);
+              const matchCardClass = [
+                "qualifier-match-card",
+                topSelected || bottomSelected ? "is-selected" : "",
+                topSelected ? "is-selected-top" : "",
+                bottomSelected ? "is-selected-bottom" : "",
+              ].filter(Boolean).join(" ");
               const renderRow = (slot) => {
                 const name = slot.name || "";
                 const isPicked = pick && pick.selected_winner_name === name;
@@ -1022,7 +1037,7 @@
                   : "";
                 return `<button class="qualifier-match-row ${showScoreIndicators ? "" : "no-score"} ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}</button>`;
               };
-              return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
+              return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
           </div>
         </div>`;
