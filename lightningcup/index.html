@@ -540,11 +540,11 @@
       gap:6px;
     }
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
-    .qualifier-player-name.is-picked-correct{ color:#bbf7d0; }
-    .qualifier-player-name.is-picked-incorrect{ color:#fecaca; }
+    .qualifier-player-name.is-picked-correct{ color:#4ade80; }
+    .qualifier-player-name.is-picked-incorrect{ color:#f87171; }
     .qualifier-player-name.is-eliminated-future{
       text-decoration: line-through;
-      text-decoration-thickness: 1.5px;
+      text-decoration-thickness: 1px;
       text-decoration-color: currentColor;
     }
     .qualifier-pick-status-icon{ display:block; width:15px; height:15px; }
@@ -2701,15 +2701,11 @@
                   : hydrated?.is_correct === false || (isPicked && isFutureIncorrect)
                     ? " is-incorrect"
                     : "";
-                const nameClass = isPicked && hydrated?.is_correct === true
-                  ? "qualifier-player-name is-picked-correct"
-                  : isPicked && hydrated?.is_correct === false
-                    ? "qualifier-player-name is-picked-incorrect"
-                    : isFutureIncorrect
-                      ? "qualifier-player-name is-picked-incorrect is-eliminated-future"
-                      : isFutureCorrect
-                        ? "qualifier-player-name is-picked-correct"
-                        : "qualifier-player-name";
+                const nameClass = isFutureIncorrect
+                  ? "qualifier-player-name is-picked-incorrect is-eliminated-future"
+                  : isFutureCorrect
+                    ? "qualifier-player-name is-picked-correct"
+                    : "qualifier-player-name";
                 const detailPointsMarkup = !isPicked
                   ? ""
                   : hydrated?.is_correct === true
