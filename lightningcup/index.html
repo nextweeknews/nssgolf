@@ -523,7 +523,7 @@
       background: rgba(var(--player-accent), .82);
     }
     .lc-match-popover-player-head.is-winner-selected{
-      background: rgba(var(--player-accent), .08);
+      background: rgba(var(--player-accent), .13);
     }
     .lc-match-popover-player-head.is-selection-pending{
       animation: lc-match-popover-player-pulse 240ms cubic-bezier(.2,.84,.28,1);
@@ -641,19 +641,6 @@
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      transition: background-color 180ms ease;
-    }
-    .lc-match-popover-choice-column.is-left-selected{
-      background: linear-gradient(90deg, rgba(96,165,250,.08) 0%, rgba(96,165,250,.08) 50%, transparent 50%, transparent 100%);
-    }
-    .lc-match-popover-choice-column.is-right-selected{
-      background: linear-gradient(90deg, transparent 0%, transparent 50%, rgba(34,197,94,.08) 50%, rgba(34,197,94,.08) 100%);
-    }
-    .lc-match-popover-choice-column.is-left-pending{
-      animation: lc-match-popover-choice-pulse-left 240ms cubic-bezier(.2,.84,.28,1);
-    }
-    .lc-match-popover-choice-column.is-right-pending{
-      animation: lc-match-popover-choice-pulse-right 240ms cubic-bezier(.2,.84,.28,1);
     }
     .lc-match-popover-choice-radio,
     .lc-match-popover-choice-radio-spacer{
@@ -668,7 +655,7 @@
       border:1px solid rgba(148,163,184,.44);
       background: rgba(2,8,24,.42);
       cursor:pointer;
-      transition: border-color 140ms ease, background-color 140ms ease, transform 140ms ease;
+      transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
     }
     .lc-match-popover-choice-radio[disabled]{
       cursor:not-allowed;
@@ -678,8 +665,9 @@
       transform:scale(1.05);
     }
     .lc-match-popover-choice-radio-indicator{
-      width:7px;
-      height:7px;
+      display:block;
+      width:6px;
+      height:6px;
       border-radius:999px;
       background: transparent;
       transform:scale(.84);
@@ -688,6 +676,7 @@
     .lc-match-popover-choice-radio.is-left[data-state="checked"]{
       border-color: rgba(96,165,250,.7);
       background: rgba(96,165,250,.12);
+      box-shadow: 0 0 0 1px rgba(96,165,250,.16);
     }
     .lc-match-popover-choice-radio.is-left[data-state="checked"] .lc-match-popover-choice-radio-indicator{
       background: rgba(96,165,250,.95);
@@ -696,6 +685,7 @@
     .lc-match-popover-choice-radio.is-right[data-state="checked"]{
       border-color: rgba(34,197,94,.68);
       background: rgba(34,197,94,.12);
+      box-shadow: 0 0 0 1px rgba(34,197,94,.16);
     }
     .lc-match-popover-choice-radio.is-right[data-state="checked"] .lc-match-popover-choice-radio-indicator{
       background: rgba(34,197,94,.92);
@@ -853,19 +843,9 @@
       to{ opacity:1; transform:translateY(0) scale(1); }
     }
     @keyframes lc-match-popover-player-pulse{
-      0%{ background: rgba(var(--player-accent), .08); }
-      50%{ background: rgba(var(--player-accent), .16); }
-      100%{ background: rgba(var(--player-accent), .08); }
-    }
-    @keyframes lc-match-popover-choice-pulse-left{
-      0%{ background: linear-gradient(90deg, rgba(96,165,250,.08) 0%, rgba(96,165,250,.08) 50%, transparent 50%, transparent 100%); }
-      50%{ background: linear-gradient(90deg, rgba(96,165,250,.16) 0%, rgba(96,165,250,.16) 50%, transparent 50%, transparent 100%); }
-      100%{ background: linear-gradient(90deg, rgba(96,165,250,.08) 0%, rgba(96,165,250,.08) 50%, transparent 50%, transparent 100%); }
-    }
-    @keyframes lc-match-popover-choice-pulse-right{
-      0%{ background: linear-gradient(90deg, transparent 0%, transparent 50%, rgba(34,197,94,.08) 50%, rgba(34,197,94,.08) 100%); }
-      50%{ background: linear-gradient(90deg, transparent 0%, transparent 50%, rgba(34,197,94,.16) 50%, rgba(34,197,94,.16) 100%); }
-      100%{ background: linear-gradient(90deg, transparent 0%, transparent 50%, rgba(34,197,94,.08) 50%, rgba(34,197,94,.08) 100%); }
+      0%{ background: rgba(var(--player-accent), .13); }
+      50%{ background: rgba(var(--player-accent), .2); }
+      100%{ background: rgba(var(--player-accent), .13); }
     }
   </style>
 </head>
