@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import * as Tabs from "@radix-ui/react-tabs";
+import * as Popover from "@radix-ui/react-popover";
 
 const MAIN_TAB_BY_PARENT = {
   results: "Actual Bracket",
@@ -144,6 +145,108 @@ function RegionTabs({ tabs, activeTab, onRegionTabChange }){
   );
 }
 
+function PlayerComparisonColumn({ side, player }){
+  const playerName = player?.name || "TBD";
+  const seedLabel = player?.seedLabel || "-";
+  const discordLabel = player?.discordLabel || "No Discord ID";
+  const seasonRows = Array.isArray(player?.seasons) ? player.seasons : [];
+
+  return (
+    <section className={`lc-match-popover-player lc-match-popover-player-${side}`}>
+      <div className="lc-match-popover-row lc-match-popover-player-head" title={playerName}>
+        <span className="lc-match-popover-player-seed">{seedLabel}</span>
+        <span className="lc-match-popover-player-name">{playerName}</span>
+      </div>
+      <div className="lc-match-popover-row lc-match-popover-player-discord" title={discordLabel}>{discordLabel}</div>
+      <div className="lc-match-popover-row lc-match-popover-section-head">
+        <span>Ranked Performance</span>
+      </div>
+      {seasonRows.map((row) => (
+        <div key={`${side}-season-${row.season}`} className="lc-match-popover-row lc-match-popover-player-stat">{row.value || "Unranked"}</div>
+      ))}
+    </section>
+  );
+}
+
+function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded }){
+  const [open, setOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [loadError, setLoadError] = React.useState("");
+  const [, forceRefresh] = React.useReducer((value) => value + 1, 0);
+
+  const info = typeof getMatchInfo === "function" ? getMatchInfo() : null;
+  const topPlayer = info?.top || {};
+  const bottomPlayer = info?.bottom || {};
+  const seasonLabels = Array.isArray(info?.seasons) && info.seasons.length ? info.seasons : [9, 10, 11];
+
+  React.useEffect(() => {
+    if(!open || typeof ensureRankedDataLoaded !== "function") return undefined;
+    let cancelled = false;
+    setIsLoading(true);
+    Promise.resolve()
+      .then(() => ensureRankedDataLoaded())
+      .then(() => {
+        if(cancelled) return;
+        setLoadError("");
+        setIsLoading(false);
+        forceRefresh();
+      })
+      .catch((error) => {
+        if(cancelled) return;
+        setIsLoading(false);
+        setLoadError(error?.message || "Ranked history unavailable.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, ensureRankedDataLoaded]);
+
+  const ariaLabel = info?.matchId
+    ? `Match info for ${info.matchId}`
+    : "Match info";
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <button className="qualifier-match-info lc-match-info-trigger" type="button" aria-label={ariaLabel}>i</button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          className="lc-match-popover-content"
+          side="right"
+          align="start"
+          sideOffset={10}
+          collisionPadding={12}
+        >
+          <div className="lc-match-popover-head">
+            <span className="lc-match-popover-badge">Match {info?.matchId ?? "-"}</span>
+            <span className="lc-match-popover-meta">Round {info?.round || "-"}</span>
+            <span className="lc-match-popover-meta">{info?.winnerLabel || "Winner: TBD"}</span>
+          </div>
+
+          <div className="lc-match-popover-compare">
+            <PlayerComparisonColumn side="left" player={topPlayer} />
+            <div className="lc-match-popover-center" aria-hidden="true">
+              <div className="lc-match-popover-row lc-match-popover-center-label">Player</div>
+              <div className="lc-match-popover-row lc-match-popover-center-label">Discord</div>
+              <div className="lc-match-popover-row lc-match-popover-center-label">Stats</div>
+              {seasonLabels.map((season) => (
+                <div key={`season-label-${season}`} className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
+              ))}
+            </div>
+            <PlayerComparisonColumn side="right" player={bottomPlayer} />
+          </div>
+
+          {isLoading ? <p className="lc-match-popover-status">Loading ranked history...</p> : null}
+          {loadError ? <p className="lc-match-popover-status lc-match-popover-status-error">{loadError}</p> : null}
+
+          <Popover.Arrow className="lc-match-popover-arrow" width={14} height={8} />
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
 export function mountLightningCupRadixControls({
   mainTabsEl,
   regionTabsEl,
@@ -172,6 +275,27 @@ export function mountLightningCupRadixControls({
     unmount(){
       mainRoot.unmount();
       regionRoot.unmount();
+    },
+  };
+}
+
+export function mountLightningCupMatchInfoPopover({
+  mountEl,
+  getMatchInfo,
+  ensureRankedDataLoaded,
+}){
+  const root = createRoot(mountEl);
+
+  root.render(
+    <MatchInfoPopover
+      getMatchInfo={getMatchInfo}
+      ensureRankedDataLoaded={ensureRankedDataLoaded}
+    />
+  );
+
+  return {
+    unmount(){
+      root.unmount();
     },
   };
 }

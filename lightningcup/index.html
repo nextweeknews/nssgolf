@@ -327,7 +327,29 @@
     .qualifier-round-stack .qualifier-bracket-match:first-child{ padding-top: var(--qualifier-round-padding-top, 0px); }
     .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{ padding-top: var(--qualifier-round-gap, 8px); }
     .qualifier-bracket-match{ display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:6px; align-items:center; width:100%; min-height:var(--qualifier-match-height); }
-    .qualifier-match-info{ width:22px; flex:0 0 22px; height:22px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.86); font-size:11px; font-weight:900; cursor:pointer; }
+    .qualifier-match-info-slot{ width:22px; height:22px; display:grid; place-items:center; }
+    .qualifier-match-info{
+      width:22px;
+      flex:0 0 22px;
+      height:22px;
+      border-radius:999px;
+      border:1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(233,238,248,0.86);
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      line-height:1;
+      transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+    .qualifier-match-info:hover{ background: var(--btn-bg-hover); border-color: var(--btn-border-hover); color:#fff; }
+    .qualifier-match-info:focus-visible{
+      outline:none;
+      border-color: rgba(125,211,252,.72);
+      box-shadow: 0 0 0 2px rgba(125,211,252,.28);
+    }
     .qualifier-match-card{ position:relative; width:100%; min-width:0; border-radius:10px; overflow:hidden; background: rgba(255,255,255,0.05); isolation:isolate; }
     .qualifier-match-card::before{ content:""; position:absolute; inset:0; border:1px solid rgba(255,255,255,0.08); border-radius:inherit; pointer-events:none; z-index:3; transition: border-color 120ms ease, box-shadow 120ms ease; }
     .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 5px 3px 6px; border:0; font-size:10px; text-align:left; position:relative; z-index:1; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
@@ -435,6 +457,169 @@
     .modal-form{ display:grid; gap:10px; }
     .modal-footer{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
 
+    .lc-match-popover-content{
+      width: min(760px, calc(100vw - 24px));
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,.34);
+      background: linear-gradient(180deg, rgba(7,15,35,.99), rgba(2,8,24,.98));
+      box-shadow: 0 28px 48px rgba(0,0,0,.56);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      z-index: 60;
+      animation: lc-match-popover-in 170ms cubic-bezier(.16,1,.3,1);
+      transform-origin: var(--radix-popover-content-transform-origin);
+    }
+    .lc-match-popover-content[data-state="closed"]{ animation: lc-match-popover-out 120ms ease; }
+    .lc-match-popover-content[data-side="left"]{ animation-name: lc-match-popover-in-left; }
+    .lc-match-popover-content[data-side="top"]{ animation-name: lc-match-popover-in-top; }
+    .lc-match-popover-content[data-side="bottom"]{ animation-name: lc-match-popover-in-bottom; }
+    .lc-match-popover-head{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+      justify-content:space-between;
+    }
+    .lc-match-popover-badge{
+      border-radius:999px;
+      border:1px solid rgba(125,211,252,.42);
+      background: rgba(56,189,248,.14);
+      color:#e0f2fe;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      padding:4px 9px;
+    }
+    .lc-match-popover-meta{
+      color: rgba(226,232,240,.9);
+      font-size:10px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      font-weight:750;
+    }
+    .lc-match-popover-compare{
+      border:1px solid rgba(148,163,184,.24);
+      border-radius:12px;
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: minmax(0,1fr) 88px minmax(0,1fr);
+      background: rgba(15,23,42,.58);
+    }
+    .lc-match-popover-player{
+      min-width:0;
+      display:grid;
+      grid-template-rows:repeat(6, minmax(0, auto));
+    }
+    .lc-match-popover-player-left{
+      --player-accent: 96,165,250;
+      --player-border: rgba(96,165,250,.34);
+      background: linear-gradient(180deg, rgba(29,78,216,.16), rgba(15,23,42,.36));
+    }
+    .lc-match-popover-player-right{
+      --player-accent: 34,197,94;
+      --player-border: rgba(34,197,94,.34);
+      background: linear-gradient(180deg, rgba(22,163,74,.16), rgba(15,23,42,.36));
+    }
+    .lc-match-popover-center{
+      min-width:0;
+      display:grid;
+      grid-template-rows:repeat(6, minmax(0, auto));
+      border-left:1px solid rgba(148,163,184,.24);
+      border-right:1px solid rgba(148,163,184,.24);
+      background: rgba(2,8,24,.58);
+    }
+    .lc-match-popover-row{
+      min-height:30px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:6px 8px;
+      border-bottom:1px solid rgba(148,163,184,.2);
+      font-size:12px;
+    }
+    .lc-match-popover-row:last-child{ border-bottom:0; }
+    .lc-match-popover-player-head{ justify-content:flex-start; gap:8px; border-bottom-color: var(--player-border); }
+    .lc-match-popover-player-seed{
+      min-width:30px;
+      text-align:center;
+      border-radius:8px;
+      border:1px solid rgba(var(--player-accent), .5);
+      background: rgba(var(--player-accent), .15);
+      color:#e2e8f0;
+      font-size:10px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      font-weight:850;
+      padding:4px 6px;
+      flex:0 0 auto;
+    }
+    .lc-match-popover-player-name{
+      min-width:0;
+      color:#f8fafc;
+      font-weight:900;
+      letter-spacing:.02em;
+      text-transform:uppercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .lc-match-popover-player-discord{
+      color: rgba(226,232,240,.9);
+      font-size:11px;
+      justify-content:flex-start;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .lc-match-popover-section-head{
+      position:relative;
+      color: rgba(241,245,249,.95);
+      font-size:10px;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+      font-weight:860;
+      border-bottom-color: rgba(148,163,184,.24);
+      justify-content:center;
+    }
+    .lc-match-popover-section-head span{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      width:100%;
+    }
+    .lc-match-popover-section-head span::before,
+    .lc-match-popover-section-head span::after{
+      content:"";
+      height:1px;
+      flex:1;
+      background: rgba(148,163,184,.36);
+    }
+    .lc-match-popover-player-stat{
+      justify-content:flex-start;
+      color:#f8fafc;
+      font-weight:760;
+      font-variant-numeric: tabular-nums;
+    }
+    .lc-match-popover-center-label{
+      color: rgba(148,163,184,.95);
+      font-size:9px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.11em;
+      text-align:center;
+      justify-content:center;
+    }
+    .lc-match-popover-status{
+      margin:0;
+      color: rgba(191,219,254,.92);
+      font-size:11px;
+      letter-spacing:.03em;
+    }
+    .lc-match-popover-status-error{ color:#fecaca; }
+    .lc-match-popover-arrow{ fill: rgba(7,15,35,.98); }
+
     table.leaderboard{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:12px; }
     .leaderboard th{ text-align:center; color:var(--muted); font-size:8px; text-transform:uppercase; letter-spacing:.03em; padding:8px 6px; background: var(--header-bg); }
     .leaderboard td{ text-align:center; padding:8px 6px; background: var(--row-bg); }
@@ -456,6 +641,43 @@
       .topbar-user{ width:100%; justify-content:flex-end; }
       .lc-nav-list{ grid-template-columns:1fr; }
       .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .lc-match-popover-content{
+        width: min(640px, calc(100vw - 20px));
+        padding:10px;
+      }
+      .lc-match-popover-compare{
+        grid-template-columns: minmax(0,1fr) 76px minmax(0,1fr);
+      }
+      .lc-match-popover-row{ min-height:28px; padding:5px 6px; }
+      .lc-match-popover-player-name{ font-size:11px; }
+      .lc-match-popover-player-stat{ font-size:11px; }
+    }
+    @media (max-width:620px){
+      .lc-match-popover-content{ width: calc(100vw - 16px); }
+      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 66px minmax(0,1fr); }
+      .lc-match-popover-center-label{ font-size:8px; letter-spacing:.09em; }
+      .lc-match-popover-player-seed{ min-width:26px; padding:3px 5px; }
+    }
+
+    @keyframes lc-match-popover-in{
+      from{ opacity:0; transform:translateY(4px) scale(.985); }
+      to{ opacity:1; transform:translateY(0) scale(1); }
+    }
+    @keyframes lc-match-popover-out{
+      from{ opacity:1; }
+      to{ opacity:0; }
+    }
+    @keyframes lc-match-popover-in-left{
+      from{ opacity:0; transform:translateX(6px) scale(.985); }
+      to{ opacity:1; transform:translateX(0) scale(1); }
+    }
+    @keyframes lc-match-popover-in-top{
+      from{ opacity:0; transform:translateY(6px) scale(.985); }
+      to{ opacity:1; transform:translateY(0) scale(1); }
+    }
+    @keyframes lc-match-popover-in-bottom{
+      from{ opacity:0; transform:translateY(-6px) scale(.985); }
+      to{ opacity:1; transform:translateY(0) scale(1); }
     }
   </style>
 </head>
@@ -537,16 +759,6 @@
       </div>
     </section>
 
-    <div class="modal-backdrop" id="matchModal" aria-hidden="true">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="matchModalTitle">
-        <div class="modal-head">
-          <strong id="matchModalTitle">Match Info</strong>
-          <button class="btn" id="closeMatchModal" type="button">Close</button>
-        </div>
-        <p class="status" id="matchModalBody"></p>
-      </div>
-    </div>
-
     <div class="modal-backdrop" id="chooseUsernameModal" aria-hidden="true">
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="chooseUsernameModalTitle">
         <div class="modal-head">
@@ -566,7 +778,7 @@
 
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { mountLightningCupRadixControls } from "/lightningcup/radix-controls.bundle.js";
+    import { mountLightningCupMatchInfoPopover, mountLightningCupRadixControls } from "/lightningcup/radix-controls.bundle.js";
 
     const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
@@ -587,6 +799,7 @@
       "Wuhu Island": "168,85,247",
       Finals: "234,179,8",
     };
+    const RANKED_SEASONS = [9, 10, 11];
     const TOTAL_BRACKET_MATCHES = 63;
     const TOURNAMENT_YEAR = "2026";
     const BRACKET_DRAFT_STORAGE_VERSION = 1;
@@ -626,6 +839,11 @@
       inlineStatusText: "",
       inlineStatusType: "",
       radixControls: null,
+      seedDiscordMap: new Map(),
+      seedDiscordMapLower: new Map(),
+      rankedBySeason: new Map(),
+      rankedLoadPromise: null,
+      matchInfoPopoverRoots: new Map(),
     };
 
     const supabase = createBrowserSupabaseClient();
@@ -660,9 +878,6 @@
       saveProfileBtn: document.getElementById("saveProfileBtn"),
       savePicksBtn: document.getElementById("savePicksBtn"),
       reloadBtn: document.getElementById("reloadBtn"),
-      matchModal: document.getElementById("matchModal"),
-      matchModalBody: document.getElementById("matchModalBody"),
-      closeMatchModal: document.getElementById("closeMatchModal"),
       chooseUsernameModal: document.getElementById("chooseUsernameModal"),
       chooseUsernameForm: document.getElementById("chooseUsernameForm"),
       chooseUsernameInput: document.getElementById("chooseUsernameInput"),
@@ -1106,6 +1321,251 @@
       return normalizeName(raw?.values?.[0]?.[0]).toLowerCase() === "yes" ? "yes" : "no";
     }
 
+    function normalizeDiscordPlayerId(value){
+      const raw = normalizeName(value);
+      if(!raw) return "";
+      const mentionMatch = raw.match(/^<@!?(\d+)>$/);
+      return mentionMatch ? mentionMatch[1] : raw;
+    }
+
+    function parseSeedsNameDiscordMap(raw){
+      const rows = Array.isArray(raw?.values) ? raw.values : [];
+      const exact = new Map();
+      const lower = new Map();
+      rows.forEach((row, index) => {
+        const name = normalizeName(row?.[0]);
+        const discordId = normalizeDiscordPlayerId(row?.[2]);
+        if(!name) return;
+        if(index === 0 && name.toLowerCase() === "name") return;
+        const lowerKey = name.toLowerCase();
+        const previous = exact.get(name) || "";
+        const next = discordId || previous;
+        exact.set(name, next);
+        lower.set(lowerKey, next);
+      });
+      return { exact, lower };
+    }
+
+    function formatOrdinal(value){
+      const rank = Number(value);
+      if(!Number.isFinite(rank)) return "—";
+      const whole = Math.max(0, Math.trunc(rank));
+      const mod100 = whole % 100;
+      if(mod100 >= 11 && mod100 <= 13) return `${whole}th`;
+      const mod10 = whole % 10;
+      const suffix = mod10 === 1 ? "st" : mod10 === 2 ? "nd" : mod10 === 3 ? "rd" : "th";
+      return `${whole}${suffix}`;
+    }
+
+    function isRankedEntryLike(value){
+      return !!value && typeof value === "object" && (
+        value.player_id != null ||
+        value.playerId != null ||
+        value.discord_id != null ||
+        value.discordId != null
+      );
+    }
+
+    function extractRankedEntriesFromPayload(payload){
+      const parsedPayload = typeof payload === "string"
+        ? (() => { try{ return JSON.parse(payload); }catch{ return null; } })()
+        : payload;
+
+      if(Array.isArray(parsedPayload)){
+        if(parsedPayload.some(isRankedEntryLike)) return parsedPayload;
+      }
+      if(!parsedPayload || typeof parsedPayload !== "object"){
+        return [];
+      }
+
+      const prioritized = [
+        parsedPayload.entries,
+        parsedPayload.leaderboard,
+        parsedPayload.rankings,
+        parsedPayload.rows,
+        parsedPayload.players,
+        parsedPayload.data,
+      ];
+      for(const candidate of prioritized){
+        if(Array.isArray(candidate) && candidate.some(isRankedEntryLike)){
+          return candidate;
+        }
+      }
+
+      const queue = [parsedPayload];
+      const visited = new Set();
+      while(queue.length){
+        const node = queue.shift();
+        if(!node || typeof node !== "object") continue;
+        if(visited.has(node)) continue;
+        visited.add(node);
+
+        if(Array.isArray(node)){
+          if(node.some(isRankedEntryLike)) return node;
+          node.forEach((child) => {
+            if(child && typeof child === "object") queue.push(child);
+          });
+          continue;
+        }
+
+        Object.values(node).forEach((child) => {
+          if(Array.isArray(child) || (child && typeof child === "object")){
+            queue.push(child);
+          }
+        });
+      }
+      return [];
+    }
+
+    function buildRankedPlayerMapFromPayload(payload){
+      const rows = extractRankedEntriesFromPayload(payload);
+      const map = new Map();
+      rows.forEach((row) => {
+        if(!row || typeof row !== "object") return;
+        const playerId = normalizeDiscordPlayerId(row.player_id ?? row.playerId ?? row.discord_id ?? row.discordId);
+        if(!playerId) return;
+        const rank = Number(row.rank);
+        const elo = Number(row.elo);
+        map.set(playerId, {
+          rank: Number.isFinite(rank) ? Math.trunc(rank) : null,
+          elo: Number.isFinite(elo) ? Math.trunc(elo) : null,
+        });
+      });
+      return map;
+    }
+
+    async function loadRankedSeasonPayloads(){
+      if(RANKED_SEASONS.every((season) => state.rankedBySeason.has(season))){
+        return state.rankedBySeason;
+      }
+      if(state.rankedLoadPromise){
+        return state.rankedLoadPromise;
+      }
+
+      state.rankedLoadPromise = (async () => {
+        const { data, error } = await supabase
+          .from("ranked")
+          .select("season,payload")
+          .in("season", RANKED_SEASONS);
+        if(error){
+          throw error;
+        }
+
+        const rankedBySeason = new Map();
+        RANKED_SEASONS.forEach((season) => rankedBySeason.set(season, new Map()));
+        (data || []).forEach((row) => {
+          const season = Number(row?.season);
+          if(!RANKED_SEASONS.includes(season)) return;
+          rankedBySeason.set(season, buildRankedPlayerMapFromPayload(row?.payload));
+        });
+        state.rankedBySeason = rankedBySeason;
+        return state.rankedBySeason;
+      })()
+        .finally(() => {
+          state.rankedLoadPromise = null;
+        });
+
+      return state.rankedLoadPromise;
+    }
+
+    function getDiscordIdForPlayerName(name){
+      const clean = normalizeName(name);
+      if(!clean) return "";
+      const exact = normalizeDiscordPlayerId(state.seedDiscordMap.get(clean));
+      if(exact) return exact;
+      return normalizeDiscordPlayerId(state.seedDiscordMapLower.get(clean.toLowerCase()));
+    }
+
+    function getRankedEntryForPlayerSeason(playerId, season){
+      const normalizedPlayerId = normalizeDiscordPlayerId(playerId);
+      if(!normalizedPlayerId) return null;
+      const seasonMap = state.rankedBySeason.get(Number(season));
+      if(!(seasonMap instanceof Map)) return null;
+      return seasonMap.get(normalizedPlayerId) || null;
+    }
+
+    function formatRankedSeasonValue(entry){
+      if(!entry || !Number.isFinite(entry.rank) || !Number.isFinite(entry.elo)){
+        return "Unranked";
+      }
+      return `${formatOrdinal(entry.rank)}, ${entry.elo}`;
+    }
+
+    function getSourceMatchById(matchId, source){
+      if(source === "actual"){
+        return state.context?.byId?.get(matchId) || null;
+      }
+      if(source === "detail"){
+        return state.detailPredicted.get(matchId) || null;
+      }
+      return state.predicted.get(matchId) || null;
+    }
+
+    function buildPlayerRankedHistory(slot){
+      const name = normalizeName(slot?.name);
+      const discordId = getDiscordIdForPlayerName(name);
+      return {
+        seedLabel: slot?.seed != null ? `#${slot.seed}` : "—",
+        name: name || "TBD",
+        discordLabel: discordId || "No Discord ID",
+        seasons: RANKED_SEASONS.map((season) => ({
+          season,
+          value: formatRankedSeasonValue(getRankedEntryForPlayerSeason(discordId, season)),
+        })),
+      };
+    }
+
+    function getMatchInfoForPopover(matchId, source){
+      const parsedId = Number(matchId);
+      const match = getSourceMatchById(parsedId, source);
+      const winnerLabel = source === "actual" && normalizeName(match?.winner)
+        ? `Winner: ${normalizeName(match?.winner)}`
+        : "Winner: TBD";
+      return {
+        matchId: parsedId || "—",
+        round: normalizeName(match?.round) || "—",
+        winnerLabel,
+        seasons: [...RANKED_SEASONS],
+        top: buildPlayerRankedHistory(match?.top),
+        bottom: buildPlayerRankedHistory(match?.bottom),
+      };
+    }
+
+    function unmountMatchInfoPopovers(target){
+      const mounts = state.matchInfoPopoverRoots.get(target);
+      if(!Array.isArray(mounts)) return;
+      mounts.forEach((mount) => {
+        try{
+          mount?.unmount?.();
+        }catch{
+          // Ignore unmount errors to keep grid rerenders resilient.
+        }
+      });
+      state.matchInfoPopoverRoots.delete(target);
+    }
+
+    function mountMatchInfoPopovers(target){
+      if(!target) return;
+      const mounts = [];
+      const triggerButtons = target.querySelectorAll("button[data-match-info]");
+      triggerButtons.forEach((button) => {
+        const matchId = Number(button.dataset.matchInfo);
+        const source = normalizeName(button.dataset.source) || "actual";
+        if(!Number.isFinite(matchId)) return;
+
+        const mountEl = document.createElement("span");
+        mountEl.className = "qualifier-match-info-slot";
+        button.replaceWith(mountEl);
+        const popoverMount = mountLightningCupMatchInfoPopover({
+          mountEl,
+          getMatchInfo: () => getMatchInfoForPopover(matchId, source),
+          ensureRankedDataLoaded: loadRankedSeasonPayloads,
+        });
+        mounts.push(popoverMount);
+      });
+      state.matchInfoPopoverRoots.set(target, mounts);
+    }
+
     function buildBracketContext(actualMatches){
       const byRoundRegion = new Map();
       const byId = new Map(actualMatches.map((m) => [m.id, m]));
@@ -1314,6 +1774,7 @@
 
     function renderBracketGrid(target, matches, options = {}){
       const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false, infoSource = "actual" } = options;
+      unmountMatchInfoPopovers(target);
       const groups = groupByRound(matches);
       const baseRoundGap = 8;
       const matchBlockHeight = 64;
@@ -1376,6 +1837,7 @@
           </div>
         </div>`;
       }).join("");
+      mountMatchInfoPopovers(target);
     }
 
     function renderRadixControls(loggedIn){
@@ -1824,36 +2286,19 @@
       return state.userBracket;
     }
 
-    function openMatchModal(matchId, source){
-      const parsedId = Number(matchId);
-      if(!parsedId) return;
-      const sourceMap = source === "actual"
-        ? new Map(state.actualMatches.map((m) => [m.id, m]))
-        : source === "detail"
-          ? state.detailPredicted
-          : state.predicted;
-      const match = sourceMap?.get(parsedId);
-      if(!match) return;
-      const winnerLine = source === "actual" && match.winner ? `Winner: ${match.winner}` : "Winner: TBD";
-      els.matchModalBody.textContent = `Round: ${match.round} • ${match.top?.name || "TBD"} (${match.top?.seed ?? "-"}) vs ${match.bottom?.name || "TBD"} (${match.bottom?.seed ?? "-"}) • ${winnerLine} • Matchup stats coming soon`;
-      els.matchModal.classList.add("is-open");
-      els.matchModal.setAttribute("aria-hidden", "false");
-    }
-
-    function closeMatchModal(){
-      els.matchModal.classList.remove("is-open");
-      els.matchModal.setAttribute("aria-hidden", "true");
-    }
-
     async function loadTournament(){
-      const [bracketRaw, lockRaw, playersRaw] = await Promise.all([
+      const [bracketRaw, lockRaw, playersRaw, seedsRaw] = await Promise.all([
         fetchSheet("Bracket!A:J"),
         fetchSheet("Bracket!I1"),
         fetchSheet("Form Responses!B:H"),
+        fetchSheet("Seeds!C:E"),
       ]);
       state.actualMatches = buildActualMatchesFromSheet(bracketRaw);
       state.players = parsePlayers(playersRaw);
       state.lockFlag = parseLock(lockRaw);
+      const seedsMaps = parseSeedsNameDiscordMap(seedsRaw);
+      state.seedDiscordMap = seedsMaps.exact;
+      state.seedDiscordMapLower = seedsMaps.lower;
       state.context = buildBracketContext(state.actualMatches);
       const applied = applyUserPicksToPredictedBracket(state.context, state.userPicks);
       state.predicted = applied.predicted;
@@ -2129,22 +2574,10 @@
 
     function bindEvents(){
       els.pickBracketGrid.addEventListener("click", handlePickClick);
-      els.actualBracketGrid.addEventListener("click", (event) => {
-        const infoBtn = event.target.closest("button[data-match-info]");
-        if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
-      });
-      els.pickBracketGrid.addEventListener("click", (event) => {
-        const infoBtn = event.target.closest("button[data-match-info]");
-        if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
-      });
       els.topbarUserAvatar.addEventListener("error", () => {
         els.topbarUserAvatar.hidden = true;
         els.topbarUserAvatar.removeAttribute("src");
         els.topbarUserMenuBtn.classList.remove("has-avatar");
-      });
-      els.detailBracketGrid.addEventListener("click", (event) => {
-        const infoBtn = event.target.closest("button[data-match-info]");
-        if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
       });
       els.leaderboardTable.addEventListener("click", (event) => {
         const btn = event.target.closest("button[data-select-bracket]");
@@ -2157,10 +2590,6 @@
       els.bracketSelect.addEventListener("change", () => {
         state.selectedBracketId = els.bracketSelect.value;
         renderView();
-      });
-      els.closeMatchModal.addEventListener("click", closeMatchModal);
-      els.matchModal.addEventListener("click", (event) => {
-        if(event.target === els.matchModal) closeMatchModal();
       });
       els.topbarUserMenuBtn.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -2253,7 +2682,6 @@
       document.addEventListener("keydown", (event) => {
         if(event.key !== "Escape") return;
         if(userMenuOpen) setUserMenuOpen(false);
-        if(els.matchModal.classList.contains("is-open")) closeMatchModal();
         if(els.chooseUsernameModal.classList.contains("is-open") && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
 
