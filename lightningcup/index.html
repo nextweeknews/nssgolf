@@ -76,13 +76,17 @@
 
     .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
     .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
-    .lc-next-match-card{ gap:0; padding:12px 14px; }
+    .lc-next-match-card{
+      --lc-next-match-font-size:12px;
+      gap:0;
+      padding:12px 14px;
+    }
     .lc-next-match-card-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; min-width:0; }
     .lc-next-match-card-copy{ min-width:0; flex:1; display:flex; align-items:center; gap:10px; overflow:hidden; }
     .lc-next-match-card-label,
     .lc-next-match-card-vs{
       color: rgba(148,163,184,.92);
-      font-size:11px;
+      font-size:var(--lc-next-match-font-size);
       font-weight:400;
       letter-spacing:.08em;
       text-transform:uppercase;
@@ -90,8 +94,8 @@
     }
     .lc-next-match-card-vs{ text-transform:none; }
     .lc-next-match-card-round{
-      color: rgba(250,204,21,.96);
-      font-size:12px;
+      color: rgba(255,255,255,.98);
+      font-size:var(--lc-next-match-font-size);
       font-weight:900;
       letter-spacing:.08em;
       text-transform:uppercase;
@@ -100,7 +104,7 @@
     .lc-next-match-card-opponent{
       min-width:0;
       color: rgba(255,255,255,.98);
-      font-size:14px;
+      font-size:var(--lc-next-match-font-size);
       font-weight:900;
       letter-spacing:.05em;
       text-transform:uppercase;
@@ -110,7 +114,7 @@
     }
     .lc-next-match-card-region{
       color: rgba(var(--lc-next-match-region-rgb, 125,211,252), .98);
-      font-size:11px;
+      font-size:var(--lc-next-match-font-size);
       font-weight:800;
       letter-spacing:.08em;
       text-transform:uppercase;
@@ -120,26 +124,28 @@
       flex:0 0 auto;
       min-height:38px;
       padding:0 14px;
-      border-radius:999px;
-      border:1px solid rgba(96,165,250,.5);
-      background: linear-gradient(180deg, rgba(96,165,250,.95), rgba(59,130,246,.86));
+      border-radius:12px;
+      border:1px solid rgba(125,211,252,.95);
+      background: rgba(125,211,252,.95);
       color:#020617;
       display:inline-flex;
       align-items:center;
       justify-content:center;
       text-decoration:none;
-      font-size:11px;
+      font-size:var(--lc-next-match-font-size);
       font-weight:900;
       letter-spacing:.08em;
       text-transform:uppercase;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
-      transition: filter 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+      transition: background-color 120ms ease, border-color 120ms ease;
     }
     .lc-next-match-card-button:hover{
-      filter:brightness(1.05);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 0 0 1px rgba(147,197,253,.12);
+      background: rgba(186,230,253,.95);
+      border-color: rgba(186,230,253,.95);
     }
-    .lc-next-match-card-button:active{ transform: translateY(1px); }
+    .lc-next-match-card-button:active{
+      background: rgba(103,232,249,.95);
+      border-color: rgba(103,232,249,.95);
+    }
     .headline{ margin:0; font-size:26px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
     .season-head{ min-height:44px; padding:2px 0; margin-bottom:8px; display:flex; align-items:center; justify-content:center; }
     .status{ margin:0; color:var(--muted); font-size:12px; text-align:center; }
@@ -1359,14 +1365,9 @@
       .two-col{ grid-template-columns:1fr; }
       .auth-grid{ grid-template-columns:1fr; }
       .topbar-user{ width:100%; justify-content:flex-end; }
+      .lc-next-match-card{ --lc-next-match-font-size:10px; }
       .lc-next-match-card-row{ gap:12px; }
       .lc-next-match-card-copy{ gap:8px; }
-      .lc-next-match-card-round,
-      .lc-next-match-card-opponent{ font-size:12px; }
-      .lc-next-match-card-label,
-      .lc-next-match-card-vs,
-      .lc-next-match-card-region,
-      .lc-next-match-card-button{ font-size:10px; }
       .lc-nav-list{ grid-template-columns:1fr; }
       .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
       .lc-match-popover-content{
@@ -3060,8 +3061,10 @@
       const roundCode = normalizeName(nextMatch.match.round);
       const regionName = normalizeName(nextMatch.regionName);
       const regionAccent = REGION_ACCENT_RGB_BY_TAB[regionName] || REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
+      const isGoldRound = roundCode === "R4" || roundCode === "Final" || roundCode === "final";
 
       els.nextMatchCardRound.textContent = formatRoundLabel(roundCode);
+      els.nextMatchCardRound.style.color = isGoldRound ? "rgba(250,204,21,.96)" : "rgba(255,255,255,.98)";
       els.nextMatchCardOpponent.textContent = formatMatchCardOpponentLabel(nextMatch.opponent);
       els.nextMatchCardButton.href = buildMatchPageUrl(nextMatch.match.id);
 
