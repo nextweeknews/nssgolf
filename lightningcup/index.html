@@ -28,12 +28,14 @@
       --pending: rgba(148,163,184,0.20);
       --pick: rgba(56,189,248,0.18);
       --warning: rgba(251,191,36,0.22);
+      --region-accent-rgb: 125,211,252;
       --qualifier-round-column-width: 264px;
       --qualifier-match-height: 64px;
       --qualifier-seed-col-width: 14px;
       --qualifier-score-col-width: 14px;
       --qualifier-final-score-width: 24px;
       --qualifier-scorepack-width: 78px;
+      --qualifier-pick-indicator-width: 15px;
     }
     *{ box-sizing:border-box; }
     html{ background-color: var(--bg3); }
@@ -134,11 +136,21 @@
       background: rgba(148,163,184,.10);
       color: rgba(255,255,255,.96);
     }
+    .lc-nav-item[value="game"] .lc-nav-trigger{ color: rgba(250,204,21,.94); }
+    .lc-nav-item[value="game"] .lc-nav-trigger:hover{
+      background: rgba(250,204,21,.12);
+      color: rgba(254,243,199,.98);
+    }
     .lc-nav-trigger[data-state="open"]{
       background: rgba(56,189,248,.14);
       color: #f1f8ff;
     }
     .lc-nav-trigger[data-state="open"]::after{ background: rgba(125,211,252,.95); }
+    .lc-nav-item[value="game"] .lc-nav-trigger[data-state="open"]{
+      background: rgba(250,204,21,.16);
+      color: rgba(254,243,199,.98);
+    }
+    .lc-nav-item[value="game"] .lc-nav-trigger[data-state="open"]::after{ background: rgba(250,204,21,.95); }
     .lc-nav-trigger:focus-visible{
       outline:none;
       box-shadow: inset 0 0 0 1px rgba(125,211,252,.55);
@@ -203,8 +215,8 @@
       color:#f8fbff;
     }
     .lc-nav-sublink[data-active]{
-      background: rgba(56,189,248,.13);
-      color:#f4faff;
+      background: rgba(148,163,184,.16);
+      color: rgba(246,248,252,.97);
     }
     .lc-nav-sublink:focus-visible{
       outline:none;
@@ -269,13 +281,13 @@
       color: rgba(255,255,255,.95);
     }
     .lc-region-tabs-trigger[data-state="active"]{
-      background: rgba(56,189,248,.13);
+      background: rgba(var(--region-accent-rgb), .13);
       color:#f4faff;
     }
-    .lc-region-tabs-trigger[data-state="active"]::after{ background: rgba(125,211,252,.95); }
+    .lc-region-tabs-trigger[data-state="active"]::after{ background: rgba(var(--region-accent-rgb), .95); }
     .lc-region-tabs-trigger:focus-visible{
       outline:none;
-      box-shadow: inset 0 0 0 1px rgba(125,211,252,.55);
+      box-shadow: inset 0 0 0 1px rgba(var(--region-accent-rgb), .55);
     }
     .lc-region-tabs-trigger[data-disabled]{ opacity:.5; cursor:not-allowed; }
     .lc-region-tabs-content{
@@ -320,6 +332,7 @@
     .qualifier-match-card::before{ content:""; position:absolute; inset:0; border:1px solid rgba(255,255,255,0.08); border-radius:inherit; pointer-events:none; z-index:3; transition: border-color 120ms ease, box-shadow 120ms ease; }
     .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 5px 3px 6px; border:0; font-size:10px; text-align:left; position:relative; z-index:1; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
     .qualifier-match-row.no-score{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr); }
+    .qualifier-match-row.no-score.has-pick-radio{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-pick-indicator-width); }
     .qualifier-match-row:first-child{ border-top-left-radius:10px; border-top-right-radius:10px; }
     .qualifier-match-row:last-child{ border-bottom-left-radius:10px; border-bottom-right-radius:10px; }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
@@ -330,20 +343,20 @@
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(56,189,248,0.07); }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(125,211,252,.56); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .07); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(var(--region-accent-rgb), .56); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected,
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending{
       z-index:4;
-      box-shadow: inset 0 0 0 999px rgba(125,211,252,.12);
+      box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .12);
     }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:first-child::after{
       content:"";
       position:absolute;
       inset:0;
-      border-top:1px solid rgba(125,211,252,.56);
-      border-left:1px solid rgba(125,211,252,.56);
-      border-right:1px solid rgba(125,211,252,.56);
+      border-top:1px solid rgba(var(--region-accent-rgb), .56);
+      border-left:1px solid rgba(var(--region-accent-rgb), .56);
+      border-right:1px solid rgba(var(--region-accent-rgb), .56);
       border-top-left-radius:inherit;
       border-top-right-radius:inherit;
       pointer-events:none;
@@ -352,9 +365,9 @@
       content:"";
       position:absolute;
       inset:0;
-      border-bottom:1px solid rgba(125,211,252,.56);
-      border-left:1px solid rgba(125,211,252,.56);
-      border-right:1px solid rgba(125,211,252,.56);
+      border-bottom:1px solid rgba(var(--region-accent-rgb), .56);
+      border-left:1px solid rgba(var(--region-accent-rgb), .56);
+      border-right:1px solid rgba(var(--region-accent-rgb), .56);
       border-bottom-left-radius:inherit;
       border-bottom-right-radius:inherit;
       pointer-events:none;
@@ -363,6 +376,35 @@
     .qualifier-player-seed{ width:100%; text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
+    .qualifier-row-radio{
+      width:var(--qualifier-pick-indicator-width);
+      height:var(--qualifier-pick-indicator-width);
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.48);
+      background: rgba(2,8,24,.44);
+      display:grid;
+      place-items:center;
+      justify-self:end;
+      pointer-events:none;
+      transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+    }
+    .qualifier-row-radio-indicator{
+      width:6px;
+      height:6px;
+      border-radius:999px;
+      background: transparent;
+      transform:scale(.8);
+      transition: background-color 120ms ease, transform 120ms ease;
+    }
+    .qualifier-row-radio[data-state="checked"]{
+      border-color: rgba(var(--region-accent-rgb), .84);
+      background: rgba(var(--region-accent-rgb), .17);
+      box-shadow: 0 0 0 1px rgba(var(--region-accent-rgb), .22);
+    }
+    .qualifier-row-radio[data-state="checked"] .qualifier-row-radio-indicator{
+      background: rgba(var(--region-accent-rgb), .96);
+      transform:scale(1);
+    }
     .qualifier-player-scorepack{ display:grid; grid-template-columns: repeat(3, var(--qualifier-score-col-width)) var(--qualifier-final-score-width); align-items:stretch; justify-content:end; justify-items:stretch; gap:4px; width:var(--qualifier-scorepack-width); min-width:var(--qualifier-scorepack-width); }
     .qualifier-player-set-score{ width:100%; min-height:16px; text-align:center; font-variant-numeric: tabular-nums; font-weight:900; color:#fff; letter-spacing:.02em; display:flex; align-items:center; justify-content:center; }
     .qualifier-player-final-score{ width:var(--qualifier-final-score-width); height:16px; border-radius:6px; border:1px solid rgba(255,255,255,.9); color:#fff; text-align:center; font-variant-numeric: tabular-nums; font-weight:900; display:flex; align-items:center; justify-content:center; justify-self:stretch; padding:0; line-height:1; white-space:nowrap; background: transparent; }
@@ -531,7 +573,20 @@
     const AUTH_RETURN_PATH = "/lightningcup/index.html";
     const ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final"];
     const ROUND_NUMBER = { R64: 1, R32: 2, R16: 3, R8: 4, R4: 5, Final: 6 };
-    const REGION_TABS = ["Region 1", "Region 2", "Region 3", "Region 4", "Finals"];
+    const REGION_TABS = ["Wii Plaza", "Wuhu Island", "Wedge Island", "Spocco Square", "Finals"];
+    const REGION_ID_BY_TAB = {
+      "Wii Plaza": 1,
+      "Wuhu Island": 4,
+      "Wedge Island": 3,
+      "Spocco Square": 2,
+    };
+    const REGION_ACCENT_RGB_BY_TAB = {
+      "Wii Plaza": "34,197,94",
+      "Spocco Square": "125,211,252",
+      "Wedge Island": "249,115,22",
+      "Wuhu Island": "168,85,247",
+      Finals: "250,204,21",
+    };
     const TOTAL_BRACKET_MATCHES = 63;
     const TOURNAMENT_YEAR = "2026";
     const BRACKET_DRAFT_STORAGE_VERSION = 1;
@@ -550,7 +605,7 @@
       players: new Map(),
       lockFlag: "no",
       mainTab: "Actual Bracket",
-      activeTab: "Region 1",
+      activeTab: "Wii Plaza",
       context: null,
       session: null,
       profile: /** @type {ProfileRow|null} */ (null),
@@ -617,6 +672,11 @@
     };
 
     const normalizeName = (value) => String(value || "").trim();
+    function applyActiveRegionAccentTheme(activeTab){
+      const fallbackRgb = REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
+      const accentRgb = REGION_ACCENT_RGB_BY_TAB[activeTab] || fallbackRgb;
+      document.documentElement.style.setProperty("--region-accent-rgb", accentRgb);
+    }
     const modalState = { chooseUsernameSubmitting: false };
     let discordSignInPending = false;
     let userMenuOpen = false;
@@ -1216,7 +1276,8 @@
     function getMatchesForTab(tab, matchesMap){
       const all = [...matchesMap.values()];
       if(tab === "Finals") return all.filter((m) => m.round === "R4" || m.round === "Final").sort((a,b)=>a.id-b.id);
-      const region = Number(tab.replace("Region ", ""));
+      const region = Number(REGION_ID_BY_TAB[tab]);
+      if(!Number.isFinite(region)) return [];
       return all.filter((m) => m.region === region && ["R64","R32","R16","R8"].includes(m.round)).sort((a,b)=>a.id-b.id);
     }
 
@@ -1292,12 +1353,23 @@
                 const stateClass = !isPicked ? "" : hydrated?.is_correct === true ? "selected correct" : hydrated?.is_correct === false ? "selected incorrect" : "selected pending";
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
                 const showScoreIndicators = mode === "actual" || mode === "detail" || (mode === "pick" && lockPicking);
+                const showPickRadioIndicator = mode === "pick" && !lockPicking && !!name;
                 const disabled = !clickable || lockPicking || !slot.name;
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
                 const scoreMarkup = showScoreIndicators
                   ? `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${score || "-"}</span>`).join("")}<span class="qualifier-player-final-score">${scoreParts.finalScore || "-"}</span></span>`
                   : "";
-                return `<button class="qualifier-match-row ${showScoreIndicators ? "" : "no-score"} ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}</button>`;
+                const pickRadioMarkup = showPickRadioIndicator
+                  ? `<span class="qualifier-row-radio" data-state="${isPicked ? "checked" : "unchecked"}" aria-hidden="true"><span class="qualifier-row-radio-indicator"></span></span>`
+                  : "";
+                const rowClasses = [
+                  "qualifier-match-row",
+                  showScoreIndicators ? "" : "no-score",
+                  showPickRadioIndicator ? "has-pick-radio" : "",
+                  actualWinnerClass,
+                  stateClass,
+                ].filter(Boolean).join(" ");
+                return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}${pickRadioMarkup}</button>`;
               };
               return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
@@ -1308,6 +1380,7 @@
 
     function renderRadixControls(loggedIn){
       if(!state.radixControls) return;
+      applyActiveRegionAccentTheme(state.activeTab);
       state.radixControls.render({
         loggedIn,
         mainTab: state.mainTab,
@@ -1392,6 +1465,7 @@
       const saveStateLabel = isSaved ? "Saved" : "Unsaved";
       els.pickProgressCount.textContent = `${saveStateLabel}: ${selectedCount}/${TOTAL_BRACKET_MATCHES} picks`;
       els.pickProgressCount.classList.toggle("is-complete", isSaved && isComplete);
+      els.savePicksBtn.hidden = isSaved;
       els.savePicksBtn.textContent = isComplete ? "Save" : "Save progress";
       els.savePicksBtn.disabled = !canSaveUserBracket();
     }
