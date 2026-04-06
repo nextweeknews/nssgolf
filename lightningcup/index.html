@@ -281,13 +281,13 @@
       color: rgba(255,255,255,.95);
     }
     .lc-region-tabs-trigger[data-state="active"]{
-      background: rgba(var(--region-accent-rgb), .13);
+      background: rgba(var(--region-accent-rgb), .09);
       color:#f4faff;
     }
-    .lc-region-tabs-trigger[data-state="active"]::after{ background: rgba(var(--region-accent-rgb), .95); }
+    .lc-region-tabs-trigger[data-state="active"]::after{ background: rgba(var(--region-accent-rgb), .78); }
     .lc-region-tabs-trigger:focus-visible{
       outline:none;
-      box-shadow: inset 0 0 0 1px rgba(var(--region-accent-rgb), .55);
+      box-shadow: inset 0 0 0 1px rgba(var(--region-accent-rgb), .42);
     }
     .lc-region-tabs-trigger[data-disabled]{ opacity:.5; cursor:not-allowed; }
     .lc-region-tabs-content{
@@ -343,20 +343,20 @@
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .07); }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(var(--region-accent-rgb), .56); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .05); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(var(--region-accent-rgb), .44); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected,
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending{
       z-index:4;
-      box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .12);
+      box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .08);
     }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:first-child::after{
       content:"";
       position:absolute;
       inset:0;
-      border-top:1px solid rgba(var(--region-accent-rgb), .56);
-      border-left:1px solid rgba(var(--region-accent-rgb), .56);
-      border-right:1px solid rgba(var(--region-accent-rgb), .56);
+      border-top:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
       border-top-left-radius:inherit;
       border-top-right-radius:inherit;
       pointer-events:none;
@@ -365,9 +365,9 @@
       content:"";
       position:absolute;
       inset:0;
-      border-bottom:1px solid rgba(var(--region-accent-rgb), .56);
-      border-left:1px solid rgba(var(--region-accent-rgb), .56);
-      border-right:1px solid rgba(var(--region-accent-rgb), .56);
+      border-bottom:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
       border-bottom-left-radius:inherit;
       border-bottom-right-radius:inherit;
       pointer-events:none;
@@ -397,12 +397,12 @@
       transition: background-color 120ms ease, transform 120ms ease;
     }
     .qualifier-row-radio[data-state="checked"]{
-      border-color: rgba(var(--region-accent-rgb), .84);
-      background: rgba(var(--region-accent-rgb), .17);
-      box-shadow: 0 0 0 1px rgba(var(--region-accent-rgb), .22);
+      border-color: rgba(var(--region-accent-rgb), .62);
+      background: rgba(var(--region-accent-rgb), .10);
+      box-shadow: 0 0 0 1px rgba(var(--region-accent-rgb), .14);
     }
     .qualifier-row-radio[data-state="checked"] .qualifier-row-radio-indicator{
-      background: rgba(var(--region-accent-rgb), .96);
+      background: rgba(var(--region-accent-rgb), .80);
       transform:scale(1);
     }
     .qualifier-player-scorepack{ display:grid; grid-template-columns: repeat(3, var(--qualifier-score-col-width)) var(--qualifier-final-score-width); align-items:stretch; justify-content:end; justify-items:stretch; gap:4px; width:var(--qualifier-scorepack-width); min-width:var(--qualifier-scorepack-width); }
@@ -581,11 +581,11 @@
       "Spocco Square": 2,
     };
     const REGION_ACCENT_RGB_BY_TAB = {
-      "Wii Plaza": "34,197,94",
+      "Wii Plaza": "250,204,21",
       "Spocco Square": "125,211,252",
       "Wedge Island": "249,115,22",
       "Wuhu Island": "168,85,247",
-      Finals: "250,204,21",
+      Finals: "234,179,8",
     };
     const TOTAL_BRACKET_MATCHES = 63;
     const TOURNAMENT_YEAR = "2026";
