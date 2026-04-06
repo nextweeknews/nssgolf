@@ -3,22 +3,46 @@ import { createRoot } from "react-dom/client";
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import * as Tabs from "@radix-ui/react-tabs";
 
+const MAIN_TAB_BY_PARENT = {
+  results: "Actual Bracket",
+  game: "Your Bracket",
+};
+
+function getParentValueFromMainTab(mainTab){
+  return mainTab === "Actual Bracket" ? "results" : "game";
+}
+
 function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
-  const parentValue = mainTab === "Actual Bracket" ? "results" : "game";
+  const parentValue = getParentValueFromMainTab(mainTab);
+
+  const handleParentValueChange = (value) => {
+    if(value === "results"){
+      onMainTabChange("Actual Bracket");
+      return;
+    }
+    if(value === "game"){
+      if(!loggedIn){
+        onMainTabChange("Actual Bracket");
+        return;
+      }
+      const nextMainTab = MAIN_TAB_BY_PARENT[value] || "Your Bracket";
+      if(mainTab !== "Your Bracket" && mainTab !== "Leaderboard"){
+        onMainTabChange(nextMainTab);
+      }
+    }
+  };
+
+  const handleChildLinkSelect = (event, targetMainTab) => {
+    event.preventDefault();
+    if(targetMainTab !== "Actual Bracket" && !loggedIn) return;
+    onMainTabChange(targetMainTab);
+  };
 
   return (
     <NavigationMenu.Root
       className="lc-nav-root"
       value={parentValue}
-      onValueChange={(value) => {
-        if(value === "results"){
-          onMainTabChange("Actual Bracket");
-          return;
-        }
-        if(value === "game" && !loggedIn){
-          onMainTabChange("Actual Bracket");
-        }
-      }}
+      onValueChange={handleParentValueChange}
       delayDuration={120}
       skipDelayDuration={80}
     >
@@ -28,13 +52,18 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
             Lightning Cup Tournament Results
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="lc-nav-content">
-            <button
-              className={`lc-nav-subitem ${mainTab === "Actual Bracket" ? "is-active" : ""}`}
-              type="button"
-              onClick={() => onMainTabChange("Actual Bracket")}
-            >
-              {year}
-            </button>
+            <ul className="lc-nav-sublist">
+              <li>
+                <NavigationMenu.Link
+                  className="lc-nav-sublink"
+                  active={mainTab === "Actual Bracket"}
+                  href="#"
+                  onClick={(event) => handleChildLinkSelect(event, "Actual Bracket")}
+                >
+                  {year}
+                </NavigationMenu.Link>
+              </li>
+            </ul>
           </NavigationMenu.Content>
         </NavigationMenu.Item>
 
@@ -43,26 +72,37 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
             Lightning Cup Bracket Game
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="lc-nav-content">
-            {loggedIn ? (
-              <>
-                <button
-                  className={`lc-nav-subitem ${mainTab === "Your Bracket" ? "is-active" : ""}`}
-                  type="button"
-                  onClick={() => onMainTabChange("Your Bracket")}
+            <ul className="lc-nav-sublist">
+              <li>
+                <NavigationMenu.Link
+                  className="lc-nav-sublink"
+                  active={mainTab === "Your Bracket"}
+                  aria-disabled={loggedIn ? undefined : "true"}
+                  data-disabled={loggedIn ? undefined : ""}
+                  href="#"
+                  onClick={(event) => handleChildLinkSelect(event, "Your Bracket")}
+                  tabIndex={loggedIn ? undefined : -1}
                 >
                   Your Bracket
-                </button>
-                <button
-                  className={`lc-nav-subitem ${mainTab === "Leaderboard" ? "is-active" : ""}`}
-                  type="button"
-                  onClick={() => onMainTabChange("Leaderboard")}
+                </NavigationMenu.Link>
+              </li>
+              <li>
+                <NavigationMenu.Link
+                  className="lc-nav-sublink"
+                  active={mainTab === "Leaderboard"}
+                  aria-disabled={loggedIn ? undefined : "true"}
+                  data-disabled={loggedIn ? undefined : ""}
+                  href="#"
+                  onClick={(event) => handleChildLinkSelect(event, "Leaderboard")}
+                  tabIndex={loggedIn ? undefined : -1}
                 >
                   Leaderboard
-                </button>
-              </>
-            ) : (
+                </NavigationMenu.Link>
+              </li>
+            </ul>
+            {!loggedIn ? (
               <span className="lc-nav-subtext">Sign in to access bracket game views.</span>
-            )}
+            ) : null}
           </NavigationMenu.Content>
         </NavigationMenu.Item>
 
@@ -88,6 +128,11 @@ function RegionTabs({ tabs, activeTab, onRegionTabChange }){
           </Tabs.Trigger>
         ))}
       </Tabs.List>
+      {tabs.map((tab) => (
+        <Tabs.Content key={`${tab}-content`} className="lc-region-tabs-content" value={tab}>
+          Region tab active: {tab}
+        </Tabs.Content>
+      ))}
     </Tabs.Root>
   );
 }
