@@ -461,7 +461,7 @@
 
     .lc-match-popover-content{
       --lc-match-popover-surface: rgba(6,13,30,.985);
-      width: min(392px, calc(100vw - 24px));
+      width: min(432px, calc(100vw - 24px));
       border-radius: 16px;
       border: 0;
       background: var(--lc-match-popover-surface);
@@ -471,16 +471,18 @@
       gap: 10px;
       z-index: 60;
       overflow: visible;
-      animation: lc-match-popover-in 170ms cubic-bezier(.16,1,.3,1);
+      will-change: transform, opacity;
+      animation: lc-match-popover-in 230ms cubic-bezier(.18,.88,.24,1);
       transform-origin: var(--radix-popover-content-transform-origin);
     }
-    .lc-match-popover-content[data-state="closed"]{ animation: lc-match-popover-out 120ms ease; }
+    .lc-match-popover-content[data-state="closed"]{ animation: lc-match-popover-out 180ms cubic-bezier(.4,0,.2,1); }
     .lc-match-popover-content[data-side="left"]{ animation-name: lc-match-popover-in-left; }
     .lc-match-popover-content[data-side="top"]{ animation-name: lc-match-popover-in-top; }
     .lc-match-popover-content[data-side="bottom"]{ animation-name: lc-match-popover-in-bottom; }
+    .lc-match-popover-choice-group{ display:contents; }
     .lc-match-popover-compare{
       display:grid;
-      grid-template-columns: minmax(0,1fr) 58px minmax(0,1fr);
+      grid-template-columns: minmax(0,1fr) 76px minmax(0,1fr);
       column-gap: 10px;
       row-gap: 8px;
       align-items:center;
@@ -511,6 +513,8 @@
       gap:8px;
       text-align:center;
       padding-bottom:3px;
+      border-radius:12px;
+      transition: background-color 180ms ease, box-shadow 180ms ease, transform 220ms ease;
     }
     .lc-match-popover-player-head::after{
       content:"";
@@ -518,6 +522,13 @@
       height:3px;
       border-radius:999px;
       background: rgba(var(--player-accent), .82);
+    }
+    .lc-match-popover-player-head.is-winner-selected{
+      background: rgba(var(--player-accent), .08);
+      box-shadow: inset 0 0 0 1px rgba(var(--player-accent), .22), 0 8px 16px rgba(2,8,24,.16);
+    }
+    .lc-match-popover-player-head.is-selection-pending{
+      animation: lc-match-popover-player-pulse 240ms cubic-bezier(.2,.84,.28,1);
     }
     .lc-match-popover-player-heading{
       min-width:0;
@@ -594,13 +605,15 @@
       overflow-wrap:anywhere;
     }
     .lc-match-popover-ranked-divider{
-      width:4px;
+      width:2px;
       height: calc(1em + 4px);
       flex:0 0 auto;
       border-radius:999px;
-      background: linear-gradient(90deg, rgba(96,165,250,.92) 0%, rgba(96,165,250,.92) 50%, rgba(34,197,94,.9) 50%, rgba(34,197,94,.9) 100%);
+      background: rgba(148,163,184,.9);
       box-shadow: 0 0 0 1px rgba(148,163,184,.08);
     }
+    .lc-match-popover-ranked-divider.is-left{ background: rgba(96,165,250,.92); }
+    .lc-match-popover-ranked-divider.is-right{ background: rgba(34,197,94,.9); }
     .lc-match-popover-player-stat-muted{
       color: rgba(148,163,184,.9);
     }
@@ -625,8 +638,53 @@
     .lc-match-popover-h2h-separator.is-right{
       color: rgba(34,197,94,.72);
     }
-    .lc-match-popover-h2h-separator.is-ties{
-      color: rgba(148,163,184,.74);
+    .lc-match-popover-choice-radio,
+    .lc-match-popover-choice-radio-spacer{
+      width:15px;
+      height:15px;
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+    }
+    .lc-match-popover-choice-radio{
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.44);
+      background: rgba(2,8,24,.42);
+      cursor:pointer;
+      transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+    }
+    .lc-match-popover-choice-radio[disabled]{
+      cursor:not-allowed;
+      opacity:.82;
+    }
+    .lc-match-popover-choice-radio:not([disabled]):hover{
+      transform:scale(1.05);
+    }
+    .lc-match-popover-choice-radio-indicator{
+      width:7px;
+      height:7px;
+      border-radius:999px;
+      background: transparent;
+      transform:scale(.84);
+      transition: background-color 140ms ease, transform 140ms ease;
+    }
+    .lc-match-popover-choice-radio.is-left[data-state="checked"]{
+      border-color: rgba(96,165,250,.7);
+      background: rgba(96,165,250,.12);
+      box-shadow: 0 0 0 1px rgba(96,165,250,.16);
+    }
+    .lc-match-popover-choice-radio.is-left[data-state="checked"] .lc-match-popover-choice-radio-indicator{
+      background: rgba(96,165,250,.95);
+      transform:scale(1);
+    }
+    .lc-match-popover-choice-radio.is-right[data-state="checked"]{
+      border-color: rgba(34,197,94,.68);
+      background: rgba(34,197,94,.12);
+      box-shadow: 0 0 0 1px rgba(34,197,94,.16);
+    }
+    .lc-match-popover-choice-radio.is-right[data-state="checked"] .lc-match-popover-choice-radio-indicator{
+      background: rgba(34,197,94,.92);
+      transform:scale(1);
     }
     .lc-match-popover-center-label{
       color: rgba(148,163,184,.95);
@@ -636,6 +694,7 @@
       letter-spacing:.11em;
       text-align:center;
       justify-content:center;
+      white-space:nowrap;
     }
     .lc-match-popover-center-label.is-muted{
       color: rgba(148,163,184,.76);
@@ -738,11 +797,11 @@
       .lc-nav-list{ grid-template-columns:1fr; }
       .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
       .lc-match-popover-content{
-        width: min(364px, calc(100vw - 20px));
+        width: min(400px, calc(100vw - 20px));
         padding:12px 10px 10px;
       }
       .lc-match-popover-compare{
-        grid-template-columns: minmax(0,1fr) 52px minmax(0,1fr);
+        grid-template-columns: minmax(0,1fr) 70px minmax(0,1fr);
       }
       .lc-match-popover-row{ min-height:28px; padding:4px 2px; }
       .lc-match-popover-player-heading{ gap:5px; }
@@ -752,31 +811,36 @@
     }
     @media (max-width:620px){
       .lc-match-popover-content{ width: calc(100vw - 16px); }
-      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 45px minmax(0,1fr); }
+      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 58px minmax(0,1fr); }
       .lc-match-popover-center-label{ font-size:8px; letter-spacing:.09em; }
       .lc-match-popover-player-heading{ gap:4px; }
       .lc-match-popover-player-head::after{ height:2px; }
     }
 
     @keyframes lc-match-popover-in{
-      from{ opacity:0; transform:translateY(4px) scale(.985); }
+      from{ opacity:0; transform:translateY(10px) scale(.96); }
       to{ opacity:1; transform:translateY(0) scale(1); }
     }
     @keyframes lc-match-popover-out{
-      from{ opacity:1; }
-      to{ opacity:0; }
+      from{ opacity:1; transform:translateY(0) scale(1); }
+      to{ opacity:0; transform:translateY(4px) scale(.985); }
     }
     @keyframes lc-match-popover-in-left{
-      from{ opacity:0; transform:translateX(6px) scale(.985); }
+      from{ opacity:0; transform:translateX(10px) scale(.96); }
       to{ opacity:1; transform:translateX(0) scale(1); }
     }
     @keyframes lc-match-popover-in-top{
-      from{ opacity:0; transform:translateY(6px) scale(.985); }
+      from{ opacity:0; transform:translateY(10px) scale(.96); }
       to{ opacity:1; transform:translateY(0) scale(1); }
     }
     @keyframes lc-match-popover-in-bottom{
-      from{ opacity:0; transform:translateY(-6px) scale(.985); }
+      from{ opacity:0; transform:translateY(-10px) scale(.96); }
       to{ opacity:1; transform:translateY(0) scale(1); }
+    }
+    @keyframes lc-match-popover-player-pulse{
+      0%{ transform:scale(1); box-shadow: inset 0 0 0 1px rgba(var(--player-accent), .22), 0 8px 16px rgba(2,8,24,.16); }
+      50%{ transform:scale(1.018); box-shadow: inset 0 0 0 1px rgba(var(--player-accent), .38), 0 12px 22px rgba(var(--player-accent), .14); }
+      100%{ transform:scale(1); box-shadow: inset 0 0 0 1px rgba(var(--player-accent), .22), 0 8px 16px rgba(2,8,24,.16); }
     }
   </style>
 </head>
@@ -1614,17 +1678,55 @@
       };
     }
 
+    function applyUserPickSelection(matchId, selectedWinnerName){
+      if(!canEditUserBracket()) return false;
+
+      const parsedMatchId = Number(matchId);
+      const cleanWinnerName = normalizeName(selectedWinnerName);
+      if(!parsedMatchId || !cleanWinnerName) return false;
+
+      const targetMatch = state.predicted.get(parsedMatchId);
+      if(!targetMatch) return false;
+      const participant = getParticipantFromPicked(targetMatch, cleanWinnerName);
+      if(!participant) return false;
+
+      const basePick = {
+        bracket_id: state.userBracket?.id || null,
+        match_id: parsedMatchId,
+        round_code: targetMatch.round,
+        round_number: targetMatch.roundNumber,
+        selected_winner_name: cleanWinnerName,
+        selected_winner_seed: participant.seed ?? null,
+        is_correct: null,
+        points_awarded: null,
+        year: TOURNAMENT_YEAR,
+      };
+
+      const nextPickMap = new Map(state.userPicks);
+      nextPickMap.set(parsedMatchId, basePick);
+      state.userPicks = clearDependentDownstreamPicks(parsedMatchId, nextPickMap, state.context);
+      saveLocalBracketDraft(state.userPicks);
+      refreshPredictedFromUserPicks();
+      renderView();
+      return true;
+    }
+
     function getMatchInfoForPopover(matchId, source){
       const parsedId = Number(matchId);
       const match = getSourceMatchById(parsedId, source);
+      const selectedWinnerName = normalizeName(state.validUserPicks.get(parsedId)?.selected_winner_name || match?.pickedWinner);
       const winnerLabel = source === "actual" && normalizeName(match?.winner)
         ? `Winner: ${normalizeName(match?.winner)}`
         : "Winner: TBD";
       return {
         matchId: parsedId || "—",
+        source,
         round: normalizeName(match?.round) || "—",
         winnerLabel,
         seasons: [...RANKED_SEASONS],
+        selectedWinnerName,
+        showWinnerSelection: source === "pick",
+        winnerSelectionDisabled: source !== "pick" || !canEditUserBracket(),
         top: buildPlayerRankedHistory(match?.top),
         bottom: buildPlayerRankedHistory(match?.bottom),
       };
@@ -1659,6 +1761,10 @@
           mountEl,
           getMatchInfo: () => getMatchInfoForPopover(matchId, source),
           ensureRankedDataLoaded: loadRankedSeasonPayloads,
+          onSelectWinner: ({ matchId: selectedMatchId, winnerName, source: selectedSource }) => {
+            if(normalizeName(selectedSource) !== "pick") return false;
+            return applyUserPickSelection(selectedMatchId, winnerName);
+          },
           popoverId: `${source}:${matchId}`,
         });
         mounts.push(popoverMount);
@@ -2645,31 +2751,7 @@
       if(!row || !canEditUserBracket()) return;
       const matchId = Number(row.dataset.matchId);
       const selected_winner_name = normalizeName(row.dataset.name);
-      if(!matchId || !selected_winner_name) return;
-
-      const targetMatch = state.predicted.get(matchId);
-      if(!targetMatch) return;
-      const participant = getParticipantFromPicked(targetMatch, selected_winner_name);
-      if(!participant) return;
-
-      const basePick = {
-        bracket_id: state.userBracket?.id || null,
-        match_id: matchId,
-        round_code: targetMatch.round,
-        round_number: targetMatch.roundNumber,
-        selected_winner_name,
-        selected_winner_seed: participant.seed ?? null,
-        is_correct: null,
-        points_awarded: null,
-        year: TOURNAMENT_YEAR,
-      };
-
-      const nextPickMap = new Map(state.userPicks);
-      nextPickMap.set(matchId, basePick);
-      state.userPicks = clearDependentDownstreamPicks(matchId, nextPickMap, state.context);
-      saveLocalBracketDraft(state.userPicks);
-      refreshPredictedFromUserPicks();
-      renderView();
+      applyUserPickSelection(matchId, selected_winner_name);
     }
 
     function bindEvents(){
