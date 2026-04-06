@@ -262,7 +262,7 @@
     /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
     /** @typedef {{id:number,round:string,roundNumber:number,region:number,top:PlayerSlot,bottom:PlayerSlot,pickedWinner:string}} PredictedMatch */
-    /** @typedef {{user_id:string,username:string|null}} ProfileRow */
+    /** @typedef {{user_id:string,username:string|null,discord_user_id?:string|null,full_name?:string|null}} ProfileRow */
     /** @typedef {{id:string,user_id:string,bracket_name:string,submitted_at:string|null}} BracketRow */
     /** @typedef {{bracket_id:string,match_id:number,round_code:string,round_number:number,selected_winner_name:string,selected_winner_seed:number|null,is_correct:boolean|null,points_awarded:number|null}} PickRow */
 
@@ -817,6 +817,100 @@
       return !!normalizeName(profile?.username);
     }
 
+    function getProviderProfileName(user){
+      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+      return normalizeName(
+        metadata.full_name ||
+        metadata.name ||
+        metadata.global_name ||
+        metadata.preferred_username ||
+        metadata.user_name ||
+        metadata.username
+      );
+    }
+
+    function getDiscordProviderIdFromIdentities(identities){
+      const list = Array.isArray(identities) ? identities : [];
+      const discordIdentity = list.find((identity) => normalizeName(identity?.provider).toLowerCase() === "discord");
+      if(!discordIdentity) return "";
+      return normalizeName(
+        discordIdentity.provider_id ||
+        discordIdentity.identity_data?.provider_id ||
+        discordIdentity.identity_data?.sub ||
+        discordIdentity.identity_data?.id
+      );
+    }
+
+    async function syncProfileFromAuthUser(){
+      const sessionUserId = normalizeName(state.session?.user?.id);
+      if(!sessionUserId) return;
+
+      let authUser = state.session?.user || null;
+      try{
+        const { data, error } = await supabase.auth.getUser();
+        if(!error && data?.user?.id === sessionUserId){
+          authUser = data.user;
+        }
+      }catch{
+        // Keep profile bootstrap non-blocking if auth user enrichment is unavailable.
+      }
+
+      const identities = Array.isArray(authUser?.identities)
+        ? authUser.identities
+        : Array.isArray(state.session?.user?.identities)
+          ? state.session.user.identities
+          : [];
+      const discordUserId = getDiscordProviderIdFromIdentities(identities);
+      const providerFullName = getProviderProfileName(authUser || state.session?.user);
+
+      let existingProfile = null;
+      try{
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("user_id,username,discord_user_id,full_name")
+          .eq("user_id", sessionUserId)
+          .maybeSingle();
+        if(error) return;
+        existingProfile = data || null;
+      }catch{
+        return;
+      }
+
+      const existingUsername = normalizeName(existingProfile?.username);
+      const existingDiscordUserId = normalizeName(existingProfile?.discord_user_id);
+      const existingFullName = normalizeName(existingProfile?.full_name);
+
+      /** @type {{user_id:string,username?:string,discord_user_id?:string,full_name?:string}} */
+      const payload = { user_id: sessionUserId };
+      let shouldUpsert = !existingProfile;
+
+      if(discordUserId && discordUserId !== existingDiscordUserId){
+        payload.discord_user_id = discordUserId;
+        shouldUpsert = true;
+      }
+
+      if(providerFullName && providerFullName !== existingFullName){
+        payload.full_name = providerFullName;
+        shouldUpsert = true;
+      }
+
+      if(!existingUsername && providerFullName){
+        payload.username = providerFullName;
+        if(providerFullName !== normalizeName(existingProfile?.username)){
+          shouldUpsert = true;
+        }
+      }
+
+      if(!shouldUpsert) return;
+
+      try{
+        const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "user_id" });
+        if(error) return;
+      }catch{
+        // Keep auth flow and onboarding resilient if profile sync fails.
+      }
+    }
+
     async function isUsernameAvailable(username){
       const desired = normalizeName(username);
       const { data, error } = await supabase
@@ -1010,6 +1104,7 @@
             }else{
               renderAuthShell();
             }
+            await syncProfileFromAuthUser();
             const authStateLoad = await loadAuthStateFromCurrentSession();
             if(!authStateLoad.ok){
               setMessage(authStateLoad.message, "error");
