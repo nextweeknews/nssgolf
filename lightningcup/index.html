@@ -280,6 +280,8 @@
     const REGION_TABS = ["Region 1", "Region 2", "Region 3", "Region 4", "Finals"];
     const TOTAL_BRACKET_MATCHES = 63;
     const TOURNAMENT_YEAR = "2026";
+    const BRACKET_DRAFT_STORAGE_VERSION = 1;
+    const BRACKET_DRAFT_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-draft";
 
     /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
@@ -307,6 +309,7 @@
       selectedBracketId: null,
       authSub: null,
       tournamentLoaded: false,
+      lastDraftRestoreNoticeToken: "",
     };
 
     const supabase = createBrowserSupabaseClient();
@@ -358,6 +361,160 @@
     let discordSignInPending = false;
     let userMenuOpen = false;
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
+
+    function getDraftStorageKey(userId, year = TOURNAMENT_YEAR){
+      const normalizedUserId = normalizeName(userId);
+      const normalizedYear = normalizeName(year || TOURNAMENT_YEAR);
+      if(!normalizedUserId || !normalizedYear) return "";
+      return `${BRACKET_DRAFT_STORAGE_PREFIX}:${normalizedYear}:${normalizedUserId}`;
+    }
+
+    function draftRowsFromPickMap(picksMap){
+      if(!(picksMap instanceof Map)) return [];
+      return [...picksMap.values()]
+        .map((pick) => ({
+          match_id: Number(pick.match_id),
+          round_code: normalizeName(pick.round_code),
+          round_number: Number(pick.round_number),
+          selected_winner_name: normalizeName(pick.selected_winner_name),
+          selected_winner_seed: pick.selected_winner_seed == null ? null : Number(pick.selected_winner_seed),
+        }))
+        .filter((pick) => Number.isFinite(pick.match_id) && pick.round_code && Number.isFinite(pick.round_number) && pick.selected_winner_name)
+        .sort((a,b) => a.match_id - b.match_id);
+    }
+
+    function buildPickMapFromDraftRows(rows, bracketId){
+      const normalizedBracketId = normalizeName(bracketId) || null;
+      const map = new Map();
+      if(!Array.isArray(rows)) return map;
+      rows.forEach((row) => {
+        const matchId = Number(row?.match_id);
+        const roundCode = normalizeName(row?.round_code);
+        const roundNumber = Number(row?.round_number);
+        const selectedWinnerName = normalizeName(row?.selected_winner_name);
+        if(!Number.isFinite(matchId) || !roundCode || !Number.isFinite(roundNumber) || !selectedWinnerName) return;
+        map.set(matchId, {
+          bracket_id: normalizedBracketId,
+          match_id: matchId,
+          round_code: roundCode,
+          round_number: roundNumber,
+          selected_winner_name: selectedWinnerName,
+          selected_winner_seed: row?.selected_winner_seed == null ? null : Number(row.selected_winner_seed),
+          is_correct: null,
+          points_awarded: null,
+          year: TOURNAMENT_YEAR,
+        });
+      });
+      return map;
+    }
+
+    function arePickSelectionsEqual(leftPick, rightPick){
+      if(!leftPick || !rightPick) return false;
+      return normalizeName(leftPick.selected_winner_name) === normalizeName(rightPick.selected_winner_name)
+        && Number(leftPick.selected_winner_seed ?? -1) === Number(rightPick.selected_winner_seed ?? -1)
+        && normalizeName(leftPick.round_code) === normalizeName(rightPick.round_code)
+        && Number(leftPick.round_number ?? 0) === Number(rightPick.round_number ?? 0);
+    }
+
+    function arePickMapsEquivalent(leftMap, rightMap){
+      if(!(leftMap instanceof Map) || !(rightMap instanceof Map)) return false;
+      if(leftMap.size !== rightMap.size) return false;
+      for(const [matchId, leftPick] of leftMap.entries()){
+        const rightPick = rightMap.get(matchId);
+        if(!arePickSelectionsEqual(leftPick, rightPick)) return false;
+      }
+      return true;
+    }
+
+    function loadLocalBracketDraft(userId, year = TOURNAMENT_YEAR){
+      const key = getDraftStorageKey(userId, year);
+      if(!key) return null;
+      try{
+        const raw = window.localStorage.getItem(key);
+        if(!raw) return null;
+        const parsed = JSON.parse(raw);
+        if(!parsed || typeof parsed !== "object") return null;
+        if(Number(parsed.version) !== BRACKET_DRAFT_STORAGE_VERSION) return null;
+        if(normalizeName(parsed.userId) !== normalizeName(userId)) return null;
+        if(normalizeName(parsed.year) !== normalizeName(year)) return null;
+        return {
+          updatedAt: normalizeName(parsed.updatedAt),
+          picks: Array.isArray(parsed.picks) ? parsed.picks : [],
+        };
+      }catch{
+        try{
+          window.localStorage.removeItem(key);
+        }catch{
+          // Ignore storage cleanup errors for draft recovery.
+        }
+        return null;
+      }
+    }
+
+    function clearLocalBracketDraft(userId = state.session?.user?.id, year = TOURNAMENT_YEAR){
+      const key = getDraftStorageKey(userId, year);
+      if(!key) return;
+      try{
+        window.localStorage.removeItem(key);
+      }catch{
+        // Ignore storage cleanup errors for draft recovery.
+      }
+    }
+
+    function saveLocalBracketDraft(picksMap = state.userPicks){
+      const userId = normalizeName(state.session?.user?.id);
+      const key = getDraftStorageKey(userId, TOURNAMENT_YEAR);
+      if(!key) return;
+      const picks = draftRowsFromPickMap(picksMap);
+      if(!picks.length){
+        clearLocalBracketDraft(userId, TOURNAMENT_YEAR);
+        return;
+      }
+      const payload = {
+        version: BRACKET_DRAFT_STORAGE_VERSION,
+        userId,
+        year: TOURNAMENT_YEAR,
+        updatedAt: new Date().toISOString(),
+        picks,
+      };
+      try{
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      }catch{
+        // Ignore storage write errors so bracket editing remains usable.
+      }
+    }
+
+    function resolveUserPicksForSession(userId, savedPicksMap, bracketId){
+      const draft = loadLocalBracketDraft(userId, TOURNAMENT_YEAR);
+      if(!draft){
+        return { picksMap: savedPicksMap, restoredDraft: false, draftUpdatedAt: "" };
+      }
+
+      const draftPickMap = buildPickMapFromDraftRows(draft.picks, bracketId);
+      if(draftPickMap.size === 0){
+        clearLocalBracketDraft(userId, TOURNAMENT_YEAR);
+        return { picksMap: savedPicksMap, restoredDraft: false, draftUpdatedAt: "" };
+      }
+
+      if(arePickMapsEquivalent(savedPicksMap, draftPickMap)){
+        clearLocalBracketDraft(userId, TOURNAMENT_YEAR);
+        return { picksMap: savedPicksMap, restoredDraft: false, draftUpdatedAt: "" };
+      }
+
+      return {
+        picksMap: draftPickMap,
+        restoredDraft: true,
+        draftUpdatedAt: normalizeName(draft.updatedAt),
+      };
+    }
+
+    function announceDraftRestoreOnce(userId, draftUpdatedAt){
+      const token = `${normalizeName(userId)}:${normalizeName(draftUpdatedAt) || "draft"}`;
+      if(!token || state.lastDraftRestoreNoticeToken === token) return;
+      state.lastDraftRestoreNoticeToken = token;
+      setMessage("Restored unsaved bracket edits.", "ok");
+    }
+
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
       els.flashMessage.textContent = clean;
@@ -367,6 +524,7 @@
       state.profile = null;
       state.userBracket = null;
       state.userPicks = new Map();
+      state.lastDraftRestoreNoticeToken = "";
       els.usernameInput.value = "";
     };
     const setSessionState = (session) => {
@@ -485,9 +643,9 @@
       const finalMatch = finals[0];
 
       setEdge(regionChampions.get(1), semifinals[0]?.id, "top");
-      setEdge(regionChampions.get(2), semifinals[0]?.id, "bottom");
-      setEdge(regionChampions.get(3), semifinals[1]?.id, "top");
-      setEdge(regionChampions.get(4), semifinals[1]?.id, "bottom");
+      setEdge(regionChampions.get(4), semifinals[0]?.id, "bottom");
+      setEdge(regionChampions.get(2), semifinals[1]?.id, "top");
+      setEdge(regionChampions.get(3), semifinals[1]?.id, "bottom");
       setEdge(semifinals[0]?.id, finalMatch?.id, "top");
       setEdge(semifinals[1]?.id, finalMatch?.id, "bottom");
 
@@ -1161,6 +1319,7 @@
       state.profile = profile || null;
       state.userBracket = bracketRows || null;
 
+      let savedUserPicks = new Map();
       if(state.userBracket?.id){
         const { data: picks, error: picksError } = await supabase
           .from("bracket_picks")
@@ -1168,14 +1327,26 @@
           .eq("bracket_id", state.userBracket.id)
           .eq("year", TOURNAMENT_YEAR);
         if(picksError){
-          state.userPicks = new Map();
+          const draftFallback = resolveUserPicksForSession(userId, new Map(), state.userBracket?.id || null);
+          state.userPicks = draftFallback.picksMap;
+          if(draftFallback.restoredDraft){
+            announceDraftRestoreOnce(userId, draftFallback.draftUpdatedAt);
+          }else{
+            state.lastDraftRestoreNoticeToken = "";
+          }
           els.usernameInput.value = normalizeName(state.profile?.username);
           renderAuthShell();
           return { ok: false, message: "Could not load your saved bracket picks." };
         }
-        state.userPicks = new Map((picks || []).map((p) => [p.match_id, p]));
+        savedUserPicks = new Map((picks || []).map((p) => [p.match_id, p]));
+      }
+
+      const pickResolution = resolveUserPicksForSession(userId, savedUserPicks, state.userBracket?.id || null);
+      state.userPicks = pickResolution.picksMap;
+      if(pickResolution.restoredDraft){
+        announceDraftRestoreOnce(userId, pickResolution.draftUpdatedAt);
       }else{
-        state.userPicks = new Map();
+        state.lastDraftRestoreNoticeToken = "";
       }
 
       els.usernameInput.value = normalizeName(state.profile?.username);
@@ -1340,6 +1511,8 @@
         return setMessage(error.message || "Failed to save picks.", "error");
       }
 
+      clearLocalBracketDraft(state.session.user.id, TOURNAMENT_YEAR);
+      state.lastDraftRestoreNoticeToken = "";
       await refreshAuthDrivenUI("savePicks", { syncSession: false });
       const selectedCount = getSelectedPickCount();
       const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
@@ -1373,6 +1546,7 @@
       const nextPickMap = new Map(state.userPicks);
       nextPickMap.set(matchId, basePick);
       state.userPicks = clearDependentDownstreamPicks(matchId, nextPickMap, state.context);
+      saveLocalBracketDraft(state.userPicks);
       refreshPredictedFromUserPicks();
       renderView();
     }
