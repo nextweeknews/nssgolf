@@ -100,15 +100,20 @@
     .qualifier-bracket-match{ display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:6px; align-items:center; width:100%; min-height:var(--qualifier-match-height); }
     .qualifier-match-info{ width:22px; flex:0 0 22px; height:22px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.86); font-size:11px; font-weight:900; cursor:pointer; }
     .qualifier-match-card{ width:100%; min-width:0; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
-    .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; text-align:left; }
+    .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; text-align:left; position:relative; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
     .qualifier-match-row.no-score{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr); }
+    .qualifier-match-row:first-child{ border-top-left-radius:9px; border-top-right-radius:9px; }
+    .qualifier-match-row:last-child{ border-bottom-left-radius:9px; border-bottom-right-radius:9px; }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
     .qualifier-match-row + .qualifier-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .qualifier-match-row.winner{ background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.55); }
     .qualifier-match-row.selected{ box-shadow: inset 0 0 0 999px var(--pick); }
+    .qualifier-match-row.selected::after{ content:""; position:absolute; inset:0; border-top:1px solid rgba(125,211,252,.58); border-bottom:1px solid rgba(125,211,252,.45); border-radius:inherit; pointer-events:none; }
     .qualifier-match-row.correct{ box-shadow: inset 0 0 0 999px var(--success); }
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(56,189,248,0.10); }
     .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
     .qualifier-player-seed{ width:100%; text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
@@ -231,7 +236,7 @@
       <div class="your-bracket-toolbar">
         <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
         <div class="pick-progress">
-          <span class="pick-progress-count" id="pickProgressCount">0/63 picks</span>
+          <span class="pick-progress-count" id="pickProgressCount">Unsaved: 0/63 picks</span>
           <button class="btn btn-primary" id="savePicksBtn" type="button">Save progress</button>
         </div>
       </div>
@@ -306,6 +311,8 @@
       profile: /** @type {ProfileRow|null} */ (null),
       userBracket: /** @type {BracketRow|null} */ (null),
       userPicks: /** @type {Map<number, PickRow>} */ (new Map()),
+      savedPicksSnapshot: /** @type {Map<number, PickRow>} */ (new Map()),
+      savedPicksLoaded: false,
       predicted: /** @type {Map<number, PredictedMatch>} */ (new Map()),
       validUserPicks: /** @type {Map<number, PickRow>} */ (new Map()),
       allBrackets: /** @type {(BracketRow & {username:string})[]} */ ([]),
@@ -438,6 +445,25 @@
         if(!arePickSelectionsEqual(leftPick, rightPick)) return false;
       }
       return true;
+    }
+
+    function normalizePickMapForComparison(picksMap){
+      if(!(picksMap instanceof Map)) return new Map();
+      if(!state.context) return new Map(picksMap);
+      const { validPicks } = applyUserPicksToPredictedBracket(state.context, picksMap);
+      return new Map(validPicks);
+    }
+
+    function setSavedPicksSnapshot(picksMap, { loaded = true } = {}){
+      state.savedPicksSnapshot = picksMap instanceof Map ? new Map(picksMap) : new Map();
+      state.savedPicksLoaded = !!loaded;
+    }
+
+    function isCurrentUserBracketStateSaved(){
+      if(!state.savedPicksLoaded) return false;
+      const currentComparable = state.context ? state.validUserPicks : normalizePickMapForComparison(state.userPicks);
+      const savedComparable = normalizePickMapForComparison(state.savedPicksSnapshot);
+      return arePickMapsEquivalent(currentComparable, savedComparable);
     }
 
     function loadLocalBracketDraft(userId, year = TOURNAMENT_YEAR){
@@ -667,6 +693,7 @@
       state.profile = null;
       state.userBracket = null;
       state.userPicks = new Map();
+      setSavedPicksSnapshot(new Map(), { loaded: false });
       state.userAvatarUrl = "";
       state.lastDraftRestoreNoticeToken = "";
       els.usernameInput.value = "";
@@ -1048,7 +1075,8 @@
     function updatePickProgressUI(){
       const selectedCount = getSelectedPickCount();
       const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
-      els.pickProgressCount.textContent = `${selectedCount}/${TOTAL_BRACKET_MATCHES} picks`;
+      const saveStateLabel = isCurrentUserBracketStateSaved() ? "Saved" : "Unsaved";
+      els.pickProgressCount.textContent = `${saveStateLabel}: ${selectedCount}/${TOTAL_BRACKET_MATCHES} picks`;
       els.pickProgressCount.classList.toggle("is-complete", isComplete);
       els.savePicksBtn.textContent = isComplete ? "Save" : "Save progress";
       els.savePicksBtn.disabled = !canSaveUserBracket();
@@ -1482,6 +1510,7 @@
           .eq("bracket_id", state.userBracket.id)
           .eq("year", TOURNAMENT_YEAR);
         if(picksError){
+          setSavedPicksSnapshot(new Map(), { loaded: false });
           const draftFallback = resolveUserPicksForSession(userId, new Map(), state.userBracket?.id || null);
           state.userPicks = draftFallback.picksMap;
           if(draftFallback.restoredDraft){
@@ -1496,6 +1525,7 @@
         savedUserPicks = new Map((picks || []).map((p) => [p.match_id, p]));
       }
 
+      setSavedPicksSnapshot(savedUserPicks, { loaded: true });
       const pickResolution = resolveUserPicksForSession(userId, savedUserPicks, state.userBracket?.id || null);
       state.userPicks = pickResolution.picksMap;
       if(pickResolution.restoredDraft){
@@ -1672,7 +1702,11 @@
       await refreshAuthDrivenUI("savePicks", { syncSession: false });
       const selectedCount = getSelectedPickCount();
       const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
-      setMessage(isComplete ? "Bracket saved." : "Bracket progress saved.", "ok");
+      if(isCurrentUserBracketStateSaved()){
+        setMessage(isComplete ? "Bracket saved." : "Bracket progress saved.", "ok");
+      }else{
+        setMessage("Save submitted, but we could not confirm it yet. Please refresh to recheck.", "error");
+      }
     }
 
     function handlePickClick(event){
