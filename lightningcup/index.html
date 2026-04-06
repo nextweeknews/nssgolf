@@ -240,12 +240,11 @@
   </main>
 
   <script type="module">
-    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+    import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
 
     const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
-    const SUPABASE_URL = "https://kwaprkwemtxizorpnrzq.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_gJ6-wdgZYpDBF1YxxNrlLg_BrtYUeL_";
+    const AUTH_RETURN_PATH = "/lightningcup/index.html";
     const ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final"];
     const ROUND_NUMBER = { R64: 1, R32: 2, R16: 3, R8: 4, R4: 5, Final: 6 };
     const REGION_TABS = ["Region 1", "Region 2", "Region 3", "Region 4", "Finals"];
@@ -278,7 +277,7 @@
       tournamentLoaded: false,
     };
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = createBrowserSupabaseClient();
 
     const els = {
       globalStatus: document.getElementById("globalStatus"),
@@ -1184,7 +1183,11 @@
           return;
         }
         setModalSubmitting("signup", true);
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({ email, password });
+        const { data: signupData, error: signupError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: buildAuthRedirectTo(AUTH_RETURN_PATH) },
+        });
         if(signupError){
           setModalSubmitting("signup", false);
           setInlineModalMessage(els.signupModalMessage, signupError.message || "Signup failed.", "error");
@@ -1193,7 +1196,7 @@
         setModalSubmitting("signup", false);
         const signupSession = signupData?.session || (await supabase.auth.getSession()).data.session;
         if(!signupSession){
-          setInlineModalMessage(els.signupModalMessage, "Account created. Please log in.", "error");
+          setInlineModalMessage(els.signupModalMessage, "Account created. Check your email to finish sign-in.", "ok");
           return;
         }
         state.session = signupSession;

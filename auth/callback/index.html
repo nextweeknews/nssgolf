@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Completing Sign-In</title>
+  <style>
+    :root{ color-scheme: dark; }
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:20px;
+      background: radial-gradient(circle at top, #102a43, #0b1f33 42%, #081521 100%);
+      color:#e6edf3;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    .card{
+      width:min(560px, 100%);
+      border:1px solid rgba(148,163,184,0.34);
+      background: rgba(8,21,33,0.86);
+      border-radius:14px;
+      padding:20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+      display:grid;
+      gap:10px;
+    }
+    h1{ margin:0; font-size:20px; letter-spacing:0.03em; text-transform:uppercase; }
+    p{ margin:0; line-height:1.45; color:#c1cfdd; }
+    .status{ color:#e6edf3; font-weight:700; }
+    .status.error{ color:#fecaca; }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:36px;
+      padding:0 14px;
+      text-decoration:none;
+      color:#e6edf3;
+      border:1px solid rgba(148,163,184,0.5);
+      border-radius:999px;
+      background: rgba(255,255,255,0.04);
+      font-size:12px;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      font-weight:700;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Completing Sign-In</h1>
+    <p class="status" id="statusText">Finalizing your session...</p>
+    <p id="detailText">You will be redirected automatically.</p>
+    <div class="actions" id="actionRow" hidden>
+      <a class="btn" id="continueLink" href="/lightningcup/index.html">Continue</a>
+    </div>
+  </main>
+
+  <script type="module">
+    import {
+      DEFAULT_POST_AUTH_PATH,
+      createBrowserSupabaseClient,
+      getNextPathFromCurrentLocation,
+    } from "/auth/supabase-auth.js";
+
+    const els = {
+      statusText: document.getElementById("statusText"),
+      detailText: document.getElementById("detailText"),
+      actionRow: document.getElementById("actionRow"),
+      continueLink: document.getElementById("continueLink"),
+    };
+
+    const nextPath = getNextPathFromCurrentLocation(DEFAULT_POST_AUTH_PATH);
+    els.continueLink.href = nextPath;
+
+    const supabase = createBrowserSupabaseClient({ detectSessionInUrl: false });
+
+    function setStatus(text, detail = "", isError = false){
+      els.statusText.textContent = text;
+      els.statusText.classList.toggle("error", isError);
+      els.detailText.textContent = detail;
+      els.actionRow.hidden = !isError;
+    }
+
+    async function setSessionFromHashIfPresent(){
+      const hash = window.location.hash.replace(/^#/, "");
+      if(!hash) return false;
+      const hashParams = new URLSearchParams(hash);
+      const access_token = hashParams.get("access_token");
+      const refresh_token = hashParams.get("refresh_token");
+      if(!access_token || !refresh_token) return false;
+
+      const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+      if(error) throw error;
+      return true;
+    }
+
+    async function verifyOtpTokenIfPresent(callbackUrl){
+      const token_hash = callbackUrl.searchParams.get("token_hash");
+      const type = callbackUrl.searchParams.get("type");
+      if(!token_hash || !type) return false;
+
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+      if(error) throw error;
+      return true;
+    }
+
+    async function finishAuthFlow(){
+      const callbackUrl = new URL(window.location.href);
+      const providerError = callbackUrl.searchParams.get("error_description") || callbackUrl.searchParams.get("error");
+      if(providerError){
+        throw new Error(providerError);
+      }
+
+      const code = callbackUrl.searchParams.get("code");
+      if(code){
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if(error) throw error;
+      }else{
+        const otpVerified = await verifyOtpTokenIfPresent(callbackUrl);
+        const hashSessionSet = otpVerified ? false : await setSessionFromHashIfPresent();
+
+        if(!otpVerified && !hashSessionSet){
+          const { data, error } = await supabase.auth.getSession();
+          if(error) throw error;
+          if(!data?.session){
+            throw new Error("No authentication session was returned from the callback.");
+          }
+        }
+      }
+
+      window.location.replace(nextPath);
+    }
+
+    finishAuthFlow().catch((error) => {
+      console.error("[auth callback]", error);
+      setStatus(
+        "Could not complete sign-in.",
+        error?.message || "The sign-in link may be expired. Please try again.",
+        true
+      );
+    });
+  </script>
+</body>
+</html>
