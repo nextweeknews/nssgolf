@@ -542,7 +542,13 @@
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
     .qualifier-player-name.is-picked-correct{ color:#bbf7d0; }
     .qualifier-player-name.is-picked-incorrect{ color:#fecaca; }
+    .qualifier-player-name.is-eliminated-future{
+      text-decoration: line-through;
+      text-decoration-thickness: 1.5px;
+      text-decoration-color: currentColor;
+    }
     .qualifier-pick-status-icon{ display:block; width:15px; height:15px; }
+    .qualifier-pick-status-icon.is-check{ width:17px; height:17px; }
     .qualifier-row-radio{
       width:var(--qualifier-pick-indicator-width);
       height:var(--qualifier-pick-indicator-width);
@@ -571,6 +577,12 @@
     .qualifier-row-radio[data-state="checked"] .qualifier-row-radio-indicator{
       background: rgba(var(--region-accent-rgb), .80);
       transform:scale(1);
+    }
+    .qualifier-row-radio.is-invalid-selected{
+      border-color: rgba(239,68,68,.62);
+      background: rgba(239,68,68,.10);
+      box-shadow: 0 0 0 1px rgba(239,68,68,.14);
+      color:#fca5a5;
     }
     .qualifier-player-scorepack{ display:grid; grid-template-columns: repeat(3, var(--qualifier-score-col-width)) var(--qualifier-final-score-width); align-items:stretch; justify-content:end; justify-items:stretch; gap:4px; width:var(--qualifier-scorepack-width); min-width:var(--qualifier-scorepack-width); }
     .qualifier-player-scorepack.is-detail{ grid-template-columns: minmax(0,1fr) var(--qualifier-final-score-width); }
@@ -2502,7 +2514,7 @@
     }
 
     function getRadixCheckIconMarkup(){
-      return `<svg class="qualifier-pick-status-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>`;
+      return `<svg class="qualifier-pick-status-icon is-check" width="17" height="17" viewBox="0 0 15 15" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>`;
     }
 
     function getRadixCross2IconMarkup(){
@@ -2548,8 +2560,77 @@
       return slotScore;
     }
 
+    const EMPTY_PREDICTED_SLOT_APPEARANCE = Object.freeze({
+      futureCorrect: false,
+      futureIncorrect: false,
+      strike: false,
+    });
+
+    function getMatchSlotKeyForPlayer(match, playerName){
+      const normalizedPlayerName = normalizeName(playerName);
+      if(!match || !normalizedPlayerName) return "";
+      if(normalizeName(match.top?.name) === normalizedPlayerName) return "top";
+      if(normalizeName(match.bottom?.name) === normalizedPlayerName) return "bottom";
+      return "";
+    }
+
+    function createPredictedCarryStatusResolver(context, predictedMatchesMap, hydratedMap){
+      if(!(predictedMatchesMap instanceof Map) || !(hydratedMap instanceof Map) || !context?.prevMap){
+        return () => EMPTY_PREDICTED_SLOT_APPEARANCE;
+      }
+
+      const memo = new Map();
+      const resolve = (matchId, slotKey) => {
+        const normalizedMatchId = Number(matchId);
+        const normalizedSlotKey = slotKey === "bottom" ? "bottom" : "top";
+        const memoKey = `${normalizedMatchId}:${normalizedSlotKey}`;
+        if(memo.has(memoKey)) return memo.get(memoKey);
+
+        const match = predictedMatchesMap.get(normalizedMatchId);
+        const slotName = normalizeName(match?.[normalizedSlotKey]?.name);
+        if(!match || !slotName){
+          memo.set(memoKey, EMPTY_PREDICTED_SLOT_APPEARANCE);
+          return EMPTY_PREDICTED_SLOT_APPEARANCE;
+        }
+
+        const prev = context.prevMap.get(normalizedMatchId);
+        const sourceMatchId = prev?.[normalizedSlotKey === "top" ? "topSource" : "bottomSource"];
+        if(!sourceMatchId){
+          memo.set(memoKey, EMPTY_PREDICTED_SLOT_APPEARANCE);
+          return EMPTY_PREDICTED_SLOT_APPEARANCE;
+        }
+
+        const sourceMatch = predictedMatchesMap.get(sourceMatchId);
+        const sourcePickedName = normalizeName(sourceMatch?.pickedWinner);
+        if(!sourceMatch || !sourcePickedName || sourcePickedName !== slotName){
+          memo.set(memoKey, EMPTY_PREDICTED_SLOT_APPEARANCE);
+          return EMPTY_PREDICTED_SLOT_APPEARANCE;
+        }
+
+        const sourcePickedSlotKey = getMatchSlotKeyForPlayer(sourceMatch, sourcePickedName);
+        const sourcePickedAppearance = sourcePickedSlotKey
+          ? resolve(sourceMatchId, sourcePickedSlotKey)
+          : EMPTY_PREDICTED_SLOT_APPEARANCE;
+        const sourceHydrated = hydratedMap.get(Number(sourceMatchId));
+
+        let appearance = EMPTY_PREDICTED_SLOT_APPEARANCE;
+        if(sourcePickedAppearance.futureIncorrect){
+          appearance = { futureCorrect: false, futureIncorrect: true, strike: true };
+        }else if(sourceHydrated?.is_correct === false && normalizeName(sourceHydrated.selected_winner_name) === slotName){
+          appearance = { futureCorrect: false, futureIncorrect: true, strike: true };
+        }else if(sourceHydrated?.is_correct === true && normalizeName(sourceHydrated.selected_winner_name) === slotName){
+          appearance = { futureCorrect: true, futureIncorrect: false, strike: false };
+        }
+
+        memo.set(memoKey, appearance);
+        return appearance;
+      };
+
+      return (matchId, slotKey) => resolve(matchId, slotKey);
+    }
+
     function renderBracketGrid(target, matches, options = {}){
-      const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false, infoSource = "actual" } = options;
+      const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), predictedMatchesMap = null, clickable = false, lockPicking = false, infoSource = "actual" } = options;
       unmountMatchInfoPopovers(target);
       const groups = groupByRound(matches);
       const baseRoundGap = 8;
@@ -2560,6 +2641,9 @@
         R16: -8,
         R8: -8,
       };
+      const resolvePredictedCarryStatus = mode === "pick" || mode === "detail"
+        ? createPredictedCarryStatusResolver(state.context, predictedMatchesMap, hydratedMap)
+        : () => EMPTY_PREDICTED_SLOT_APPEARANCE;
       target.dataset.bracketMode = mode;
       target.innerHTML = groups.map((group, roundIndex) => {
         const roundMultiplier = 2 ** roundIndex;
@@ -2576,6 +2660,10 @@
               const pick = picksMap.get(match.id);
               const hydrated = hydratedMap.get(match.id);
               const selectedWinnerName = normalizeName(pick?.selected_winner_name);
+              const selectedWinnerSlotKey = getMatchSlotKeyForPlayer(match, selectedWinnerName);
+              const selectedWinnerCarryStatus = selectedWinnerSlotKey
+                ? resolvePredictedCarryStatus(match.id, selectedWinnerSlotKey)
+                : EMPTY_PREDICTED_SLOT_APPEARANCE;
               const topSelected = !!selectedWinnerName && selectedWinnerName === normalizeName(match.top?.name);
               const bottomSelected = !!selectedWinnerName && selectedWinnerName === normalizeName(match.bottom?.name);
               const selectionStatus = !selectedWinnerName
@@ -2584,6 +2672,8 @@
                   ? "correct"
                   : hydrated?.is_correct === false
                     ? "incorrect"
+                    : selectedWinnerCarryStatus.futureIncorrect
+                      ? "incorrect"
                     : "pending";
               const isDetailMode = mode === "detail";
               const matchCardClass = [
@@ -2593,27 +2683,38 @@
                 bottomSelected ? "is-selected-bottom" : "",
                 selectionStatus ? `is-selection-${selectionStatus}` : "",
               ].filter(Boolean).join(" ");
-              const renderRow = (slot) => {
+              const renderRow = (slot, slotKey) => {
                 const name = slot.name || "";
                 const safeName = escapeHtml(name);
                 const isPicked = pick && pick.selected_winner_name === name;
+                const carryStatus = resolvePredictedCarryStatus(match.id, slotKey);
                 const stateClass = !isPicked ? "" : `selected ${selectionStatus || "pending"}`;
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
                 const showScoreIndicators = mode === "actual" || mode === "detail" || (mode === "pick" && lockPicking);
                 const showPickRadioIndicator = mode === "pick" && !lockPicking && !!name;
                 const disabled = !clickable || lockPicking || !slot.name;
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
-                const detailStatusClass = hydrated?.is_correct === true ? " is-correct" : hydrated?.is_correct === false ? " is-incorrect" : "";
+                const isFutureIncorrect = !!carryStatus.futureIncorrect;
+                const isFutureCorrect = !!carryStatus.futureCorrect;
+                const detailStatusClass = hydrated?.is_correct === true
+                  ? " is-correct"
+                  : hydrated?.is_correct === false || (isPicked && isFutureIncorrect)
+                    ? " is-incorrect"
+                    : "";
                 const nameClass = isPicked && hydrated?.is_correct === true
                   ? "qualifier-player-name is-picked-correct"
                   : isPicked && hydrated?.is_correct === false
                     ? "qualifier-player-name is-picked-incorrect"
-                    : "qualifier-player-name";
+                    : isFutureIncorrect
+                      ? "qualifier-player-name is-picked-incorrect is-eliminated-future"
+                      : isFutureCorrect
+                        ? "qualifier-player-name is-picked-correct"
+                        : "qualifier-player-name";
                 const detailPointsMarkup = !isPicked
                   ? ""
                   : hydrated?.is_correct === true
                     ? `${getRadixCheckIconMarkup()}<span>+${hydrated.points_awarded || 0} pts</span>`
-                    : hydrated?.is_correct === false
+                    : hydrated?.is_correct === false || isFutureIncorrect
                       ? getRadixCross2IconMarkup()
                       : "";
                 const scoreMarkup = showScoreIndicators
@@ -2622,7 +2723,9 @@
                     : `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
                   : "";
                 const pickRadioMarkup = showPickRadioIndicator
-                  ? `<span class="qualifier-row-radio" data-state="${isPicked ? "checked" : "unchecked"}" aria-hidden="true"><span class="qualifier-row-radio-indicator"></span></span>`
+                  ? isPicked && selectionStatus === "incorrect"
+                    ? `<span class="qualifier-row-radio is-invalid-selected" data-state="invalid" aria-hidden="true">${getRadixCross2IconMarkup()}</span>`
+                    : `<span class="qualifier-row-radio" data-state="${isPicked ? "checked" : "unchecked"}" aria-hidden="true"><span class="qualifier-row-radio-indicator"></span></span>`
                   : "";
                 const rowClasses = [
                   "qualifier-match-row",
@@ -2636,7 +2739,7 @@
                   : `<span class="${nameClass}">${safeName}</span>`;
                 return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickRadioMarkup}</button>`;
               };
-              return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
+              return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top, "top")}${renderRow(match.bottom, "bottom")}</div></div>`;
             }).join("")}
           </div>
         </div>`;
@@ -2917,6 +3020,7 @@
         mode: "detail",
         picksMap: validPicks,
         hydratedMap,
+        predictedMatchesMap: predicted,
         clickable: false,
         lockPicking: true,
         infoSource: "detail",
@@ -2971,7 +3075,7 @@
       }
 
       if(!rows.length){
-        els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Current Max")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody><tr><td class="leaderboard-empty-cell" colspan="5"><div class="leaderboard-empty-state">No entries yet.</div></td></tr></tbody>`;
+        els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Max Score")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody><tr><td class="leaderboard-empty-cell" colspan="5"><div class="leaderboard-empty-state">No entries yet.</div></td></tr></tbody>`;
         return;
       }
 
@@ -2995,7 +3099,7 @@
         return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td><button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></button></td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
       }).join("");
 
-      els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Current Max")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${tableMarkup}</tbody>`;
+      els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Max Score")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${tableMarkup}</tbody>`;
 
       const selectedRow = rows.find((row) => row.id === state.selectedBracketId) || null;
       renderExpandedLeaderboardDetail(selectedRow);
@@ -3013,7 +3117,7 @@
 
       const userScores = computeScoresFromPicks(state.validUserPicks);
       const userSubset = getMatchesForTab(state.activeTab, state.predicted);
-      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, clickable: canEditUserBracket(), lockPicking: state.lockFlag === "yes", infoSource: "pick" });
+      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, predictedMatchesMap: state.predicted, clickable: canEditUserBracket(), lockPicking: state.lockFlag === "yes", infoSource: "pick" });
 
       renderSummary();
       renderLeaderboard();
