@@ -91,7 +91,8 @@
     .qualifier-bracket-match{ display:flex; gap:3px; align-items:center; min-height:52px; }
     .qualifier-match-info{ width:22px; flex:0 0 22px; height:22px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.86); font-size:11px; font-weight:900; cursor:pointer; }
     .qualifier-match-card{ width:100%; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
-    .qualifier-match-row{ display:grid; grid-template-columns:26px minmax(0,1fr) 40px; align-items:center; gap:6px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; }
+    .qualifier-match-row{ display:grid; grid-template-columns:26px minmax(0,1fr) auto; align-items:center; gap:6px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; }
+    .qualifier-match-row.no-score{ grid-template-columns:26px minmax(0,1fr); }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
     .qualifier-match-row + .qualifier-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .qualifier-match-row.winner{ background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.55); }
@@ -100,10 +101,12 @@
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
-    .qualifier-player-seed,.qualifier-player-meta{ text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
+    .qualifier-player-seed{ text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
-    .qualifier-player-meta{ color:#000; background:#fff; border-radius:4px; min-height:16px; display:grid; place-items:center; padding:0 4px; }
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
+    .qualifier-player-scorepack{ display:grid; grid-auto-flow:column; align-items:center; justify-content:end; justify-items:end; gap:4px; min-width:72px; }
+    .qualifier-player-set-score{ min-width:12px; text-align:right; font-variant-numeric: tabular-nums; font-weight:900; color:#fff; letter-spacing:.02em; }
+    .qualifier-player-final-score{ min-width:22px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,.9); color:#fff; text-align:right; font-variant-numeric: tabular-nums; font-weight:900; display:flex; align-items:center; justify-content:flex-end; justify-self:end; padding:0 2px; line-height:1; white-space:nowrap; }
 
     .auth-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
     .auth-buttons{ justify-content:center; margin-top:2px; }
@@ -137,6 +140,11 @@
     .leaderboard .winner-badge{ color:#fde68a; font-weight:900; }
 
     .detail-head{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
+    .your-bracket-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .your-bracket-toolbar .status{ margin:0; text-align:left; }
+    .pick-progress{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+    .pick-progress-count{ font-size:12px; font-weight:900; letter-spacing:.03em; font-variant-numeric: tabular-nums; color:#fca5a5; }
+    .pick-progress-count.is-complete{ color:#86efac; }
 
     @media (max-width:980px){
       .two-col{ grid-template-columns:1fr; }
@@ -194,7 +202,6 @@
       </div>
       <div class="row auth-only" id="controlsRow">
         <button class="btn btn-primary" id="saveProfileBtn" type="button">Save Username</button>
-        <button class="btn btn-primary" id="savePicksBtn" type="button">Save Picks</button>
         <button class="btn" id="reloadBtn" type="button">Refresh Data</button>
       </div>
       <div class="row auth-only" id="summaryRow"></div>
@@ -202,15 +209,21 @@
 
     <section class="card">
       <div class="tabs" id="mainTabs"></div>
-      <div id="actualPanel" class="main-tab-panel">
       <div class="tabs" id="regionTabs"></div>
+      <div id="actualPanel" class="main-tab-panel">
       <div class="two-col">
         <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="actualBracketGrid"></div></div>
       </div>
       </div>
       <div id="yourPanel" class="main-tab-panel">
       <h2 class="headline" style="font-size:16px;">Your Predictive Bracket</h2>
-      <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
+      <div class="your-bracket-toolbar">
+        <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
+        <div class="pick-progress">
+          <span class="pick-progress-count" id="pickProgressCount">[0]/63</span>
+          <button class="btn btn-primary" id="savePicksBtn" type="button">Save progress</button>
+        </div>
+      </div>
       <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="pickBracketGrid"></div></div>
       </div>
       <div id="leaderboardPanel" class="main-tab-panel">
@@ -258,6 +271,7 @@
     const ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final"];
     const ROUND_NUMBER = { R64: 1, R32: 2, R16: 3, R8: 4, R4: 5, Final: 6 };
     const REGION_TABS = ["Region 1", "Region 2", "Region 3", "Region 4", "Finals"];
+    const TOTAL_BRACKET_MATCHES = 63;
 
     /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
@@ -295,6 +309,7 @@
       mainTabs: document.getElementById("mainTabs"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
+      pickProgressCount: document.getElementById("pickProgressCount"),
       topbarUserMenu: document.getElementById("topbarUserMenu"),
       topbarUserGreeting: document.getElementById("topbarUserGreeting"),
       topbarUserMenuBtn: document.getElementById("topbarUserMenuBtn"),
@@ -531,21 +546,10 @@
       return { predicted, validPicks };
     }
 
-    function clearDependentDownstreamPicks(changedMatchId, picksMap, context){
-      const queue = [changedMatchId];
-      const toDelete = new Set();
-      while(queue.length){
-        const cur = queue.shift();
-        const next = context.nextMap.get(cur);
-        if(!next) continue;
-        if(!toDelete.has(next.nextId)){
-          toDelete.add(next.nextId);
-          queue.push(next.nextId);
-        }
-      }
-      const nextMapCopy = new Map(picksMap);
-      toDelete.forEach((id) => nextMapCopy.delete(id));
-      return nextMapCopy;
+    function clearDependentDownstreamPicks(_changedMatchId, picksMap, context){
+      const nextPickMap = new Map(picksMap);
+      const { validPicks } = applyUserPicksToPredictedBracket(context, nextPickMap);
+      return new Map(validPicks);
     }
 
     function hydratePickCorrectnessAgainstActualResults(pick, actualById){
@@ -611,6 +615,33 @@
       return ROUND_ORDER.map((round) => ({ round, matches: matches.filter((m) => m.round === round) })).filter((g) => g.matches.length);
     }
 
+    function parseScoreSegments(scoreValue){
+      const tokens = normalizeName(scoreValue).split(/[\s|,/;]+/).filter(Boolean);
+      if(tokens.length === 0){
+        return { setScores: ["", "", ""], finalScore: "" };
+      }
+      if(tokens.length === 1){
+        return { setScores: ["", "", ""], finalScore: tokens[0] };
+      }
+      const finalScore = tokens[tokens.length - 1];
+      const recentSets = tokens.slice(0, -1).slice(-3);
+      const setScores = ["", "", ""];
+      setScores.splice(3 - recentSets.length, recentSets.length, ...recentSets);
+      return { setScores, finalScore };
+    }
+
+    function getDisplayedScoreValue(match, slot, mode){
+      if(mode === "actual") return normalizeName(slot?.score);
+      const slotScore = normalizeName(slot?.score);
+      const actualMatch = state.context?.byId?.get(match.id);
+      if(!actualMatch) return slotScore;
+      const slotName = normalizeName(slot?.name);
+      if(!slotName) return slotScore;
+      if(slotName === normalizeName(actualMatch.top?.name)) return normalizeName(actualMatch.top?.score);
+      if(slotName === normalizeName(actualMatch.bottom?.name)) return normalizeName(actualMatch.bottom?.score);
+      return slotScore;
+    }
+
     function renderBracketGrid(target, matches, options = {}){
       const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false, infoSource = "actual" } = options;
       const groups = groupByRound(matches);
@@ -628,9 +659,13 @@
                 const isPicked = pick && pick.selected_winner_name === name;
                 const stateClass = !isPicked ? "" : hydrated?.is_correct === true ? "selected correct" : hydrated?.is_correct === false ? "selected incorrect" : "selected pending";
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
+                const showScoreIndicators = mode === "actual" || mode === "detail" || (mode === "pick" && lockPicking);
                 const disabled = !clickable || lockPicking || !slot.name;
-                const meta = isPicked && hydrated?.is_correct === true ? `+${hydrated.points_awarded}` : (mode === "actual" ? (slot.score || "") : "");
-                return `<button class="qualifier-match-row ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? "-"}</span><span class="qualifier-player-name">${name}</span><span class="qualifier-player-meta">${meta}</span></button>`;
+                const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
+                const scoreMarkup = showScoreIndicators
+                  ? `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${score}</span>`).join("")}<span class="qualifier-player-final-score">${scoreParts.finalScore}</span></span>`
+                  : "";
+                return `<button class="qualifier-match-row ${showScoreIndicators ? "" : "no-score"} ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? "-"}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}</button>`;
               };
               return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
@@ -646,6 +681,8 @@
       els.actualPanel.classList.toggle("is-active", state.mainTab === "Actual Bracket");
       els.yourPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Your Bracket");
       els.leaderboardPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Leaderboard");
+      const showRegionTabs = state.mainTab === "Actual Bracket" || (loggedIn && state.mainTab === "Your Bracket");
+      els.regionTabs.style.display = showRegionTabs ? "" : "none";
     }
 
     function renderTabs(){
@@ -655,7 +692,6 @@
     function updateLockUI(){
       const locked = state.lockFlag === "yes";
       els.lockStatusInput.value = locked ? "YES (LOCKED)" : "NO (OPEN)";
-      els.savePicksBtn.disabled = locked;
       if(!state.session){
         els.pickStatus.textContent = "Log in to save picks.";
       }else if(!state.profile?.username){
@@ -665,6 +701,28 @@
       }else{
         els.pickStatus.textContent = locked ? "Bracket is locked. Picks are read-only." : "Pick all 63 matches. Future rounds are derived from your earlier picks.";
       }
+      updatePickProgressUI();
+    }
+
+    function getSelectedPickCount(picksMap = state.validUserPicks){
+      return picksMap.size;
+    }
+
+    function canEditUserBracket(){
+      return !!state.session && !!state.userBracket?.id && !!state.profile?.username && state.lockFlag !== "yes";
+    }
+
+    function canSaveUserBracket(){
+      return !!state.session && !!state.userBracket?.id && !!state.profile?.username && state.lockFlag !== "yes";
+    }
+
+    function updatePickProgressUI(){
+      const selectedCount = getSelectedPickCount();
+      const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
+      els.pickProgressCount.textContent = `[${selectedCount}]/${TOTAL_BRACKET_MATCHES}`;
+      els.pickProgressCount.classList.toggle("is-complete", isComplete);
+      els.savePicksBtn.textContent = isComplete ? "Save" : "Save progress";
+      els.savePicksBtn.disabled = !canSaveUserBracket();
     }
 
     function hydrateMapFromPicks(picks){
@@ -770,7 +828,7 @@
 
       const userScores = computeScoresFromPicks(state.validUserPicks);
       const userSubset = getMatchesForTab(state.activeTab, state.predicted);
-      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, clickable: !!state.userBracket && state.lockFlag !== "yes", lockPicking: state.lockFlag === "yes", infoSource: "pick" });
+      renderBracketGrid(els.pickBracketGrid, userSubset, { mode: "pick", picksMap: state.validUserPicks, hydratedMap: userScores.hydratedMap, clickable: canEditUserBracket(), lockPicking: state.lockFlag === "yes", infoSource: "pick" });
 
       renderSummary();
       renderLeaderboard();
@@ -989,10 +1047,16 @@
     async function ensureUserBracket(){
       if(!state.session) return null;
       const username = normalizeName(state.profile?.username);
-      if(!username) return null;
-      const payload = { user_id: state.session.user.id, bracket_name: username };
-      if(state.userBracket?.id) payload.id = state.userBracket.id;
-      const { data, error } = await supabase.from("brackets").upsert(payload).select("id,user_id,bracket_name,submitted_at").maybeSingle();
+      const existingName = normalizeName(state.userBracket?.bracket_name);
+      const providerName = getProviderProfileName(state.session.user);
+      const emailPrefix = normalizeName(state.session.user.email).split("@")[0];
+      const bracket_name = username || existingName || providerName || emailPrefix || "My Bracket";
+      const payload = { user_id: state.session.user.id, bracket_name };
+      const { data, error } = await supabase
+        .from("brackets")
+        .upsert(payload, { onConflict: "user_id" })
+        .select("id,user_id,bracket_name,submitted_at")
+        .maybeSingle();
       if(error) throw error;
       state.userBracket = data || state.userBracket;
       return state.userBracket;
@@ -1061,6 +1125,15 @@
       }
       state.profile = profile || null;
       state.userBracket = bracketRows || null;
+      try{
+        await ensureUserBracket();
+      }catch{
+        state.userBracket = null;
+        state.userPicks = new Map();
+        els.usernameInput.value = normalizeName(state.profile?.username);
+        renderAuthShell();
+        return { ok: false, message: "Could not initialize your bracket." };
+      }
 
       if(state.userBracket?.id){
         const { data: picks, error: picksError } = await supabase
@@ -1159,6 +1232,56 @@
       state.validUserPicks = applied.validPicks;
     }
 
+    async function saveCurrentPicksToDatabase(){
+      if(!state.userBracket?.id) throw new Error("Could not create bracket yet.");
+      refreshPredictedFromUserPicks();
+      const bracketId = state.userBracket.id;
+      const desiredRows = [...state.validUserPicks.values()].map((pick) => ({
+        bracket_id: bracketId,
+        match_id: pick.match_id,
+        round_code: pick.round_code,
+        round_number: pick.round_number,
+        selected_winner_name: pick.selected_winner_name,
+        selected_winner_seed: pick.selected_winner_seed,
+      }));
+      const { data: existingRows, error: existingError } = await supabase
+        .from("bracket_picks")
+        .select("match_id,round_code,round_number,selected_winner_name,selected_winner_seed")
+        .eq("bracket_id", bracketId);
+      if(existingError) throw existingError;
+
+      const existingByMatch = new Map((existingRows || []).map((row) => [Number(row.match_id), row]));
+      const rowsToUpsert = desiredRows.filter((row) => {
+        const existing = existingByMatch.get(row.match_id);
+        if(!existing) return true;
+        return existing.round_code !== row.round_code
+          || Number(existing.round_number) !== Number(row.round_number)
+          || normalizeName(existing.selected_winner_name) !== normalizeName(row.selected_winner_name)
+          || Number(existing.selected_winner_seed) !== Number(row.selected_winner_seed);
+      });
+      const desiredMatchIds = new Set(desiredRows.map((row) => row.match_id));
+      const staleMatchIds = (existingRows || [])
+        .map((row) => Number(row.match_id))
+        .filter((matchId) => !desiredMatchIds.has(matchId));
+
+      if(rowsToUpsert.length){
+        const { error } = await supabase
+          .from("bracket_picks")
+          .upsert(rowsToUpsert, { onConflict: "bracket_id,match_id" });
+        if(error) throw error;
+      }
+      if(staleMatchIds.length){
+        const { error } = await supabase
+          .from("bracket_picks")
+          .delete()
+          .eq("bracket_id", bracketId)
+          .in("match_id", staleMatchIds);
+        if(error) throw error;
+      }
+
+      return { savedCount: desiredRows.length };
+    }
+
     async function saveProfile(){
       try{
         await saveUsernameForCurrentUser(els.usernameInput.value);
@@ -1178,30 +1301,21 @@
       }
       if(!state.userBracket?.id) return setMessage("Could not create bracket yet.", "error");
 
-      refreshPredictedFromUserPicks();
-      const rows = [...state.validUserPicks.values()].map((p) => {
-        const hydrated = hydratePickCorrectnessAgainstActualResults(p, state.context.byId);
-        return {
-          bracket_id: state.userBracket.id,
-          match_id: p.match_id,
-          round_code: p.round_code,
-          round_number: p.round_number,
-          selected_winner_name: p.selected_winner_name,
-          selected_winner_seed: p.selected_winner_seed,
-          is_correct: hydrated.is_correct,
-          points_awarded: hydrated.points_awarded,
-        };
-      });
-      const { error } = await supabase.from("bracket_picks").upsert(rows, { onConflict: "bracket_id,match_id" });
-      if(error) return setMessage(error.message || "Failed to save picks.", "error");
+      try{
+        await saveCurrentPicksToDatabase();
+      }catch(error){
+        return setMessage(error.message || "Failed to save picks.", "error");
+      }
 
       await refreshAuthDrivenUI("savePicks", { syncSession: false });
-      setMessage("Picks saved.", "ok");
+      const selectedCount = getSelectedPickCount();
+      const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
+      setMessage(isComplete ? "Bracket saved." : "Bracket progress saved.", "ok");
     }
 
     function handlePickClick(event){
       const row = event.target.closest("button[data-match-id]");
-      if(!row || state.lockFlag === "yes" || !state.userBracket?.id) return;
+      if(!row || !canEditUserBracket()) return;
       const matchId = Number(row.dataset.matchId);
       const selected_winner_name = normalizeName(row.dataset.name);
       if(!matchId || !selected_winner_name) return;
@@ -1222,9 +1336,9 @@
         points_awarded: null,
       };
 
-      let nextPickMap = clearDependentDownstreamPicks(matchId, state.userPicks, state.context);
+      const nextPickMap = new Map(state.userPicks);
       nextPickMap.set(matchId, basePick);
-      state.userPicks = nextPickMap;
+      state.userPicks = clearDependentDownstreamPicks(matchId, nextPickMap, state.context);
       refreshPredictedFromUserPicks();
       renderView();
     }
