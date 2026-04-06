@@ -1427,6 +1427,14 @@
     };
 
     const normalizeName = (value) => String(value || "").trim();
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
     function applyActiveRegionAccentTheme(activeTab){
       const fallbackRgb = REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
       const accentRgb = REGION_ACCENT_RGB_BY_TAB[activeTab] || fallbackRgb;
@@ -2506,7 +2514,10 @@
                   actualWinnerClass,
                   stateClass,
                 ].filter(Boolean).join(" ");
-                return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name-slot"><span class="qualifier-player-name">${safeName}</span>${detailStatusMarkup}</span>${scoreMarkup}${pickRadioMarkup}</button>`;
+                const nameMarkup = isDetailMode
+                  ? `<span class="qualifier-player-name-slot"><span class="qualifier-player-name">${safeName}</span>${detailStatusMarkup}</span>`
+                  : `<span class="qualifier-player-name">${safeName}</span>`;
+                return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickRadioMarkup}</button>`;
               };
               return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
