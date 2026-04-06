@@ -1284,13 +1284,19 @@
       const baseRoundGap = 8;
       const matchBlockHeight = 64;
       const baseRoundStep = matchBlockHeight + (baseRoundGap * 2);
+      const roundTopPaddingAdjustments = {
+        R32: 8,
+        R16: -8,
+        R8: -8,
+      };
       target.dataset.bracketMode = mode;
       target.innerHTML = groups.map((group, roundIndex) => {
         const roundMultiplier = 2 ** roundIndex;
         const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2);
-        const roundTopPadding = roundIndex === 0
+        const baseRoundTopPadding = roundIndex === 0
           ? 0
           : Math.round((baseRoundStep * (roundMultiplier - 1)) / 2);
+        const roundTopPadding = baseRoundTopPadding + (roundTopPaddingAdjustments[group.round] || 0);
         return `
         <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGap}px;--qualifier-round-padding-top:${roundTopPadding}px;">
           <h3 class="qualifier-round-title">${group.round}</h3>
