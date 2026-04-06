@@ -388,6 +388,11 @@
       border-color: rgba(125,211,252,.72);
       box-shadow: 0 0 0 2px rgba(125,211,252,.28);
     }
+    .qualifier-match-info.is-disabled{
+      cursor: default;
+      opacity:.5;
+      pointer-events:none;
+    }
     .qualifier-match-card{ position:relative; width:100%; min-width:0; border-radius:10px; overflow:hidden; background: rgba(255,255,255,0.05); isolation:isolate; }
     .qualifier-match-card::before{ content:""; position:absolute; inset:0; border:1px solid rgba(255,255,255,0.08); border-radius:inherit; pointer-events:none; z-index:3; transition: border-color 120ms ease, box-shadow 120ms ease; }
     .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 5px 3px 6px; border:0; font-size:10px; text-align:left; position:relative; z-index:1; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
@@ -431,8 +436,12 @@
     .qualifier-match-row.correct{ box-shadow: inset 0 0 0 999px var(--success); }
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .05); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row[data-interactive="true"]{ cursor: pointer; }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row[data-interactive="true"]:hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .05); }
+    .qualifier-match-row[data-interactive="false"]{
+      cursor: default;
+      user-select:text;
+    }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selection-pending .qualifier-match-row + .qualifier-match-row,
     .qualifier-bracket-grid[data-bracket-mode="detail"] .qualifier-match-card.is-selection-pending .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(var(--region-accent-rgb), .44); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending,
@@ -530,7 +539,6 @@
       border-bottom-right-radius:inherit;
       pointer-events:none;
     }
-    .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
     .qualifier-player-seed{ width:100%; text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
     .qualifier-player-name-slot{
@@ -2657,6 +2665,7 @@
           <h3 class="qualifier-round-title">${group.round}</h3>
           <div class="qualifier-round-stack">
             ${group.matches.map((match) => {
+              const hasMatchInfoPlayers = !!normalizeName(match.top?.name) && !!normalizeName(match.bottom?.name);
               const pick = picksMap.get(match.id);
               const hydrated = hydratedMap.get(match.id);
               const selectedWinnerName = normalizeName(pick?.selected_winner_name);
@@ -2691,8 +2700,8 @@
                 const stateClass = !isPicked ? "" : `selected ${selectionStatus || "pending"}`;
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
                 const showScoreIndicators = mode === "actual" || mode === "detail" || (mode === "pick" && lockPicking);
-                const showPickRadioIndicator = mode === "pick" && !lockPicking && !!name;
-                const disabled = !clickable || lockPicking || !slot.name;
+                const isInteractive = mode === "pick" && clickable && !lockPicking && !!name;
+                const showPickRadioIndicator = isInteractive;
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
                 const isFutureIncorrect = !!carryStatus.futureIncorrect;
                 const isFutureCorrect = !!carryStatus.futureCorrect;
@@ -2733,9 +2742,14 @@
                 const nameMarkup = isDetailMode
                   ? `<span class="qualifier-player-name-slot"><span class="${nameClass}">${safeName}</span></span>`
                   : `<span class="${nameClass}">${safeName}</span>`;
-                return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickRadioMarkup}</button>`;
+                const rowTag = isInteractive ? "button" : "div";
+                const rowTypeAttr = isInteractive ? ` type="button"` : "";
+                return `<${rowTag} class="${rowClasses}" data-interactive="${isInteractive ? "true" : "false"}" data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}"${rowTypeAttr}><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickRadioMarkup}</${rowTag}>`;
               };
-              return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top, "top")}${renderRow(match.bottom, "bottom")}</div></div>`;
+              const matchInfoMarkup = hasMatchInfoPlayers
+                ? `<button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button>`
+                : `<span class="qualifier-match-info is-disabled" aria-hidden="true">i</span>`;
+              return `<div class="qualifier-bracket-match">${matchInfoMarkup}<div class="${matchCardClass}">${renderRow(match.top, "top")}${renderRow(match.bottom, "bottom")}</div></div>`;
             }).join("")}
           </div>
         </div>`;
