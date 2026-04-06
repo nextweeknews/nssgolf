@@ -287,6 +287,49 @@ function RankedSeasonValue({ value, side }){
   );
 }
 
+function PopoverStatSkeleton({ className = "", style }){
+  return <span className={`lc-match-popover-skeleton ${className}`.trim()} style={style} aria-hidden="true" />;
+}
+
+function RankedSeasonValueSkeleton({ side }){
+  return (
+    <span className="lc-match-popover-ranked-value lc-match-popover-ranked-value-skeleton" aria-hidden="true">
+      <PopoverStatSkeleton className="lc-match-popover-skeleton-pill lc-match-popover-skeleton-rank" />
+      <span className={`lc-match-popover-ranked-divider is-${side} is-skeleton`} />
+      <PopoverStatSkeleton className="lc-match-popover-skeleton-pill lc-match-popover-skeleton-elo" />
+    </span>
+  );
+}
+
+function HeadToHeadRecordSkeleton({ side }){
+  const separatorClassName = `lc-match-popover-h2h-separator ${side === "right" ? "is-right" : "is-left"} is-skeleton`;
+
+  return (
+    <span className="lc-match-popover-h2h-record lc-match-popover-h2h-record-skeleton" aria-hidden="true">
+      <PopoverStatSkeleton className="lc-match-popover-skeleton-pill lc-match-popover-skeleton-record-value" />
+      <span className={separatorClassName} />
+      <PopoverStatSkeleton className="lc-match-popover-skeleton-pill lc-match-popover-skeleton-record-value" />
+      <span className={separatorClassName} />
+      <PopoverStatSkeleton className="lc-match-popover-skeleton-pill lc-match-popover-skeleton-record-ties" />
+    </span>
+  );
+}
+
+function HeadToHeadSummarySkeleton(){
+  return (
+    <div className="lc-match-popover-summary" aria-hidden="true">
+      <div className="lc-match-popover-progress-root is-skeleton">
+        <PopoverStatSkeleton className="lc-match-popover-progress-skeleton" />
+      </div>
+      <div className="lc-match-popover-summary-labels">
+        <PopoverStatSkeleton className="lc-match-popover-summary-skeleton-label is-left" />
+        <PopoverStatSkeleton className="lc-match-popover-summary-skeleton-label is-center" />
+        <PopoverStatSkeleton className="lc-match-popover-summary-skeleton-label is-right" />
+      </div>
+    </div>
+  );
+}
+
 function normalizeDiscordId(value){
   return typeof value === "string" ? value.trim() : "";
 }
@@ -499,6 +542,7 @@ function HeadToHeadSummary({ summary, isPending }){
 
 function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner, popoverId }){
   const [open, setOpen] = React.useState(false);
+  const [isPlacementReady, setIsPlacementReady] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState("");
   const [isHeadToHeadLoading, setIsHeadToHeadLoading] = React.useState(false);
@@ -507,6 +551,9 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
   const [selectionPulseSide, setSelectionPulseSide] = React.useState("");
   const restoreOpenOnReturnRef = React.useRef(false);
   const selectionTimeoutRef = React.useRef(null);
+  const placementFrameOneRef = React.useRef(null);
+  const placementFrameTwoRef = React.useRef(null);
+  const contentRef = React.useRef(null);
   const [, forceRefresh] = React.useReducer((value) => value + 1, 0);
 
   const info = typeof getMatchInfo === "function" ? getMatchInfo() : null;
@@ -526,6 +573,7 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
   const selectedWinnerName = typeof info?.selectedWinnerName === "string" ? info.selectedWinnerName.trim() : "";
   const showWinnerSelection = info?.showWinnerSelection === true;
   const winnerSelectionDisabled = info?.winnerSelectionDisabled !== false;
+  const showRankedSkeletons = isLoading && !loadError;
   const selectedSide = selectedWinnerName === topPlayer?.name
     ? "left"
     : selectedWinnerName === bottomPlayer?.name
@@ -536,14 +584,98 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
     : selectionPulseSide === "right"
       ? bottomPlayer?.name || ""
       : selectedWinnerName;
+  const showHeadToHeadSkeletons = isHeadToHeadLoading && !headToHeadSummary.hasAnyData;
+  const rankedSeasonRows = displaySeasonLabels.map((season) => (
+    <React.Fragment key={`season-label-${season}`}>
+      <div className="lc-match-popover-row lc-match-popover-player-stat">
+        {showRankedSkeletons ? <RankedSeasonValueSkeleton side="left" /> : <RankedSeasonValue value={getPlayerSeasonValue(topPlayer, season)} side="left" />}
+      </div>
+      <div className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
+      <div className="lc-match-popover-row lc-match-popover-player-stat">
+        {showRankedSkeletons ? <RankedSeasonValueSkeleton side="right" /> : <RankedSeasonValue value={getPlayerSeasonValue(bottomPlayer, season)} side="right" />}
+      </div>
+    </React.Fragment>
+  ));
+  const headToHeadSeasonRows = DISPLAY_SEASONS_DESC.map((season) => {
+    if(showHeadToHeadSkeletons){
+      return (
+        <React.Fragment key={`h2h-season-${season}`}>
+          <div className="lc-match-popover-row lc-match-popover-player-stat"><HeadToHeadRecordSkeleton side="left" /></div>
+          <div className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
+          <div className="lc-match-popover-row lc-match-popover-player-stat"><HeadToHeadRecordSkeleton side="right" /></div>
+        </React.Fragment>
+      );
+    }
+
+    const record = headToHeadBySeason.get(season);
+    const isPending = isHeadToHeadLoading && record === undefined;
+
+    return (
+      <React.Fragment key={`h2h-season-${season}`}>
+        <div className={getHeadToHeadStatClass(record, isPending)}><HeadToHeadRecordValue record={record} side="left" isPending={isPending} /></div>
+        <div className={`lc-match-popover-row lc-match-popover-center-label${record == null ? " is-muted" : ""}`}>Season {season}</div>
+        <div className={getHeadToHeadStatClass(record, isPending)}><HeadToHeadRecordValue record={record} side="right" isPending={isPending} /></div>
+      </React.Fragment>
+    );
+  });
 
   React.useEffect(() => () => {
     if(selectionTimeoutRef.current != null){
       window.clearTimeout(selectionTimeoutRef.current);
     }
+    if(placementFrameOneRef.current != null){
+      window.cancelAnimationFrame(placementFrameOneRef.current);
+    }
+    if(placementFrameTwoRef.current != null){
+      window.cancelAnimationFrame(placementFrameTwoRef.current);
+    }
   }, []);
 
+  React.useLayoutEffect(() => {
+    if(!open){
+      if(placementFrameOneRef.current != null){
+        window.cancelAnimationFrame(placementFrameOneRef.current);
+        placementFrameOneRef.current = null;
+      }
+      if(placementFrameTwoRef.current != null){
+        window.cancelAnimationFrame(placementFrameTwoRef.current);
+        placementFrameTwoRef.current = null;
+      }
+      return undefined;
+    }
+
+    if(typeof window === "undefined"){
+      setIsPlacementReady(true);
+      return undefined;
+    }
+
+    placementFrameOneRef.current = window.requestAnimationFrame(() => {
+      placementFrameOneRef.current = null;
+      if(contentRef.current){
+        contentRef.current.getBoundingClientRect();
+      }
+      placementFrameTwoRef.current = window.requestAnimationFrame(() => {
+        placementFrameTwoRef.current = null;
+        setIsPlacementReady(true);
+      });
+    });
+
+    return () => {
+      if(placementFrameOneRef.current != null){
+        window.cancelAnimationFrame(placementFrameOneRef.current);
+        placementFrameOneRef.current = null;
+      }
+      if(placementFrameTwoRef.current != null){
+        window.cancelAnimationFrame(placementFrameTwoRef.current);
+        placementFrameTwoRef.current = null;
+      }
+    };
+  }, [open]);
+
   const handleOpenChange = React.useCallback((nextOpen) => {
+    if(nextOpen){
+      setIsPlacementReady(false);
+    }
     setOpen(nextOpen);
 
     if(nextOpen){
@@ -673,6 +805,7 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
       if(!restoreOpenOnReturnRef.current) return;
       if(transientOpenPopoverId !== popoverId) return;
       restoreOpenOnReturnRef.current = false;
+      setIsPlacementReady(false);
       setOpen(true);
     };
 
@@ -707,11 +840,13 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
+          ref={contentRef}
           className="lc-match-popover-content"
           side="right"
           align="center"
           sideOffset={10}
           collisionPadding={12}
+          data-placement-ready={isPlacementReady ? "true" : "false"}
         >
           {showWinnerSelection ? (
             <RadioGroup.Root
@@ -720,7 +855,7 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
               onValueChange={handleWinnerValueChange}
               disabled={winnerSelectionDisabled}
             >
-              <div className="lc-match-popover-compare">
+              <div className="lc-match-popover-compare" aria-busy={showRankedSkeletons || showHeadToHeadSkeletons ? "true" : undefined}>
                 <PlayerComparisonColumn
                   side="left"
                   player={topPlayer}
@@ -743,33 +878,16 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
                 <div className="lc-match-popover-row lc-match-popover-section-head">
                   <span>Ranked Performance</span>
                 </div>
-                {displaySeasonLabels.map((season) => (
-                  <React.Fragment key={`season-label-${season}`}>
-                    <div className="lc-match-popover-row lc-match-popover-player-stat"><RankedSeasonValue value={getPlayerSeasonValue(topPlayer, season)} side="left" /></div>
-                    <div className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
-                    <div className="lc-match-popover-row lc-match-popover-player-stat"><RankedSeasonValue value={getPlayerSeasonValue(bottomPlayer, season)} side="right" /></div>
-                  </React.Fragment>
-                ))}
+                {rankedSeasonRows}
                 <div className="lc-match-popover-row lc-match-popover-section-head">
                   <span>Ranked H2H</span>
                 </div>
-                <HeadToHeadSummary summary={headToHeadSummary} isPending={isHeadToHeadLoading && !headToHeadSummary.hasAnyData} />
-                {DISPLAY_SEASONS_DESC.map((season) => {
-                  const record = headToHeadBySeason.get(season);
-                  const isPending = isHeadToHeadLoading && record === undefined;
-
-                  return (
-                    <React.Fragment key={`h2h-season-${season}`}>
-                      <div className={getHeadToHeadStatClass(record, isPending)}><HeadToHeadRecordValue record={record} side="left" isPending={isPending} /></div>
-                      <div className={`lc-match-popover-row lc-match-popover-center-label${record == null ? " is-muted" : ""}`}>Season {season}</div>
-                      <div className={getHeadToHeadStatClass(record, isPending)}><HeadToHeadRecordValue record={record} side="right" isPending={isPending} /></div>
-                    </React.Fragment>
-                  );
-                })}
+                {showHeadToHeadSkeletons ? <HeadToHeadSummarySkeleton /> : <HeadToHeadSummary summary={headToHeadSummary} isPending={isHeadToHeadLoading && !headToHeadSummary.hasAnyData} />}
+                {headToHeadSeasonRows}
               </div>
             </RadioGroup.Root>
           ) : (
-            <div className="lc-match-popover-compare">
+            <div className="lc-match-popover-compare" aria-busy={showRankedSkeletons || showHeadToHeadSkeletons ? "true" : undefined}>
               <PlayerComparisonColumn
                 side="left"
                 player={topPlayer}
@@ -782,34 +900,15 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded, onSelectWinner
               <div className="lc-match-popover-row lc-match-popover-section-head">
                 <span>Ranked Performance</span>
               </div>
-              {displaySeasonLabels.map((season) => (
-                <React.Fragment key={`season-label-${season}`}>
-                  <div className="lc-match-popover-row lc-match-popover-player-stat"><RankedSeasonValue value={getPlayerSeasonValue(topPlayer, season)} side="left" /></div>
-                  <div className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
-                  <div className="lc-match-popover-row lc-match-popover-player-stat"><RankedSeasonValue value={getPlayerSeasonValue(bottomPlayer, season)} side="right" /></div>
-                </React.Fragment>
-              ))}
+              {rankedSeasonRows}
               <div className="lc-match-popover-row lc-match-popover-section-head">
                 <span>Ranked H2H</span>
               </div>
-              <HeadToHeadSummary summary={headToHeadSummary} isPending={isHeadToHeadLoading && !headToHeadSummary.hasAnyData} />
-              {DISPLAY_SEASONS_DESC.map((season) => {
-                const record = headToHeadBySeason.get(season);
-                const isPending = isHeadToHeadLoading && record === undefined;
-
-                return (
-                  <React.Fragment key={`h2h-season-${season}`}>
-                    <div className={getHeadToHeadStatClass(record, isPending)}><HeadToHeadRecordValue record={record} side="left" isPending={isPending} /></div>
-                    <div className={`lc-match-popover-row lc-match-popover-center-label${record == null ? " is-muted" : ""}`}>Season {season}</div>
-                    <div className={getHeadToHeadStatClass(record, isPending)}><HeadToHeadRecordValue record={record} side="right" isPending={isPending} /></div>
-                  </React.Fragment>
-                  );
-                })}
+              {showHeadToHeadSkeletons ? <HeadToHeadSummarySkeleton /> : <HeadToHeadSummary summary={headToHeadSummary} isPending={isHeadToHeadLoading && !headToHeadSummary.hasAnyData} />}
+              {headToHeadSeasonRows}
             </div>
           )}
 
-          {isLoading ? <p className="lc-match-popover-status">Loading ranked history...</p> : null}
-          {isHeadToHeadLoading ? <p className="lc-match-popover-status">Loading ranked H2H...</p> : null}
           {loadError ? <p className="lc-match-popover-status lc-match-popover-status-error">{loadError}</p> : null}
           {headToHeadLoadError ? <p className="lc-match-popover-status lc-match-popover-status-error">{headToHeadLoadError}</p> : null}
 
