@@ -282,6 +282,7 @@
     const TOURNAMENT_YEAR = "2026";
     const BRACKET_DRAFT_STORAGE_VERSION = 1;
     const BRACKET_DRAFT_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-draft";
+    const BRACKET_SAVED_MARKER_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-saved";
 
     /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
@@ -367,6 +368,13 @@
       const normalizedYear = normalizeName(year || TOURNAMENT_YEAR);
       if(!normalizedUserId || !normalizedYear) return "";
       return `${BRACKET_DRAFT_STORAGE_PREFIX}:${normalizedYear}:${normalizedUserId}`;
+    }
+
+    function getSavedMarkerStorageKey(userId, year = TOURNAMENT_YEAR){
+      const normalizedUserId = normalizeName(userId);
+      const normalizedYear = normalizeName(year || TOURNAMENT_YEAR);
+      if(!normalizedUserId || !normalizedYear) return "";
+      return `${BRACKET_SAVED_MARKER_STORAGE_PREFIX}:${normalizedYear}:${normalizedUserId}`;
     }
 
     function draftRowsFromPickMap(picksMap){
@@ -461,6 +469,37 @@
       }
     }
 
+    function getLocalSavedMarkerTimestamp(userId, year = TOURNAMENT_YEAR){
+      const key = getSavedMarkerStorageKey(userId, year);
+      if(!key) return "";
+      try{
+        const raw = window.localStorage.getItem(key);
+        if(!raw) return "";
+        const parsed = JSON.parse(raw);
+        if(!parsed || typeof parsed !== "object") return "";
+        if(normalizeName(parsed.userId) !== normalizeName(userId)) return "";
+        if(normalizeName(parsed.year) !== normalizeName(year)) return "";
+        return normalizeName(parsed.savedAt);
+      }catch{
+        return "";
+      }
+    }
+
+    function saveLocalSavedMarkerTimestamp(userId, year = TOURNAMENT_YEAR){
+      const key = getSavedMarkerStorageKey(userId, year);
+      if(!key) return;
+      const payload = {
+        userId: normalizeName(userId),
+        year: normalizeName(year || TOURNAMENT_YEAR),
+        savedAt: new Date().toISOString(),
+      };
+      try{
+        window.localStorage.setItem(key, JSON.stringify(payload));
+      }catch{
+        // Ignore storage write errors so bracket save flow remains usable.
+      }
+    }
+
     function saveLocalBracketDraft(picksMap = state.userPicks){
       const userId = normalizeName(state.session?.user?.id);
       const key = getDraftStorageKey(userId, TOURNAMENT_YEAR);
@@ -501,10 +540,19 @@
         return { picksMap: savedPicksMap, restoredDraft: false, draftUpdatedAt: "" };
       }
 
+      const draftUpdatedAt = normalizeName(draft.updatedAt);
+      const savedMarkerUpdatedAt = getLocalSavedMarkerTimestamp(userId, TOURNAMENT_YEAR);
+      const draftMillis = Date.parse(draftUpdatedAt);
+      const savedMarkerMillis = Date.parse(savedMarkerUpdatedAt);
+      if(Number.isFinite(draftMillis) && Number.isFinite(savedMarkerMillis) && draftMillis <= savedMarkerMillis){
+        clearLocalBracketDraft(userId, TOURNAMENT_YEAR);
+        return { picksMap: savedPicksMap, restoredDraft: false, draftUpdatedAt: "" };
+      }
+
       return {
         picksMap: draftPickMap,
         restoredDraft: true,
-        draftUpdatedAt: normalizeName(draft.updatedAt),
+        draftUpdatedAt,
       };
     }
 
@@ -1512,6 +1560,7 @@
       }
 
       clearLocalBracketDraft(state.session.user.id, TOURNAMENT_YEAR);
+      saveLocalSavedMarkerTimestamp(state.session.user.id, TOURNAMENT_YEAR);
       state.lastDraftRestoreNoticeToken = "";
       await refreshAuthDrivenUI("savePicks", { syncSession: false });
       const selectedCount = getSelectedPickCount();
