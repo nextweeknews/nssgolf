@@ -5,6 +5,7 @@ import * as Tabs from "@radix-ui/react-tabs";
 import * as Popover from "@radix-ui/react-popover";
 import * as Progress from "@radix-ui/react-progress";
 import * as RadioGroup from "@radix-ui/react-radio-group";
+import { CheckIcon } from "@radix-ui/react-icons";
 
 const MAIN_TAB_BY_PARENT = {
   results: "Actual Bracket",
@@ -128,13 +129,33 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
   );
 }
 
-function RegionTabs({ tabs, activeTab, onRegionTabChange }){
+function RegionTabIndicator({ status }){
+  if(!status || typeof status !== "object") return null;
+
+  const style = status?.accentRgb ? { "--lc-region-tab-indicator-rgb": status.accentRgb } : undefined;
+  if(status.complete){
+    return (
+      <span className="lc-region-tabs-indicator is-complete" style={style} aria-hidden="true">
+        <CheckIcon className="lc-region-tabs-indicator-icon" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="lc-region-tabs-indicator is-incomplete" aria-hidden="true">
+      {status.count}/{status.total}
+    </span>
+  );
+}
+
+function RegionTabs({ tabs, activeTab, onRegionTabChange, showProgress = false, regionTabStatus = null }){
   return (
     <Tabs.Root className="lc-region-tabs-root" value={activeTab} onValueChange={onRegionTabChange}>
       <Tabs.List className="lc-region-tabs-list" aria-label="Lightning Cup bracket regions">
         {tabs.map((tab) => (
           <Tabs.Trigger key={tab} className="lc-region-tabs-trigger" value={tab}>
-            {tab}
+            <span className="lc-region-tabs-trigger-label">{tab}</span>
+            {showProgress ? <RegionTabIndicator status={regionTabStatus instanceof Map ? regionTabStatus.get(tab) : null} /> : null}
           </Tabs.Trigger>
         ))}
       </Tabs.List>
@@ -810,7 +831,7 @@ export function mountLightningCupRadixControls({
   const regionRoot = createRoot(regionTabsEl);
 
   return {
-    render({ loggedIn, mainTab, activeTab, year }){
+    render({ loggedIn, mainTab, activeTab, year, showRegionProgress, regionTabStatus }){
       mainRoot.render(
         <MainNavigation
           loggedIn={loggedIn}
@@ -821,7 +842,13 @@ export function mountLightningCupRadixControls({
       );
 
       regionRoot.render(
-        <RegionTabs tabs={regionTabs} activeTab={activeTab} onRegionTabChange={onRegionTabChange} />
+        <RegionTabs
+          tabs={regionTabs}
+          activeTab={activeTab}
+          onRegionTabChange={onRegionTabChange}
+          showProgress={showRegionProgress}
+          regionTabStatus={regionTabStatus}
+        />
       );
     },
     unmount(){

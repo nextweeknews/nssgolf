@@ -265,6 +265,39 @@
       cursor:pointer;
       transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
+    .lc-region-tabs-trigger-label{
+      display:block;
+      width:100%;
+      text-align:center;
+    }
+    .lc-region-tabs-indicator{
+      position:absolute;
+      top:50%;
+      right:10px;
+      transform:translateY(-50%);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:18px;
+      pointer-events:none;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.02em;
+      font-variant-numeric: tabular-nums;
+      line-height:1;
+      white-space:nowrap;
+    }
+    .lc-region-tabs-indicator.is-incomplete{
+      color:#fca5a5;
+    }
+    .lc-region-tabs-indicator.is-complete{
+      color: rgba(var(--lc-region-tab-indicator-rgb, var(--region-accent-rgb)), .98);
+    }
+    .lc-region-tabs-indicator-icon{
+      width:14px;
+      height:14px;
+      display:block;
+    }
     .lc-region-tabs-trigger::after{
       content:"";
       position:absolute;
@@ -969,6 +1002,7 @@
     };
     const RANKED_SEASONS = [9, 10, 11];
     const TOTAL_BRACKET_MATCHES = 63;
+    const REGION_TAB_PICK_TOTALS = new Map(REGION_TABS.map((tab) => [tab, tab === "Finals" ? 3 : 15]));
     const TOURNAMENT_YEAR = "2026";
     const BRACKET_DRAFT_STORAGE_VERSION = 1;
     const BRACKET_DRAFT_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-draft";
@@ -2054,11 +2088,14 @@
     function renderRadixControls(loggedIn){
       if(!state.radixControls) return;
       applyActiveRegionAccentTheme(state.activeTab);
+      const showRegionProgress = state.mainTab === "Your Bracket";
       state.radixControls.render({
         loggedIn,
         mainTab: state.mainTab,
         activeTab: state.activeTab,
         year: TOURNAMENT_YEAR,
+        showRegionProgress,
+        regionTabStatus: showRegionProgress ? buildRegionTabProgressMap() : null,
       });
     }
 
@@ -2121,6 +2158,26 @@
 
     function getSelectedPickCount(picksMap = state.validUserPicks){
       return picksMap.size;
+    }
+
+    function buildRegionTabProgressMap(){
+      const progressByTab = new Map();
+      const predictedMatches = state.predicted instanceof Map ? state.predicted : new Map();
+      const validPickMap = state.validUserPicks instanceof Map ? state.validUserPicks : new Map();
+
+      REGION_TABS.forEach((tab) => {
+        const total = Number(REGION_TAB_PICK_TOTALS.get(tab)) || 0;
+        const matches = getMatchesForTab(tab, predictedMatches);
+        const count = matches.reduce((sum, match) => sum + (validPickMap.has(match.id) ? 1 : 0), 0);
+        progressByTab.set(tab, {
+          count,
+          total,
+          complete: total > 0 && count >= total,
+          accentRgb: REGION_ACCENT_RGB_BY_TAB[tab] || REGION_ACCENT_RGB_BY_TAB["Spocco Square"],
+        });
+      });
+
+      return progressByTab;
     }
 
     function canEditUserBracket(){
