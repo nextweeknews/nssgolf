@@ -138,8 +138,7 @@
       <p class="message is-hidden" id="flashMessage"></p>
 
       <div class="row auth-buttons" id="authButtonsRow">
-        <button class="btn" id="signupBtn" type="button">Sign Up</button>
-        <button class="btn" id="loginBtn" type="button">Log In</button>
+        <button class="btn btn-primary" id="discordLoginBtn" type="button">Sign In With Discord</button>
         <button class="btn auth-only" id="logoutBtn" type="button">Log Out</button>
       </div>
       <div class="auth-grid auth-only" id="controlsGrid">
@@ -184,41 +183,6 @@
           <button class="btn" id="closeMatchModal" type="button">Close</button>
         </div>
         <p class="status" id="matchModalBody"></p>
-      </div>
-    </div>
-
-    <div class="modal-backdrop" id="loginModal" aria-hidden="true">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
-        <div class="modal-head">
-          <h2 class="modal-title" id="loginModalTitle">Log In</h2>
-        </div>
-        <form class="modal-form" id="loginForm">
-          <label>Email <input id="loginEmailInput" type="email" autocomplete="email" required /></label>
-          <label>Password <input id="loginPasswordInput" type="password" autocomplete="current-password" required /></label>
-          <p class="message is-hidden" id="loginModalMessage"></p>
-          <div class="modal-footer">
-            <button class="btn" id="loginCancelBtn" type="button">Cancel</button>
-            <button class="btn btn-primary" id="loginSubmitBtn" type="submit" data-submit-btn="login">Log In</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="modal-backdrop" id="signupModal" aria-hidden="true">
-      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="signupModalTitle">
-        <div class="modal-head">
-          <h2 class="modal-title" id="signupModalTitle">Sign Up</h2>
-        </div>
-        <form class="modal-form" id="signupForm">
-          <label>Email <input id="signupEmailInput" type="email" autocomplete="email" required /></label>
-          <label>Password <input id="signupPasswordInput" type="password" autocomplete="new-password" required /></label>
-          <label>Confirm Password <input id="signupConfirmPasswordInput" type="password" autocomplete="new-password" required /></label>
-          <p class="message is-hidden" id="signupModalMessage"></p>
-          <div class="modal-footer">
-            <button class="btn" id="signupCancelBtn" type="button">Cancel</button>
-            <button class="btn btn-primary" id="signupSubmitBtn" type="submit" data-submit-btn="signup">Sign Up</button>
-          </div>
-        </form>
       </div>
     </div>
 
@@ -297,8 +261,7 @@
       leaderboardTable: document.getElementById("leaderboardTable"),
       usernameInput: document.getElementById("usernameInput"),
       bracketSelect: document.getElementById("bracketSelect"),
-      signupBtn: document.getElementById("signupBtn"),
-      loginBtn: document.getElementById("loginBtn"),
+      discordLoginBtn: document.getElementById("discordLoginBtn"),
       logoutBtn: document.getElementById("logoutBtn"),
       authButtonsRow: document.getElementById("authButtonsRow"),
       saveProfileBtn: document.getElementById("saveProfileBtn"),
@@ -307,21 +270,6 @@
       matchModal: document.getElementById("matchModal"),
       matchModalBody: document.getElementById("matchModalBody"),
       closeMatchModal: document.getElementById("closeMatchModal"),
-      loginModal: document.getElementById("loginModal"),
-      loginForm: document.getElementById("loginForm"),
-      loginEmailInput: document.getElementById("loginEmailInput"),
-      loginPasswordInput: document.getElementById("loginPasswordInput"),
-      loginCancelBtn: document.getElementById("loginCancelBtn"),
-      loginModalMessage: document.getElementById("loginModalMessage"),
-      loginSubmitBtn: document.getElementById("loginSubmitBtn"),
-      signupModal: document.getElementById("signupModal"),
-      signupForm: document.getElementById("signupForm"),
-      signupEmailInput: document.getElementById("signupEmailInput"),
-      signupPasswordInput: document.getElementById("signupPasswordInput"),
-      signupConfirmPasswordInput: document.getElementById("signupConfirmPasswordInput"),
-      signupCancelBtn: document.getElementById("signupCancelBtn"),
-      signupModalMessage: document.getElementById("signupModalMessage"),
-      signupSubmitBtn: document.getElementById("signupSubmitBtn"),
       chooseUsernameModal: document.getElementById("chooseUsernameModal"),
       chooseUsernameForm: document.getElementById("chooseUsernameForm"),
       chooseUsernameInput: document.getElementById("chooseUsernameInput"),
@@ -331,7 +279,8 @@
     };
 
     const normalizeName = (value) => String(value || "").trim();
-    const modalState = { loginSubmitting: false, signupSubmitting: false, chooseUsernameSubmitting: false };
+    const modalState = { chooseUsernameSubmitting: false };
+    let discordSignInPending = false;
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
@@ -350,6 +299,12 @@
     };
     const setAuthRefreshError = () => {
       setMessage("Some account data could not be loaded. Please refresh and try again.", "error");
+    };
+    const setDiscordSignInPending = (isPending) => {
+      discordSignInPending = isPending;
+      if(els.discordLoginBtn){
+        els.discordLoginBtn.disabled = isPending;
+      }
     };
 
     async function fetchSheet(range){
@@ -760,8 +715,7 @@
     function renderAuthUI(){
       const loggedIn = !!state.session;
       document.querySelectorAll(".auth-only").forEach((el) => { el.style.display = loggedIn ? "" : "none"; });
-      els.loginBtn.style.display = loggedIn ? "none" : "";
-      els.signupBtn.style.display = loggedIn ? "none" : "";
+      els.discordLoginBtn.style.display = loggedIn ? "none" : "";
       els.authButtonsRow.classList.toggle("is-logged-in", loggedIn);
       if(!loggedIn) state.mainTab = "Actual Bracket";
     }
@@ -818,20 +772,10 @@
       await refreshAuthDrivenUI("save username after bracket", { syncSession: false });
     }
 
-    function setModalSubmitting(which, isSubmitting){
-      if(which === "login"){
-        modalState.loginSubmitting = isSubmitting;
-        els.loginSubmitBtn.disabled = isSubmitting;
-        els.loginCancelBtn.disabled = isSubmitting;
-      }else if(which === "signup"){
-        modalState.signupSubmitting = isSubmitting;
-        els.signupSubmitBtn.disabled = isSubmitting;
-        els.signupCancelBtn.disabled = isSubmitting;
-      }else{
-        modalState.chooseUsernameSubmitting = isSubmitting;
-        els.chooseUsernameSubmitBtn.disabled = isSubmitting;
-        els.chooseUsernameCancelBtn.disabled = isSubmitting;
-      }
+    function setChooseUsernameSubmitting(isSubmitting){
+      modalState.chooseUsernameSubmitting = isSubmitting;
+      els.chooseUsernameSubmitBtn.disabled = isSubmitting;
+      els.chooseUsernameCancelBtn.disabled = isSubmitting;
     }
 
     function openModal(modal){
@@ -844,33 +788,9 @@
       modal.setAttribute("aria-hidden", "true");
     }
 
-    function openLoginModal(){
-      setInlineModalMessage(els.loginModalMessage, "");
-      setModalSubmitting("login", false);
-      els.loginForm.reset();
-      openModal(els.loginModal);
-      els.loginEmailInput.focus();
-    }
-
-    function closeLoginModal(){
-      closeModal(els.loginModal);
-    }
-
-    function openSignupModal(){
-      setInlineModalMessage(els.signupModalMessage, "");
-      setModalSubmitting("signup", false);
-      els.signupForm.reset();
-      openModal(els.signupModal);
-      els.signupEmailInput.focus();
-    }
-
-    function closeSignupModal(){
-      closeModal(els.signupModal);
-    }
-
     function openChooseUsernameModal(){
       setInlineModalMessage(els.chooseUsernameModalMessage, "");
-      setModalSubmitting("chooseUsername", false);
+      setChooseUsernameSubmitting(false);
       els.chooseUsernameForm.reset();
       els.chooseUsernameInput.value = normalizeName(state.profile?.username);
       openModal(els.chooseUsernameModal);
@@ -888,8 +808,6 @@
     }
 
     function closeAuthModals(){
-      closeLoginModal();
-      closeSignupModal();
       closeChooseUsernameModal();
     }
 
@@ -1180,98 +1098,29 @@
         if(event.target === els.matchModal) closeMatchModal();
       });
 
-      els.loginBtn.addEventListener("click", openLoginModal);
-      els.signupBtn.addEventListener("click", openSignupModal);
-      els.loginCancelBtn.addEventListener("click", closeLoginModal);
-      els.signupCancelBtn.addEventListener("click", closeSignupModal);
+      els.discordLoginBtn.addEventListener("click", async () => {
+        if(discordSignInPending) return;
+        setDiscordSignInPending(true);
+        try{
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: "discord",
+            options: { redirectTo: buildAuthRedirectTo(AUTH_RETURN_PATH) },
+          });
+          if(error){
+            setDiscordSignInPending(false);
+            setMessage("Could not start Discord sign-in. Please try again.", "error");
+          }
+        }catch{
+          setDiscordSignInPending(false);
+          setMessage("Could not start Discord sign-in. Please try again.", "error");
+        }
+      });
+
       els.chooseUsernameCancelBtn.addEventListener("click", () => {
         if(!modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
-      els.loginModal.addEventListener("click", (event) => {
-        if(event.target === els.loginModal && !modalState.loginSubmitting) closeLoginModal();
-      });
-      els.signupModal.addEventListener("click", (event) => {
-        if(event.target === els.signupModal && !modalState.signupSubmitting) closeSignupModal();
-      });
       els.chooseUsernameModal.addEventListener("click", (event) => {
         if(event.target === els.chooseUsernameModal && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
-      });
-
-      els.loginForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        if(modalState.loginSubmitting) return;
-        setInlineModalMessage(els.loginModalMessage, "");
-        const email = normalizeName(els.loginEmailInput.value);
-        const password = els.loginPasswordInput.value;
-        if(!email || !password){
-          setInlineModalMessage(els.loginModalMessage, "Email and password are required.", "error");
-          return;
-        }
-        setModalSubmitting("login", true);
-        try{
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if(error){
-            setInlineModalMessage(els.loginModalMessage, error.message || "Login failed.", "error");
-            return;
-          }
-          if(data?.session){
-            setSessionState(data.session);
-          }
-          closeLoginModal();
-          await refreshAuthDrivenUI("login submit", { syncSession: !data?.session });
-          openChooseUsernameModalIfMissing();
-          setMessage("Logged in.", "ok");
-        }catch{
-          setInlineModalMessage(els.loginModalMessage, "Login failed. Please try again.", "error");
-        }finally{
-          setModalSubmitting("login", false);
-          els.loginPasswordInput.value = "";
-        }
-      });
-
-      els.signupForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        if(modalState.signupSubmitting) return;
-        setInlineModalMessage(els.signupModalMessage, "");
-        const email = normalizeName(els.signupEmailInput.value);
-        const password = els.signupPasswordInput.value;
-        const confirmPassword = els.signupConfirmPasswordInput.value;
-        if(!email || !password || !confirmPassword){
-          setInlineModalMessage(els.signupModalMessage, "All fields are required.", "error");
-          return;
-        }
-        if(password !== confirmPassword){
-          setInlineModalMessage(els.signupModalMessage, "Passwords must match.", "error");
-          return;
-        }
-        setModalSubmitting("signup", true);
-        try{
-          const { data: signupData, error: signupError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: buildAuthRedirectTo(AUTH_RETURN_PATH) },
-          });
-          if(signupError){
-            setInlineModalMessage(els.signupModalMessage, signupError.message || "Signup failed.", "error");
-            return;
-          }
-          const signupSession = signupData?.session || null;
-          if(!signupSession){
-            setInlineModalMessage(els.signupModalMessage, "Account created. Check your email to finish sign-in.", "ok");
-            return;
-          }
-          setSessionState(signupSession);
-          closeSignupModal();
-          await refreshAuthDrivenUI("signup submit", { syncSession: false });
-          openChooseUsernameModalIfMissing();
-          setMessage("Account created.", "ok");
-        }catch{
-          setInlineModalMessage(els.signupModalMessage, "Signup failed. Please try again.", "error");
-        }finally{
-          setModalSubmitting("signup", false);
-          els.signupPasswordInput.value = "";
-          els.signupConfirmPasswordInput.value = "";
-        }
       });
 
       els.chooseUsernameForm.addEventListener("submit", async (event) => {
@@ -1283,7 +1132,7 @@
           setInlineModalMessage(els.chooseUsernameModalMessage, "Username is required.", "error");
           return;
         }
-        setModalSubmitting("chooseUsername", true);
+        setChooseUsernameSubmitting(true);
         try{
           await saveUsernameForCurrentUser(username);
           closeChooseUsernameModal();
@@ -1291,7 +1140,7 @@
         }catch(error){
           setInlineModalMessage(els.chooseUsernameModalMessage, error.message || "Failed to save username.", "error");
         }finally{
-          setModalSubmitting("chooseUsername", false);
+          setChooseUsernameSubmitting(false);
         }
       });
 
@@ -1322,8 +1171,6 @@
       document.addEventListener("keydown", (event) => {
         if(event.key !== "Escape") return;
         if(els.matchModal.classList.contains("is-open")) closeMatchModal();
-        if(els.loginModal.classList.contains("is-open") && !modalState.loginSubmitting) closeLoginModal();
-        if(els.signupModal.classList.contains("is-open") && !modalState.signupSubmitting) closeSignupModal();
         if(els.chooseUsernameModal.classList.contains("is-open") && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
 
@@ -1338,10 +1185,16 @@
         }else if(session){
           setSessionState(session);
         }
-        void refreshAuthDrivenUI(`auth event:${eventName}`, { syncSession: !session }).catch(() => {
-          setAuthRefreshError();
-          renderFallbackTournamentView();
-        });
+        void refreshAuthDrivenUI(`auth event:${eventName}`, { syncSession: !session })
+          .then(() => {
+            if(eventName === "SIGNED_IN"){
+              openChooseUsernameModalIfMissing();
+            }
+          })
+          .catch(() => {
+            setAuthRefreshError();
+            renderFallbackTournamentView();
+          });
       });
     }
 
@@ -1351,6 +1204,7 @@
         await syncSessionFromSupabase();
         await loadTournament();
         await refreshAuthDrivenUI("init", { syncSession: false });
+        openChooseUsernameModalIfMissing();
         setMessage("");
       }catch{
         setMessage("Initialization failed. Please refresh and try again.", "error");
