@@ -272,13 +272,14 @@
     const ROUND_NUMBER = { R64: 1, R32: 2, R16: 3, R8: 4, R4: 5, Final: 6 };
     const REGION_TABS = ["Region 1", "Region 2", "Region 3", "Region 4", "Finals"];
     const TOTAL_BRACKET_MATCHES = 63;
+    const TOURNAMENT_YEAR = "2026";
 
     /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
     /** @typedef {{id:number,round:string,roundNumber:number,region:number,top:PlayerSlot,bottom:PlayerSlot,pickedWinner:string}} PredictedMatch */
     /** @typedef {{user_id:string,username:string|null,discord_user_id?:string|null,full_name?:string|null}} ProfileRow */
-    /** @typedef {{id:string,user_id:string,bracket_name:string,submitted_at:string|null}} BracketRow */
-    /** @typedef {{bracket_id:string,match_id:number,round_code:string,round_number:number,selected_winner_name:string,selected_winner_seed:number|null,is_correct:boolean|null,points_awarded:number|null}} PickRow */
+    /** @typedef {{id:string,user_id:string,bracket_name:string,submitted_at:string|null,year:string}} BracketRow */
+    /** @typedef {{bracket_id:string|null,match_id:number,round_code:string,round_number:number,selected_winner_name:string,selected_winner_seed:number|null,is_correct:boolean|null,points_awarded:number|null,year:string}} PickRow */
 
     const state = {
       actualMatches: /** @type {ActualMatch[]} */ ([]),
@@ -709,11 +710,11 @@
     }
 
     function canEditUserBracket(){
-      return !!state.session && !!state.userBracket?.id && !!state.profile?.username && state.lockFlag !== "yes";
+      return !!state.session && !!state.profile?.username && state.lockFlag !== "yes";
     }
 
     function canSaveUserBracket(){
-      return !!state.session && !!state.userBracket?.id && !!state.profile?.username && state.lockFlag !== "yes";
+      return !!state.session && !!state.profile?.username && state.lockFlag !== "yes";
     }
 
     function updatePickProgressUI(){
@@ -1000,8 +1001,6 @@
       }
 
       await refreshAuthDrivenUI("save username", { syncSession: false });
-      await ensureUserBracket();
-      await refreshAuthDrivenUI("save username after bracket", { syncSession: false });
     }
 
     function setChooseUsernameSubmitting(isSubmitting){
@@ -1046,18 +1045,38 @@
 
     async function ensureUserBracket(){
       if(!state.session) return null;
+      const userId = state.session.user.id;
+      const { data: existingBracket, error: existingError } = await supabase
+        .from("brackets")
+        .select("id,user_id,bracket_name,submitted_at,year")
+        .eq("user_id", userId)
+        .eq("year", TOURNAMENT_YEAR)
+        .maybeSingle();
+      if(existingError) throw existingError;
+      if(existingBracket?.id){
+        state.userBracket = existingBracket;
+        return state.userBracket;
+      }
+
       const username = normalizeName(state.profile?.username);
       const existingName = normalizeName(state.userBracket?.bracket_name);
       const providerName = getProviderProfileName(state.session.user);
       const emailPrefix = normalizeName(state.session.user.email).split("@")[0];
       const bracket_name = username || existingName || providerName || emailPrefix || "My Bracket";
-      const payload = { user_id: state.session.user.id, bracket_name };
+      const payload = { user_id: userId, bracket_name, year: TOURNAMENT_YEAR };
+      const { error: upsertError } = await supabase
+        .from("brackets")
+        .upsert(payload, { onConflict: "user_id,year" });
+      if(upsertError) throw upsertError;
+
       const { data, error } = await supabase
         .from("brackets")
-        .upsert(payload, { onConflict: "user_id" })
-        .select("id,user_id,bracket_name,submitted_at")
+        .select("id,user_id,bracket_name,submitted_at,year")
+        .eq("user_id", userId)
+        .eq("year", TOURNAMENT_YEAR)
         .maybeSingle();
       if(error) throw error;
+      if(!data?.id) throw new Error("Could not create bracket yet.");
       state.userBracket = data || state.userBracket;
       return state.userBracket;
     }
@@ -1116,7 +1135,7 @@
       const userId = state.session.user.id;
       const [{ data: profile, error: profileError }, { data: bracketRows, error: bracketError }] = await Promise.all([
         supabase.from("profiles").select("user_id,username").eq("user_id", userId).maybeSingle(),
-        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at").eq("user_id", userId).maybeSingle(),
+        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at,year").eq("user_id", userId).eq("year", TOURNAMENT_YEAR).maybeSingle(),
       ]);
       if(profileError || bracketError){
         clearUserScopedState();
@@ -1125,21 +1144,13 @@
       }
       state.profile = profile || null;
       state.userBracket = bracketRows || null;
-      try{
-        await ensureUserBracket();
-      }catch{
-        state.userBracket = null;
-        state.userPicks = new Map();
-        els.usernameInput.value = normalizeName(state.profile?.username);
-        renderAuthShell();
-        return { ok: false, message: "Could not initialize your bracket." };
-      }
 
       if(state.userBracket?.id){
         const { data: picks, error: picksError } = await supabase
           .from("bracket_picks")
-          .select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded")
-          .eq("bracket_id", state.userBracket.id);
+          .select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded,year")
+          .eq("bracket_id", state.userBracket.id)
+          .eq("year", TOURNAMENT_YEAR);
         if(picksError){
           state.userPicks = new Map();
           els.usernameInput.value = normalizeName(state.profile?.username);
@@ -1208,8 +1219,8 @@
     async function loadLeaderboardData(){
       const [profilesRes, bracketsRes, picksRes] = await Promise.all([
         supabase.from("profiles").select("user_id,username"),
-        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at"),
-        supabase.from("bracket_picks").select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded"),
+        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at,year").eq("year", TOURNAMENT_YEAR),
+        supabase.from("bracket_picks").select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded,year").eq("year", TOURNAMENT_YEAR),
       ]);
       if(profilesRes.error || bracketsRes.error || picksRes.error){
         state.allBrackets = [];
@@ -1232,10 +1243,9 @@
       state.validUserPicks = applied.validPicks;
     }
 
-    async function saveCurrentPicksToDatabase(){
-      if(!state.userBracket?.id) throw new Error("Could not create bracket yet.");
+    async function saveCurrentPicksToDatabase(bracketId){
+      if(!bracketId) throw new Error("Could not create bracket yet.");
       refreshPredictedFromUserPicks();
-      const bracketId = state.userBracket.id;
       const desiredRows = [...state.validUserPicks.values()].map((pick) => ({
         bracket_id: bracketId,
         match_id: pick.match_id,
@@ -1243,11 +1253,13 @@
         round_number: pick.round_number,
         selected_winner_name: pick.selected_winner_name,
         selected_winner_seed: pick.selected_winner_seed,
+        year: TOURNAMENT_YEAR,
       }));
       const { data: existingRows, error: existingError } = await supabase
         .from("bracket_picks")
-        .select("match_id,round_code,round_number,selected_winner_name,selected_winner_seed")
-        .eq("bracket_id", bracketId);
+        .select("match_id,round_code,round_number,selected_winner_name,selected_winner_seed,year")
+        .eq("bracket_id", bracketId)
+        .eq("year", TOURNAMENT_YEAR);
       if(existingError) throw existingError;
 
       const existingByMatch = new Map((existingRows || []).map((row) => [Number(row.match_id), row]));
@@ -1275,6 +1287,7 @@
           .from("bracket_picks")
           .delete()
           .eq("bracket_id", bracketId)
+          .eq("year", TOURNAMENT_YEAR)
           .in("match_id", staleMatchIds);
         if(error) throw error;
       }
@@ -1296,13 +1309,17 @@
       if(state.lockFlag === "yes" && !state.userBracket) return setMessage("Bracket is locked. Bracket creation is closed.", "error");
       if(state.lockFlag === "yes") return setMessage("Bracket is locked.", "error");
       if(!state.profile?.username) return setMessage("Set your username first.", "error");
-      if(!state.userBracket?.id){
-        await ensureUserBracket();
+      let bracketId = "";
+      try{
+        const ensuredBracket = await ensureUserBracket();
+        bracketId = normalizeName(ensuredBracket?.id);
+      }catch(error){
+        return setMessage(error.message || "Failed to create your bracket.", "error");
       }
-      if(!state.userBracket?.id) return setMessage("Could not create bracket yet.", "error");
+      if(!bracketId) return setMessage("Could not create bracket yet.", "error");
 
       try{
-        await saveCurrentPicksToDatabase();
+        await saveCurrentPicksToDatabase(bracketId);
       }catch(error){
         return setMessage(error.message || "Failed to save picks.", "error");
       }
@@ -1326,7 +1343,7 @@
       if(!participant) return;
 
       const basePick = {
-        bracket_id: state.userBracket.id,
+        bracket_id: state.userBracket?.id || null,
         match_id: matchId,
         round_code: targetMatch.round,
         round_number: targetMatch.roundNumber,
@@ -1334,6 +1351,7 @@
         selected_winner_seed: participant.seed ?? null,
         is_correct: null,
         points_awarded: null,
+        year: TOURNAMENT_YEAR,
       };
 
       const nextPickMap = new Map(state.userPicks);
