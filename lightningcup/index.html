@@ -671,7 +671,7 @@
               const pick = picksMap.get(match.id);
               const hydrated = hydratedMap.get(match.id);
               const renderRow = (slot) => {
-                const name = slot.name || "TBD";
+                const name = slot.name || "";
                 const isPicked = pick && pick.selected_winner_name === name;
                 const stateClass = !isPicked ? "" : hydrated?.is_correct === true ? "selected correct" : hydrated?.is_correct === false ? "selected incorrect" : "selected pending";
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
@@ -679,9 +679,9 @@
                 const disabled = !clickable || lockPicking || !slot.name;
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
                 const scoreMarkup = showScoreIndicators
-                  ? `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${score}</span>`).join("")}<span class="qualifier-player-final-score">${scoreParts.finalScore}</span></span>`
+                  ? `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${score || "-"}</span>`).join("")}<span class="qualifier-player-final-score">${scoreParts.finalScore || "-"}</span></span>`
                   : "";
-                return `<button class="qualifier-match-row ${showScoreIndicators ? "" : "no-score"} ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? "-"}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}</button>`;
+                return `<button class="qualifier-match-row ${showScoreIndicators ? "" : "no-score"} ${actualWinnerClass} ${stateClass}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}</button>`;
               };
               return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
