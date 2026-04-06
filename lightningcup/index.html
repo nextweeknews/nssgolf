@@ -150,7 +150,7 @@
     .your-bracket-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
     .your-bracket-toolbar .status{ margin:0; text-align:left; }
     .pick-progress{ margin-left:auto; display:flex; align-items:center; gap:8px; }
-    .pick-progress-count{ font-size:12px; font-weight:900; letter-spacing:.03em; font-variant-numeric: tabular-nums; color:#fca5a5; }
+    .pick-progress-count{ font-size:16px; font-weight:900; letter-spacing:.03em; font-variant-numeric: tabular-nums; color:#fca5a5; }
     .pick-progress-count.is-complete{ color:#86efac; }
 
     @media (max-width:980px){
@@ -227,7 +227,7 @@
       <div class="your-bracket-toolbar">
         <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
         <div class="pick-progress">
-          <span class="pick-progress-count" id="pickProgressCount">[0]/63</span>
+          <span class="pick-progress-count" id="pickProgressCount">0/63 picks</span>
           <button class="btn btn-primary" id="savePicksBtn" type="button">Save progress</button>
         </div>
       </div>
@@ -942,7 +942,7 @@
     function updatePickProgressUI(){
       const selectedCount = getSelectedPickCount();
       const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
-      els.pickProgressCount.textContent = `[${selectedCount}]/${TOTAL_BRACKET_MATCHES}`;
+      els.pickProgressCount.textContent = `${selectedCount}/${TOTAL_BRACKET_MATCHES} picks`;
       els.pickProgressCount.classList.toggle("is-complete", isComplete);
       els.savePicksBtn.textContent = isComplete ? "Save" : "Save progress";
       els.savePicksBtn.disabled = !canSaveUserBracket();
