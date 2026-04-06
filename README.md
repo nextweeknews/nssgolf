@@ -19,6 +19,6 @@
 
 ## Team Up H2H Proxy
 
-- Lightning Cup match popovers now load ranked head-to-head data from the same-origin endpoint `/api/teamup-head-to-head`.
-- The server-side function lives at `functions/api/teamup-head-to-head.js` and reads the secret env var `NSSGOLF_TEAMUP_API_KEY`.
-- Configure that secret only in your serverless host or local function runtime. Do not expose it via browser JavaScript or a public runtime config block.
+- Lightning Cup match popovers now load ranked head-to-head data from the external Cloudflare Worker at `https://empty-poetry-4be0.nextweekmedia.workers.dev/`.
+- This repo remains GitHub Pages compatible because the Team Up proxy is no longer hosted from repo-local functions.
+- Store the Team Up secret only in the Cloudflare Worker secret named `NSSGOLF_TEAMUP_API_KEY`. Do not expose it via browser JavaScript or a public runtime config block.

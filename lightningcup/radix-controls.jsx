@@ -167,7 +167,7 @@ function getPlayerSeasonValue(player, season){
 }
 
 const H2H_SEASONS = [9, 10, 11];
-const TEAMUP_HEAD_TO_HEAD_ENDPOINT = "/api/teamup-head-to-head";
+const TEAMUP_HEAD_TO_HEAD_ENDPOINT = "https://empty-poetry-4be0.nextweekmedia.workers.dev/";
 const headToHeadSeasonCache = new Map();
 
 function normalizeDiscordId(value){
