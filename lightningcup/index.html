@@ -28,6 +28,12 @@
       --pending: rgba(148,163,184,0.20);
       --pick: rgba(56,189,248,0.18);
       --warning: rgba(251,191,36,0.22);
+      --qualifier-round-column-width: 320px;
+      --qualifier-match-height: 64px;
+      --qualifier-seed-col-width: 20px;
+      --qualifier-score-col-width: 14px;
+      --qualifier-final-score-width: 24px;
+      --qualifier-scorepack-width: 78px;
     }
     *{ box-sizing:border-box; }
     html{ background-color: var(--bg3); }
@@ -82,17 +88,17 @@
     .qualifier-seed-player{ font-size:12px; font-weight:850; text-transform: uppercase; overflow-wrap:anywhere; }
 
     .qualifier-bracket-scroll{ width:100%; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; }
-    .qualifier-bracket-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(188px,210px); gap:14px; align-items:start; min-width:max-content; padding:2px; }
-    .qualifier-round-column{ display:flex; flex-direction:column; gap:8px; }
+    .qualifier-bracket-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:var(--qualifier-round-column-width); gap:18px; align-items:start; width:max-content; min-width:100%; justify-content:center; padding:2px; }
+    .qualifier-round-column{ display:flex; flex-direction:column; gap:8px; min-width:0; }
     .qualifier-round-title{ margin:0; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); text-align:center; }
     .qualifier-round-stack{ display:flex; flex-direction:column; gap: var(--qualifier-round-gap, 8px); }
     .qualifier-round-stack .qualifier-bracket-match:first-child{ padding-top: var(--qualifier-round-padding-top, 0px); }
     .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{ padding-top: var(--qualifier-round-gap, 8px); }
-    .qualifier-bracket-match{ display:flex; gap:3px; align-items:center; min-height:52px; }
+    .qualifier-bracket-match{ display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:6px; align-items:center; width:100%; min-height:var(--qualifier-match-height); }
     .qualifier-match-info{ width:22px; flex:0 0 22px; height:22px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.86); font-size:11px; font-weight:900; cursor:pointer; }
-    .qualifier-match-card{ width:100%; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
-    .qualifier-match-row{ display:grid; grid-template-columns:26px minmax(0,1fr) auto; align-items:center; gap:6px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; }
-    .qualifier-match-row.no-score{ grid-template-columns:26px minmax(0,1fr); }
+    .qualifier-match-card{ width:100%; min-width:0; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); }
+    .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 6px; border:1px solid transparent; font-size:10px; text-align:left; }
+    .qualifier-match-row.no-score{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr); }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
     .qualifier-match-row + .qualifier-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .qualifier-match-row.winner{ background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.55); }
@@ -101,12 +107,13 @@
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
-    .qualifier-player-seed{ text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
+    .qualifier-player-seed{ width:100%; text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
-    .qualifier-player-scorepack{ display:grid; grid-auto-flow:column; align-items:center; justify-content:end; justify-items:end; gap:4px; min-width:72px; }
-    .qualifier-player-set-score{ min-width:12px; text-align:right; font-variant-numeric: tabular-nums; font-weight:900; color:#fff; letter-spacing:.02em; }
-    .qualifier-player-final-score{ min-width:22px; height:16px; border-radius:4px; border:1px solid rgba(255,255,255,.9); color:#fff; text-align:right; font-variant-numeric: tabular-nums; font-weight:900; display:flex; align-items:center; justify-content:flex-end; justify-self:end; padding:0 2px; line-height:1; white-space:nowrap; }
+    .qualifier-player-scorepack{ display:grid; grid-template-columns: repeat(3, var(--qualifier-score-col-width)) var(--qualifier-final-score-width); align-items:center; justify-content:end; justify-items:end; gap:4px; width:var(--qualifier-scorepack-width); min-width:var(--qualifier-scorepack-width); }
+    .qualifier-player-set-score{ width:100%; text-align:right; font-variant-numeric: tabular-nums; font-weight:900; color:#fff; letter-spacing:.02em; }
+    .qualifier-player-final-score{ width:var(--qualifier-final-score-width); height:16px; border-radius:4px; border:1px solid rgba(255,255,255,.9); color:#fff; text-align:right; font-variant-numeric: tabular-nums; font-weight:900; display:flex; align-items:center; justify-content:flex-end; justify-self:end; padding:0 3px; line-height:1; white-space:nowrap; background: transparent; }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-player-final-score{ background:#fff; border-color:#fff; color:#000; }
 
     .auth-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
     .auth-buttons{ justify-content:center; margin-top:2px; }
@@ -646,10 +653,18 @@
     function renderBracketGrid(target, matches, options = {}){
       const { mode = "actual", picksMap = new Map(), hydratedMap = new Map(), clickable = false, lockPicking = false, infoSource = "actual" } = options;
       const groups = groupByRound(matches);
-      const roundGapByRound = { R64: 8, R32: 34, R16: 86, R8: 190, R4: 8, Final: 8 };
-      const roundTopPaddingByRound = { R64: 0, R32: 30, R16: 80, R8: 185, R4: 116, Final: 52 };
-      target.innerHTML = groups.map((group) => `
-        <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGapByRound[group.round] ?? 8}px;--qualifier-round-padding-top:${roundTopPaddingByRound[group.round] ?? 0}px;">
+      const baseRoundGap = 8;
+      const matchBlockHeight = 64;
+      const baseRoundStep = matchBlockHeight + (baseRoundGap * 2);
+      target.dataset.bracketMode = mode;
+      target.innerHTML = groups.map((group, roundIndex) => {
+        const roundMultiplier = 2 ** roundIndex;
+        const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2);
+        const roundTopPadding = roundIndex === 0
+          ? 0
+          : Math.round((baseRoundStep * (roundMultiplier - 1)) / 2);
+        return `
+        <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGap}px;--qualifier-round-padding-top:${roundTopPadding}px;">
           <h3 class="qualifier-round-title">${group.round}</h3>
           <div class="qualifier-round-stack">
             ${group.matches.map((match) => {
@@ -671,7 +686,8 @@
               return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="qualifier-match-card">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
           </div>
-        </div>`).join("");
+        </div>`;
+      }).join("");
     }
 
     function renderMainTabs(){
