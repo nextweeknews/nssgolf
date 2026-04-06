@@ -1,0 +1,29 @@
+{
+  "name": "nssgolf",
+  "version": "1.0.0",
+  "description": "- Primary sign-in method: Discord OAuth via Supabase Auth (`signInWithOAuth` with provider `discord`) - Canonical callback route: `/auth/callback` - Current visible login UI: `/lightningcup/index.html` - For local callback testing, run the site on localhost and add a redirect URL like `http://localhost:8080/auth/callback` in Supabase Auth settings. - Optional runtime override for static deployments:",
+  "main": "index.js",
+  "scripts": {
+    "build:lightningcup-radix": "esbuild lightningcup/radix-controls.jsx --bundle --format=esm --target=es2020 --minify --outfile=lightningcup/radix-controls.bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nextweeknews/nssgolf.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/nextweeknews/nssgolf/issues"
+  },
+  "homepage": "https://github.com/nextweeknews/nssgolf#readme",
+  "dependencies": {
+    "@radix-ui/react-navigation-menu": "^1.2.14",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "esbuild": "^0.28.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  }
+}

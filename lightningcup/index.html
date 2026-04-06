@@ -71,15 +71,97 @@
 
     .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
     .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
-    .headline{ margin:0; font-size:22px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
+    .headline{ margin:0; font-size:26px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
     .season-head{ min-height:44px; padding:2px 0; margin-bottom:8px; display:flex; align-items:center; justify-content:center; }
     .status{ margin:0; color:var(--muted); font-size:12px; text-align:center; }
 
-    .tabs{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .tabs{ width:100%; }
     .tab-btn,.btn{ border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(255,255,255,.92); border-radius:999px; padding:8px 12px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:850; cursor:pointer; }
     .tab-btn.is-active,.btn:hover{ background: var(--btn-bg-hover); border-color:var(--btn-border-hover); }
     .btn-primary{ background: rgba(56,189,248,0.18); border-color: rgba(56,189,248,0.42); }
     .btn[disabled]{ opacity:.45; cursor:not-allowed; }
+    .lc-nav-root{ width:100%; display:grid; gap:8px; }
+    .lc-nav-list{ list-style:none; margin:0; padding:0; width:100%; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+    .lc-nav-item{ position:relative; }
+    .lc-nav-trigger{
+      width:100%;
+      border:1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,.92);
+      border-radius:999px;
+      min-height:34px;
+      padding:8px 12px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-weight:850;
+      cursor:pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    }
+    .lc-nav-trigger[data-state="open"]{
+      background: var(--btn-bg-hover);
+      border-color: rgba(56,189,248,.5);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.2);
+    }
+    .lc-nav-content{
+      margin-top:6px;
+      border:1px solid var(--border-lite);
+      border-radius:12px;
+      background: rgba(2,8,24,.94);
+      box-shadow: 0 14px 24px rgba(0,0,0,.3);
+      padding:8px;
+      display:grid;
+      gap:6px;
+    }
+    .lc-nav-subitem{
+      width:100%;
+      border:1px solid transparent;
+      border-radius:9px;
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.9);
+      min-height:30px;
+      padding:0 10px;
+      text-align:left;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-weight:850;
+      cursor:pointer;
+      transition: background-color 140ms ease, border-color 140ms ease;
+    }
+    .lc-nav-subitem:hover{ background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18); }
+    .lc-nav-subitem.is-active{ background: rgba(56,189,248,.16); border-color: rgba(56,189,248,.45); }
+    .lc-nav-subtext{ color:var(--muted); font-size:11px; line-height:1.3; padding:2px 4px; }
+    .lc-nav-indicator{ display:flex; align-items:flex-end; justify-content:center; height:8px; }
+    .lc-nav-indicator-line{ width:34px; height:2px; background: rgba(56,189,248,.75); border-radius:999px; }
+    .lc-nav-viewport-wrap{ position:relative; width:100%; }
+    .lc-nav-viewport{ position:relative; width:100%; }
+    .lc-region-tabs-root{ width:100%; }
+    .lc-region-tabs-list{
+      width:100%;
+      display:grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap:8px;
+    }
+    .lc-region-tabs-trigger{
+      border:1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,.92);
+      border-radius:999px;
+      min-height:32px;
+      padding:6px 8px;
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-weight:850;
+      cursor:pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    }
+    .lc-region-tabs-trigger[data-state="active"]{
+      background: rgba(56,189,248,.18);
+      border-color: rgba(56,189,248,.45);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.2);
+    }
 
     .two-col{ display:grid; grid-template-columns: minmax(0,1fr); gap:12px; }
     .panel{ border:1px solid var(--border-lite); border-radius:16px; padding:12px; background: rgba(15,23,42,0.55); }
@@ -196,6 +278,8 @@
       .two-col{ grid-template-columns:1fr; }
       .auth-grid{ grid-template-columns:1fr; }
       .topbar-user{ width:100%; justify-content:flex-end; }
+      .lc-nav-list{ grid-template-columns:1fr; }
+      .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
     }
   </style>
 </head>
@@ -236,7 +320,7 @@
   <main class="container">
     <section class="card">
       <div class="season-head">
-        <h1 class="headline">Lightning Cup 2026</h1>
+        <h1 class="headline">Lightning Cup</h1>
       </div>
       <div class="row auth-buttons" id="authButtonsRow">
         <button class="btn btn-primary" id="discordLoginBtn" type="button">Sign In With Discord</button>
@@ -307,6 +391,7 @@
 
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { mountLightningCupRadixControls } from "/lightningcup/radix-controls.bundle.js";
 
     const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
@@ -352,6 +437,7 @@
       lastDraftRestoreNoticeToken: "",
       inlineStatusText: "",
       inlineStatusType: "",
+      radixControls: null,
     };
 
     const supabase = createBrowserSupabaseClient();
@@ -1081,20 +1167,49 @@
       }).join("");
     }
 
+    function renderRadixControls(loggedIn){
+      if(!state.radixControls) return;
+      state.radixControls.render({
+        loggedIn,
+        mainTab: state.mainTab,
+        activeTab: state.activeTab,
+        year: TOURNAMENT_YEAR,
+      });
+    }
+
+    function initializeRadixControls(){
+      if(state.radixControls) return;
+      state.radixControls = mountLightningCupRadixControls({
+        mainTabsEl: els.mainTabs,
+        regionTabsEl: els.regionTabs,
+        regionTabs: REGION_TABS,
+        onMainTabChange: (mainTab) => {
+          if(state.mainTab === mainTab) return;
+          state.mainTab = mainTab;
+          renderView();
+        },
+        onRegionTabChange: (activeTab) => {
+          if(state.activeTab === activeTab) return;
+          state.activeTab = activeTab;
+          renderView();
+        },
+      });
+    }
+
     function renderMainTabs(){
       const loggedIn = !!state.session;
       const tabs = loggedIn ? ["Actual Bracket", "Your Bracket", "Leaderboard"] : ["Actual Bracket"];
       if(!tabs.includes(state.mainTab)) state.mainTab = "Actual Bracket";
-      els.mainTabs.innerHTML = tabs.map((tab) => `<button class="tab-btn ${state.mainTab===tab ? "is-active" : ""}" data-main-tab="${tab}" type="button">${tab}</button>`).join("");
       els.actualPanel.classList.toggle("is-active", state.mainTab === "Actual Bracket");
       els.yourPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Your Bracket");
       els.leaderboardPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Leaderboard");
       const showRegionTabs = state.mainTab === "Actual Bracket" || (loggedIn && state.mainTab === "Your Bracket");
       els.regionTabs.style.display = showRegionTabs ? "" : "none";
+      renderRadixControls(loggedIn);
     }
 
     function renderTabs(){
-      els.regionTabs.innerHTML = REGION_TABS.map((tab) => `<button class="tab-btn ${state.activeTab===tab ? "is-active" : ""}" data-tab="${tab}" type="button">${tab}</button>`).join("");
+      renderRadixControls(!!state.session);
     }
 
     function updateLockUI(){
@@ -1800,13 +1915,6 @@
     }
 
     function bindEvents(){
-      els.regionTabs.addEventListener("click", (event) => {
-        const btn = event.target.closest("button[data-tab]");
-        if(!btn) return;
-        state.activeTab = btn.dataset.tab;
-        renderView();
-      });
-
       els.pickBracketGrid.addEventListener("click", handlePickClick);
       els.actualBracketGrid.addEventListener("click", (event) => {
         const infoBtn = event.target.closest("button[data-match-info]");
@@ -1825,13 +1933,6 @@
         const infoBtn = event.target.closest("button[data-match-info]");
         if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
       });
-      els.mainTabs.addEventListener("click", (event) => {
-        const btn = event.target.closest("button[data-main-tab]");
-        if(!btn) return;
-        state.mainTab = btn.dataset.mainTab;
-        renderView();
-      });
-
       els.leaderboardTable.addEventListener("click", (event) => {
         const btn = event.target.closest("button[data-select-bracket]");
         if(!btn) return;
@@ -1969,6 +2070,7 @@
 
     async function init(){
       bindEvents();
+      initializeRadixControls();
       try{
         await syncSessionFromSupabase();
         await loadTournament();
