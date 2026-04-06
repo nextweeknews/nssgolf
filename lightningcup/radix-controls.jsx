@@ -13,18 +13,27 @@ function getParentValueFromMainTab(mainTab){
 }
 
 function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
-  const parentValue = getParentValueFromMainTab(mainTab);
+  const selectedParentValue = getParentValueFromMainTab(mainTab);
+  const [openParentValue, setOpenParentValue] = React.useState(selectedParentValue);
 
-  const handleParentValueChange = (value) => {
+  React.useEffect(() => {
+    setOpenParentValue(selectedParentValue);
+  }, [selectedParentValue]);
+
+  const handleParentValueChange = () => {
+    // Intentionally no-op to keep menu selection click-driven only.
+  };
+
+  const handleParentTriggerClick = (event, value) => {
+    event.preventDefault();
+    setOpenParentValue(value);
+
     if(value === "results"){
       onMainTabChange("Actual Bracket");
       return;
     }
     if(value === "game"){
-      if(!loggedIn){
-        onMainTabChange("Actual Bracket");
-        return;
-      }
+      if(!loggedIn) return;
       const nextMainTab = MAIN_TAB_BY_PARENT[value] || "Your Bracket";
       if(mainTab !== "Your Bracket" && mainTab !== "Leaderboard"){
         onMainTabChange(nextMainTab);
@@ -32,23 +41,24 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
     }
   };
 
-  const handleChildLinkSelect = (event, targetMainTab) => {
+  const handleChildLinkSelect = (event, targetMainTab, parentValue) => {
     event.preventDefault();
     if(targetMainTab !== "Actual Bracket" && !loggedIn) return;
+    setOpenParentValue(parentValue);
     onMainTabChange(targetMainTab);
   };
 
   return (
     <NavigationMenu.Root
       className="lc-nav-root"
-      value={parentValue}
+      value={openParentValue}
       onValueChange={handleParentValueChange}
       delayDuration={120}
       skipDelayDuration={80}
     >
       <NavigationMenu.List className="lc-nav-list">
         <NavigationMenu.Item value="results" className="lc-nav-item">
-          <NavigationMenu.Trigger className="lc-nav-trigger">
+          <NavigationMenu.Trigger className="lc-nav-trigger" onClick={(event) => handleParentTriggerClick(event, "results")}>
             Lightning Cup Tournament Results
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="lc-nav-content">
@@ -58,7 +68,7 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
                   className="lc-nav-sublink"
                   active={mainTab === "Actual Bracket"}
                   href="#"
-                  onClick={(event) => handleChildLinkSelect(event, "Actual Bracket")}
+                  onClick={(event) => handleChildLinkSelect(event, "Actual Bracket", "results")}
                 >
                   {year}
                 </NavigationMenu.Link>
@@ -68,7 +78,7 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
         </NavigationMenu.Item>
 
         <NavigationMenu.Item value="game" className="lc-nav-item">
-          <NavigationMenu.Trigger className="lc-nav-trigger">
+          <NavigationMenu.Trigger className="lc-nav-trigger" onClick={(event) => handleParentTriggerClick(event, "game")}>
             Lightning Cup Bracket Game
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="lc-nav-content">
@@ -80,7 +90,7 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
                   aria-disabled={loggedIn ? undefined : "true"}
                   data-disabled={loggedIn ? undefined : ""}
                   href="#"
-                  onClick={(event) => handleChildLinkSelect(event, "Your Bracket")}
+                  onClick={(event) => handleChildLinkSelect(event, "Your Bracket", "game")}
                   tabIndex={loggedIn ? undefined : -1}
                 >
                   Your Bracket
@@ -93,7 +103,7 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
                   aria-disabled={loggedIn ? undefined : "true"}
                   data-disabled={loggedIn ? undefined : ""}
                   href="#"
-                  onClick={(event) => handleChildLinkSelect(event, "Leaderboard")}
+                  onClick={(event) => handleChildLinkSelect(event, "Leaderboard", "game")}
                   tabIndex={loggedIn ? undefined : -1}
                 >
                   Leaderboard
@@ -106,9 +116,6 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
           </NavigationMenu.Content>
         </NavigationMenu.Item>
 
-        <NavigationMenu.Indicator className="lc-nav-indicator">
-          <div className="lc-nav-indicator-line" />
-        </NavigationMenu.Indicator>
       </NavigationMenu.List>
 
       <div className="lc-nav-viewport-wrap">
