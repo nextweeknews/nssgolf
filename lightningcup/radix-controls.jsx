@@ -59,7 +59,7 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
       <NavigationMenu.List className="lc-nav-list">
         <NavigationMenu.Item value="results" className="lc-nav-item">
           <NavigationMenu.Trigger className="lc-nav-trigger" onClick={(event) => handleParentTriggerClick(event, "results")}>
-            Lightning Cup Tournament Results
+            <span className="lc-nav-trigger-label">Lightning Cup Tournament Results</span>
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="lc-nav-content">
             <ul className="lc-nav-sublist">
@@ -79,7 +79,7 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
 
         <NavigationMenu.Item value="game" className="lc-nav-item">
           <NavigationMenu.Trigger className="lc-nav-trigger" onClick={(event) => handleParentTriggerClick(event, "game")}>
-            Lightning Cup Bracket Game
+            <span className="lc-nav-trigger-label">Lightning Cup Bracket Game</span>
           </NavigationMenu.Trigger>
           <NavigationMenu.Content className="lc-nav-content">
             <ul className="lc-nav-sublist">

@@ -103,34 +103,22 @@
       background: transparent;
       color: rgba(233,238,248,.88);
       padding:7px 10px;
-      text-align:left;
+      text-align:center;
       line-height:1.2;
       font: inherit;
-      font-size:11px;
+      font-size:12px;
       font-weight:850;
       letter-spacing:.06em;
       text-transform:uppercase;
       display:flex;
       align-items:center;
-      justify-content:space-between;
-      gap:8px;
+      justify-content:center;
+      gap:0;
       appearance:none;
       cursor:pointer;
       transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
-    .lc-nav-trigger::after{
-      content:"";
-      width:8px;
-      height:8px;
-      margin-left:auto;
-      border-right:1.5px solid currentColor;
-      border-bottom:1.5px solid currentColor;
-      transform: rotate(45deg) translateY(-1px);
-      transform-origin:center;
-      opacity:.72;
-      transition: transform 140ms ease, opacity 140ms ease;
-      flex:0 0 auto;
-    }
+    .lc-nav-trigger-label{ display:block; width:100%; text-align:center; }
     .lc-nav-trigger:hover{
       background: rgba(148,163,184,.10);
       border-color: rgba(148,163,184,.30);
@@ -138,12 +126,7 @@
     }
     .lc-nav-trigger[data-state="open"]{
       background: rgba(56,189,248,.14);
-      border-color: rgba(125,211,252,.46);
       color: #f1f8ff;
-    }
-    .lc-nav-trigger[data-state="open"]::after{
-      transform: rotate(-135deg) translateY(-1px);
-      opacity:1;
     }
     .lc-nav-trigger:focus-visible{
       outline:none;
@@ -170,10 +153,6 @@
       display:grid;
       gap:7px;
     }
-    .lc-nav-content[data-motion="from-start"]{ animation: lc-nav-enter-from-left 180ms ease; }
-    .lc-nav-content[data-motion="from-end"]{ animation: lc-nav-enter-from-right 180ms ease; }
-    .lc-nav-content[data-motion="to-start"]{ animation: lc-nav-exit-to-left 140ms ease; }
-    .lc-nav-content[data-motion="to-end"]{ animation: lc-nav-exit-to-right 140ms ease; }
     .lc-nav-sublist{
       list-style:none;
       margin:0;
@@ -298,22 +277,6 @@
       clip:rect(0, 0, 0, 0);
       white-space:nowrap;
       border:0;
-    }
-    @keyframes lc-nav-enter-from-left{
-      from{ opacity:0; transform:translateX(-8px); }
-      to{ opacity:1; transform:translateX(0); }
-    }
-    @keyframes lc-nav-enter-from-right{
-      from{ opacity:0; transform:translateX(8px); }
-      to{ opacity:1; transform:translateX(0); }
-    }
-    @keyframes lc-nav-exit-to-left{
-      from{ opacity:1; transform:translateX(0); }
-      to{ opacity:0; transform:translateX(-8px); }
-    }
-    @keyframes lc-nav-exit-to-right{
-      from{ opacity:1; transform:translateX(0); }
-      to{ opacity:0; transform:translateX(8px); }
     }
     @keyframes lc-nav-viewport-in{
       from{ opacity:0; transform:scale(.98); }
@@ -503,7 +466,6 @@
       </div>
       </div>
       <div id="yourPanel" class="main-tab-panel">
-      <h2 class="headline" style="font-size:16px;">Your Predictive Bracket</h2>
       <div class="your-bracket-toolbar">
         <p class="status" id="pickStatus"></p>
         <div class="pick-progress">
