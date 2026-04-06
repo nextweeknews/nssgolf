@@ -36,6 +36,9 @@
       --qualifier-final-score-width: 24px;
       --qualifier-scorepack-width: 78px;
       --qualifier-pick-indicator-width: 15px;
+      --leaderboard-rank-col: 88px;
+      --leaderboard-score-col: 108px;
+      --leaderboard-max-col: 126px;
     }
     *{ box-sizing:border-box; }
     html{ background-color: var(--bg3); }
@@ -401,13 +404,16 @@
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .05); }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(var(--region-accent-rgb), .44); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row,
+    .qualifier-bracket-grid[data-bracket-mode="detail"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(var(--region-accent-rgb), .44); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected,
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending{
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending,
+    .qualifier-bracket-grid[data-bracket-mode="detail"] .qualifier-match-row.selected{
       z-index:4;
       box-shadow: inset 0 0 0 999px rgba(var(--region-accent-rgb), .08);
     }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:first-child::after{
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:first-child::after,
+    .qualifier-bracket-grid[data-bracket-mode="detail"] .qualifier-match-row.selected:first-child::after{
       content:"";
       position:absolute;
       inset:0;
@@ -418,7 +424,8 @@
       border-top-right-radius:inherit;
       pointer-events:none;
     }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:last-child::after{
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:last-child::after,
+    .qualifier-bracket-grid[data-bracket-mode="detail"] .qualifier-match-row.selected:last-child::after{
       content:"";
       position:absolute;
       inset:0;
@@ -432,7 +439,25 @@
     .qualifier-match-row[disabled]{ cursor:not-allowed; opacity:.7; }
     .qualifier-player-seed{ width:100%; text-align:center; font-variant-numeric: tabular-nums; font-weight:800; }
     .qualifier-player-seed{ color:#93c5fd; }
+    .qualifier-player-name-slot{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
+    .qualifier-player-pick-status{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:15px;
+      height:15px;
+      color: rgba(148,163,184,.7);
+    }
+    .qualifier-player-pick-status.is-correct{ color:#86efac; }
+    .qualifier-player-pick-status.is-incorrect{ color:#fca5a5; }
+    .qualifier-pick-status-icon{ display:block; width:15px; height:15px; }
     .qualifier-row-radio{
       width:var(--qualifier-pick-indicator-width);
       height:var(--qualifier-pick-indicator-width);
@@ -463,11 +488,30 @@
       transform:scale(1);
     }
     .qualifier-player-scorepack{ display:grid; grid-template-columns: repeat(3, var(--qualifier-score-col-width)) var(--qualifier-final-score-width); align-items:stretch; justify-content:end; justify-items:stretch; gap:4px; width:var(--qualifier-scorepack-width); min-width:var(--qualifier-scorepack-width); }
+    .qualifier-player-scorepack.is-detail{ grid-template-columns: minmax(0,1fr) var(--qualifier-final-score-width); }
     .qualifier-player-set-score{ width:100%; min-height:16px; text-align:center; font-variant-numeric: tabular-nums; font-weight:900; color:#fff; letter-spacing:.02em; display:flex; align-items:center; justify-content:center; }
+    .qualifier-player-pick-points{
+      min-width:0;
+      min-height:16px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      color: rgba(148,163,184,.7);
+      font-size:9px;
+      font-weight:850;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      padding-right:2px;
+    }
+    .qualifier-player-pick-points.is-correct{ color:#86efac; }
+    .qualifier-player-pick-points.is-incorrect{ color:#fca5a5; }
     .qualifier-player-final-score{ width:var(--qualifier-final-score-width); height:16px; border-radius:6px; border:1px solid rgba(255,255,255,.9); color:#fff; text-align:center; font-variant-numeric: tabular-nums; font-weight:900; display:flex; align-items:center; justify-content:center; justify-self:stretch; padding:0; line-height:1; white-space:nowrap; background: transparent; }
     .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-player-final-score{ background:#fff; border-color:#fff; color:#000; }
 
-    .auth-grid{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
+    .auth-grid{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
     .auth-buttons{ justify-content:center; margin-top:2px; }
     .auth-buttons.is-logged-in{ justify-content:flex-end; }
     label{ display:grid; gap:4px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
@@ -896,13 +940,219 @@
       filter: drop-shadow(0 8px 14px rgba(0,0,0,.28));
     }
 
-    table.leaderboard{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:12px; }
-    .leaderboard th{ text-align:center; color:var(--muted); font-size:8px; text-transform:uppercase; letter-spacing:.03em; padding:8px 6px; background: var(--header-bg); }
-    .leaderboard td{ text-align:center; padding:8px 6px; background: var(--row-bg); }
-    .leaderboard tr.is-selected td{ outline: 1px solid rgba(56,189,248,.65); }
-    .leaderboard .winner-badge{ color:#fde68a; font-weight:900; }
-
-    .detail-head{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
+    table.leaderboard{
+      width:100%;
+      min-width:860px;
+      table-layout:fixed;
+      border-collapse:separate;
+      border-spacing:0 10px;
+      font-size:12px;
+    }
+    .leaderboard col.leaderboard-col-rank{ width:var(--leaderboard-rank-col); }
+    .leaderboard col.leaderboard-col-score{ width:var(--leaderboard-score-col); }
+    .leaderboard col.leaderboard-col-current-max,
+    .leaderboard col.leaderboard-col-initial-max{ width:var(--leaderboard-max-col); }
+    .leaderboard thead th{
+      padding:0 4px 2px;
+      background:transparent;
+      border:0;
+      text-align:center;
+      vertical-align:middle;
+    }
+    .leaderboard-header-label,
+    .leaderboard-sort-button{
+      width:100%;
+      min-height:40px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      padding:0 12px;
+      border-radius:10px;
+      background:var(--header-bg);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+      line-height:1;
+      white-space:nowrap;
+    }
+    .leaderboard-sort-button{
+      border:0;
+      appearance:none;
+      cursor:pointer;
+      font:inherit;
+      transition: background-color 140ms ease, color 140ms ease;
+    }
+    .leaderboard-sort-button:hover{
+      background: rgba(148,163,184,.18);
+      color: rgba(233,238,248,.96);
+    }
+    .leaderboard-sort-button.is-active{
+      color:#f3f7ff;
+      background: rgba(125,211,252,.14);
+    }
+    .leaderboard-sort-indicator{
+      width:1.1em;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:.95em;
+      color: rgba(148,163,184,.82);
+    }
+    .leaderboard-sort-button.is-active .leaderboard-sort-indicator{
+      color: rgba(191,219,254,.96);
+    }
+    .leaderboard tbody td{
+      padding:0 4px;
+      border:0;
+      background:transparent;
+      vertical-align:stretch;
+    }
+    .leaderboard-row{
+      position:relative;
+    }
+    .leaderboard-row.is-expanded{
+      z-index:1;
+    }
+    .leaderboard-rank-chip,
+    .leaderboard-metric-chip{
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0 12px;
+      border-radius:12px;
+      background:var(--row-bg);
+      color:#f8fbff;
+      font-variant-numeric: tabular-nums;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .leaderboard-rank-chip{
+      font-size:23px;
+      font-weight:920;
+      color:var(--title);
+    }
+    .leaderboard-rank-chip.is-top{
+      background: rgba(56,189,248,.1);
+      color:#dbeafe;
+    }
+    .leaderboard-metric-chip{
+      font-size:19px;
+      font-weight:860;
+    }
+    .leaderboard-metric-chip.is-score{
+      background: rgba(236,245,255,.9);
+      color:#041225;
+      font-weight:940;
+      box-shadow: inset 0 0 0 1px rgba(148,163,184,.22);
+    }
+    .leaderboard-name-button{
+      width:100%;
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:12px;
+      padding:0 18px;
+      border:0;
+      border-radius:12px;
+      background: rgba(255,255,255,.08);
+      color:#fff;
+      cursor:pointer;
+      text-align:left;
+      font:inherit;
+      text-transform:uppercase;
+      letter-spacing:.02em;
+      transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .leaderboard-name-button:hover{
+      background: rgba(255,255,255,.11);
+    }
+    .leaderboard-row.is-expanded .leaderboard-name-button{
+      background: rgba(125,211,252,.14);
+      box-shadow: inset 0 0 0 1px rgba(125,211,252,.26);
+    }
+    .leaderboard-name-text{
+      min-width:0;
+      flex:1 1 auto;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:22px;
+      font-weight:950;
+    }
+    .leaderboard-name-meta{
+      flex:0 0 auto;
+      font-size:10px;
+      font-weight:820;
+      letter-spacing:.08em;
+      color: rgba(191,219,254,.9);
+    }
+    .leaderboard-empty-cell{
+      padding:0;
+    }
+    .leaderboard-empty-state{
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:12px;
+      background:var(--row-bg);
+      color:var(--muted);
+      font-size:14px;
+      font-weight:700;
+      letter-spacing:.02em;
+    }
+    .leaderboard-detail-row td{
+      padding:0 4px 2px;
+      background:transparent;
+    }
+    .leaderboard-detail-shell{
+      height:0;
+      opacity:0;
+      overflow:hidden;
+      transition: height 280ms cubic-bezier(.22,.9,.28,1), opacity 220ms ease;
+    }
+    .leaderboard-detail-shell.is-expanded{
+      height:auto;
+      opacity:1;
+    }
+    .leaderboard-detail-card{
+      border-radius:16px;
+      border:1px solid rgba(148,163,184,.2);
+      background: rgba(255,255,255,.03);
+      padding:12px;
+      display:grid;
+      gap:12px;
+      overflow:hidden;
+    }
+    .leaderboard-detail-tabs{
+      --region-accent-rgb: 125,211,252;
+      display:grid;
+      gap:0;
+    }
+    .leaderboard-detail-tabs .lc-region-tabs-list{
+      border-bottom-color: rgba(148,163,184,.18);
+    }
+    .leaderboard-detail-tabs .lc-region-tabs-trigger{
+      min-height:38px;
+      padding-right:10px;
+      padding-left:10px;
+    }
+    .leaderboard-detail-panel{
+      padding:12px 10px 10px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.16);
+      background: rgba(2,8,24,.28);
+    }
+    .leaderboard-detail-grid{
+      justify-content:flex-start;
+      width:max-content;
+      min-width:100%;
+    }
     .your-bracket-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
     .your-bracket-toolbar .status{ margin:0; text-align:left; }
     .your-bracket-toolbar .status.is-error{ color:#fca5a5; }
@@ -1018,7 +1268,6 @@
       </div>
       <div class="auth-grid auth-only" id="controlsGrid">
         <label>Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
-        <label>Selected Bracket <select id="bracketSelect"></select></label>
         <label>Lock Status <input id="lockStatusInput" type="text" readonly /></label>
       </div>
       <div class="row auth-only" id="controlsRow">
@@ -1046,9 +1295,6 @@
       <div id="leaderboardPanel" class="main-tab-panel">
       <h2 class="headline" style="font-size:16px;">Leaderboard</h2>
       <div style="overflow:auto;"><table class="leaderboard" id="leaderboardTable"></table></div>
-      <h2 class="headline" style="font-size:16px;">Bracket Detail</h2>
-      <div class="detail-head" id="detailHeader"></div>
-      <div class="panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid" id="detailBracketGrid"></div></div>
       </div>
     </section>
 
@@ -1126,6 +1372,9 @@
       allPicks: /** @type {PickRow[]} */ ([]),
       detailPredicted: /** @type {Map<number, PredictedMatch>} */ (new Map()),
       selectedBracketId: null,
+      leaderboardSortKey: "rank",
+      leaderboardSortDirection: "asc",
+      leaderboardDetailTab: REGION_TABS[0],
       userAvatarUrl: "",
       authSub: null,
       tournamentLoaded: false,
@@ -1158,15 +1407,12 @@
       regionTabs: document.getElementById("regionTabs"),
       actualBracketGrid: document.getElementById("actualBracketGrid"),
       pickBracketGrid: document.getElementById("pickBracketGrid"),
-      detailBracketGrid: document.getElementById("detailBracketGrid"),
       actualPanel: document.getElementById("actualPanel"),
       yourPanel: document.getElementById("yourPanel"),
       leaderboardPanel: document.getElementById("leaderboardPanel"),
-      detailHeader: document.getElementById("detailHeader"),
       summaryRow: document.getElementById("summaryRow"),
       leaderboardTable: document.getElementById("leaderboardTable"),
       usernameInput: document.getElementById("usernameInput"),
-      bracketSelect: document.getElementById("bracketSelect"),
       discordLoginBtn: document.getElementById("discordLoginBtn"),
       authButtonsRow: document.getElementById("authButtonsRow"),
       saveProfileBtn: document.getElementById("saveProfileBtn"),
@@ -2070,6 +2316,78 @@
       return actualScore + possibleRemaining;
     }
 
+    function calculateInitialMaxScore(validPicks){
+      if(!(validPicks instanceof Map)) return 0;
+      return [...validPicks.values()].reduce((sum, pick) => {
+        return sum + roundBasePoints(pick.round_code) + Number(pick.selected_winner_seed || 0);
+      }, 0);
+    }
+
+    const LEADERBOARD_SORT_DEFAULT_DIRECTION = {
+      rank: "asc",
+      actual: "desc",
+      currentMax: "desc",
+      initialMax: "desc",
+    };
+
+    function getDefaultLeaderboardDetailTab(){
+      if(REGION_TABS.includes(state.leaderboardDetailTab)) return state.leaderboardDetailTab;
+      if(REGION_TABS.includes(state.activeTab)) return state.activeTab;
+      return REGION_TABS[0];
+    }
+
+    function getLeaderboardSortDirectionLabel(direction){
+      return direction === "asc" ? "ascending" : "descending";
+    }
+
+    function getLeaderboardSortIndicator(key){
+      if(state.leaderboardSortKey !== key) return "↕";
+      return state.leaderboardSortDirection === "asc" ? "↑" : "↓";
+    }
+
+    function setLeaderboardSort(key){
+      if(!LEADERBOARD_SORT_DEFAULT_DIRECTION[key]) return;
+      if(state.leaderboardSortKey === key){
+        state.leaderboardSortDirection = state.leaderboardSortDirection === "asc" ? "desc" : "asc";
+      }else{
+        state.leaderboardSortKey = key;
+        state.leaderboardSortDirection = LEADERBOARD_SORT_DEFAULT_DIRECTION[key];
+      }
+      renderLeaderboard();
+    }
+
+    function renderLeaderboardSortButton(key, label){
+      const isActive = state.leaderboardSortKey === key;
+      const ariaSort = isActive ? getLeaderboardSortDirectionLabel(state.leaderboardSortDirection) : "none";
+      const activeClass = isActive ? " is-active" : "";
+      return `<button class="leaderboard-sort-button${activeClass}" type="button" data-sort-key="${key}" aria-sort="${ariaSort}"><span>${escapeHtml(label)}</span><span class="leaderboard-sort-indicator" aria-hidden="true">${getLeaderboardSortIndicator(key)}</span></button>`;
+    }
+
+    function compareLeaderboardRows(left, right){
+      const directionMultiplier = state.leaderboardSortDirection === "asc" ? 1 : -1;
+      const key = state.leaderboardSortKey;
+      const leftValue = key === "rank" ? left.rankOrder : key === "actual" ? left.actual : key === "currentMax" ? left.currentMax : left.initialMax;
+      const rightValue = key === "rank" ? right.rankOrder : key === "actual" ? right.actual : key === "currentMax" ? right.currentMax : right.initialMax;
+      if(leftValue !== rightValue){
+        return (leftValue - rightValue) * directionMultiplier;
+      }
+      if(left.actual !== right.actual){
+        return right.actual - left.actual;
+      }
+      if(left.currentMax !== right.currentMax){
+        return right.currentMax - left.currentMax;
+      }
+      return left.bracket_name.localeCompare(right.bracket_name);
+    }
+
+    function getRadixCheckIconMarkup(){
+      return `<svg class="qualifier-pick-status-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>`;
+    }
+
+    function getRadixCross2IconMarkup(){
+      return `<svg class="qualifier-pick-status-icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>`;
+    }
+
     function getMatchesForTab(tab, matchesMap){
       const all = [...matchesMap.values()];
       if(tab === "Finals") return all.filter((m) => m.round === "R4" || m.round === "Final").sort((a,b)=>a.id-b.id);
@@ -2139,6 +2457,7 @@
               const selectedWinnerName = normalizeName(pick?.selected_winner_name);
               const topSelected = !!selectedWinnerName && selectedWinnerName === normalizeName(match.top?.name);
               const bottomSelected = !!selectedWinnerName && selectedWinnerName === normalizeName(match.bottom?.name);
+              const isDetailMode = mode === "detail";
               const matchCardClass = [
                 "qualifier-match-card",
                 topSelected || bottomSelected ? "is-selected" : "",
@@ -2147,15 +2466,35 @@
               ].filter(Boolean).join(" ");
               const renderRow = (slot) => {
                 const name = slot.name || "";
+                const safeName = escapeHtml(name);
                 const isPicked = pick && pick.selected_winner_name === name;
-                const stateClass = !isPicked ? "" : hydrated?.is_correct === true ? "selected correct" : hydrated?.is_correct === false ? "selected incorrect" : "selected pending";
+                const stateClass = !isPicked
+                  ? ""
+                  : isDetailMode
+                    ? "selected detail-selected"
+                    : hydrated?.is_correct === true
+                      ? "selected correct"
+                      : hydrated?.is_correct === false
+                        ? "selected incorrect"
+                        : "selected pending";
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
                 const showScoreIndicators = mode === "actual" || mode === "detail" || (mode === "pick" && lockPicking);
                 const showPickRadioIndicator = mode === "pick" && !lockPicking && !!name;
                 const disabled = !clickable || lockPicking || !slot.name;
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
+                const detailStatusClass = hydrated?.is_correct === true ? " is-correct" : hydrated?.is_correct === false ? " is-incorrect" : "";
+                const detailStatusIcon = hydrated?.is_correct === true
+                  ? getRadixCheckIconMarkup()
+                  : hydrated?.is_correct === false
+                    ? getRadixCross2IconMarkup()
+                    : "";
+                const detailStatusMarkup = isDetailMode && isPicked && detailStatusIcon
+                  ? `<span class="qualifier-player-pick-status${detailStatusClass}" aria-hidden="true">${detailStatusIcon}</span>`
+                  : "";
                 const scoreMarkup = showScoreIndicators
-                  ? `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${score || "-"}</span>`).join("")}<span class="qualifier-player-final-score">${scoreParts.finalScore || "-"}</span></span>`
+                  ? isDetailMode
+                    ? `<span class="qualifier-player-scorepack is-detail"><span class="qualifier-player-pick-points${detailStatusClass}">${hydrated?.is_correct === true ? `+${hydrated.points_awarded || 0} pts` : ""}</span><span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
+                    : `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
                   : "";
                 const pickRadioMarkup = showPickRadioIndicator
                   ? `<span class="qualifier-row-radio" data-state="${isPicked ? "checked" : "unchecked"}" aria-hidden="true"><span class="qualifier-row-radio-indicator"></span></span>`
@@ -2167,7 +2506,7 @@
                   actualWinnerClass,
                   stateClass,
                 ].filter(Boolean).join(" ");
-                return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${slot.name || ""}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name">${name}</span>${scoreMarkup}${pickRadioMarkup}</button>`;
+                return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span><span class="qualifier-player-name-slot"><span class="qualifier-player-name">${safeName}</span>${detailStatusMarkup}</span>${scoreMarkup}${pickRadioMarkup}</button>`;
               };
               return `<div class="qualifier-bracket-match"><button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button><div class="${matchCardClass}">${renderRow(match.top)}${renderRow(match.bottom)}</div></div>`;
             }).join("")}
@@ -2327,63 +2666,193 @@
       els.summaryRow.innerHTML = `<span class="pill">User: ${state.profile?.username || "-"}</span><span class="pill">Actual: ${scores.actual}</span><span class="pill">Possible Remaining: ${scores.possibleRemaining}</span><span class="pill">Possible Total: ${scores.possibleTotal}</span>${state.lockFlag === "yes" ? '<span class="pill warn">Locked</span>' : '<span class="pill good">Editable</span>'}`;
     }
 
-    function renderLeaderboard(){
+    function animateLeaderboardDetailClose(onComplete){
+      const shell = els.leaderboardTable.querySelector("[data-leaderboard-detail-shell]");
+      if(!shell){
+        onComplete?.();
+        return;
+      }
+      let finished = false;
+      const startHeight = shell.scrollHeight;
+      shell.style.height = `${startHeight}px`;
+      shell.style.opacity = "1";
+      shell.offsetHeight;
+      requestAnimationFrame(() => {
+        shell.classList.remove("is-expanded");
+        shell.style.height = "0px";
+        shell.style.opacity = "0";
+      });
+      const finish = () => {
+        if(finished) return;
+        finished = true;
+        shell.removeEventListener("transitionend", handleTransitionEnd);
+        onComplete?.();
+      };
+      const handleTransitionEnd = (event) => {
+        if(event.target !== shell || event.propertyName !== "height") return;
+        finish();
+      };
+      shell.addEventListener("transitionend", handleTransitionEnd);
+      window.setTimeout(finish, 360);
+    }
+
+    function animateLeaderboardDetailOpen(bracketId){
+      const shell = els.leaderboardTable.querySelector(`[data-leaderboard-detail-shell="${CSS.escape(String(bracketId))}"]`);
+      if(!shell) return;
+      let cleaned = false;
+      const targetHeight = shell.scrollHeight;
+      shell.style.height = "0px";
+      shell.style.opacity = "0";
+      shell.offsetHeight;
+      requestAnimationFrame(() => {
+        shell.classList.add("is-expanded");
+        shell.style.height = `${targetHeight}px`;
+        shell.style.opacity = "1";
+      });
+      const cleanup = () => {
+        if(cleaned) return;
+        cleaned = true;
+        shell.removeEventListener("transitionend", handleTransitionEnd);
+        shell.style.height = "auto";
+        shell.style.opacity = "";
+      };
+      const handleTransitionEnd = (event) => {
+        if(event.target !== shell || event.propertyName !== "height") return;
+        cleanup();
+      };
+      shell.addEventListener("transitionend", handleTransitionEnd);
+      window.setTimeout(cleanup, 360);
+    }
+
+    function toggleLeaderboardBracketDetail(bracketId){
+      const nextBracketId = normalizeName(bracketId);
+      if(!nextBracketId) return;
+      const currentBracketId = normalizeName(state.selectedBracketId);
+      if(currentBracketId === nextBracketId){
+        animateLeaderboardDetailClose(() => {
+          state.selectedBracketId = null;
+          state.detailPredicted = new Map();
+          renderLeaderboard();
+        });
+        return;
+      }
+
+      const openNext = () => {
+        state.selectedBracketId = nextBracketId;
+        state.leaderboardDetailTab = getDefaultLeaderboardDetailTab();
+        renderLeaderboard({ animateOpen: true });
+      };
+
+      if(currentBracketId){
+        animateLeaderboardDetailClose(openNext);
+        return;
+      }
+
+      openNext();
+    }
+
+    function renderExpandedLeaderboardDetail(selectedRow){
+      if(!selectedRow){
+        state.detailPredicted = new Map();
+        return;
+      }
+
+      const detailGrid = document.getElementById(`leaderboardDetailGrid-${selectedRow.id}`);
+      if(!detailGrid){
+        state.detailPredicted = new Map();
+        return;
+      }
+
+      const rawPicks = new Map(state.allPicks.filter((pick) => pick.bracket_id === selectedRow.id).map((pick) => [pick.match_id, pick]));
+      const { predicted, validPicks } = applyUserPicksToPredictedBracket(state.context, rawPicks);
+      state.detailPredicted = predicted;
+
+      const { hydratedMap } = computeScoresFromPicks(validPicks);
+      const activeDetailTab = getDefaultLeaderboardDetailTab();
+      state.leaderboardDetailTab = activeDetailTab;
+      const matches = getMatchesForTab(activeDetailTab, predicted);
+      renderBracketGrid(detailGrid, matches, {
+        mode: "detail",
+        picksMap: validPicks,
+        hydratedMap,
+        clickable: false,
+        lockPicking: true,
+        infoSource: "detail",
+      });
+    }
+
+    function renderLeaderboard({ animateOpen = false } = {}){
       const pickByBracket = new Map();
       state.allPicks.forEach((p) => {
         if(!pickByBracket.has(p.bracket_id)) pickByBracket.set(p.bracket_id, []);
         pickByBracket.get(p.bracket_id).push(p);
       });
-      const rows = state.allBrackets.map((b) => {
+      const scoredRows = state.allBrackets.map((b) => {
         const raw = pickByBracket.get(b.id) || [];
         const rawMap = new Map(raw.map((p) => [p.match_id, p]));
         const { validPicks } = applyUserPicksToPredictedBracket(state.context, rawMap);
         const scores = computeScoresFromPicks(validPicks);
-        return { ...b, ...scores, validPicks };
-      }).sort((a,b) => b.actual - a.actual);
+        const initialMax = calculateInitialMaxScore(validPicks);
+        return {
+          ...b,
+          actual: scores.actual,
+          currentMax: scores.possibleTotal,
+          initialMax,
+          validPicks,
+        };
+      });
 
-      const topScore = rows[0]?.actual ?? null;
-      const topCount = rows.filter((r) => r.actual === topScore).length;
+      const rankedRows = [...scoredRows].sort((left, right) => {
+        if(right.actual !== left.actual) return right.actual - left.actual;
+        if(right.currentMax !== left.currentMax) return right.currentMax - left.currentMax;
+        if(right.initialMax !== left.initialMax) return right.initialMax - left.initialMax;
+        return left.bracket_name.localeCompare(right.bracket_name);
+      });
+
+      const topScore = rankedRows[0]?.actual ?? null;
       const rankByScore = new Map();
-      [...new Set(rows.map((r) => r.actual))].forEach((score, idx) => rankByScore.set(score, idx + 1));
+      [...new Set(rankedRows.map((row) => row.actual))].forEach((score, idx) => rankByScore.set(score, idx + 1));
+      rankedRows.forEach((row) => {
+        const tiedCount = rankedRows.filter((entry) => entry.actual === row.actual).length;
+        const rankValue = rankByScore.get(row.actual);
+        row.rankOrder = rankValue;
+        row.rankLabel = tiedCount > 1 ? `T-${rankValue}` : `${rankValue}`;
+        row.isTopScore = topScore != null && row.actual === topScore;
+      });
+
+      const rows = [...rankedRows].sort(compareLeaderboardRows);
+      if(state.selectedBracketId && !rows.some((row) => row.id === state.selectedBracketId)){
+        state.selectedBracketId = null;
+      }
+      if(!state.selectedBracketId){
+        state.detailPredicted = new Map();
+      }
 
       if(!rows.length){
-        els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody><tr><td colspan="7">No entries yet.</td></tr></tbody>`;
-        els.bracketSelect.innerHTML = "";
-        state.selectedBracketId = null;
+        els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Current Max")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody><tr><td class="leaderboard-empty-cell" colspan="5"><div class="leaderboard-empty-state">No entries yet.</div></td></tr></tbody>`;
         return;
       }
 
-      els.leaderboardTable.innerHTML = `<thead><tr><th>Rank</th><th>Bracket</th><th>User</th><th>Actual</th><th>Possible Total</th><th>Possible Remaining</th><th>View</th></tr></thead><tbody>${rows.map((row) => {
-        const rank = rankByScore.get(row.actual);
-        const tiedCount = rows.filter((r) => r.actual === row.actual).length;
-        const rankLabel = tiedCount > 1 ? `T-${rank}` : `${rank}`;
-        const coWinner = topCount > 1 && row.actual === topScore;
-        const selectedClass = row.id === state.selectedBracketId ? "is-selected" : "";
-        return `<tr class="${selectedClass}"><td>${rankLabel}${coWinner ? ' <span class="winner-badge">Co-Winner</span>' : ''}</td><td>${row.bracket_name}</td><td>${row.username || "-"}</td><td>${row.actual}</td><td>${row.possibleTotal}</td><td>${row.possibleRemaining}</td><td><button class="btn" data-select-bracket="${row.id}" type="button">Open</button></td></tr>`;
-      }).join("")}</tbody>`;
+      const detailTab = getDefaultLeaderboardDetailTab();
+      state.leaderboardDetailTab = detailTab;
+      const detailAccent = REGION_ACCENT_RGB_BY_TAB[detailTab] || REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
+      const tableMarkup = rows.map((row) => {
+        const isExpanded = row.id === state.selectedBracketId;
+        const rowClass = `leaderboard-row${isExpanded ? " is-expanded" : ""}`;
+        const rankChipClass = `leaderboard-rank-chip${row.isTopScore ? " is-top" : ""}`;
+        const detailRowMarkup = !isExpanded
+          ? ""
+          : `<tr class="leaderboard-detail-row"><td colspan="5"><div class="leaderboard-detail-shell${animateOpen ? "" : " is-expanded"}" data-leaderboard-detail-shell="${escapeHtml(row.id)}"><div class="leaderboard-detail-card" style="--region-accent-rgb:${detailAccent};"><div class="leaderboard-detail-tabs"><div class="lc-region-tabs-list">${REGION_TABS.map((tab) => `<button class="lc-region-tabs-trigger" type="button" data-detail-tab="${escapeHtml(tab)}" data-bracket-id="${escapeHtml(row.id)}" data-state="${tab === detailTab ? "active" : "inactive"}"><span class="lc-region-tabs-trigger-label">${escapeHtml(tab)}</span></button>`).join("")}</div></div><div class="leaderboard-detail-panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid leaderboard-detail-grid" id="leaderboardDetailGrid-${escapeHtml(row.id)}"></div></div></div></div></td></tr>`;
+        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td><button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span><span class="leaderboard-name-meta">${isExpanded ? "Collapse" : "View Bracket"}</span></button></td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
+      }).join("");
 
-      els.bracketSelect.innerHTML = rows.map((r) => `<option value="${r.id}">${r.bracket_name} (${r.username || "Unknown"})</option>`).join("");
-      if(state.selectedBracketId && !rows.some((r) => r.id === state.selectedBracketId)) state.selectedBracketId = null;
-      if(!state.selectedBracketId && rows[0]) state.selectedBracketId = rows[0].id;
-      if(state.selectedBracketId) els.bracketSelect.value = state.selectedBracketId;
-    }
+      els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Current Max")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${tableMarkup}</tbody>`;
 
-    function renderBracketDetail(){
-      const selected = state.allBrackets.find((b) => b.id === state.selectedBracketId);
-      if(!selected){
-        els.detailHeader.innerHTML = `<span class="pill warn">Select a bracket.</span>`;
-        els.detailBracketGrid.innerHTML = "";
-        state.detailPredicted = new Map();
-        return;
+      const selectedRow = rows.find((row) => row.id === state.selectedBracketId) || null;
+      renderExpandedLeaderboardDetail(selectedRow);
+      if(animateOpen && selectedRow){
+        animateLeaderboardDetailOpen(selectedRow.id);
       }
-      const rawPicks = new Map(state.allPicks.filter((p) => p.bracket_id === selected.id).map((p) => [p.match_id, p]));
-      const { predicted, validPicks } = applyUserPicksToPredictedBracket(state.context, rawPicks);
-      state.detailPredicted = predicted;
-      const { actual, possibleRemaining, possibleTotal, hydratedMap } = computeScoresFromPicks(validPicks);
-
-      els.detailHeader.innerHTML = `<span class="pill">Bracket: ${selected.bracket_name}</span><span class="pill">User: ${selected.username || "-"}</span><span class="pill">Actual: ${actual}</span><span class="pill">Possible Remaining: ${possibleRemaining}</span><span class="pill">Possible Total: ${possibleTotal}</span>`;
-      const matches = getMatchesForTab(state.activeTab, predicted);
-      renderBracketGrid(els.detailBracketGrid, matches, { mode: "detail", picksMap: validPicks, hydratedMap, clickable: false, lockPicking: true, infoSource: "detail" });
     }
 
     function renderView(){
@@ -2399,7 +2868,6 @@
 
       renderSummary();
       renderLeaderboard();
-      renderBracketDetail();
       updateLockUI();
     }
 
@@ -2788,7 +3256,7 @@
       if(profilesRes.error || bracketsRes.error || picksRes.error){
         state.allBrackets = [];
         state.allPicks = [];
-        if(!state.userBracket?.id) state.selectedBracketId = null;
+        state.selectedBracketId = null;
         return;
       }
       const profileByUser = new Map((profilesRes.data || []).map((p) => [p.user_id, p.username]));
@@ -2797,7 +3265,9 @@
         return { ...b, username, bracket_name: username || b.bracket_name || "Unknown" };
       });
       state.allPicks = picksRes.data || [];
-      if(!state.selectedBracketId && state.userBracket?.id) state.selectedBracketId = state.userBracket.id;
+      if(state.selectedBracketId && !state.allBrackets.some((bracket) => bracket.id === state.selectedBracketId)){
+        state.selectedBracketId = null;
+      }
     }
 
     function refreshPredictedFromUserPicks(){
@@ -2916,16 +3386,26 @@
         els.topbarUserMenuBtn.classList.remove("has-avatar");
       });
       els.leaderboardTable.addEventListener("click", (event) => {
-        const btn = event.target.closest("button[data-select-bracket]");
-        if(!btn) return;
-        state.selectedBracketId = btn.dataset.selectBracket;
-        els.bracketSelect.value = state.selectedBracketId;
-        renderView();
-      });
+        const sortButton = event.target.closest("button[data-sort-key]");
+        if(sortButton){
+          setLeaderboardSort(sortButton.dataset.sortKey);
+          return;
+        }
 
-      els.bracketSelect.addEventListener("change", () => {
-        state.selectedBracketId = els.bracketSelect.value;
-        renderView();
+        const detailTabButton = event.target.closest("button[data-detail-tab]");
+        if(detailTabButton){
+          const nextTab = detailTabButton.dataset.detailTab;
+          if(REGION_TABS.includes(nextTab)){
+            state.leaderboardDetailTab = nextTab;
+            renderLeaderboard();
+          }
+          return;
+        }
+
+        const bracketToggle = event.target.closest("button[data-toggle-bracket-detail]");
+        if(bracketToggle){
+          toggleLeaderboardBracketDetail(bracketToggle.dataset.toggleBracketDetail);
+        }
       });
       els.topbarUserMenuBtn.addEventListener("click", (event) => {
         event.stopPropagation();
