@@ -82,6 +82,7 @@ export function createBrowserSupabaseClient({ detectSessionInUrl = false } = {})
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl,
+      debug: false,
     },
   });
 }

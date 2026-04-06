@@ -338,6 +338,19 @@
       els.flashMessage.textContent = clean;
       els.flashMessage.className = `message ${type} ${clean ? "" : "is-hidden"}`.trim();
     };
+    const clearUserScopedState = () => {
+      state.profile = null;
+      state.userBracket = null;
+      state.userPicks = new Map();
+      els.usernameInput.value = "";
+    };
+    const setSessionState = (session) => {
+      state.session = session?.user ? session : null;
+      renderAuthShell();
+    };
+    const setAuthRefreshError = () => {
+      setMessage("Some account data could not be loaded. Please refresh and try again.", "error");
+    };
 
     async function fetchSheet(range){
       const url = new URL(WORKER_BASE);
@@ -732,6 +745,18 @@
       els.globalStatus.textContent = `Loaded ${state.actualMatches.length} matches and ${state.players.size} players.`;
     }
 
+    function renderFallbackTournamentView(){
+      if(!state.context) return;
+      renderMainTabs();
+      renderTabs();
+      const actualSubset = getMatchesForTab(state.activeTab, new Map(state.actualMatches.map((m)=>[m.id,m])));
+      renderBracketGrid(els.actualBracketGrid, actualSubset, { mode: "actual", infoSource: "actual" });
+      els.actualPanel.classList.add("is-active");
+      els.yourPanel.classList.remove("is-active");
+      els.leaderboardPanel.classList.remove("is-active");
+      els.globalStatus.textContent = `Loaded ${state.actualMatches.length} matches and ${state.players.size} players.`;
+    }
+
     function renderAuthUI(){
       const loggedIn = !!state.session;
       document.querySelectorAll(".auth-only").forEach((el) => { el.style.display = loggedIn ? "" : "none"; });
@@ -915,40 +940,46 @@
       state.predicted = applied.predicted;
       state.validUserPicks = applied.validPicks;
       state.tournamentLoaded = true;
-      console.log("[lightningcup auth] tournament loaded", { loaded: state.tournamentLoaded, matches: state.actualMatches.length });
     }
 
-    async function syncSessionFromSupabase(reason = "unknown"){
-      const { data: { session } } = await supabase.auth.getSession();
-      state.session = session;
-      console.log("[lightningcup auth] getSession", { reason, hasSession: !!session });
-      renderAuthShell();
-      return session;
+    async function syncSessionFromSupabase(){
+      const { data, error } = await supabase.auth.getSession();
+      if(error) throw new Error("Could not verify your sign-in session.");
+      setSessionState(data?.session || null);
+      return state.session;
     }
 
     async function loadAuthStateFromCurrentSession(){
-      if(!state.session){
-        state.profile = null;
-        state.userBracket = null;
-        state.userPicks = new Map();
-        els.usernameInput.value = "";
-        renderAuthShell();
-        return;
+      if(!state.session?.user?.id){
+        clearUserScopedState();
+        setSessionState(null);
+        return { ok: true };
       }
 
       const userId = state.session.user.id;
-      const [{ data: profile }, { data: bracketRows }] = await Promise.all([
+      const [{ data: profile, error: profileError }, { data: bracketRows, error: bracketError }] = await Promise.all([
         supabase.from("profiles").select("user_id,username").eq("user_id", userId).maybeSingle(),
         supabase.from("brackets").select("id,user_id,bracket_name,submitted_at").eq("user_id", userId).maybeSingle(),
       ]);
+      if(profileError || bracketError){
+        clearUserScopedState();
+        renderAuthShell();
+        return { ok: false, message: "Could not load your account details." };
+      }
       state.profile = profile || null;
       state.userBracket = bracketRows || null;
 
       if(state.userBracket?.id){
-        const { data: picks } = await supabase
+        const { data: picks, error: picksError } = await supabase
           .from("bracket_picks")
           .select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded")
           .eq("bracket_id", state.userBracket.id);
+        if(picksError){
+          state.userPicks = new Map();
+          els.usernameInput.value = normalizeName(state.profile?.username);
+          renderAuthShell();
+          return { ok: false, message: "Could not load your saved bracket picks." };
+        }
         state.userPicks = new Map((picks || []).map((p) => [p.match_id, p]));
       }else{
         state.userPicks = new Map();
@@ -956,33 +987,49 @@
 
       els.usernameInput.value = normalizeName(state.profile?.username);
       renderAuthShell();
+      return { ok: true };
     }
 
     let authRefreshPromise = null;
     let authRefreshQueued = false;
+    let queuedRefreshSyncSession = false;
     let authRefreshRunning = false;
     async function refreshAuthDrivenUI(reason = "unknown", { syncSession = true } = {}){
       if(authRefreshRunning){
         authRefreshQueued = true;
+        queuedRefreshSyncSession = queuedRefreshSyncSession || syncSession;
         return authRefreshPromise;
       }
       authRefreshRunning = true;
       authRefreshPromise = (async () => {
+        let runSyncSession = syncSession;
         do{
           authRefreshQueued = false;
-          console.log("[lightningcup auth] refresh start", { reason, syncSession, tournamentLoaded: state.tournamentLoaded });
-          if(syncSession){
-            await syncSessionFromSupabase(`refresh:${reason}`);
-          }else{
-            renderAuthShell();
+          try{
+            if(runSyncSession){
+              await syncSessionFromSupabase();
+            }else{
+              renderAuthShell();
+            }
+            const authStateLoad = await loadAuthStateFromCurrentSession();
+            if(!authStateLoad.ok){
+              setMessage(authStateLoad.message, "error");
+            }
+            if(state.context) refreshPredictedFromUserPicks();
+            await loadLeaderboardData();
+          }catch{
+            setAuthRefreshError();
           }
-          await loadAuthStateFromCurrentSession();
-          if(state.context) refreshPredictedFromUserPicks();
-          await loadLeaderboardData();
           if(state.context){
-            renderView();
+            try{
+              renderView();
+            }catch{
+              renderFallbackTournamentView();
+              setMessage("Part of the page failed to render. Try refreshing to reload your data.", "error");
+            }
           }
-          console.log("[lightningcup auth] refresh end", { hasSession: !!state.session, tournamentLoaded: state.tournamentLoaded });
+          runSyncSession = authRefreshQueued ? queuedRefreshSyncSession : false;
+          queuedRefreshSyncSession = false;
         }while(authRefreshQueued);
       })().finally(() => {
         authRefreshRunning = false;
@@ -997,6 +1044,12 @@
         supabase.from("brackets").select("id,user_id,bracket_name,submitted_at"),
         supabase.from("bracket_picks").select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded"),
       ]);
+      if(profilesRes.error || bracketsRes.error || picksRes.error){
+        state.allBrackets = [];
+        state.allPicks = [];
+        if(!state.userBracket?.id) state.selectedBracketId = null;
+        return;
+      }
       const profileByUser = new Map((profilesRes.data || []).map((p) => [p.user_id, p.username]));
       state.allBrackets = (bracketsRes.data || []).map((b) => {
         const username = profileByUser.get(b.user_id) || "";
@@ -1155,16 +1208,25 @@
           return;
         }
         setModalSubmitting("login", true);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        setModalSubmitting("login", false);
-        if(error){
-          setInlineModalMessage(els.loginModalMessage, error.message || "Login failed.", "error");
-          return;
+        try{
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if(error){
+            setInlineModalMessage(els.loginModalMessage, error.message || "Login failed.", "error");
+            return;
+          }
+          if(data?.session){
+            setSessionState(data.session);
+          }
+          closeLoginModal();
+          await refreshAuthDrivenUI("login submit", { syncSession: !data?.session });
+          openChooseUsernameModalIfMissing();
+          setMessage("Logged in.", "ok");
+        }catch{
+          setInlineModalMessage(els.loginModalMessage, "Login failed. Please try again.", "error");
+        }finally{
+          setModalSubmitting("login", false);
+          els.loginPasswordInput.value = "";
         }
-        closeLoginModal();
-        await refreshAuthDrivenUI("login submit");
-        openChooseUsernameModalIfMissing();
-        setMessage("Logged in.", "ok");
       });
 
       els.signupForm.addEventListener("submit", async (event) => {
@@ -1183,28 +1245,33 @@
           return;
         }
         setModalSubmitting("signup", true);
-        const { data: signupData, error: signupError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: buildAuthRedirectTo(AUTH_RETURN_PATH) },
-        });
-        if(signupError){
+        try{
+          const { data: signupData, error: signupError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: buildAuthRedirectTo(AUTH_RETURN_PATH) },
+          });
+          if(signupError){
+            setInlineModalMessage(els.signupModalMessage, signupError.message || "Signup failed.", "error");
+            return;
+          }
+          const signupSession = signupData?.session || null;
+          if(!signupSession){
+            setInlineModalMessage(els.signupModalMessage, "Account created. Check your email to finish sign-in.", "ok");
+            return;
+          }
+          setSessionState(signupSession);
+          closeSignupModal();
+          await refreshAuthDrivenUI("signup submit", { syncSession: false });
+          openChooseUsernameModalIfMissing();
+          setMessage("Account created.", "ok");
+        }catch{
+          setInlineModalMessage(els.signupModalMessage, "Signup failed. Please try again.", "error");
+        }finally{
           setModalSubmitting("signup", false);
-          setInlineModalMessage(els.signupModalMessage, signupError.message || "Signup failed.", "error");
-          return;
+          els.signupPasswordInput.value = "";
+          els.signupConfirmPasswordInput.value = "";
         }
-        setModalSubmitting("signup", false);
-        const signupSession = signupData?.session || (await supabase.auth.getSession()).data.session;
-        if(!signupSession){
-          setInlineModalMessage(els.signupModalMessage, "Account created. Check your email to finish sign-in.", "ok");
-          return;
-        }
-        state.session = signupSession;
-        renderAuthShell();
-        closeSignupModal();
-        await refreshAuthDrivenUI("signup submit");
-        openChooseUsernameModalIfMissing();
-        setMessage("Account created.", "ok");
       });
 
       els.chooseUsernameForm.addEventListener("submit", async (event) => {
@@ -1229,11 +1296,17 @@
       });
 
       els.logoutBtn.addEventListener("click", async () => {
-        const { error } = await supabase.auth.signOut();
-        if(error) return setMessage(error.message || "Logout failed.", "error");
-        closeAuthModals();
-        await refreshAuthDrivenUI("logout click");
-        setMessage("Logged out.", "ok");
+        try{
+          const { error } = await supabase.auth.signOut();
+          if(error) return setMessage(error.message || "Logout failed.", "error");
+          closeAuthModals();
+          clearUserScopedState();
+          setSessionState(null);
+          await refreshAuthDrivenUI("logout click", { syncSession: false });
+          setMessage("Logged out.", "ok");
+        }catch{
+          setMessage("Logout failed. Please try again.", "error");
+        }
       });
 
       els.saveProfileBtn.addEventListener("click", saveProfile);
@@ -1254,25 +1327,33 @@
         if(els.chooseUsernameModal.classList.contains("is-open") && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
 
-      state.authSub = supabase.auth.onAuthStateChange(async (eventName) => {
-        console.log("[lightningcup auth] onAuthStateChange", { eventName });
+      state.authSub = supabase.auth.onAuthStateChange((eventName, session) => {
+        if(eventName === "INITIAL_SESSION") return;
         if(eventName === "SIGNED_IN" || eventName === "SIGNED_OUT"){
           closeAuthModals();
         }
-        await refreshAuthDrivenUI(`auth event:${eventName}`);
+        if(eventName === "SIGNED_OUT"){
+          clearUserScopedState();
+          setSessionState(null);
+        }else if(session){
+          setSessionState(session);
+        }
+        void refreshAuthDrivenUI(`auth event:${eventName}`, { syncSession: !session }).catch(() => {
+          setAuthRefreshError();
+          renderFallbackTournamentView();
+        });
       });
     }
 
     async function init(){
       bindEvents();
       try{
-        await syncSessionFromSupabase("init");
+        await syncSessionFromSupabase();
         await loadTournament();
         await refreshAuthDrivenUI("init", { syncSession: false });
         setMessage("");
-      }catch(error){
-        console.error(error);
-        setMessage(error.message || "Initialization failed.", "error");
+      }catch{
+        setMessage("Initialization failed. Please refresh and try again.", "error");
         els.globalStatus.textContent = "Failed to load initial data.";
       }
     }

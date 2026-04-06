@@ -135,11 +135,10 @@
       window.location.replace(nextPath);
     }
 
-    finishAuthFlow().catch((error) => {
-      console.error("[auth callback]", error);
+    finishAuthFlow().catch(() => {
       setStatus(
         "Could not complete sign-in.",
-        error?.message || "The sign-in link may be expired. Please try again.",
+        "The sign-in link may be invalid or expired. Please try signing in again.",
         true
       );
     });
