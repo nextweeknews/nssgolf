@@ -572,6 +572,12 @@
       font-variant-numeric: tabular-nums;
       text-align:center;
     }
+    .lc-match-popover-player-stat-muted{
+      color: rgba(148,163,184,.9);
+    }
+    .lc-match-popover-player-stat.is-pending{
+      color: rgba(191,219,254,.92);
+    }
     .lc-match-popover-center-label{
       color: rgba(148,163,184,.95);
       font-size:9px;
@@ -580,6 +586,72 @@
       letter-spacing:.11em;
       text-align:center;
       justify-content:center;
+    }
+    .lc-match-popover-center-label.is-muted{
+      color: rgba(148,163,184,.76);
+    }
+    .lc-match-popover-summary{
+      grid-column:1 / -1;
+      display:grid;
+      gap:7px;
+      padding:2px 4px 4px;
+    }
+    .lc-match-popover-progress-root{
+      width:100%;
+      height:12px;
+      display:flex;
+      overflow:hidden;
+      border-radius:999px;
+      background: rgba(148,163,184,.18);
+      box-shadow: inset 0 0 0 1px rgba(148,163,184,.14);
+    }
+    .lc-match-popover-progress-root[data-empty="true"]{
+      background:
+        linear-gradient(
+          90deg,
+          rgba(96,165,250,.14) 0%,
+          rgba(148,163,184,.2) 50%,
+          rgba(34,197,94,.14) 100%
+        );
+    }
+    .lc-match-popover-progress-indicator{
+      height:100%;
+      flex:0 0 auto;
+    }
+    .lc-match-popover-progress-indicator-left{ background: rgba(96,165,250,.92); }
+    .lc-match-popover-progress-indicator-ties{ background: rgba(148,163,184,.72); }
+    .lc-match-popover-progress-indicator-right{ background: rgba(34,197,94,.88); }
+    .lc-match-popover-summary-labels{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
+      align-items:center;
+      gap:8px;
+    }
+    .lc-match-popover-summary-label{
+      font-size:10px;
+      font-weight:820;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      font-variant-numeric: tabular-nums;
+      white-space:nowrap;
+    }
+    .lc-match-popover-summary-label-left{
+      color: rgba(191,219,254,.96);
+      text-align:left;
+      justify-self:start;
+    }
+    .lc-match-popover-summary-label-center{
+      color: rgba(226,232,240,.92);
+      text-align:center;
+      justify-self:center;
+    }
+    .lc-match-popover-summary-label-right{
+      color: rgba(187,247,208,.96);
+      text-align:right;
+      justify-self:end;
+    }
+    .lc-match-popover-summary-label.is-muted{
+      color: rgba(148,163,184,.82);
     }
     .lc-match-popover-status{
       margin:0;
@@ -1484,6 +1556,7 @@
       return {
         seedLabel: slot?.seed != null ? `#${slot.seed}` : "—",
         name: name || "TBD",
+        discordId,
         seasons: RANKED_SEASONS.map((season) => ({
           season,
           value: formatRankedSeasonValue(getRankedEntryForPlayerSeason(discordId, season)),

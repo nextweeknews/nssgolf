@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import * as NavigationMenu from "@radix-ui/react-navigation-menu";
 import * as Tabs from "@radix-ui/react-tabs";
 import * as Popover from "@radix-ui/react-popover";
+import * as Progress from "@radix-ui/react-progress";
 
 const MAIN_TAB_BY_PARENT = {
   results: "Actual Bracket",
@@ -165,16 +166,228 @@ function getPlayerSeasonValue(player, season){
   return seasonRow?.value || "Unranked";
 }
 
+const H2H_SEASONS = [9, 10, 11];
+const TEAMUP_HEAD_TO_HEAD_ENDPOINT = "/api/teamup-head-to-head";
+const headToHeadSeasonCache = new Map();
+
+function normalizeDiscordId(value){
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function createHeadToHeadSeasonMap(defaultValue = null){
+  return new Map(H2H_SEASONS.map((season) => [season, defaultValue]));
+}
+
+function getHeadToHeadCacheKey(playerA, playerB, season){
+  return `${normalizeDiscordId(playerA)}::${normalizeDiscordId(playerB)}::${Number(season)}`;
+}
+
+function normalizeHeadToHeadCount(value){
+  const parsed = Number(value);
+  if(!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.trunc(parsed);
+}
+
+function normalizeHeadToHeadRecord(payload, season){
+  const playerAWins = normalizeHeadToHeadCount(payload?.playerAWins ?? payload?.player_a_wins);
+  const playerBWins = normalizeHeadToHeadCount(payload?.playerBWins ?? payload?.player_b_wins);
+  const ties = normalizeHeadToHeadCount(payload?.ties);
+  if(playerAWins == null || playerBWins == null || ties == null){
+    return null;
+  }
+  return {
+    season: Number(season),
+    playerAWins,
+    playerBWins,
+    ties,
+    totalMatches: playerAWins + playerBWins + ties,
+  };
+}
+
+async function loadTeamUpHeadToHead(playerA, playerB, season){
+  const normalizedPlayerA = normalizeDiscordId(playerA);
+  const normalizedPlayerB = normalizeDiscordId(playerB);
+  const normalizedSeason = Number(season);
+
+  if(!normalizedPlayerA || !normalizedPlayerB || !Number.isFinite(normalizedSeason)){
+    return null;
+  }
+
+  const cacheKey = getHeadToHeadCacheKey(normalizedPlayerA, normalizedPlayerB, normalizedSeason);
+  if(headToHeadSeasonCache.has(cacheKey)){
+    return headToHeadSeasonCache.get(cacheKey);
+  }
+
+  const request = (async () => {
+    const url = new URL(TEAMUP_HEAD_TO_HEAD_ENDPOINT, globalThis.location?.origin || "https://nssgolf.com");
+    url.searchParams.set("player_a", normalizedPlayerA);
+    url.searchParams.set("player_b", normalizedPlayerB);
+    url.searchParams.set("season", `${normalizedSeason}`);
+
+    const response = await fetch(url.toString(), {
+      headers: { Accept: "application/json" },
+    });
+    if(!response.ok){
+      throw new Error(`Head-to-head unavailable (${response.status}).`);
+    }
+
+    const payload = await response.json();
+    return normalizeHeadToHeadRecord(payload, normalizedSeason);
+  })().catch((error) => {
+    headToHeadSeasonCache.delete(cacheKey);
+    throw error;
+  });
+
+  headToHeadSeasonCache.set(cacheKey, request);
+  return request;
+}
+
+async function loadHeadToHeadSeasons(playerA, playerB){
+  const normalizedPlayerA = normalizeDiscordId(playerA);
+  const normalizedPlayerB = normalizeDiscordId(playerB);
+  if(!normalizedPlayerA || !normalizedPlayerB){
+    return createHeadToHeadSeasonMap(null);
+  }
+
+  let failureCount = 0;
+  let lastError = null;
+  const seasonEntries = await Promise.all(H2H_SEASONS.map(async (season) => {
+    try{
+      return [season, await loadTeamUpHeadToHead(normalizedPlayerA, normalizedPlayerB, season)];
+    }catch(error){
+      failureCount += 1;
+      lastError = error;
+      return [season, null];
+    }
+  }));
+
+  const records = new Map(seasonEntries);
+  if(failureCount === H2H_SEASONS.length && lastError){
+    const requestError = new Error(lastError?.message || "Head-to-head unavailable.");
+    requestError.records = records;
+    throw requestError;
+  }
+
+  return records;
+}
+
+function summarizeHeadToHeadAcrossSeasons(headToHeadBySeason){
+  const source = headToHeadBySeason instanceof Map ? headToHeadBySeason : new Map();
+  let validSeasonCount = 0;
+  let playerAWins = 0;
+  let playerBWins = 0;
+  let ties = 0;
+
+  H2H_SEASONS.forEach((season) => {
+    const record = source.get(season);
+    if(!record) return;
+    validSeasonCount += 1;
+    playerAWins += record.playerAWins;
+    playerBWins += record.playerBWins;
+    ties += record.ties;
+  });
+
+  const totalMatches = playerAWins + playerBWins + ties;
+  const playerAWinPercent = totalMatches ? (playerAWins / totalMatches) * 100 : 0;
+  const tiePercent = totalMatches ? (ties / totalMatches) * 100 : 0;
+  const playerBWinPercent = totalMatches ? Math.max(0, 100 - playerAWinPercent - tiePercent) : 0;
+
+  return {
+    hasAnyData: validSeasonCount > 0,
+    playerAWins: validSeasonCount > 0 ? playerAWins : null,
+    playerBWins: validSeasonCount > 0 ? playerBWins : null,
+    ties: validSeasonCount > 0 ? ties : null,
+    totalMatches,
+    playerAWinPercent,
+    tiePercent,
+    playerBWinPercent,
+  };
+}
+
+function formatHeadToHeadRecord(record, side, isPending = false){
+  if(record == null){
+    return isPending ? "..." : "N/A";
+  }
+  return side === "right"
+    ? `${record.playerBWins}-${record.playerAWins}-${record.ties}`
+    : `${record.playerAWins}-${record.playerBWins}-${record.ties}`;
+}
+
+function getHeadToHeadStatClass(record, isPending = false){
+  if(record == null){
+    return `lc-match-popover-row lc-match-popover-player-stat lc-match-popover-player-stat-muted${isPending ? " is-pending" : ""}`;
+  }
+  return "lc-match-popover-row lc-match-popover-player-stat";
+}
+
+function formatHeadToHeadSummaryCount(value, singular, plural, isPending = false){
+  if(value == null){
+    return isPending ? "..." : "N/A";
+  }
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
+function HeadToHeadSummary({ summary, isPending }){
+  const showNeutralProgress = !summary.hasAnyData || summary.totalMatches === 0;
+  const leftLabelClass = `lc-match-popover-summary-label lc-match-popover-summary-label-left${summary.playerAWins == null ? " is-muted" : ""}`;
+  const centerLabelClass = `lc-match-popover-summary-label lc-match-popover-summary-label-center${summary.ties == null ? " is-muted" : ""}`;
+  const rightLabelClass = `lc-match-popover-summary-label lc-match-popover-summary-label-right${summary.playerBWins == null ? " is-muted" : ""}`;
+
+  return (
+    <div className="lc-match-popover-summary">
+      <Progress.Root
+        className="lc-match-popover-progress-root"
+        value={showNeutralProgress ? 0 : 100}
+        max={100}
+        data-empty={showNeutralProgress ? "true" : undefined}
+        aria-label="Ranked head-to-head summary across Seasons 9 to 11"
+      >
+        {showNeutralProgress ? null : (
+          <>
+            <Progress.Indicator
+              className="lc-match-popover-progress-indicator lc-match-popover-progress-indicator-left"
+              style={{ width: `${summary.playerAWinPercent}%` }}
+            />
+            <Progress.Indicator
+              className="lc-match-popover-progress-indicator lc-match-popover-progress-indicator-ties"
+              style={{ width: `${summary.tiePercent}%` }}
+            />
+            <Progress.Indicator
+              className="lc-match-popover-progress-indicator lc-match-popover-progress-indicator-right"
+              style={{ width: `${summary.playerBWinPercent}%` }}
+            />
+          </>
+        )}
+      </Progress.Root>
+
+      <div className="lc-match-popover-summary-labels" aria-hidden="true">
+        <span className={leftLabelClass}>{formatHeadToHeadSummaryCount(summary.playerAWins, "win", "wins", isPending)}</span>
+        <span className={centerLabelClass}>{formatHeadToHeadSummaryCount(summary.ties, "tie", "ties", isPending)}</span>
+        <span className={rightLabelClass}>{formatHeadToHeadSummaryCount(summary.playerBWins, "win", "wins", isPending)}</span>
+      </div>
+    </div>
+  );
+}
+
 function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded }){
   const [open, setOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState("");
+  const [isHeadToHeadLoading, setIsHeadToHeadLoading] = React.useState(false);
+  const [headToHeadLoadError, setHeadToHeadLoadError] = React.useState("");
+  const [headToHeadBySeason, setHeadToHeadBySeason] = React.useState(() => createHeadToHeadSeasonMap(null));
   const [, forceRefresh] = React.useReducer((value) => value + 1, 0);
 
   const info = typeof getMatchInfo === "function" ? getMatchInfo() : null;
   const topPlayer = info?.top || {};
   const bottomPlayer = info?.bottom || {};
   const seasonLabels = Array.isArray(info?.seasons) && info.seasons.length ? info.seasons : [9, 10, 11];
+  const topDiscordId = normalizeDiscordId(topPlayer?.discordId);
+  const bottomDiscordId = normalizeDiscordId(bottomPlayer?.discordId);
+  const headToHeadSummary = React.useMemo(
+    () => summarizeHeadToHeadAcrossSeasons(headToHeadBySeason),
+    [headToHeadBySeason]
+  );
 
   React.useEffect(() => {
     if(!open || typeof ensureRankedDataLoaded !== "function") return undefined;
@@ -197,6 +410,40 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded }){
       cancelled = true;
     };
   }, [open, ensureRankedDataLoaded]);
+
+  React.useEffect(() => {
+    if(!open) return undefined;
+    let cancelled = false;
+
+    if(!topDiscordId || !bottomDiscordId){
+      setHeadToHeadBySeason(createHeadToHeadSeasonMap(null));
+      setHeadToHeadLoadError("");
+      setIsHeadToHeadLoading(false);
+      return undefined;
+    }
+
+    setHeadToHeadBySeason(createHeadToHeadSeasonMap(undefined));
+    setHeadToHeadLoadError("");
+    setIsHeadToHeadLoading(true);
+
+    loadHeadToHeadSeasons(topDiscordId, bottomDiscordId)
+      .then((records) => {
+        if(cancelled) return;
+        setHeadToHeadBySeason(records);
+        setHeadToHeadLoadError("");
+        setIsHeadToHeadLoading(false);
+      })
+      .catch((error) => {
+        if(cancelled) return;
+        setHeadToHeadBySeason(error?.records instanceof Map ? error.records : createHeadToHeadSeasonMap(null));
+        setHeadToHeadLoadError(error?.message || "Head-to-head unavailable.");
+        setIsHeadToHeadLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, topDiscordId, bottomDiscordId]);
 
   const ariaLabel = info?.matchId
     ? `Match info for ${info.matchId}`
@@ -229,10 +476,28 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded }){
                 <div className="lc-match-popover-row lc-match-popover-player-stat">{getPlayerSeasonValue(bottomPlayer, season)}</div>
               </React.Fragment>
             ))}
+            <div className="lc-match-popover-row lc-match-popover-section-head">
+              <span>Ranked H2H</span>
+            </div>
+            <HeadToHeadSummary summary={headToHeadSummary} isPending={isHeadToHeadLoading && !headToHeadSummary.hasAnyData} />
+            {H2H_SEASONS.map((season) => {
+              const record = headToHeadBySeason.get(season);
+              const isPending = isHeadToHeadLoading && record === undefined;
+
+              return (
+                <React.Fragment key={`h2h-season-${season}`}>
+                  <div className={getHeadToHeadStatClass(record, isPending)}>{formatHeadToHeadRecord(record, "left", isPending)}</div>
+                  <div className={`lc-match-popover-row lc-match-popover-center-label${record == null ? " is-muted" : ""}`}>Season {season}</div>
+                  <div className={getHeadToHeadStatClass(record, isPending)}>{formatHeadToHeadRecord(record, "right", isPending)}</div>
+                </React.Fragment>
+              );
+            })}
           </div>
 
           {isLoading ? <p className="lc-match-popover-status">Loading ranked history...</p> : null}
+          {isHeadToHeadLoading ? <p className="lc-match-popover-status">Loading ranked H2H...</p> : null}
           {loadError ? <p className="lc-match-popover-status lc-match-popover-status-error">{loadError}</p> : null}
+          {headToHeadLoadError ? <p className="lc-match-popover-status lc-match-popover-status-error">{headToHeadLoadError}</p> : null}
 
           <Popover.Arrow className="lc-match-popover-arrow" width={14} height={8} />
         </Popover.Content>

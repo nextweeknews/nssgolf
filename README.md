@@ -16,3 +16,9 @@
   };
 </script>
 ```
+
+## Team Up H2H Proxy
+
+- Lightning Cup match popovers now load ranked head-to-head data from the same-origin endpoint `/api/teamup-head-to-head`.
+- The server-side function lives at `functions/api/teamup-head-to-head.js` and reads the secret env var `NSSGOLF_TEAMUP_API_KEY`.
+- Configure that secret only in your serverless host or local function runtime. Do not expose it via browser JavaScript or a public runtime config block.
