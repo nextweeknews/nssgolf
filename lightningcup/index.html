@@ -54,10 +54,13 @@
     .page-nav-select{ background: rgba(2,6,23,.85); color: inherit; border: 1px solid rgba(125,211,252,.35); border-radius: 10px; padding: 6px 32px 6px 10px; font: inherit; letter-spacing: inherit; text-transform: uppercase; max-width: min(56vw, 420px); cursor: pointer; }
     .topbar-user{ margin-left:auto; position:relative; display:none; align-items:center; gap:8px; }
     .topbar-user.is-visible{ display:flex; }
-    .user-greeting{ font-size:12px; font-weight:800; letter-spacing:.03em; color: rgba(233,238,248,0.92); }
-    .user-menu-button{ width:38px; height:38px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.92); display:grid; place-items:center; cursor:pointer; }
+    .user-greeting{ font-size:12px; font-weight:500; letter-spacing:.03em; color: rgba(233,238,248,0.92); }
+    .user-greeting-name{ font-weight:800; }
+    .user-menu-button{ width:38px; height:38px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.92); display:grid; place-items:center; cursor:pointer; overflow:hidden; padding:0; }
     .user-menu-button:hover{ background: var(--btn-bg-hover); border-color:var(--btn-border-hover); }
+    .user-menu-avatar{ width:100%; height:100%; object-fit:cover; display:block; }
     .user-menu-button svg{ width:18px; height:18px; fill: currentColor; }
+    .user-menu-button.has-avatar svg{ display:none; }
     .user-menu-dropdown{ position:absolute; top: calc(100% + 8px); right:0; min-width:220px; border-radius:12px; border:1px solid rgba(148,163,184,.35); background: rgba(2,8,24,.97); box-shadow: 0 24px 36px rgba(0,0,0,.48); padding:6px; display:none; z-index:30; }
     .user-menu-dropdown.is-open{ display:grid; gap:4px; }
     .user-menu-item{ width:100%; border:1px solid transparent; border-radius:9px; background: rgba(255,255,255,.04); color: rgba(255,255,255,.92); min-height:34px; padding:0 10px; text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:800; cursor:pointer; }
@@ -177,8 +180,9 @@
         </div>
       </div>
       <div class="topbar-user" id="topbarUserMenu" hidden>
-        <span class="user-greeting" id="topbarUserGreeting">Hi, Player</span>
+        <span class="user-greeting" id="topbarUserGreeting">Hi, <span class="user-greeting-name">Player</span></span>
         <button class="user-menu-button" id="topbarUserMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">
+          <img class="user-menu-avatar" id="topbarUserAvatar" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" hidden />
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 12.5c2.66 0 4.75-2.09 4.75-4.75S14.66 3 12 3 7.25 5.09 7.25 7.75 9.34 12.5 12 12.5zm0 2c-4.06 0-7.75 2.06-7.75 4.75V21h15.5v-1.75c0-2.69-3.69-4.75-7.75-4.75z"></path>
           </svg>
@@ -308,6 +312,7 @@
       allPicks: /** @type {PickRow[]} */ ([]),
       detailPredicted: /** @type {Map<number, PredictedMatch>} */ (new Map()),
       selectedBracketId: null,
+      userAvatarUrl: "",
       authSub: null,
       tournamentLoaded: false,
       lastDraftRestoreNoticeToken: "",
@@ -325,6 +330,7 @@
       topbarUserMenu: document.getElementById("topbarUserMenu"),
       topbarUserGreeting: document.getElementById("topbarUserGreeting"),
       topbarUserMenuBtn: document.getElementById("topbarUserMenuBtn"),
+      topbarUserAvatar: document.getElementById("topbarUserAvatar"),
       topbarUserDropdown: document.getElementById("topbarUserDropdown"),
       viewPlayerPageBtn: document.getElementById("viewPlayerPageBtn"),
       accountSettingsBtn: document.getElementById("accountSettingsBtn"),
@@ -563,6 +569,95 @@
       setMessage("Restored unsaved bracket edits.", "ok");
     }
 
+    function normalizeAvatarUrl(value){
+      const raw = normalizeName(value);
+      if(!raw) return "";
+      try{
+        const parsed = new URL(raw, window.location.origin);
+        if(parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+        return parsed.toString();
+      }catch{
+        return "";
+      }
+    }
+
+    function getAvatarUrlFromProviders(providers){
+      if(Array.isArray(providers)){
+        for(const entry of providers){
+          if(!entry || typeof entry !== "object") continue;
+          const entryProvider = normalizeName(entry.provider || entry.name || entry.id).toLowerCase();
+          if(entryProvider && entryProvider !== "discord") continue;
+          const nestedDiscord = entry.discord && typeof entry.discord === "object" ? entry.discord : null;
+          const candidate = normalizeAvatarUrl(
+            entry.avatar_url ||
+            entry.avatarUrl ||
+            entry.picture ||
+            entry.image_url ||
+            nestedDiscord?.avatar_url ||
+            nestedDiscord?.avatarUrl ||
+            nestedDiscord?.picture ||
+            nestedDiscord?.image_url
+          );
+          if(candidate) return candidate;
+        }
+        return "";
+      }
+      if(!providers || typeof providers !== "object") return "";
+      const discordProvider = providers.discord && typeof providers.discord === "object" ? providers.discord : null;
+      return normalizeAvatarUrl(
+        discordProvider?.avatar_url ||
+        discordProvider?.avatarUrl ||
+        discordProvider?.picture ||
+        discordProvider?.image_url ||
+        providers.avatar_url ||
+        providers.avatarUrl ||
+        providers.picture ||
+        providers.image_url
+      );
+    }
+
+    function getDiscordAvatarUrlFromAuthUser(user){
+      const providerCandidates = [
+        user?.providers,
+        user?.user_metadata?.providers,
+        user?.raw_user_meta_data?.providers,
+        user?.app_metadata?.providers,
+        user?.raw_app_meta_data?.providers,
+      ];
+      for(const providers of providerCandidates){
+        const url = getAvatarUrlFromProviders(providers);
+        if(url) return url;
+      }
+
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      const discordIdentity = identities.find((identity) => normalizeName(identity?.provider).toLowerCase() === "discord");
+      const identityData = discordIdentity?.identity_data && typeof discordIdentity.identity_data === "object"
+        ? discordIdentity.identity_data
+        : {};
+      const fromIdentity = normalizeAvatarUrl(
+        identityData.avatar_url ||
+        identityData.picture ||
+        identityData.image_url
+      );
+      if(fromIdentity) return fromIdentity;
+
+      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+      return normalizeAvatarUrl(metadata.avatar_url || metadata.picture || metadata.image_url);
+    }
+
+    function renderTopbarUserAvatar(){
+      const avatarUrl = normalizeAvatarUrl(state.userAvatarUrl);
+      if(!avatarUrl){
+        els.topbarUserAvatar.hidden = true;
+        els.topbarUserAvatar.removeAttribute("src");
+        els.topbarUserMenuBtn.classList.remove("has-avatar");
+        return;
+      }
+      els.topbarUserAvatar.src = avatarUrl;
+      els.topbarUserAvatar.hidden = false;
+      els.topbarUserMenuBtn.classList.add("has-avatar");
+    }
+
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
       els.flashMessage.textContent = clean;
@@ -572,11 +667,17 @@
       state.profile = null;
       state.userBracket = null;
       state.userPicks = new Map();
+      state.userAvatarUrl = "";
       state.lastDraftRestoreNoticeToken = "";
       els.usernameInput.value = "";
     };
     const setSessionState = (session) => {
       state.session = session?.user ? session : null;
+      if(!state.session){
+        state.userAvatarUrl = "";
+      }else if(!normalizeAvatarUrl(state.userAvatarUrl)){
+        state.userAvatarUrl = getDiscordAvatarUrlFromAuthUser(state.session.user);
+      }
       renderAuthShell();
     };
     const setAuthRefreshError = () => {
@@ -610,7 +711,12 @@
         els.topbarUserMenu.classList.remove("is-visible");
         return;
       }
-      els.topbarUserGreeting.textContent = `Hi, ${getGreetingName()}`;
+      const greetingName = getGreetingName();
+      els.topbarUserGreeting.replaceChildren(
+        document.createTextNode("Hi, "),
+        Object.assign(document.createElement("span"), { className: "user-greeting-name", textContent: greetingName })
+      );
+      renderTopbarUserAvatar();
       els.topbarUserMenu.hidden = false;
       els.topbarUserMenu.classList.add("is-visible");
     };
@@ -1143,6 +1249,7 @@
           : [];
       const discordUserId = getDiscordProviderIdFromIdentities(identities);
       const providerFullName = getProviderProfileName(authUser || state.session?.user);
+      state.userAvatarUrl = getDiscordAvatarUrlFromAuthUser(authUser || state.session?.user);
 
       let existingProfile = null;
       try{
@@ -1616,6 +1723,11 @@
       els.pickBracketGrid.addEventListener("click", (event) => {
         const infoBtn = event.target.closest("button[data-match-info]");
         if(infoBtn) openMatchModal(infoBtn.dataset.matchInfo, infoBtn.dataset.source);
+      });
+      els.topbarUserAvatar.addEventListener("error", () => {
+        els.topbarUserAvatar.hidden = true;
+        els.topbarUserAvatar.removeAttribute("src");
+        els.topbarUserMenuBtn.classList.remove("has-avatar");
       });
       els.detailBracketGrid.addEventListener("click", (event) => {
         const infoBtn = event.target.closest("button[data-match-info]");
