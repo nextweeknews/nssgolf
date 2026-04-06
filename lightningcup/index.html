@@ -46,6 +46,19 @@
     .home-badge img{ width:70%; height:70%; object-fit:contain; display:block; pointer-events:none; }
     .kicker{ font-size:11px; letter-spacing:.25em; text-transform:uppercase; color: rgba(255,255,255,.65); font-weight:900; }
     .page-nav-select{ background: rgba(2,6,23,.85); color: inherit; border: 1px solid rgba(125,211,252,.35); border-radius: 10px; padding: 6px 32px 6px 10px; font: inherit; letter-spacing: inherit; text-transform: uppercase; max-width: min(56vw, 420px); cursor: pointer; }
+    .topbar-user{ margin-left:auto; position:relative; display:none; align-items:center; gap:8px; }
+    .topbar-user.is-visible{ display:flex; }
+    .user-greeting{ font-size:12px; font-weight:800; letter-spacing:.03em; color: rgba(233,238,248,0.92); }
+    .user-menu-button{ width:38px; height:38px; border-radius:999px; border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(233,238,248,0.92); display:grid; place-items:center; cursor:pointer; }
+    .user-menu-button:hover{ background: var(--btn-bg-hover); border-color:var(--btn-border-hover); }
+    .user-menu-button svg{ width:18px; height:18px; fill: currentColor; }
+    .user-menu-dropdown{ position:absolute; top: calc(100% + 8px); right:0; min-width:220px; border-radius:12px; border:1px solid rgba(148,163,184,.35); background: rgba(2,8,24,.97); box-shadow: 0 24px 36px rgba(0,0,0,.48); padding:6px; display:none; z-index:30; }
+    .user-menu-dropdown.is-open{ display:grid; gap:4px; }
+    .user-menu-item{ width:100%; border:1px solid transparent; border-radius:9px; background: rgba(255,255,255,.04); color: rgba(255,255,255,.92); min-height:34px; padding:0 10px; text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:800; cursor:pointer; }
+    .user-menu-item:hover{ background: rgba(255,255,255,.10); border-color:rgba(255,255,255,.22); }
+    .user-menu-item[disabled]{ opacity:.5; cursor:not-allowed; }
+    .user-menu-item[disabled]:hover{ background: rgba(255,255,255,.04); border-color:transparent; }
+    .user-menu-divider{ height:1px; margin:4px 2px; background: rgba(148,163,184,.24); }
 
     .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
     .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
@@ -125,11 +138,45 @@
 
     .detail-head{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
 
-    @media (max-width:980px){ .two-col{ grid-template-columns:1fr; } .auth-grid{ grid-template-columns:1fr; } }
+    @media (max-width:980px){
+      .two-col{ grid-template-columns:1fr; }
+      .auth-grid{ grid-template-columns:1fr; }
+      .topbar-user{ width:100%; justify-content:flex-end; }
+    }
   </style>
 </head>
 <body>
-  <div class="topbar"><div class="topbar-inner"><div class="brand"><div class="home-badge" aria-hidden="true"><img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" /></div><div><select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;"><option value="/index.html">Home</option><option value="/worldopen/index.html">World Open</option><option value="/proleague/index.html">Shotgun Pro League</option><option value="/superleague/index.html">Super League</option><option value="/lightningcup/index.html" selected>Lightning Cup</option><option value="/beataidan/index.html">Beat Aidan</option></select></div></div></div></div>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true"><img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" /></div>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+            <option value="/index.html">Home</option>
+            <option value="/worldopen/index.html">World Open</option>
+            <option value="/proleague/index.html">Shotgun Pro League</option>
+            <option value="/superleague/index.html">Super League</option>
+            <option value="/lightningcup/index.html" selected>Lightning Cup</option>
+            <option value="/beataidan/index.html">Beat Aidan</option>
+          </select>
+        </div>
+      </div>
+      <div class="topbar-user" id="topbarUserMenu" hidden>
+        <span class="user-greeting" id="topbarUserGreeting">Hi, Player</span>
+        <button class="user-menu-button" id="topbarUserMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12.5c2.66 0 4.75-2.09 4.75-4.75S14.66 3 12 3 7.25 5.09 7.25 7.75 9.34 12.5 12 12.5zm0 2c-4.06 0-7.75 2.06-7.75 4.75V21h15.5v-1.75c0-2.69-3.69-4.75-7.75-4.75z"></path>
+          </svg>
+        </button>
+        <div class="user-menu-dropdown" id="topbarUserDropdown" role="menu" aria-labelledby="topbarUserMenuBtn">
+          <button class="user-menu-item" id="viewPlayerPageBtn" type="button" role="menuitem" disabled>View player page</button>
+          <button class="user-menu-item" id="accountSettingsBtn" type="button" role="menuitem" disabled>Account settings</button>
+          <div class="user-menu-divider" aria-hidden="true"></div>
+          <button class="user-menu-item" id="menuLogoutBtn" type="button" role="menuitem">Log out</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <main class="container">
     <section class="card" id="userCard">
@@ -139,7 +186,6 @@
 
       <div class="row auth-buttons" id="authButtonsRow">
         <button class="btn btn-primary" id="discordLoginBtn" type="button">Sign In With Discord</button>
-        <button class="btn auth-only" id="logoutBtn" type="button">Log Out</button>
       </div>
       <div class="auth-grid auth-only" id="controlsGrid">
         <label>Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
@@ -249,6 +295,13 @@
       mainTabs: document.getElementById("mainTabs"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
+      topbarUserMenu: document.getElementById("topbarUserMenu"),
+      topbarUserGreeting: document.getElementById("topbarUserGreeting"),
+      topbarUserMenuBtn: document.getElementById("topbarUserMenuBtn"),
+      topbarUserDropdown: document.getElementById("topbarUserDropdown"),
+      viewPlayerPageBtn: document.getElementById("viewPlayerPageBtn"),
+      accountSettingsBtn: document.getElementById("accountSettingsBtn"),
+      menuLogoutBtn: document.getElementById("menuLogoutBtn"),
       regionTabs: document.getElementById("regionTabs"),
       actualBracketGrid: document.getElementById("actualBracketGrid"),
       pickBracketGrid: document.getElementById("pickBracketGrid"),
@@ -262,7 +315,6 @@
       usernameInput: document.getElementById("usernameInput"),
       bracketSelect: document.getElementById("bracketSelect"),
       discordLoginBtn: document.getElementById("discordLoginBtn"),
-      logoutBtn: document.getElementById("logoutBtn"),
       authButtonsRow: document.getElementById("authButtonsRow"),
       saveProfileBtn: document.getElementById("saveProfileBtn"),
       savePicksBtn: document.getElementById("savePicksBtn"),
@@ -281,6 +333,7 @@
     const normalizeName = (value) => String(value || "").trim();
     const modalState = { chooseUsernameSubmitting: false };
     let discordSignInPending = false;
+    let userMenuOpen = false;
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
@@ -305,6 +358,32 @@
       if(els.discordLoginBtn){
         els.discordLoginBtn.disabled = isPending;
       }
+    };
+    const getGreetingName = () => {
+      const preferred = normalizeName(state.profile?.username);
+      if(preferred) return preferred;
+      const fallback = normalizeName(state.session?.user?.user_metadata?.username || state.session?.user?.user_metadata?.name);
+      if(fallback) return fallback;
+      const emailPrefix = normalizeName(state.session?.user?.email).split("@")[0];
+      return emailPrefix || "Player";
+    };
+    const setUserMenuOpen = (isOpen) => {
+      const open = !!isOpen && !!state.session;
+      userMenuOpen = open;
+      els.topbarUserDropdown.classList.toggle("is-open", open);
+      els.topbarUserMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    const renderTopbarUserMenu = () => {
+      const loggedIn = !!state.session;
+      if(!loggedIn){
+        setUserMenuOpen(false);
+        els.topbarUserMenu.hidden = true;
+        els.topbarUserMenu.classList.remove("is-visible");
+        return;
+      }
+      els.topbarUserGreeting.textContent = `Hi, ${getGreetingName()}`;
+      els.topbarUserMenu.hidden = false;
+      els.topbarUserMenu.classList.add("is-visible");
     };
 
     async function fetchSheet(range){
@@ -716,7 +795,8 @@
       const loggedIn = !!state.session;
       document.querySelectorAll(".auth-only").forEach((el) => { el.style.display = loggedIn ? "" : "none"; });
       els.discordLoginBtn.style.display = loggedIn ? "none" : "";
-      els.authButtonsRow.classList.toggle("is-logged-in", loggedIn);
+      els.authButtonsRow.style.display = loggedIn ? "none" : "";
+      renderTopbarUserMenu();
       if(!loggedIn) state.mainTab = "Actual Bracket";
     }
 
@@ -809,6 +889,7 @@
 
     function closeAuthModals(){
       closeChooseUsernameModal();
+      setUserMenuOpen(false);
     }
 
     async function ensureUserBracket(){
@@ -1097,6 +1178,23 @@
       els.matchModal.addEventListener("click", (event) => {
         if(event.target === els.matchModal) closeMatchModal();
       });
+      els.topbarUserMenuBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        setUserMenuOpen(!userMenuOpen);
+      });
+      document.addEventListener("click", (event) => {
+        if(!userMenuOpen) return;
+        if(els.topbarUserMenu.contains(event.target)) return;
+        setUserMenuOpen(false);
+      });
+      els.topbarUserDropdown.addEventListener("click", (event) => {
+        const clicked = event.target.closest("button");
+        if(!clicked) return;
+        if(clicked.disabled){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
 
       els.discordLoginBtn.addEventListener("click", async () => {
         if(discordSignInPending) return;
@@ -1144,7 +1242,7 @@
         }
       });
 
-      els.logoutBtn.addEventListener("click", async () => {
+      els.menuLogoutBtn.addEventListener("click", async () => {
         try{
           const { error } = await supabase.auth.signOut();
           if(error) return setMessage(error.message || "Logout failed.", "error");
@@ -1170,6 +1268,7 @@
 
       document.addEventListener("keydown", (event) => {
         if(event.key !== "Escape") return;
+        if(userMenuOpen) setUserMenuOpen(false);
         if(els.matchModal.classList.contains("is-open")) closeMatchModal();
         if(els.chooseUsernameModal.classList.contains("is-open") && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
