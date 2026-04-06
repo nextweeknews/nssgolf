@@ -71,7 +71,8 @@
 
     .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
     .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
-    .headline{ margin:0; font-size:20px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
+    .headline{ margin:0; font-size:22px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
+    .season-head{ min-height:44px; padding:2px 0; margin-bottom:8px; display:flex; align-items:center; justify-content:center; }
     .status{ margin:0; color:var(--muted); font-size:12px; text-align:center; }
 
     .tabs{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
@@ -113,20 +114,20 @@
     .qualifier-match-row.incorrect{ box-shadow: inset 0 0 0 999px var(--danger); }
     .qualifier-match-row.pending{ box-shadow: inset 0 0 0 999px var(--pending); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]){ cursor: pointer; }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(56,189,248,0.10); }
-    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(125,211,252,.72); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row:not([disabled]):hover:not(.selected){ box-shadow: inset 0 0 0 999px rgba(56,189,248,0.07); }
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-card.is-selected .qualifier-match-row + .qualifier-match-row{ border-top-color: rgba(125,211,252,.56); }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected,
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected.pending{
       z-index:4;
-      box-shadow: inset 0 0 0 999px rgba(125,211,252,.18);
+      box-shadow: inset 0 0 0 999px rgba(125,211,252,.12);
     }
     .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-match-row.selected:first-child::after{
       content:"";
       position:absolute;
       inset:0;
-      border-top:1px solid rgba(125,211,252,.76);
-      border-left:1px solid rgba(125,211,252,.76);
-      border-right:1px solid rgba(125,211,252,.76);
+      border-top:1px solid rgba(125,211,252,.56);
+      border-left:1px solid rgba(125,211,252,.56);
+      border-right:1px solid rgba(125,211,252,.56);
       border-top-left-radius:inherit;
       border-top-right-radius:inherit;
       pointer-events:none;
@@ -135,9 +136,9 @@
       content:"";
       position:absolute;
       inset:0;
-      border-bottom:1px solid rgba(125,211,252,.76);
-      border-left:1px solid rgba(125,211,252,.76);
-      border-right:1px solid rgba(125,211,252,.76);
+      border-bottom:1px solid rgba(125,211,252,.56);
+      border-left:1px solid rgba(125,211,252,.56);
+      border-right:1px solid rgba(125,211,252,.56);
       border-bottom-left-radius:inherit;
       border-bottom-right-radius:inherit;
       pointer-events:none;
@@ -185,6 +186,8 @@
     .detail-head{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
     .your-bracket-toolbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
     .your-bracket-toolbar .status{ margin:0; text-align:left; }
+    .your-bracket-toolbar .status.is-error{ color:#fca5a5; }
+    .your-bracket-toolbar .status.is-ok{ color:#bbf7d0; }
     .pick-progress{ margin-left:auto; display:flex; align-items:center; gap:8px; }
     .pick-progress-count{ font-size:16px; font-weight:900; letter-spacing:.03em; font-variant-numeric: tabular-nums; color:#fca5a5; }
     .pick-progress-count.is-complete{ color:#86efac; }
@@ -231,11 +234,10 @@
   </div>
 
   <main class="container">
-    <section class="card" id="userCard">
-      <h1 class="headline">Lightning Cup 2026</h1>
-      <p class="status" id="globalStatus">Loading tournament data…</p>
-      <p class="message is-hidden" id="flashMessage"></p>
-
+    <section class="card">
+      <div class="season-head">
+        <h1 class="headline">Lightning Cup 2026</h1>
+      </div>
       <div class="row auth-buttons" id="authButtonsRow">
         <button class="btn btn-primary" id="discordLoginBtn" type="button">Sign In With Discord</button>
       </div>
@@ -249,9 +251,6 @@
         <button class="btn" id="reloadBtn" type="button">Refresh Data</button>
       </div>
       <div class="row auth-only" id="summaryRow"></div>
-    </section>
-
-    <section class="card">
       <div class="tabs" id="mainTabs"></div>
       <div class="tabs" id="regionTabs"></div>
       <div id="actualPanel" class="main-tab-panel">
@@ -262,7 +261,7 @@
       <div id="yourPanel" class="main-tab-panel">
       <h2 class="headline" style="font-size:16px;">Your Predictive Bracket</h2>
       <div class="your-bracket-toolbar">
-        <p class="status" id="pickStatus">Pick all 63 matches. Future rounds are derived from your earlier picks.</p>
+        <p class="status" id="pickStatus"></p>
         <div class="pick-progress">
           <span class="pick-progress-count" id="pickProgressCount">Unsaved: 0/63 picks</span>
           <button class="btn btn-primary" id="savePicksBtn" type="button">Save progress</button>
@@ -351,13 +350,13 @@
       authSub: null,
       tournamentLoaded: false,
       lastDraftRestoreNoticeToken: "",
+      inlineStatusText: "",
+      inlineStatusType: "",
     };
 
     const supabase = createBrowserSupabaseClient();
 
     const els = {
-      globalStatus: document.getElementById("globalStatus"),
-      flashMessage: document.getElementById("flashMessage"),
       mainTabs: document.getElementById("mainTabs"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
@@ -712,10 +711,23 @@
       els.topbarUserMenuBtn.classList.add("has-avatar");
     }
 
+    function applyInlineStatusMessage(){
+      const clean = normalizeName(state.inlineStatusText);
+      els.pickStatus.textContent = clean;
+      els.pickStatus.classList.remove("is-error", "is-ok");
+      if(!clean) return;
+      if(state.inlineStatusType === "error"){
+        els.pickStatus.classList.add("is-error");
+      }else if(state.inlineStatusType === "ok"){
+        els.pickStatus.classList.add("is-ok");
+      }
+    }
+
     const setMessage = (text, type = "") => {
       const clean = normalizeName(text);
-      els.flashMessage.textContent = clean;
-      els.flashMessage.className = `message ${type} ${clean ? "" : "is-hidden"}`.trim();
+      state.inlineStatusText = clean;
+      state.inlineStatusType = clean ? normalizeName(type).toLowerCase() : "";
+      applyInlineStatusMessage();
     };
     const clearUserScopedState = () => {
       state.profile = null;
@@ -724,7 +736,10 @@
       setSavedPicksSnapshot(new Map(), { loaded: false });
       state.userAvatarUrl = "";
       state.lastDraftRestoreNoticeToken = "";
+      state.inlineStatusText = "";
+      state.inlineStatusType = "";
       els.usernameInput.value = "";
+      applyInlineStatusMessage();
     };
     const setSessionState = (session) => {
       state.session = session?.user ? session : null;
@@ -1085,15 +1100,22 @@
     function updateLockUI(){
       const locked = state.lockFlag === "yes";
       els.lockStatusInput.value = locked ? "YES (LOCKED)" : "NO (OPEN)";
-      if(!state.session){
-        els.pickStatus.textContent = "Log in to save picks.";
-      }else if(!state.profile?.username){
-        els.pickStatus.textContent = "Set a username to continue.";
-      }else if(locked && !state.userBracket){
-        els.pickStatus.textContent = "Bracket locked. New entries closed.";
-      }else{
-        els.pickStatus.textContent = locked ? "Bracket is locked. Picks are read-only." : "Pick all 63 matches. Future rounds are derived from your earlier picks.";
+      const hasInlineMessage = !!normalizeName(state.inlineStatusText);
+      if(!hasInlineMessage){
+        let defaultStatus = "";
+        if(!state.session){
+          defaultStatus = "Log in to save picks.";
+        }else if(!state.profile?.username){
+          defaultStatus = "Set a username to continue.";
+        }else if(locked && !state.userBracket){
+          defaultStatus = "Bracket locked. New entries closed.";
+        }else if(locked){
+          defaultStatus = "Bracket is locked. Picks are read-only.";
+        }
+        state.inlineStatusText = defaultStatus;
+        state.inlineStatusType = "";
       }
+      applyInlineStatusMessage();
       updatePickProgressUI();
     }
 
@@ -1112,9 +1134,10 @@
     function updatePickProgressUI(){
       const selectedCount = getSelectedPickCount();
       const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
-      const saveStateLabel = isCurrentUserBracketStateSaved() ? "Saved" : "Unsaved";
+      const isSaved = isCurrentUserBracketStateSaved();
+      const saveStateLabel = isSaved ? "Saved" : "Unsaved";
       els.pickProgressCount.textContent = `${saveStateLabel}: ${selectedCount}/${TOTAL_BRACKET_MATCHES} picks`;
-      els.pickProgressCount.classList.toggle("is-complete", isComplete);
+      els.pickProgressCount.classList.toggle("is-complete", isSaved && isComplete);
       els.savePicksBtn.textContent = isComplete ? "Save" : "Save progress";
       els.savePicksBtn.disabled = !canSaveUserBracket();
     }
@@ -1228,7 +1251,6 @@
       renderLeaderboard();
       renderBracketDetail();
       updateLockUI();
-      els.globalStatus.textContent = `Loaded ${state.actualMatches.length} matches and ${state.players.size} players.`;
     }
 
     function renderFallbackTournamentView(){
@@ -1240,7 +1262,6 @@
       els.actualPanel.classList.add("is-active");
       els.yourPanel.classList.remove("is-active");
       els.leaderboardPanel.classList.remove("is-active");
-      els.globalStatus.textContent = `Loaded ${state.actualMatches.length} matches and ${state.players.size} players.`;
     }
 
     function renderAuthUI(){
@@ -1956,7 +1977,6 @@
         setMessage("");
       }catch{
         setMessage("Initialization failed. Please refresh and try again.", "error");
-        els.globalStatus.textContent = "Failed to load initial data.";
       }
     }
 
