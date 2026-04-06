@@ -337,7 +337,9 @@
       background: var(--btn-bg);
       color: rgba(233,238,248,0.86);
       font-size:11px;
-      font-weight:900;
+      font-family: Georgia, "Times New Roman", serif;
+      font-style: italic;
+      font-weight:700;
       cursor:pointer;
       display:grid;
       place-items:center;
@@ -458,15 +460,17 @@
     .modal-footer{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
 
     .lc-match-popover-content{
-      width: min(760px, calc(100vw - 24px));
+      --lc-match-popover-surface: rgba(6,13,30,.985);
+      width: min(560px, calc(100vw - 24px));
       border-radius: 16px;
-      border: 1px solid rgba(148,163,184,.34);
-      background: linear-gradient(180deg, rgba(7,15,35,.99), rgba(2,8,24,.98));
-      box-shadow: 0 28px 48px rgba(0,0,0,.56);
-      padding: 12px;
+      border: 0;
+      background: var(--lc-match-popover-surface);
+      box-shadow: 0 28px 48px rgba(0,0,0,.56), 0 0 0 1px rgba(148,163,184,.14);
+      padding: 14px 12px 12px;
       display: grid;
       gap: 10px;
       z-index: 60;
+      overflow: visible;
       animation: lc-match-popover-in 170ms cubic-bezier(.16,1,.3,1);
       transform-origin: var(--radix-popover-content-transform-origin);
     }
@@ -474,85 +478,60 @@
     .lc-match-popover-content[data-side="left"]{ animation-name: lc-match-popover-in-left; }
     .lc-match-popover-content[data-side="top"]{ animation-name: lc-match-popover-in-top; }
     .lc-match-popover-content[data-side="bottom"]{ animation-name: lc-match-popover-in-bottom; }
-    .lc-match-popover-head{
-      display:flex;
-      flex-wrap:wrap;
-      align-items:center;
-      gap:6px;
-      justify-content:space-between;
-    }
-    .lc-match-popover-badge{
-      border-radius:999px;
-      border:1px solid rgba(125,211,252,.42);
-      background: rgba(56,189,248,.14);
-      color:#e0f2fe;
-      font-size:10px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      padding:4px 9px;
-    }
-    .lc-match-popover-meta{
-      color: rgba(226,232,240,.9);
-      font-size:10px;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-      font-weight:750;
-    }
     .lc-match-popover-compare{
-      border:1px solid rgba(148,163,184,.24);
-      border-radius:12px;
-      overflow:hidden;
       display:grid;
-      grid-template-columns: minmax(0,1fr) 88px minmax(0,1fr);
-      background: rgba(15,23,42,.58);
+      grid-template-columns: minmax(0,1fr) 82px minmax(0,1fr);
+      column-gap: 10px;
+      row-gap: 8px;
+      align-items:center;
     }
     .lc-match-popover-player{
       min-width:0;
-      display:grid;
-      grid-template-rows:repeat(6, minmax(0, auto));
     }
     .lc-match-popover-player-left{
       --player-accent: 96,165,250;
-      --player-border: rgba(96,165,250,.34);
-      background: linear-gradient(180deg, rgba(29,78,216,.16), rgba(15,23,42,.36));
     }
     .lc-match-popover-player-right{
       --player-accent: 34,197,94;
-      --player-border: rgba(34,197,94,.34);
-      background: linear-gradient(180deg, rgba(22,163,74,.16), rgba(15,23,42,.36));
     }
-    .lc-match-popover-center{
+    .lc-match-popover-center-spacer{
       min-width:0;
-      display:grid;
-      grid-template-rows:repeat(6, minmax(0, auto));
-      border-left:1px solid rgba(148,163,184,.24);
-      border-right:1px solid rgba(148,163,184,.24);
-      background: rgba(2,8,24,.58);
     }
     .lc-match-popover-row{
       min-height:30px;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:6px 8px;
-      border-bottom:1px solid rgba(148,163,184,.2);
+      padding:5px 4px;
       font-size:12px;
+      line-height:1.25;
     }
-    .lc-match-popover-row:last-child{ border-bottom:0; }
-    .lc-match-popover-player-head{ justify-content:flex-start; gap:8px; border-bottom-color: var(--player-border); }
-    .lc-match-popover-player-seed{
-      min-width:30px;
+    .lc-match-popover-player-head{
+      flex-direction:column;
+      gap:8px;
       text-align:center;
-      border-radius:8px;
-      border:1px solid rgba(var(--player-accent), .5);
-      background: rgba(var(--player-accent), .15);
-      color:#e2e8f0;
-      font-size:10px;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-      font-weight:850;
-      padding:4px 6px;
+      padding-bottom:3px;
+    }
+    .lc-match-popover-player-head::after{
+      content:"";
+      width:100%;
+      height:3px;
+      border-radius:999px;
+      background: rgba(var(--player-accent), .82);
+    }
+    .lc-match-popover-player-heading{
+      min-width:0;
+      display:flex;
+      align-items:baseline;
+      justify-content:center;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .lc-match-popover-player-seed{
+      color: rgba(148,163,184,.92);
+      font-size:12px;
+      font-weight:650;
+      letter-spacing:.01em;
       flex:0 0 auto;
     }
     .lc-match-popover-player-name{
@@ -561,32 +540,23 @@
       font-weight:900;
       letter-spacing:.02em;
       text-transform:uppercase;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .lc-match-popover-player-discord{
-      color: rgba(226,232,240,.9);
-      font-size:11px;
-      justify-content:flex-start;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      text-align:center;
+      overflow-wrap:anywhere;
     }
     .lc-match-popover-section-head{
-      position:relative;
+      grid-column:1 / -1;
       color: rgba(241,245,249,.95);
       font-size:10px;
-      letter-spacing:.09em;
+      letter-spacing:.11em;
       text-transform:uppercase;
       font-weight:860;
-      border-bottom-color: rgba(148,163,184,.24);
-      justify-content:center;
+      padding-top:1px;
     }
     .lc-match-popover-section-head span{
-      display:inline-flex;
+      display:flex;
       align-items:center;
-      gap:6px;
+      justify-content:center;
+      gap:8px;
       width:100%;
     }
     .lc-match-popover-section-head span::before,
@@ -597,10 +567,10 @@
       background: rgba(148,163,184,.36);
     }
     .lc-match-popover-player-stat{
-      justify-content:flex-start;
       color:#f8fafc;
       font-weight:760;
       font-variant-numeric: tabular-nums;
+      text-align:center;
     }
     .lc-match-popover-center-label{
       color: rgba(148,163,184,.95);
@@ -616,9 +586,13 @@
       color: rgba(191,219,254,.92);
       font-size:11px;
       letter-spacing:.03em;
+      text-align:center;
     }
     .lc-match-popover-status-error{ color:#fecaca; }
-    .lc-match-popover-arrow{ fill: rgba(7,15,35,.98); }
+    .lc-match-popover-arrow{
+      fill: var(--lc-match-popover-surface);
+      filter: drop-shadow(0 8px 14px rgba(0,0,0,.28));
+    }
 
     table.leaderboard{ width:100%; border-collapse:separate; border-spacing:0 6px; font-size:12px; }
     .leaderboard th{ text-align:center; color:var(--muted); font-size:8px; text-transform:uppercase; letter-spacing:.03em; padding:8px 6px; background: var(--header-bg); }
@@ -642,21 +616,24 @@
       .lc-nav-list{ grid-template-columns:1fr; }
       .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
       .lc-match-popover-content{
-        width: min(640px, calc(100vw - 20px));
-        padding:10px;
+        width: min(520px, calc(100vw - 20px));
+        padding:12px 10px 10px;
       }
       .lc-match-popover-compare{
-        grid-template-columns: minmax(0,1fr) 76px minmax(0,1fr);
+        grid-template-columns: minmax(0,1fr) 74px minmax(0,1fr);
       }
-      .lc-match-popover-row{ min-height:28px; padding:5px 6px; }
+      .lc-match-popover-row{ min-height:28px; padding:4px 2px; }
+      .lc-match-popover-player-heading{ gap:5px; }
       .lc-match-popover-player-name{ font-size:11px; }
+      .lc-match-popover-player-seed{ font-size:11px; }
       .lc-match-popover-player-stat{ font-size:11px; }
     }
     @media (max-width:620px){
       .lc-match-popover-content{ width: calc(100vw - 16px); }
-      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 66px minmax(0,1fr); }
+      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 64px minmax(0,1fr); }
       .lc-match-popover-center-label{ font-size:8px; letter-spacing:.09em; }
-      .lc-match-popover-player-seed{ min-width:26px; padding:3px 5px; }
+      .lc-match-popover-player-heading{ gap:4px; }
+      .lc-match-popover-player-head::after{ height:2px; }
     }
 
     @keyframes lc-match-popover-in{
@@ -1507,7 +1484,6 @@
       return {
         seedLabel: slot?.seed != null ? `#${slot.seed}` : "—",
         name: name || "TBD",
-        discordLabel: discordId || "No Discord ID",
         seasons: RANKED_SEASONS.map((season) => ({
           season,
           value: formatRankedSeasonValue(getRankedEntryForPlayerSeason(discordId, season)),

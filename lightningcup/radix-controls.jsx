@@ -147,25 +147,22 @@ function RegionTabs({ tabs, activeTab, onRegionTabChange }){
 
 function PlayerComparisonColumn({ side, player }){
   const playerName = player?.name || "TBD";
-  const seedLabel = player?.seedLabel || "-";
-  const discordLabel = player?.discordLabel || "No Discord ID";
-  const seasonRows = Array.isArray(player?.seasons) ? player.seasons : [];
+  const seedLabel = player?.seedLabel && player.seedLabel !== "—" ? player.seedLabel : "";
 
   return (
-    <section className={`lc-match-popover-player lc-match-popover-player-${side}`}>
-      <div className="lc-match-popover-row lc-match-popover-player-head" title={playerName}>
-        <span className="lc-match-popover-player-seed">{seedLabel}</span>
+    <div className={`lc-match-popover-row lc-match-popover-player lc-match-popover-player-${side} lc-match-popover-player-head`} title={playerName}>
+      <div className="lc-match-popover-player-heading">
+        {seedLabel ? <span className="lc-match-popover-player-seed">{seedLabel}</span> : null}
         <span className="lc-match-popover-player-name">{playerName}</span>
       </div>
-      <div className="lc-match-popover-row lc-match-popover-player-discord" title={discordLabel}>{discordLabel}</div>
-      <div className="lc-match-popover-row lc-match-popover-section-head">
-        <span>Ranked Performance</span>
-      </div>
-      {seasonRows.map((row) => (
-        <div key={`${side}-season-${row.season}`} className="lc-match-popover-row lc-match-popover-player-stat">{row.value || "Unranked"}</div>
-      ))}
-    </section>
+    </div>
   );
+}
+
+function getPlayerSeasonValue(player, season){
+  const seasonRows = Array.isArray(player?.seasons) ? player.seasons : [];
+  const seasonRow = seasonRows.find((row) => `${row?.season}` === `${season}`);
+  return seasonRow?.value || "Unranked";
 }
 
 function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded }){
@@ -218,23 +215,20 @@ function MatchInfoPopover({ getMatchInfo, ensureRankedDataLoaded }){
           sideOffset={10}
           collisionPadding={12}
         >
-          <div className="lc-match-popover-head">
-            <span className="lc-match-popover-badge">Match {info?.matchId ?? "-"}</span>
-            <span className="lc-match-popover-meta">Round {info?.round || "-"}</span>
-            <span className="lc-match-popover-meta">{info?.winnerLabel || "Winner: TBD"}</span>
-          </div>
-
           <div className="lc-match-popover-compare">
             <PlayerComparisonColumn side="left" player={topPlayer} />
-            <div className="lc-match-popover-center" aria-hidden="true">
-              <div className="lc-match-popover-row lc-match-popover-center-label">Player</div>
-              <div className="lc-match-popover-row lc-match-popover-center-label">Discord</div>
-              <div className="lc-match-popover-row lc-match-popover-center-label">Stats</div>
-              {seasonLabels.map((season) => (
-                <div key={`season-label-${season}`} className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
-              ))}
-            </div>
+            <div className="lc-match-popover-center-spacer" aria-hidden="true" />
             <PlayerComparisonColumn side="right" player={bottomPlayer} />
+            <div className="lc-match-popover-row lc-match-popover-section-head">
+              <span>Ranked Performance</span>
+            </div>
+            {seasonLabels.map((season) => (
+              <React.Fragment key={`season-label-${season}`}>
+                <div className="lc-match-popover-row lc-match-popover-player-stat">{getPlayerSeasonValue(topPlayer, season)}</div>
+                <div className="lc-match-popover-row lc-match-popover-center-label">Season {season}</div>
+                <div className="lc-match-popover-row lc-match-popover-player-stat">{getPlayerSeasonValue(bottomPlayer, season)}</div>
+              </React.Fragment>
+            ))}
           </div>
 
           {isLoading ? <p className="lc-match-popover-status">Loading ranked history...</p> : null}
