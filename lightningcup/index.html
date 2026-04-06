@@ -398,16 +398,20 @@
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
     .qualifier-match-row + .qualifier-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .qualifier-match-row.winner{ background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.55); }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner{
+      background: rgba(var(--region-accent-rgb), .12);
+      border-color: rgba(var(--region-accent-rgb), .55);
+    }
     .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner + .qualifier-match-row{
-      border-top-color: rgba(34,197,94,.44);
+      border-top-color: rgba(var(--region-accent-rgb), .44);
     }
     .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner:first-child::after{
       content:"";
       position:absolute;
       inset:0;
-      border-top:1px solid rgba(34,197,94,.44);
-      border-left:1px solid rgba(34,197,94,.44);
-      border-right:1px solid rgba(34,197,94,.44);
+      border-top:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
       border-top-left-radius:inherit;
       border-top-right-radius:inherit;
       pointer-events:none;
@@ -416,9 +420,9 @@
       content:"";
       position:absolute;
       inset:0;
-      border-bottom:1px solid rgba(34,197,94,.44);
-      border-left:1px solid rgba(34,197,94,.44);
-      border-right:1px solid rgba(34,197,94,.44);
+      border-bottom:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
       border-bottom-left-radius:inherit;
       border-bottom-right-radius:inherit;
       pointer-events:none;
@@ -538,17 +542,6 @@
     .qualifier-player-name{ min-width:0; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.02em; color:#fff; }
     .qualifier-player-name.is-picked-correct{ color:#bbf7d0; }
     .qualifier-player-name.is-picked-incorrect{ color:#fecaca; }
-    .qualifier-player-pick-status{
-      flex:0 0 auto;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      width:15px;
-      height:15px;
-      color: rgba(148,163,184,.7);
-    }
-    .qualifier-player-pick-status.is-correct{ color:#86efac; }
-    .qualifier-player-pick-status.is-incorrect{ color:#fca5a5; }
     .qualifier-pick-status-icon{ display:block; width:15px; height:15px; }
     .qualifier-row-radio{
       width:var(--qualifier-pick-indicator-width);
@@ -588,6 +581,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-end;
+      gap:4px;
       color: rgba(148,163,184,.7);
       font-size:9px;
       font-weight:850;
@@ -601,7 +595,9 @@
     .qualifier-player-pick-points.is-correct{ color:#86efac; }
     .qualifier-player-pick-points.is-incorrect{ color:#fca5a5; }
     .qualifier-player-final-score{ width:var(--qualifier-final-score-width); height:16px; border-radius:6px; border:1px solid rgba(255,255,255,.9); color:#fff; text-align:center; font-variant-numeric: tabular-nums; font-weight:900; display:flex; align-items:center; justify-content:center; justify-self:stretch; padding:0; line-height:1; white-space:nowrap; background: transparent; }
-    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-player-final-score{ background:#fff; border-color:#fff; color:#000; }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-player-final-score,
+    .qualifier-bracket-grid[data-bracket-mode="pick"] .qualifier-player-final-score,
+    .qualifier-bracket-grid[data-bracket-mode="detail"] .qualifier-player-final-score{ background:#fff; border-color:#fff; color:#000; }
 
     .auth-grid{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
     .auth-buttons{ justify-content:center; margin-top:2px; }
@@ -1223,6 +1219,17 @@
       display:grid;
       gap:12px;
       overflow:hidden;
+      transition:
+        padding 280ms cubic-bezier(.22,.9,.28,1),
+        gap 280ms cubic-bezier(.22,.9,.28,1),
+        border-color 220ms ease,
+        background-color 220ms ease;
+    }
+    .leaderboard-detail-shell.is-collapsing .leaderboard-detail-card{
+      padding:0;
+      gap:0;
+      border-color: transparent;
+      background: transparent;
     }
     .leaderboard-detail-tabs{
       display:grid;
@@ -1241,6 +1248,15 @@
       border-radius:14px;
       border:1px solid rgba(148,163,184,.16);
       background: rgba(2,8,24,.28);
+      transition:
+        padding 280ms cubic-bezier(.22,.9,.28,1),
+        border-color 220ms ease,
+        background-color 220ms ease;
+    }
+    .leaderboard-detail-shell.is-collapsing .leaderboard-detail-panel{
+      padding:0;
+      border-color: transparent;
+      background: transparent;
     }
     .leaderboard-detail-grid{
       justify-content:flex-start;
@@ -1418,17 +1434,17 @@
     const AUTH_RETURN_PATH = "/lightningcup/index.html";
     const ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final"];
     const ROUND_NUMBER = { R64: 1, R32: 2, R16: 3, R8: 4, R4: 5, Final: 6 };
-    const REGION_TABS = ["Wii Plaza", "Wuhu Island", "Wedge Island", "Spocco Square", "Finals"];
+    const REGION_TABS = ["Wii Plaza", "Wuhu Island", "Spocco Square", "Wedge Island", "Finals"];
     const REGION_ID_BY_TAB = {
       "Wii Plaza": 1,
       "Wuhu Island": 4,
-      "Wedge Island": 3,
-      "Spocco Square": 2,
+      "Spocco Square": 3,
+      "Wedge Island": 2,
     };
     const REGION_ACCENT_RGB_BY_TAB = {
       "Wii Plaza": "250,204,21",
-      "Spocco Square": "125,211,252",
-      "Wedge Island": "249,115,22",
+      "Spocco Square": "249,115,22",
+      "Wedge Island": "125,211,252",
       "Wuhu Island": "168,85,247",
       Finals: "234,179,8",
     };
@@ -2588,22 +2604,21 @@
                 const disabled = !clickable || lockPicking || !slot.name;
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
                 const detailStatusClass = hydrated?.is_correct === true ? " is-correct" : hydrated?.is_correct === false ? " is-incorrect" : "";
-                const detailStatusIcon = hydrated?.is_correct === true
-                  ? getRadixCheckIconMarkup()
-                  : hydrated?.is_correct === false
-                    ? getRadixCross2IconMarkup()
-                    : "";
-                const detailStatusMarkup = isDetailMode && isPicked && detailStatusIcon
-                  ? `<span class="qualifier-player-pick-status${detailStatusClass}" aria-hidden="true">${detailStatusIcon}</span>`
-                  : "";
                 const nameClass = isPicked && hydrated?.is_correct === true
                   ? "qualifier-player-name is-picked-correct"
                   : isPicked && hydrated?.is_correct === false
                     ? "qualifier-player-name is-picked-incorrect"
                     : "qualifier-player-name";
+                const detailPointsMarkup = !isPicked
+                  ? ""
+                  : hydrated?.is_correct === true
+                    ? `${getRadixCheckIconMarkup()}<span>+${hydrated.points_awarded || 0} pts</span>`
+                    : hydrated?.is_correct === false
+                      ? getRadixCross2IconMarkup()
+                      : "";
                 const scoreMarkup = showScoreIndicators
                   ? isDetailMode
-                    ? `<span class="qualifier-player-scorepack is-detail"><span class="qualifier-player-pick-points${detailStatusClass}">${isPicked && hydrated?.is_correct === true ? `+${hydrated.points_awarded || 0} pts` : ""}</span><span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
+                    ? `<span class="qualifier-player-scorepack is-detail"><span class="qualifier-player-pick-points${detailStatusClass}">${detailPointsMarkup}</span><span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
                     : `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
                   : "";
                 const pickRadioMarkup = showPickRadioIndicator
@@ -2617,7 +2632,7 @@
                   stateClass,
                 ].filter(Boolean).join(" ");
                 const nameMarkup = isDetailMode
-                  ? `<span class="qualifier-player-name-slot"><span class="${nameClass}">${safeName}</span>${detailStatusMarkup}</span>`
+                  ? `<span class="qualifier-player-name-slot"><span class="${nameClass}">${safeName}</span></span>`
                   : `<span class="${nameClass}">${safeName}</span>`;
                 return `<button class="${rowClasses}" ${disabled ? "disabled" : ""} data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}" type="button"><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickRadioMarkup}</button>`;
               };
@@ -2791,6 +2806,7 @@
       shell.style.opacity = "1";
       shell.offsetHeight;
       requestAnimationFrame(() => {
+        shell.classList.add("is-collapsing");
         shell.classList.remove("is-expanded");
         shell.style.height = "0px";
         shell.style.opacity = "0";
@@ -2799,6 +2815,7 @@
         if(finished) return;
         finished = true;
         shell.removeEventListener("transitionend", handleTransitionEnd);
+        shell.classList.remove("is-collapsing");
         onComplete?.();
       };
       const handleTransitionEnd = (event) => {
@@ -2813,6 +2830,7 @@
       const shell = els.leaderboardTable.querySelector(`[data-leaderboard-detail-shell="${CSS.escape(String(bracketId))}"]`);
       if(!shell) return;
       let cleaned = false;
+      shell.classList.remove("is-collapsing");
       const targetHeight = shell.scrollHeight;
       shell.style.height = "0px";
       shell.style.opacity = "0";
@@ -2837,11 +2855,21 @@
       window.setTimeout(cleanup, 360);
     }
 
+    function setLeaderboardRowExpandedState(bracketId, isExpanded){
+      const safeBracketId = normalizeName(bracketId);
+      if(!safeBracketId) return;
+      const toggle = els.leaderboardTable.querySelector(`[data-toggle-bracket-detail="${CSS.escape(safeBracketId)}"]`);
+      const row = toggle?.closest(".leaderboard-row");
+      if(!row) return;
+      row.classList.toggle("is-expanded", !!isExpanded);
+    }
+
     function toggleLeaderboardBracketDetail(bracketId){
       const nextBracketId = normalizeName(bracketId);
       if(!nextBracketId) return;
       const currentBracketId = normalizeName(state.selectedBracketId);
       if(currentBracketId === nextBracketId){
+        setLeaderboardRowExpandedState(currentBracketId, false);
         animateLeaderboardDetailClose(() => {
           state.selectedBracketId = null;
           state.detailPredicted = new Map();
@@ -2857,6 +2885,7 @@
       };
 
       if(currentBracketId){
+        setLeaderboardRowExpandedState(currentBracketId, false);
         animateLeaderboardDetailClose(openNext);
         return;
       }
