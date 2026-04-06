@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020B18" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>Lightning Cup Match</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B;
+      --bg2:#04142E;
+      --bg3:#020B18;
+      --text:#e9eef8;
+      --muted:#9ca3c7;
+      --title:#c7d7ff;
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --match-region-rgb: 125,211,252;
+    }
+    *{ box-sizing:border-box; }
+    html{ background-color: var(--bg3); }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background-color: var(--bg3);
+      background-image: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.72);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding:14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .home-badge{
+      width:40px;
+      height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+    .home-badge img{
+      width:70%;
+      height:70%;
+      object-fit:contain;
+      display:block;
+    }
+    .brand-copy{
+      display:grid;
+      gap:2px;
+    }
+    .brand-kicker{
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.22em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.64);
+    }
+    .brand-title{
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      color: var(--title);
+    }
+    .back-link{
+      color: rgba(191,219,254,.92);
+      text-decoration:none;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .back-link:hover{ color:#fff; }
+    .match-shell{
+      max-width:1100px;
+      margin:0 auto;
+      padding:24px 18px 52px;
+      display:grid;
+      gap:14px;
+    }
+    .card{
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding:18px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+      display:grid;
+      gap:12px;
+    }
+    .match-page-status{
+      margin:0;
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid rgba(248,113,113,.28);
+      background: rgba(127,29,29,.25);
+      color:#fecaca;
+      font-size:13px;
+      font-weight:700;
+    }
+    .match-page-status.is-hidden{ display:none; }
+    .match-eyebrow{
+      color: rgba(148,163,184,.9);
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+    }
+    .match-title{
+      margin:0;
+      font-size:30px;
+      font-weight:950;
+      letter-spacing:.03em;
+      color: var(--title);
+      text-transform:uppercase;
+    }
+    .match-meta{
+      margin:0;
+      color: rgba(var(--match-region-rgb), .95);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .match-status-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .match-status-chip{
+      display:inline-flex;
+      align-items:center;
+      min-height:30px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(148,163,184,.26);
+      background: rgba(255,255,255,.05);
+      color: rgba(233,238,248,.92);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .match-status-chip.is-ok{
+      border-color: rgba(74,222,128,.35);
+      background: rgba(34,197,94,.16);
+      color:#dcfce7;
+    }
+    .match-status-chip.is-warn{
+      border-color: rgba(250,204,21,.35);
+      background: rgba(250,204,21,.14);
+      color:#fef3c7;
+    }
+    .match-status-chip.is-error{
+      border-color: rgba(248,113,113,.35);
+      background: rgba(239,68,68,.16);
+      color:#fecaca;
+    }
+    .section-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .section-label{
+      color: rgba(148,163,184,.88);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .participant-grid{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);
+      gap:12px;
+      align-items:stretch;
+    }
+    .participant-card{
+      border-radius:16px;
+      border:1px solid rgba(var(--match-region-rgb), .22);
+      background: rgba(255,255,255,.04);
+      padding:14px;
+      display:grid;
+      gap:8px;
+    }
+    .participant-seed{
+      color: rgba(148,163,184,.92);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.1em;
+      text-transform:uppercase;
+    }
+    .participant-name{
+      font-size:22px;
+      font-weight:950;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      color:#fff;
+    }
+    .participant-discord{
+      color: rgba(191,219,254,.92);
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.04em;
+    }
+    .versus-pill{
+      display:grid;
+      place-items:center;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.04);
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color: rgba(250,204,21,.96);
+    }
+    .body-copy{
+      margin:0;
+      color: rgba(233,238,248,.92);
+      font-size:14px;
+      line-height:1.55;
+    }
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .btn-primary{
+      min-height:38px;
+      padding:0 14px;
+      border:1px solid rgba(96,165,250,.5);
+      border-radius:999px;
+      background: linear-gradient(180deg, rgba(96,165,250,.95), rgba(59,130,246,.86));
+      color:#020617;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      cursor:pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+    }
+    .btn-primary:hover{ filter:brightness(1.05); }
+    .channel-meta{
+      color: rgba(148,163,184,.88);
+      font-size:12px;
+      font-weight:700;
+    }
+    .channel-meta code{
+      color:#e0f2fe;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size:12px;
+    }
+    .realtime-payload{
+      margin:0;
+      min-height:96px;
+      padding:14px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.16);
+      background: rgba(2,6,23,.55);
+      color:#bfdbfe;
+      font-size:12px;
+      line-height:1.5;
+      overflow:auto;
+    }
+    @media (max-width:760px){
+      .match-title{ font-size:24px; }
+      .participant-grid{ grid-template-columns:1fr; }
+      .versus-pill{ min-height:52px; }
+      .participant-name{ font-size:18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true"><img src="/logos/golf.png" alt="" loading="eager" decoding="async" /></div>
+        <div class="brand-copy">
+          <span class="brand-kicker">Lightning Cup</span>
+          <span class="brand-title">Match Page</span>
+        </div>
+      </div>
+      <a class="back-link" href="/lightningcup/index.html">Back to Lightning Cup</a>
+    </div>
+  </div>
+
+  <main class="match-shell">
+    <p class="match-page-status is-hidden" id="pageStatus"></p>
+
+    <section class="card">
+      <span class="match-eyebrow">Authenticated Player Match Shell</span>
+      <h1 class="match-title" id="matchTitle">Loading match</h1>
+      <p class="match-meta" id="matchMeta">Preparing matchup context</p>
+      <div class="match-status-row">
+        <span class="match-status-chip" id="authChip">SIGNED OUT</span>
+        <span class="match-status-chip" id="realtimeChip">IDLE</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <span class="section-label">Participants</span>
+        <span class="section-label">Match ID <span id="matchIdValue">-</span></span>
+      </div>
+      <div class="participant-grid">
+        <article class="participant-card">
+          <span class="participant-seed" id="participantTopSeed">TBD</span>
+          <span class="participant-name" id="participantTopName">TBD</span>
+          <span class="participant-discord" id="participantTopDiscord">Discord ID unavailable</span>
+        </article>
+        <div class="versus-pill">VS</div>
+        <article class="participant-card">
+          <span class="participant-seed" id="participantBottomSeed">TBD</span>
+          <span class="participant-name" id="participantBottomName">TBD</span>
+          <span class="participant-discord" id="participantBottomDiscord">Discord ID unavailable</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <span class="section-label">Access</span>
+      </div>
+      <p class="body-copy" id="authNotice">Sign in with your Discord-linked account to confirm player access for this match.</p>
+      <div class="actions">
+        <button class="btn-primary" id="signInBtn" type="button">Sign In With Discord</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <span class="section-label">Future Match UI</span>
+        <span class="section-label">Phase 1</span>
+      </div>
+      <p class="body-copy" id="placeholderText">This page is the starter shell for the future live Lightning Cup head-to-head experience.</p>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <span class="section-label">Realtime Foundation</span>
+        <span class="section-label" id="realtimeViewerCount">0 viewers</span>
+      </div>
+      <p class="body-copy" id="realtimeStatusText">Connecting the match-specific Realtime channel.</p>
+      <div class="channel-meta">Channel <code id="realtimeChannelName">lightningcup:match</code></div>
+      <pre class="realtime-payload" id="realtimePayload">Waiting for match-state broadcasts.</pre>
+    </section>
+  </main>
+
+  <script type="module" src="/lightningcup/match-page.js"></script>
+</body>
+</html>

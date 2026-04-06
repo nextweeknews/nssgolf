@@ -76,6 +76,70 @@
 
     .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
     .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
+    .lc-next-match-card{ gap:0; padding:12px 14px; }
+    .lc-next-match-card-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; min-width:0; }
+    .lc-next-match-card-copy{ min-width:0; flex:1; display:flex; align-items:center; gap:10px; overflow:hidden; }
+    .lc-next-match-card-label,
+    .lc-next-match-card-vs{
+      color: rgba(148,163,184,.92);
+      font-size:11px;
+      font-weight:400;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .lc-next-match-card-vs{ text-transform:none; }
+    .lc-next-match-card-round{
+      color: rgba(250,204,21,.96);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .lc-next-match-card-opponent{
+      min-width:0;
+      color: rgba(255,255,255,.98);
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .lc-next-match-card-region{
+      color: rgba(var(--lc-next-match-region-rgb, 125,211,252), .98);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .lc-next-match-card-button{
+      flex:0 0 auto;
+      min-height:38px;
+      padding:0 14px;
+      border-radius:999px;
+      border:1px solid rgba(96,165,250,.5);
+      background: linear-gradient(180deg, rgba(96,165,250,.95), rgba(59,130,246,.86));
+      color:#020617;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      text-decoration:none;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+      transition: filter 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+    }
+    .lc-next-match-card-button:hover{
+      filter:brightness(1.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 0 0 1px rgba(147,197,253,.12);
+    }
+    .lc-next-match-card-button:active{ transform: translateY(1px); }
     .headline{ margin:0; font-size:26px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
     .season-head{ min-height:44px; padding:2px 0; margin-bottom:8px; display:flex; align-items:center; justify-content:center; }
     .status{ margin:0; color:var(--muted); font-size:12px; text-align:center; }
@@ -1295,6 +1359,14 @@
       .two-col{ grid-template-columns:1fr; }
       .auth-grid{ grid-template-columns:1fr; }
       .topbar-user{ width:100%; justify-content:flex-end; }
+      .lc-next-match-card-row{ gap:12px; }
+      .lc-next-match-card-copy{ gap:8px; }
+      .lc-next-match-card-round,
+      .lc-next-match-card-opponent{ font-size:12px; }
+      .lc-next-match-card-label,
+      .lc-next-match-card-vs,
+      .lc-next-match-card-region,
+      .lc-next-match-card-button{ font-size:10px; }
       .lc-nav-list{ grid-template-columns:1fr; }
       .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
       .lc-match-popover-content{
@@ -1389,6 +1461,19 @@
   </div>
 
   <main class="container">
+    <section class="card lc-next-match-card" id="nextMatchCard" hidden>
+      <div class="lc-next-match-card-row">
+        <div class="lc-next-match-card-copy">
+          <span class="lc-next-match-card-label">YOUR NEXT MATCH:</span>
+          <span class="lc-next-match-card-round" id="nextMatchCardRound">MATCH</span>
+          <span class="lc-next-match-card-vs">vs.</span>
+          <span class="lc-next-match-card-opponent" id="nextMatchCardOpponent">TBD</span>
+          <span class="lc-next-match-card-region" id="nextMatchCardRegion"></span>
+        </div>
+        <a class="lc-next-match-card-button" id="nextMatchCardButton" href="/lightningcup/match/">VIEW MATCH</a>
+      </div>
+    </section>
+
     <section class="card">
       <div class="season-head">
         <h1 class="headline">Lightning Cup</h1>
@@ -1448,6 +1533,14 @@
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
     import { mountLightningCupMatchInfoPopover, mountLightningCupRadixControls } from "/lightningcup/radix-controls.bundle.js";
+    import {
+      buildMatchPageUrl as buildLightningCupMatchPageUrl,
+      formatMatchCardOpponentLabel,
+      formatRoundLabel as formatLightningCupRoundLabel,
+      getAuthenticatedTournamentPlayer as resolveAuthenticatedTournamentPlayer,
+      getNextMatchForTournamentPlayer as resolveNextMatchForTournamentPlayer,
+      shouldShowRegionLabel,
+    } from "/lightningcup/match-feature.js";
 
     const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
@@ -1517,12 +1610,19 @@
       rankedBySeason: new Map(),
       rankedLoadPromise: null,
       matchInfoPopoverRoots: new Map(),
+      authenticatedTournamentPlayer: null,
+      nextTournamentMatch: null,
     };
 
     const supabase = createBrowserSupabaseClient();
 
     const els = {
       mainTabs: document.getElementById("mainTabs"),
+      nextMatchCard: document.getElementById("nextMatchCard"),
+      nextMatchCardRound: document.getElementById("nextMatchCardRound"),
+      nextMatchCardOpponent: document.getElementById("nextMatchCardOpponent"),
+      nextMatchCardRegion: document.getElementById("nextMatchCardRegion"),
+      nextMatchCardButton: document.getElementById("nextMatchCardButton"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
       pickProgressCount: document.getElementById("pickProgressCount"),
@@ -1910,6 +2010,8 @@
       state.lastDraftRestoreNoticeToken = "";
       state.inlineStatusText = "";
       state.inlineStatusType = "";
+      state.authenticatedTournamentPlayer = null;
+      state.nextTournamentMatch = null;
       els.usernameInput.value = "";
       applyInlineStatusMessage();
     };
@@ -2152,6 +2254,33 @@
       const exact = normalizeDiscordPlayerId(state.seedDiscordMap.get(clean));
       if(exact) return exact;
       return normalizeDiscordPlayerId(state.seedDiscordMapLower.get(clean.toLowerCase()));
+    }
+
+    function getAuthenticatedTournamentPlayer(){
+      const tournamentPlayer = resolveAuthenticatedTournamentPlayer({
+        profileDiscordId: state.profile?.discord_user_id,
+        seedNameToDiscordMap: state.seedDiscordMap,
+      });
+      state.authenticatedTournamentPlayer = tournamentPlayer;
+      return tournamentPlayer;
+    }
+
+    function getNextMatchForTournamentPlayer(player = getAuthenticatedTournamentPlayer()){
+      const nextMatch = resolveNextMatchForTournamentPlayer({
+        playerName: player?.name,
+        actualMatches: state.actualMatches,
+        context: state.context,
+      });
+      state.nextTournamentMatch = nextMatch;
+      return nextMatch;
+    }
+
+    function buildMatchPageUrl(matchId){
+      return buildLightningCupMatchPageUrl(matchId);
+    }
+
+    function formatRoundLabel(roundCode){
+      return formatLightningCupRoundLabel(roundCode);
     }
 
     function getRankedEntryForPlayerSeason(playerId, season){
@@ -2907,6 +3036,47 @@
       els.summaryRow.innerHTML = `<span class="pill">User: ${state.profile?.username || "-"}</span><span class="pill">Actual: ${scores.actual}</span><span class="pill">Possible Remaining: ${scores.possibleRemaining}</span><span class="pill">Possible Total: ${scores.possibleTotal}</span>${state.lockFlag === "yes" ? '<span class="pill warn">Locked</span>' : '<span class="pill good">Editable</span>'}`;
     }
 
+    function renderNextMatchCard(){
+      const hideCard = () => {
+        state.authenticatedTournamentPlayer = null;
+        state.nextTournamentMatch = null;
+        els.nextMatchCard.hidden = true;
+        els.nextMatchCardRegion.hidden = true;
+        els.nextMatchCardRegion.textContent = "";
+      };
+
+      if(!state.session || !state.context || !(state.seedDiscordMap instanceof Map) || state.seedDiscordMap.size === 0){
+        hideCard();
+        return;
+      }
+
+      const tournamentPlayer = getAuthenticatedTournamentPlayer();
+      const nextMatch = tournamentPlayer ? getNextMatchForTournamentPlayer(tournamentPlayer) : null;
+      if(!tournamentPlayer || !nextMatch?.match?.id){
+        hideCard();
+        return;
+      }
+
+      const roundCode = normalizeName(nextMatch.match.round);
+      const regionName = normalizeName(nextMatch.regionName);
+      const regionAccent = REGION_ACCENT_RGB_BY_TAB[regionName] || REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
+
+      els.nextMatchCardRound.textContent = formatRoundLabel(roundCode);
+      els.nextMatchCardOpponent.textContent = formatMatchCardOpponentLabel(nextMatch.opponent);
+      els.nextMatchCardButton.href = buildMatchPageUrl(nextMatch.match.id);
+
+      if(shouldShowRegionLabel(roundCode) && regionName){
+        els.nextMatchCardRegion.hidden = false;
+        els.nextMatchCardRegion.style.setProperty("--lc-next-match-region-rgb", regionAccent);
+        els.nextMatchCardRegion.textContent = `(${regionName} region)`.toUpperCase();
+      }else{
+        els.nextMatchCardRegion.hidden = true;
+        els.nextMatchCardRegion.textContent = "";
+      }
+
+      els.nextMatchCard.hidden = false;
+    }
+
     function animateLeaderboardDetailClose(onComplete){
       const shell = els.leaderboardTable.querySelector("[data-leaderboard-detail-shell]");
       if(!shell){
@@ -3120,6 +3290,7 @@
 
     function renderView(){
       if(!state.context) return;
+      renderNextMatchCard();
       renderMainTabs();
       renderTabs();
       const actualSubset = getMatchesForTab(state.activeTab, new Map(state.actualMatches.map((m)=>[m.id,m])));
@@ -3136,6 +3307,7 @@
 
     function renderFallbackTournamentView(){
       if(!state.context) return;
+      renderNextMatchCard();
       renderMainTabs();
       renderTabs();
       const actualSubset = getMatchesForTab(state.activeTab, new Map(state.actualMatches.map((m)=>[m.id,m])));
@@ -3156,6 +3328,7 @@
 
     function renderAuthShell(){
       renderAuthUI();
+      renderNextMatchCard();
       if(state.context){
         renderMainTabs();
       }
@@ -3413,7 +3586,7 @@
 
       const userId = state.session.user.id;
       const [{ data: profile, error: profileError }, { data: bracketRows, error: bracketError }] = await Promise.all([
-        supabase.from("profiles").select("user_id,username").eq("user_id", userId).maybeSingle(),
+        supabase.from("profiles").select("user_id,username,discord_user_id,full_name").eq("user_id", userId).maybeSingle(),
         supabase.from("brackets").select("id,user_id,bracket_name,submitted_at,year").eq("user_id", userId).eq("year", TOURNAMENT_YEAR).maybeSingle(),
       ]);
       if(profileError || bracketError){
