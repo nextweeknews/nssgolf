@@ -971,7 +971,7 @@
       border-radius:10px;
       background:var(--header-bg);
       color:var(--muted);
-      font-size:11px;
+      font-size:10px;
       font-weight:850;
       letter-spacing:.09em;
       text-transform:uppercase;
@@ -994,7 +994,6 @@
       background: rgba(125,211,252,.14);
     }
     .leaderboard-sort-indicator{
-      width:1.1em;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -1034,9 +1033,20 @@
       font-weight:920;
       color:var(--title);
     }
-    .leaderboard-rank-chip.is-top{
-      background: rgba(56,189,248,.1);
-      color:#dbeafe;
+    .leaderboard-rank-chip.is-gold{
+      background: rgba(234,179,8,.16);
+      color:#fef08a;
+      box-shadow: inset 0 0 0 1px rgba(234,179,8,.2);
+    }
+    .leaderboard-rank-chip.is-silver{
+      background: rgba(203,213,225,.18);
+      color:#e2e8f0;
+      box-shadow: inset 0 0 0 1px rgba(203,213,225,.22);
+    }
+    .leaderboard-rank-chip.is-bronze{
+      background: rgba(180,83,9,.18);
+      color:#fdba74;
+      box-shadow: inset 0 0 0 1px rgba(194,120,45,.22);
     }
     .leaderboard-metric-chip{
       font-size:19px;
@@ -1084,13 +1094,6 @@
       font-size:22px;
       font-weight:950;
     }
-    .leaderboard-name-meta{
-      flex:0 0 auto;
-      font-size:10px;
-      font-weight:820;
-      letter-spacing:.08em;
-      color: rgba(191,219,254,.9);
-    }
     .leaderboard-empty-cell{
       padding:0;
     }
@@ -1130,7 +1133,6 @@
       overflow:hidden;
     }
     .leaderboard-detail-tabs{
-      --region-accent-rgb: 125,211,252;
       display:grid;
       gap:0;
     }
@@ -2368,7 +2370,10 @@
       const isActive = state.leaderboardSortKey === key;
       const ariaSort = isActive ? getLeaderboardSortDirectionLabel(state.leaderboardSortDirection) : "none";
       const activeClass = isActive ? " is-active" : "";
-      return `<button class="leaderboard-sort-button${activeClass}" type="button" data-sort-key="${key}" aria-sort="${ariaSort}"><span>${escapeHtml(label)}</span><span class="leaderboard-sort-indicator" aria-hidden="true">${getLeaderboardSortIndicator(key)}</span></button>`;
+      const indicatorMarkup = isActive
+        ? `<span class="leaderboard-sort-indicator" aria-hidden="true">${getLeaderboardSortIndicator(key)}</span>`
+        : "";
+      return `<button class="leaderboard-sort-button${activeClass}" type="button" data-sort-key="${key}" aria-sort="${ariaSort}"><span>${escapeHtml(label)}</span>${indicatorMarkup}</button>`;
     }
 
     function compareLeaderboardRows(left, right){
@@ -2850,11 +2855,18 @@
       const tableMarkup = rows.map((row) => {
         const isExpanded = row.id === state.selectedBracketId;
         const rowClass = `leaderboard-row${isExpanded ? " is-expanded" : ""}`;
-        const rankChipClass = `leaderboard-rank-chip${row.isTopScore ? " is-top" : ""}`;
+        const rankPlacementClass = row.rankOrder === 1
+          ? " is-gold"
+          : row.rankOrder === 2
+            ? " is-silver"
+            : row.rankOrder === 3
+              ? " is-bronze"
+              : "";
+        const rankChipClass = `leaderboard-rank-chip${rankPlacementClass}`;
         const detailRowMarkup = !isExpanded
           ? ""
           : `<tr class="leaderboard-detail-row"><td colspan="5"><div class="leaderboard-detail-shell${animateOpen ? "" : " is-expanded"}" data-leaderboard-detail-shell="${escapeHtml(row.id)}"><div class="leaderboard-detail-card" style="--region-accent-rgb:${detailAccent};"><div class="leaderboard-detail-tabs"><div class="lc-region-tabs-list">${REGION_TABS.map((tab) => `<button class="lc-region-tabs-trigger" type="button" data-detail-tab="${escapeHtml(tab)}" data-bracket-id="${escapeHtml(row.id)}" data-state="${tab === detailTab ? "active" : "inactive"}"><span class="lc-region-tabs-trigger-label">${escapeHtml(tab)}</span></button>`).join("")}</div></div><div class="leaderboard-detail-panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid leaderboard-detail-grid" id="leaderboardDetailGrid-${escapeHtml(row.id)}"></div></div></div></div></td></tr>`;
-        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td><button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span><span class="leaderboard-name-meta">${isExpanded ? "Collapse" : "View Bracket"}</span></button></td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
+        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td><button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></button></td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
       }).join("");
 
       els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Current Max")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${tableMarkup}</tbody>`;
