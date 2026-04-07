@@ -468,6 +468,7 @@
     .qualifier-match-row{ width:100%; display:grid; grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); align-items:center; gap:8px; min-height:24px; background: rgba(255,255,255,0.06); color: var(--muted); padding:3px 5px 3px 6px; border:0; font-size:10px; text-align:left; position:relative; z-index:1; transition: box-shadow 120ms ease, border-color 120ms ease, background-color 120ms ease, color 120ms ease; }
     .qualifier-match-row.no-score{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr); }
     .qualifier-match-row.no-score.has-pick-radio{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-pick-indicator-width); }
+    .qualifier-match-row.no-score.has-pick-feedback{ grid-template-columns:var(--qualifier-seed-col-width) minmax(0,1fr) var(--qualifier-scorepack-width); }
     .qualifier-match-row:first-child{ border-top-left-radius:10px; border-top-right-radius:10px; }
     .qualifier-match-row:last-child{ border-bottom-left-radius:10px; border-bottom-right-radius:10px; }
     .qualifier-match-row:nth-child(2){ background: rgba(255,255,255,0.045); }
@@ -670,6 +671,7 @@
       display:flex;
       align-items:center;
       justify-content:flex-end;
+      justify-self:end;
       gap:4px;
       color: rgba(148,163,184,.7);
       font-size:9px;
@@ -2835,9 +2837,10 @@
                 const carryStatus = resolvePredictedCarryStatus(match.id, slotKey);
                 const stateClass = !isPicked ? "" : `selected ${selectionStatus || "pending"}`;
                 const actualWinnerClass = mode === "actual" && name && match.winner === name ? "winner" : "";
-                const showScoreIndicators = mode === "actual" || mode === "detail" || (mode === "pick" && lockPicking);
+                const showScoreIndicators = mode === "actual";
                 const isInteractive = mode === "pick" && clickable && !lockPicking && !!name;
                 const showPickRadioIndicator = isInteractive;
+                const showPickFeedbackIndicator = mode === "detail" || (mode === "pick" && lockPicking);
                 const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
                 const isFutureIncorrect = !!carryStatus.futureIncorrect;
                 const isFutureCorrect = !!carryStatus.futureCorrect;
@@ -2859,9 +2862,10 @@
                       ? getRadixCross2IconMarkup()
                       : "";
                 const scoreMarkup = showScoreIndicators
-                  ? isDetailMode
-                    ? `<span class="qualifier-player-scorepack is-detail"><span class="qualifier-player-pick-points${detailStatusClass}">${detailPointsMarkup}</span><span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
-                    : `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
+                  ? `<span class="qualifier-player-scorepack">${scoreParts.setScores.map((score) => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(scoreParts.finalScore || "-")}</span></span>`
+                  : "";
+                const pickFeedbackMarkup = showPickFeedbackIndicator
+                  ? `<span class="qualifier-player-pick-points${detailStatusClass}">${detailPointsMarkup}</span>`
                   : "";
                 const pickRadioMarkup = showPickRadioIndicator
                   ? isPicked && selectionStatus === "incorrect"
@@ -2872,6 +2876,7 @@
                   "qualifier-match-row",
                   showScoreIndicators ? "" : "no-score",
                   showPickRadioIndicator ? "has-pick-radio" : "",
+                  showPickFeedbackIndicator ? "has-pick-feedback" : "",
                   actualWinnerClass,
                   stateClass,
                 ].filter(Boolean).join(" ");
@@ -2880,7 +2885,7 @@
                   : `<span class="${nameClass}">${safeName}</span>`;
                 const rowTag = isInteractive ? "button" : "div";
                 const rowTypeAttr = isInteractive ? ` type="button"` : "";
-                return `<${rowTag} class="${rowClasses}" data-interactive="${isInteractive ? "true" : "false"}" data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}"${rowTypeAttr}><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickRadioMarkup}</${rowTag}>`;
+                return `<${rowTag} class="${rowClasses}" data-interactive="${isInteractive ? "true" : "false"}" data-match-id="${match.id}" data-name="${escapeHtml(slot.name || "")}" data-seed="${slot.seed ?? ""}"${rowTypeAttr}><span class="qualifier-player-seed">${slot.seed ?? ""}</span>${nameMarkup}${scoreMarkup}${pickFeedbackMarkup}${pickRadioMarkup}</${rowTag}>`;
               };
               const matchInfoMarkup = hasMatchInfoPlayers
                 ? `<button class="qualifier-match-info" type="button" data-match-info="${match.id}" data-source="${infoSource}" aria-label="Match info for ${match.id}">i</button>`
