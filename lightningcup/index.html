@@ -77,7 +77,7 @@
     .container{ max-width:1260px; margin:0 auto; padding:22px 18px 52px; display:grid; gap:12px; }
     .card{ background: var(--card-bg); border-radius: 20px; padding:14px; box-shadow: var(--card-shadow); border: 1px solid rgba(255,255,255,0.10); display:grid; gap:10px; }
     .lc-next-match-card{
-      --lc-next-match-font-size:12px;
+      --lc-next-match-font-size:15px;
       gap:0;
       padding:12px 14px;
     }
@@ -625,8 +625,11 @@
       text-decoration-thickness: 1px;
       text-decoration-color: currentColor;
     }
-    .qualifier-pick-status-icon{ display:block; width:15px; height:15px; }
-    .qualifier-pick-status-icon.is-check{ width:17px; height:17px; }
+    .qualifier-pick-status-icon{ display:block; width:15px; height:15px; flex:0 0 auto; overflow:visible; }
+    .qualifier-pick-status-icon.is-check path{
+      transform: scale(1.32);
+      transform-origin: 7.5px 7.5px;
+    }
     .qualifier-row-radio{
       width:var(--qualifier-pick-indicator-width);
       height:var(--qualifier-pick-indicator-width);
@@ -1365,7 +1368,7 @@
       .two-col{ grid-template-columns:1fr; }
       .auth-grid{ grid-template-columns:1fr; }
       .topbar-user{ width:100%; justify-content:flex-end; }
-      .lc-next-match-card{ --lc-next-match-font-size:10px; }
+      .lc-next-match-card{ --lc-next-match-font-size:13px; }
       .lc-next-match-card-row{ gap:12px; }
       .lc-next-match-card-copy{ gap:8px; }
       .lc-nav-list{ grid-template-columns:1fr; }
@@ -2652,7 +2655,7 @@
     }
 
     function getRadixCheckIconMarkup(){
-      return `<svg class="qualifier-pick-status-icon is-check" width="17" height="17" viewBox="0 0 15 15" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>`;
+      return `<svg class="qualifier-pick-status-icon is-check" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>`;
     }
 
     function getRadixCross2IconMarkup(){
