@@ -37,6 +37,7 @@
       --qualifier-scorepack-width: 78px;
       --qualifier-pick-indicator-width: 15px;
       --leaderboard-rank-col: 88px;
+      --leaderboard-progress-col: 82px;
       --leaderboard-score-col: 108px;
       --leaderboard-max-col: 126px;
     }
@@ -1243,6 +1244,7 @@
       font-size:12px;
     }
     .leaderboard col.leaderboard-col-rank{ width:var(--leaderboard-rank-col); }
+    .leaderboard col.leaderboard-col-progress{ width:var(--leaderboard-progress-col); }
     .leaderboard col.leaderboard-col-score{ width:var(--leaderboard-score-col); }
     .leaderboard col.leaderboard-col-current-max,
     .leaderboard col.leaderboard-col-initial-max{ width:var(--leaderboard-max-col); }
@@ -1355,6 +1357,12 @@
       font-weight:940;
       box-shadow: inset 0 0 0 1px rgba(148,163,184,.22);
     }
+    .leaderboard-progress-chip{
+      font-size:17px;
+      font-weight:900;
+    }
+    .leaderboard-progress-chip.is-complete{ color:#86efac; }
+    .leaderboard-progress-chip.is-incomplete{ color:#fca5a5; }
     .leaderboard-name-button,
     .leaderboard-name-static{
       width:100%;
@@ -1511,6 +1519,7 @@
     @media (max-width:760px){
       :root{
         --leaderboard-rank-col:44px;
+        --leaderboard-progress-col:44px;
         --leaderboard-score-col:52px;
         --leaderboard-max-col:64px;
       }
@@ -1654,15 +1663,16 @@
       .lc-match-popover-arrow{ display:none; }
       table.leaderboard{
         --leaderboard-mobile-columns:
-          clamp(26px, 8vw, 32px)
+          clamp(24px, 7vw, 30px)
           minmax(0, 1fr)
-          clamp(34px, 9vw, 40px)
-          clamp(40px, 11vw, 48px)
-          clamp(40px, 11vw, 48px);
+          clamp(32px, 8.5vw, 40px)
+          clamp(30px, 8vw, 36px)
+          clamp(34px, 9vw, 42px)
+          clamp(34px, 9vw, 42px);
         display:grid;
         grid-template-columns:var(--leaderboard-mobile-columns);
-        column-gap:3px;
-        row-gap:5px;
+        column-gap:2px;
+        row-gap:4px;
         width:100%;
         min-width:0;
         border-spacing:0;
@@ -1684,13 +1694,13 @@
       }
       .leaderboard-header-label,
       .leaderboard-sort-button{
-        min-height:24px;
-        padding:0 2px;
+        min-height:22px;
+        padding:0 1px;
         gap:2px;
-        border-radius:7px;
-        font-size:6.5px;
+        border-radius:6px;
+        font-size:5.8px;
         line-height:1.05;
-        letter-spacing:.04em;
+        letter-spacing:.03em;
         white-space:normal;
       }
       .leaderboard-sort-indicator{ font-size:.82em; }
@@ -1699,18 +1709,20 @@
       .leaderboard-name-button,
       .leaderboard-name-static{
         min-height:36px;
-        padding:0 4px;
-        border-radius:7px;
+        padding:0 3px;
+        border-radius:6px;
       }
-      .leaderboard-rank-chip{ font-size:11px; }
-      .leaderboard-metric-chip{ font-size:10px; }
+      .leaderboard-rank-chip{ font-size:10px; }
+      .leaderboard-metric-chip{ font-size:9px; }
+      .leaderboard-progress-chip{ font-size:8.5px; }
       .leaderboard-name-button,
       .leaderboard-name-static{
         justify-content:flex-start;
-        padding-right:7px;
-        padding-left:7px;
+        padding-right:5px;
+        padding-left:5px;
       }
-      .leaderboard-name-text{ font-size:10.5px; }
+      .leaderboard-name-text{ font-size:9.5px; }
+      .leaderboard-empty-cell,
       .leaderboard-detail-row td{ grid-column:1 / -1; }
       .leaderboard-detail-card{
         padding:8px;
@@ -3123,6 +3135,10 @@
       return `<button class="leaderboard-sort-button${activeClass}" type="button" data-sort-key="${key}" aria-sort="${ariaSort}"><span>${escapeHtml(label)}</span>${indicatorMarkup}</button>`;
     }
 
+    function renderLeaderboardTableMarkup(bodyMarkup){
+      return `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-progress" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th><span class="leaderboard-header-label">picks</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Max Score")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${bodyMarkup}</tbody>`;
+    }
+
     function compareLeaderboardRows(left, right){
       const directionMultiplier = state.leaderboardSortDirection === "asc" ? 1 : -1;
       const key = state.leaderboardSortKey;
@@ -3756,8 +3772,10 @@
         const { validPicks } = applyUserPicksToPredictedBracket(state.context, rawMap);
         const scores = computeScoresFromPicks(validPicks);
         const initialMax = calculateInitialMaxScore(validPicks);
+        const pickProgressCount = Math.min(TOTAL_BRACKET_MATCHES, validPicks.size);
         return {
           ...b,
+          pickProgressCount,
           actual: scores.actual,
           currentMax: scores.possibleTotal,
           initialMax,
@@ -3792,7 +3810,7 @@
       }
 
       if(!rows.length){
-        els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Max Score")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody><tr><td class="leaderboard-empty-cell" colspan="5"><div class="leaderboard-empty-state">No entries yet.</div></td></tr></tbody>`;
+        els.leaderboardTable.innerHTML = renderLeaderboardTableMarkup(`<tr><td class="leaderboard-empty-cell" colspan="6"><div class="leaderboard-empty-state">No entries yet.</div></td></tr>`);
         return;
       }
 
@@ -3810,16 +3828,18 @@
               ? " is-bronze"
               : "";
         const rankChipClass = `leaderboard-rank-chip${rankPlacementClass}`;
+        const pickProgressClass = row.pickProgressCount >= TOTAL_BRACKET_MATCHES ? "is-complete" : "is-incomplete";
+        const pickProgressLabel = `${row.pickProgressCount}/${TOTAL_BRACKET_MATCHES}`;
         const detailRowMarkup = !isExpanded
           ? ""
-          : `<tr class="leaderboard-detail-row"><td colspan="5"><div class="leaderboard-detail-shell${animateOpen ? "" : " is-expanded"}" data-leaderboard-detail-shell="${escapeHtml(row.id)}"><div class="leaderboard-detail-card" style="--region-accent-rgb:${detailAccent};"><div class="leaderboard-detail-tabs"><div class="lc-region-tabs-list">${REGION_TABS.map((tab) => `<button class="lc-region-tabs-trigger" type="button" data-detail-tab="${escapeHtml(tab)}" data-bracket-id="${escapeHtml(row.id)}" data-state="${tab === detailTab ? "active" : "inactive"}"><span class="lc-region-tabs-trigger-label">${escapeHtml(tab)}</span></button>`).join("")}</div></div><div class="leaderboard-detail-panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid leaderboard-detail-grid" id="leaderboardDetailGrid-${escapeHtml(row.id)}"></div></div></div></div></td></tr>`;
+          : `<tr class="leaderboard-detail-row"><td colspan="6"><div class="leaderboard-detail-shell${animateOpen ? "" : " is-expanded"}" data-leaderboard-detail-shell="${escapeHtml(row.id)}"><div class="leaderboard-detail-card" style="--region-accent-rgb:${detailAccent};"><div class="leaderboard-detail-tabs"><div class="lc-region-tabs-list">${REGION_TABS.map((tab) => `<button class="lc-region-tabs-trigger" type="button" data-detail-tab="${escapeHtml(tab)}" data-bracket-id="${escapeHtml(row.id)}" data-state="${tab === detailTab ? "active" : "inactive"}"><span class="lc-region-tabs-trigger-label">${escapeHtml(tab)}</span></button>`).join("")}</div></div><div class="leaderboard-detail-panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid leaderboard-detail-grid" id="leaderboardDetailGrid-${escapeHtml(row.id)}"></div></div></div></div></td></tr>`;
         const bracketNameMarkup = canViewBrackets
           ? `<button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></button>`
           : `<span class="leaderboard-name-static"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></span>`;
-        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td>${bracketNameMarkup}</td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
+        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td>${bracketNameMarkup}</td><td><div class="leaderboard-metric-chip leaderboard-progress-chip ${pickProgressClass}">${escapeHtml(pickProgressLabel)}</div></td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
       }).join("");
 
-      els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Max Score")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${tableMarkup}</tbody>`;
+      els.leaderboardTable.innerHTML = renderLeaderboardTableMarkup(tableMarkup);
 
       const selectedRow = rows.find((row) => row.id === state.selectedBracketId) || null;
       renderExpandedLeaderboardDetail(selectedRow);
