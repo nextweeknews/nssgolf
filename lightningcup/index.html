@@ -2957,8 +2957,9 @@
       const baseRoundStep = matchBlockHeight + (baseRoundGap * 2);
       const roundTopPaddingAdjustments = {
         R32: 8,
-        R16: -8,
+        R16: 0,
         R8: -8,
+        Final: 8,
       };
       const resolvePredictedCarryStatus = mode === "pick" || mode === "detail"
         ? createPredictedCarryStatusResolver(state.context, predictedMatchesMap, hydratedMap)
