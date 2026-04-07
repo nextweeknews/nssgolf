@@ -711,7 +711,7 @@
     .auth-buttons{ justify-content:center; margin-top:2px; }
     .auth-buttons-floating{
       justify-content:center;
-      margin:2px 0 -2px;
+      margin:-12px 0 -2px;
     }
     .auth-buttons.is-logged-in{ justify-content:flex-end; }
     .discord-login-button{
@@ -1526,7 +1526,7 @@
       .qualifier-bracket-scroll{
         scroll-snap-type:x mandatory;
         scroll-behavior:smooth;
-        scroll-padding-inline:12px;
+        scroll-padding-inline:14px;
         overscroll-behavior-x:contain;
         -webkit-overflow-scrolling:touch;
       }
@@ -1534,13 +1534,15 @@
         grid-auto-columns:minmax(238px, calc(100vw - 82px));
         gap:14px;
         justify-content:flex-start;
+        padding-right:34px;
       }
       .qualifier-round-column{
         scroll-snap-align:start;
         scroll-snap-stop:always;
       }
       .lc-match-popover-content{
-        width:calc(100vw - 28px);
+        width:min(75vw, calc(100vw - 56px));
+        min-width:min(270px, calc(100vw - 56px));
         max-height:86vh;
         overflow:auto;
         padding:10px 8px;
@@ -1564,6 +1566,13 @@
       }
       .lc-match-popover-section-head{ font-size:8px; }
       .lc-match-popover-ranked-value{ gap:4px; }
+      .lc-match-popover-ranked-metric,
+      .lc-match-popover-ranked-text,
+      .lc-match-popover-center-label,
+      .lc-match-popover-h2h-record,
+      .lc-match-popover-summary-label{
+        white-space:nowrap;
+      }
       .lc-match-popover-summary-label{ font-size:8px; }
       .lc-match-popover-arrow{ display:none; }
       table.leaderboard{
@@ -1609,10 +1618,11 @@
     }
     @media (max-width:620px){
       .lc-match-popover-content{
-        width:calc(100vw - 24px);
+        width:min(75vw, calc(100vw - 48px));
+        min-width:min(260px, calc(100vw - 48px));
         max-height:82vh;
       }
-      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 48px minmax(0,1fr); }
+      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 52px minmax(0,1fr); }
       .lc-match-popover-center-label{ font-size:8px; letter-spacing:.09em; }
       .lc-match-popover-player-heading{ gap:4px; }
       .lc-match-popover-player-head::after{ height:2px; }
@@ -3132,12 +3142,27 @@
       mountMatchInfoPopovers(target);
     }
 
+    function canAccessLeaderboardTab(){
+      return !!state.session || state.lockFlag === "yes";
+    }
+
+    function getAvailableMainTabs(){
+      const tabs = ["Actual Bracket"];
+      if(state.session){
+        tabs.push("Your Bracket", "Leaderboard");
+      }else if(canAccessLeaderboardTab()){
+        tabs.push("Leaderboard");
+      }
+      return tabs;
+    }
+
     function renderRadixControls(loggedIn){
       if(!state.radixControls) return;
       applyActiveRegionAccentTheme(state.activeTab);
       const showRegionProgress = state.mainTab === "Your Bracket";
       state.radixControls.render({
         loggedIn,
+        canAccessLeaderboard: canAccessLeaderboardTab(),
         mainTab: state.mainTab,
         activeTab: state.activeTab,
         year: TOURNAMENT_YEAR,
@@ -3167,11 +3192,11 @@
 
     function renderMainTabs(){
       const loggedIn = !!state.session;
-      const tabs = loggedIn ? ["Actual Bracket", "Your Bracket", "Leaderboard"] : ["Actual Bracket"];
+      const tabs = getAvailableMainTabs();
       if(!tabs.includes(state.mainTab)) state.mainTab = "Actual Bracket";
       els.actualPanel.classList.toggle("is-active", state.mainTab === "Actual Bracket");
       els.yourPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Your Bracket");
-      els.leaderboardPanel.classList.toggle("is-active", loggedIn && state.mainTab === "Leaderboard");
+      els.leaderboardPanel.classList.toggle("is-active", canAccessLeaderboardTab() && state.mainTab === "Leaderboard");
       const showRegionTabs = state.mainTab === "Actual Bracket" || (loggedIn && state.mainTab === "Your Bracket");
       els.regionTabs.style.display = showRegionTabs ? "" : "none";
       renderRadixControls(loggedIn);
@@ -3590,7 +3615,7 @@
       els.discordLoginBtn.style.display = loggedIn ? "none" : "";
       els.authButtonsRow.style.display = loggedIn ? "none" : "";
       renderTopbarUserMenu();
-      if(!loggedIn) state.mainTab = "Actual Bracket";
+      if(!getAvailableMainTabs().includes(state.mainTab)) state.mainTab = "Actual Bracket";
     }
 
     function renderAuthShell(){

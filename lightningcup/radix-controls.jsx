@@ -16,9 +16,10 @@ function getParentValueFromMainTab(mainTab){
   return mainTab === "Actual Bracket" ? "results" : "game";
 }
 
-function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
+function MainNavigation({ loggedIn, canAccessLeaderboard = loggedIn, mainTab, year, onMainTabChange }){
   const selectedParentValue = getParentValueFromMainTab(mainTab);
   const [openParentValue, setOpenParentValue] = React.useState(selectedParentValue);
+  const canAccessYourBracket = loggedIn;
 
   React.useEffect(() => {
     setOpenParentValue(selectedParentValue);
@@ -37,8 +38,8 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
       return;
     }
     if(value === "game"){
-      if(!loggedIn) return;
-      const nextMainTab = MAIN_TAB_BY_PARENT[value] || "Your Bracket";
+      if(!canAccessYourBracket && !canAccessLeaderboard) return;
+      const nextMainTab = canAccessYourBracket ? (MAIN_TAB_BY_PARENT[value] || "Your Bracket") : "Leaderboard";
       if(mainTab !== "Your Bracket" && mainTab !== "Leaderboard"){
         onMainTabChange(nextMainTab);
       }
@@ -47,7 +48,8 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
 
   const handleChildLinkSelect = (event, targetMainTab, parentValue) => {
     event.preventDefault();
-    if(targetMainTab !== "Actual Bracket" && !loggedIn) return;
+    if(targetMainTab === "Your Bracket" && !canAccessYourBracket) return;
+    if(targetMainTab === "Leaderboard" && !canAccessLeaderboard) return;
     setOpenParentValue(parentValue);
     onMainTabChange(targetMainTab);
   };
@@ -91,11 +93,11 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
                 <NavigationMenu.Link
                   className="lc-nav-sublink"
                   active={mainTab === "Your Bracket"}
-                  aria-disabled={loggedIn ? undefined : "true"}
-                  data-disabled={loggedIn ? undefined : ""}
+                  aria-disabled={canAccessYourBracket ? undefined : "true"}
+                  data-disabled={canAccessYourBracket ? undefined : ""}
                   href="#"
                   onClick={(event) => handleChildLinkSelect(event, "Your Bracket", "game")}
-                  tabIndex={loggedIn ? undefined : -1}
+                  tabIndex={canAccessYourBracket ? undefined : -1}
                 >
                   Your Bracket
                 </NavigationMenu.Link>
@@ -104,18 +106,18 @@ function MainNavigation({ loggedIn, mainTab, year, onMainTabChange }){
                 <NavigationMenu.Link
                   className="lc-nav-sublink"
                   active={mainTab === "Leaderboard"}
-                  aria-disabled={loggedIn ? undefined : "true"}
-                  data-disabled={loggedIn ? undefined : ""}
+                  aria-disabled={canAccessLeaderboard ? undefined : "true"}
+                  data-disabled={canAccessLeaderboard ? undefined : ""}
                   href="#"
                   onClick={(event) => handleChildLinkSelect(event, "Leaderboard", "game")}
-                  tabIndex={loggedIn ? undefined : -1}
+                  tabIndex={canAccessLeaderboard ? undefined : -1}
                 >
                   Leaderboard
                 </NavigationMenu.Link>
               </li>
             </ul>
             {!loggedIn ? (
-              <span className="lc-nav-subtext">Sign in to access bracket game views.</span>
+              <span className="lc-nav-subtext">{canAccessLeaderboard ? "Sign in to view your bracket." : "Leaderboard unlocks when brackets lock."}</span>
             ) : null}
           </NavigationMenu.Content>
         </NavigationMenu.Item>
@@ -930,10 +932,11 @@ export function mountLightningCupRadixControls({
   const regionRoot = createRoot(regionTabsEl);
 
   return {
-    render({ loggedIn, mainTab, activeTab, year, showRegionProgress, regionTabStatus }){
+    render({ loggedIn, canAccessLeaderboard, mainTab, activeTab, year, showRegionProgress, regionTabStatus }){
       mainRoot.render(
         <MainNavigation
           loggedIn={loggedIn}
+          canAccessLeaderboard={canAccessLeaderboard}
           mainTab={mainTab}
           year={year || "2026"}
           onMainTabChange={onMainTabChange}
