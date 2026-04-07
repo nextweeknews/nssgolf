@@ -2958,8 +2958,11 @@
       const roundTopPaddingAdjustments = {
         R32: 8,
         R16: 0,
-        R8: -8,
+        R8: -16,
         Final: 8,
+      };
+      const roundGapAdjustments = {
+        R16: -8,
       };
       const resolvePredictedCarryStatus = mode === "pick" || mode === "detail"
         ? createPredictedCarryStatusResolver(state.context, predictedMatchesMap, hydratedMap)
@@ -2967,7 +2970,7 @@
       target.dataset.bracketMode = mode;
       target.innerHTML = groups.map((group, roundIndex) => {
         const roundMultiplier = 2 ** roundIndex;
-        const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2);
+        const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2) + (roundGapAdjustments[group.round] || 0);
         const baseRoundTopPadding = roundIndex === 0
           ? 0
           : Math.round((baseRoundStep * (roundMultiplier - 1)) / 2);
