@@ -17,11 +17,10 @@
       --title:#c7d7ff;
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
-      --match-region-rgb: 125,211,252;
       --player-one-rgb: 96,165,250;
       --player-two-rgb: 34,197,94;
-      --panel-border: rgba(148,163,184,.20);
-      --panel-fill: rgba(255,255,255,.04);
+      --panel-border: rgba(148,163,184,.22);
+      --panel-fill: rgba(255,255,255,.05);
     }
     *{ box-sizing:border-box; }
     html{ background-color: var(--bg3); }
@@ -105,12 +104,12 @@
     }
     .card{
       background: var(--card-bg);
-      border-radius: 20px;
+      border-radius:20px;
       padding:18px;
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,0.10);
       display:grid;
-      gap:12px;
+      gap:18px;
     }
     .match-page-status{
       margin:0;
@@ -123,172 +122,6 @@
       font-weight:700;
     }
     .match-page-status.is-hidden{ display:none; }
-    .match-eyebrow{
-      color: rgba(148,163,184,.9);
-      font-size:11px;
-      font-weight:700;
-      letter-spacing:.16em;
-      text-transform:uppercase;
-    }
-    .match-title{
-      margin:0;
-      font-size:30px;
-      font-weight:950;
-      letter-spacing:.03em;
-      color: var(--title);
-      text-transform:uppercase;
-    }
-    .match-meta{
-      margin:0;
-      color: rgba(var(--match-region-rgb), .95);
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-    }
-    .match-status-row{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .match-status-chip{
-      display:inline-flex;
-      align-items:center;
-      min-height:30px;
-      padding:0 10px;
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,.26);
-      background: rgba(255,255,255,.05);
-      color: rgba(233,238,248,.92);
-      font-size:10px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-    }
-    .match-status-chip.is-ok{
-      border-color: rgba(74,222,128,.35);
-      background: rgba(34,197,94,.16);
-      color:#dcfce7;
-    }
-    .match-status-chip.is-warn{
-      border-color: rgba(250,204,21,.35);
-      background: rgba(250,204,21,.14);
-      color:#fef3c7;
-    }
-    .match-status-chip.is-error{
-      border-color: rgba(248,113,113,.35);
-      background: rgba(239,68,68,.16);
-      color:#fecaca;
-    }
-    .section-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .section-label{
-      color: rgba(148,163,184,.88);
-      font-size:11px;
-      font-weight:800;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-    }
-    .body-copy{
-      margin:0;
-      color: rgba(233,238,248,.92);
-      font-size:14px;
-      line-height:1.55;
-    }
-    .match-head-footer{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-      border-top:1px solid rgba(148,163,184,.16);
-      padding-top:12px;
-    }
-    .access-copy{
-      flex:1 1 320px;
-      margin:0;
-      color: rgba(226,232,240,.92);
-      font-size:13px;
-      line-height:1.45;
-    }
-    .participant-access-grid{
-      display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
-      gap:8px;
-    }
-    .participant-card{
-      border-radius:12px;
-      border:1px solid rgba(var(--match-region-rgb), .22);
-      background: rgba(255,255,255,.04);
-      padding:10px 12px;
-      display:grid;
-      gap:4px;
-      min-width:0;
-    }
-    .participant-seed,
-    .participant-discord{
-      color: rgba(148,163,184,.92);
-      font-size:10px;
-      font-weight:750;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-    }
-    .participant-name{
-      min-width:0;
-      color:#fff;
-      font-size:15px;
-      font-weight:900;
-      letter-spacing:.03em;
-      text-transform:uppercase;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-    .btn-primary,
-    .flow-action,
-    .undo-button{
-      min-height:38px;
-      padding:0 14px;
-      border:1px solid rgba(96,165,250,.5);
-      border-radius:999px;
-      background: linear-gradient(180deg, rgba(96,165,250,.95), rgba(59,130,246,.86));
-      color:#020617;
-      font-size:11px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      cursor:pointer;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
-    }
-    .btn-primary:hover,
-    .flow-action:hover,
-    .undo-button:hover{ filter:brightness(1.05); }
-    .flow-action.is-player-one{
-      border-color: rgba(var(--player-one-rgb), .78);
-      background: rgba(var(--player-one-rgb), .92);
-    }
-    .flow-action.is-player-two{
-      border-color: rgba(var(--player-two-rgb), .74);
-      background: rgba(var(--player-two-rgb), .88);
-    }
-    .undo-button{
-      background: rgba(255,255,255,.05);
-      border-color: rgba(148,163,184,.32);
-      color: rgba(226,232,240,.94);
-    }
-    .btn-primary[disabled],
-    .flow-action[disabled],
-    .undo-button[disabled]{
-      cursor:not-allowed;
-      opacity:.48;
-      filter:none;
-    }
     .scoreboard-shell{
       display:grid;
       gap:8px;
@@ -298,24 +131,28 @@
       display:grid;
       grid-template-columns:8px minmax(0,1fr) repeat(3, 58px) 76px;
       gap:8px;
-      align-items:stretch;
+      align-items:center;
     }
     .scoreboard-header{
+      min-height:24px;
       color: rgba(148,163,184,.86);
       font-size:10px;
       font-weight:900;
       letter-spacing:.12em;
       text-transform:uppercase;
-      align-items:center;
     }
     .scoreboard-header span{
+      display:grid;
+      place-items:center;
+      min-height:100%;
       text-align:center;
+      line-height:1.1;
     }
     .scoreboard-row{
       min-height:64px;
       border-radius:14px;
       border:1px solid var(--panel-border);
-      background: rgba(255,255,255,.04);
+      background: var(--panel-fill);
       padding:8px;
     }
     .scoreboard-color-bar{
@@ -328,13 +165,13 @@
     .scoreboard-player{
       min-width:0;
       display:flex;
-      align-items:baseline;
+      align-items:center;
       gap:8px;
       align-self:center;
     }
     .scoreboard-seed{
       flex:0 0 auto;
-      align-self:flex-end;
+      align-self:center;
       color: rgba(148,163,184,.92);
       font-size:12px;
       font-weight:500;
@@ -351,12 +188,28 @@
       text-overflow:ellipsis;
       white-space:nowrap;
     }
+    .online-dot,
+    .live-dot{
+      width:9px;
+      height:9px;
+      flex:0 0 auto;
+      border-radius:999px;
+      background: rgba(148,163,184,.36);
+      box-shadow:none;
+    }
+    .online-dot.is-online,
+    .live-dot.is-live{
+      background:#22c55e;
+      box-shadow: 0 0 0 0 rgba(34,197,94,.55);
+      animation: pulse-live 1.45s ease-out infinite;
+    }
     .scoreboard-score,
     .scoreboard-match-score{
+      min-height:46px;
       display:grid;
       place-items:center;
-      border-radius:10px;
-      border:1px solid rgba(148,163,184,.18);
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,.24);
       background: rgba(2,6,23,.34);
       color: rgba(226,232,240,.92);
       font-size:19px;
@@ -364,20 +217,102 @@
       font-variant-numeric: tabular-nums;
     }
     .scoreboard-score.is-won{
-      border-color: rgba(250,204,21,.46);
       color:#fef3c7;
       background: rgba(250,204,21,.12);
+      border-color: rgba(148,163,184,.30);
     }
     .scoreboard-match-score{
-      border-color: rgba(var(--match-region-rgb), .42);
-      background: rgba(var(--match-region-rgb), .14);
+      background: rgba(255,255,255,.08);
       color:#fff;
       font-size:25px;
     }
     .scoreboard-match-score.is-won{
-      border-color: rgba(250,204,21,.72);
       background: rgba(250,204,21,.18);
       color:#fef08a;
+    }
+    .flow-panel{
+      width:min(680px, 100%);
+      justify-self:center;
+      display:grid;
+      gap:12px;
+      justify-items:center;
+      text-align:center;
+      padding:18px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.24);
+      background: rgba(255,255,255,.055);
+    }
+    .flow-prompt{
+      margin:0;
+      color:#fff;
+      font-size:26px;
+      line-height:1.2;
+      font-weight:950;
+    }
+    .flow-detail{
+      margin:0;
+      min-height:1.25em;
+      color: rgba(191,219,254,.92);
+      font-size:14px;
+      line-height:1.4;
+      font-weight:700;
+    }
+    .flow-control-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .flow-actions{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .flow-action,
+    .undo-button,
+    .sign-in-button{
+      min-height:42px;
+      padding:0 18px;
+      border:1px solid rgba(148,163,184,.34);
+      border-radius:8px;
+      background: rgba(71,85,105,.92);
+      color:#fff;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      cursor:pointer;
+      box-shadow:none;
+    }
+    .flow-action:hover,
+    .undo-button:hover,
+    .sign-in-button:hover{ background: rgba(100,116,139,.96); }
+    .flow-action.is-player-one{ background: rgba(var(--player-one-rgb), .94); color:#020617; }
+    .flow-action.is-player-two{ background: rgba(var(--player-two-rgb), .88); color:#020617; }
+    .undo-button{
+      background: rgba(30,41,59,.92);
+      color: rgba(226,232,240,.94);
+    }
+    .flow-action[disabled],
+    .undo-button[disabled],
+    .sign-in-button[disabled]{
+      cursor:not-allowed;
+      opacity:.48;
+      background: rgba(71,85,105,.64);
+    }
+    .flow-action-note{
+      color: rgba(226,232,240,.9);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .course-section{
+      display:grid;
+      gap:10px;
     }
     .course-board{
       display:grid;
@@ -399,9 +334,9 @@
       width:100%;
       min-height:58px;
       padding:10px;
-      border-radius:12px;
-      border:1px solid rgba(148,163,184,.28);
-      background: rgba(255,255,255,.04);
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,.30);
+      background: rgba(255,255,255,.045);
       color: rgba(241,245,249,.94);
       display:grid;
       gap:4px;
@@ -409,12 +344,11 @@
       justify-items:center;
       text-align:center;
       cursor:pointer;
-      transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+      transition: background-color 140ms ease, border-color 140ms ease;
     }
     .course-button:not([disabled]):hover{
-      background: rgba(255,255,255,.08);
-      border-color: rgba(226,232,240,.36);
-      transform: translateY(-1px);
+      background: rgba(255,255,255,.09);
+      border-color: rgba(148,163,184,.46);
     }
     .course-button[disabled]{
       cursor:not-allowed;
@@ -423,14 +357,10 @@
     .course-button.is-picked{
       opacity:1;
       color:#020617;
-      border-color: transparent;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.20);
+      border-color: rgba(148,163,184,.36);
     }
     .course-button.is-picked.is-player-one{ background: rgba(var(--player-one-rgb), .94); }
     .course-button.is-picked.is-player-two{ background: rgba(var(--player-two-rgb), .90); }
-    .course-button.is-available{
-      border-color: rgba(var(--match-region-rgb), .46);
-    }
     .course-button-name{
       font-size:13px;
       font-weight:900;
@@ -446,99 +376,109 @@
       text-transform:uppercase;
       opacity:.78;
     }
-    .flow-panel{
-      display:grid;
-      gap:12px;
-    }
-    .flow-prompt{
+    .course-hint{
       margin:0;
-      color:#fff;
-      font-size:20px;
-      line-height:1.35;
-      font-weight:900;
-    }
-    .flow-detail{
-      margin:0;
-      min-height:1.35em;
-      color: rgba(191,219,254,.92);
-      font-size:13px;
-      line-height:1.45;
-      font-weight:700;
-    }
-    .flow-control-row{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-    .flow-actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .flow-action-note{
       color: rgba(148,163,184,.92);
       font-size:12px;
-      font-weight:800;
-      letter-spacing:.08em;
+      line-height:1.4;
+      font-weight:700;
+      text-align:center;
+    }
+    .event-log-section{
+      display:grid;
+      gap:8px;
+    }
+    .event-log-title{
+      color: rgba(148,163,184,.88);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.12em;
       text-transform:uppercase;
     }
     .event-log{
+      max-height:180px;
+      overflow:auto;
       list-style:none;
       margin:0;
       padding:0;
       display:grid;
-      gap:8px;
+      gap:5px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,.22);
+      background: rgba(2,6,23,.24);
+      padding:8px;
     }
     .event-log-item,
     .event-log-empty{
-      border-radius:12px;
-      border:1px solid rgba(148,163,184,.18);
-      background: rgba(2,6,23,.34);
-      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid rgba(148,163,184,.14);
+      background: rgba(255,255,255,.035);
+      padding:7px 9px;
     }
     .event-log-item{
       display:grid;
-      grid-template-columns:142px minmax(0,1fr);
-      gap:12px;
-      border-left:4px solid rgba(148,163,184,.72);
+      grid-template-columns:58px 86px minmax(0,1fr);
+      gap:8px;
+      align-items:center;
+      border-left:3px solid rgba(148,163,184,.72);
     }
     .event-log-item.is-player-one{ border-left-color: rgba(var(--player-one-rgb), .94); }
     .event-log-item.is-player-two{ border-left-color: rgba(var(--player-two-rgb), .9); }
+    .event-log-set{
+      color: rgba(226,232,240,.92);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
     .event-log-time{
       color: rgba(148,163,184,.92);
-      font-size:11px;
+      font-size:10px;
       font-weight:800;
       letter-spacing:.03em;
       font-variant-numeric: tabular-nums;
     }
     .event-log-message{
       color: rgba(241,245,249,.96);
-      font-size:13px;
-      line-height:1.35;
+      font-size:12px;
+      line-height:1.25;
       font-weight:750;
     }
     .event-log-empty{
       color: rgba(148,163,184,.92);
-      font-size:13px;
+      font-size:12px;
       font-weight:750;
     }
-    .channel-meta{
-      color: rgba(148,163,184,.88);
+    .realtime-row{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      color: rgba(148,163,184,.92);
       font-size:12px;
-      font-weight:700;
-      overflow-wrap:anywhere;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
     }
-    .channel-meta code{
-      color:#e0f2fe;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size:12px;
+    .realtime-state{
+      color:#22c55e;
+      font-weight:950;
+    }
+    .realtime-state.is-error{
+      color:#f87171;
+    }
+    .realtime-updated{
+      color: rgba(226,232,240,.84);
+      text-transform:none;
+      letter-spacing:.02em;
+    }
+    @keyframes pulse-live{
+      0%{ box-shadow: 0 0 0 0 rgba(34,197,94,.55); }
+      70%{ box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+      100%{ box-shadow: 0 0 0 0 rgba(34,197,94,0); }
     }
     @media (max-width:760px){
-      .match-title{ font-size:24px; }
-      .participant-access-grid{ grid-template-columns:1fr; }
       .scoreboard-header,
       .scoreboard-row{
         grid-template-columns:6px minmax(0,1fr) repeat(3, 38px) 50px;
@@ -547,13 +487,15 @@
       .scoreboard-row{ min-height:58px; padding:7px; }
       .scoreboard-name{ font-size:14px; }
       .scoreboard-seed{ font-size:11px; }
-      .scoreboard-score{ font-size:16px; }
-      .scoreboard-match-score{ font-size:21px; }
+      .scoreboard-score{ min-height:40px; font-size:16px; }
+      .scoreboard-match-score{ min-height:40px; font-size:21px; }
+      .flow-panel{ padding:16px 12px; }
+      .flow-prompt{ font-size:22px; }
       .course-board{ grid-template-columns:1fr; }
       .course-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
       .special-course-slot{ min-height:auto; }
-      .event-log-item{ grid-template-columns:1fr; gap:4px; }
-      .flow-prompt{ font-size:18px; }
+      .event-log-item{ grid-template-columns:50px minmax(0,1fr); gap:4px 8px; }
+      .event-log-message{ grid-column:1 / -1; }
     }
   </style>
 </head>
@@ -575,36 +517,6 @@
     <p class="match-page-status is-hidden" id="pageStatus"></p>
 
     <section class="card">
-      <span class="match-eyebrow">Live Match Control</span>
-      <h1 class="match-title" id="matchTitle">Loading match</h1>
-      <p class="match-meta" id="matchMeta">Preparing matchup context</p>
-      <div class="match-status-row">
-        <span class="match-status-chip" id="authChip">SIGNED OUT</span>
-        <span class="match-status-chip" id="realtimeChip">IDLE</span>
-      </div>
-      <div class="participant-access-grid" aria-label="Participant Discord mapping">
-        <article class="participant-card">
-          <span class="participant-seed" id="participantTopSeed">TBD</span>
-          <span class="participant-name" id="participantTopName">TBD</span>
-          <span class="participant-discord" id="participantTopDiscord">Discord ID unavailable</span>
-        </article>
-        <article class="participant-card">
-          <span class="participant-seed" id="participantBottomSeed">TBD</span>
-          <span class="participant-name" id="participantBottomName">TBD</span>
-          <span class="participant-discord" id="participantBottomDiscord">Discord ID unavailable</span>
-        </article>
-      </div>
-      <div class="match-head-footer">
-        <p class="access-copy" id="authNotice">Sign in with your Discord-linked account to confirm player access for this match.</p>
-        <button class="btn-primary" id="signInBtn" type="button">Sign In With Discord</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <span class="section-label">Scoreboard</span>
-        <span class="section-label">Match ID <span id="matchIdValue">-</span> / <span id="scoreboardStatus">Pregame</span></span>
-      </div>
       <div class="scoreboard-shell" aria-label="Lightning Cup match scoreboard">
         <div class="scoreboard-header" aria-hidden="true">
           <span></span>
@@ -619,6 +531,7 @@
           <div class="scoreboard-player">
             <span class="scoreboard-seed" id="scoreboardTopSeed">TBD</span>
             <span class="scoreboard-name" id="scoreboardTopName">TBD</span>
+            <span class="online-dot" id="scoreboardTopOnline" aria-hidden="true"></span>
           </div>
           <span class="scoreboard-score" id="scoreboardTopSet1">-</span>
           <span class="scoreboard-score" id="scoreboardTopSet2">-</span>
@@ -630,6 +543,7 @@
           <div class="scoreboard-player">
             <span class="scoreboard-seed" id="scoreboardBottomSeed">TBD</span>
             <span class="scoreboard-name" id="scoreboardBottomName">TBD</span>
+            <span class="online-dot" id="scoreboardBottomOnline" aria-hidden="true"></span>
           </div>
           <span class="scoreboard-score" id="scoreboardBottomSet1">-</span>
           <span class="scoreboard-score" id="scoreboardBottomSet2">-</span>
@@ -637,45 +551,35 @@
           <span class="scoreboard-match-score" id="scoreboardBottomMatch">0</span>
         </div>
       </div>
-    </section>
 
-    <section class="card">
-      <div class="section-head">
-        <span class="section-label">Course Selection</span>
-      </div>
-      <div class="course-board">
-        <div class="course-grid" id="courseGrid" aria-label="Course choices"></div>
-        <div class="special-course-slot" id="specialCourseSlot" aria-label="Special course choice"></div>
-      </div>
-      <p class="body-copy" id="courseHint">Courses will unlock after the match starts and Hole 13 CTP is recorded.</p>
-    </section>
+      <section class="flow-panel" aria-label="Match flow">
+        <p class="flow-prompt" id="flowPrompt">Start match</p>
+        <p class="flow-detail" id="flowDetail"></p>
+        <div class="flow-control-row">
+          <div class="flow-actions" id="actionButtons"></div>
+          <button class="sign-in-button" id="signInBtn" type="button" hidden>Sign In</button>
+          <button class="undo-button" id="undoBtn" type="button">Undo</button>
+        </div>
+      </section>
 
-    <section class="card flow-panel">
-      <div class="section-head">
-        <span class="section-label">Match Flow</span>
-      </div>
-      <p class="flow-prompt" id="flowPrompt">Start the live match.</p>
-      <p class="flow-detail" id="flowDetail"></p>
-      <div class="flow-control-row">
-        <div class="flow-actions" id="actionButtons"></div>
-        <button class="undo-button" id="undoBtn" type="button">Undo</button>
-      </div>
-    </section>
+      <section class="course-section" aria-label="Course selection">
+        <div class="course-board">
+          <div class="course-grid" id="courseGrid" aria-label="Course choices"></div>
+          <div class="special-course-slot" id="specialCourseSlot" aria-label="Special course choice"></div>
+        </div>
+        <p class="course-hint" id="courseHint">Courses reset each set.</p>
+      </section>
 
-    <section class="card">
-      <div class="section-head">
-        <span class="section-label">Live Event Log</span>
-      </div>
-      <ol class="event-log" id="eventLog"></ol>
-    </section>
+      <section class="event-log-section" aria-label="Live event log">
+        <span class="event-log-title">Event Log</span>
+        <ol class="event-log" id="eventLog"></ol>
+      </section>
 
-    <section class="card">
-      <div class="section-head">
-        <span class="section-label">Realtime Sync</span>
-        <span class="section-label" id="realtimeViewerCount">0 viewers</span>
-      </div>
-      <p class="body-copy" id="realtimeStatusText">Connecting to the match-state row.</p>
-      <div class="channel-meta">Channel <code id="realtimeChannelName">lightningcup:match</code></div>
+      <section class="realtime-row" aria-label="Realtime sync">
+        <span class="realtime-state" id="realtimeStatusText">LIVE</span>
+        <span class="live-dot" id="realtimePulse" aria-hidden="true"></span>
+        <span class="realtime-updated" id="lastUpdatedText">Last updated: -</span>
+      </section>
     </section>
   </main>
 

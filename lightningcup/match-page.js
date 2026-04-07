@@ -7,27 +7,18 @@ import {
   buildResolvedMatchMap,
   formatRoundLabel,
   getMatchIdFromSearch,
-  getRegionNameForMatch,
   isUserParticipantInMatch as resolveIsUserParticipantInMatch,
   normalizeDiscordId,
   normalizeName,
   parseSeedsNameDiscordMap,
-  shouldShowRegionLabel,
 } from "/lightningcup/match-feature.js";
 
 const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
-const FALLBACK_REGION_RGB = "125,211,252";
 const MATCH_STATE_TABLE = "match_states";
 const MATCH_STATE_VERSION = 1;
 const MAX_UNDO_DEPTH = 40;
 const MAX_HISTORY_EVENTS = 200;
-const REGION_ACCENT_RGB_BY_NAME = {
-  "Wii Plaza": "250,204,21",
-  "Wuhu Island": "168,85,247",
-  "Wedge Island": "125,211,252",
-  "Spocco Square": "249,115,22",
-};
 
 const COURSE_CHOICES = Object.freeze([
   { id: 1, name: "Resort A" },
@@ -62,25 +53,17 @@ const state = {
   realtimeChannel: null,
   realtimeStatus: "idle",
   realtimeViewerCount: 0,
+  onlinePlayers: { 1: false, 2: false },
 };
 
 const els = {
   pageStatus: document.getElementById("pageStatus"),
-  matchTitle: document.getElementById("matchTitle"),
-  matchMeta: document.getElementById("matchMeta"),
-  matchIdValue: document.getElementById("matchIdValue"),
-  authChip: document.getElementById("authChip"),
-  realtimeChip: document.getElementById("realtimeChip"),
-  participantTopSeed: document.getElementById("participantTopSeed"),
-  participantTopName: document.getElementById("participantTopName"),
-  participantTopDiscord: document.getElementById("participantTopDiscord"),
-  participantBottomSeed: document.getElementById("participantBottomSeed"),
-  participantBottomName: document.getElementById("participantBottomName"),
-  participantBottomDiscord: document.getElementById("participantBottomDiscord"),
   scoreboardTopName: document.getElementById("scoreboardTopName"),
   scoreboardTopSeed: document.getElementById("scoreboardTopSeed"),
+  scoreboardTopOnline: document.getElementById("scoreboardTopOnline"),
   scoreboardBottomName: document.getElementById("scoreboardBottomName"),
   scoreboardBottomSeed: document.getElementById("scoreboardBottomSeed"),
+  scoreboardBottomOnline: document.getElementById("scoreboardBottomOnline"),
   scoreboardTopSet1: document.getElementById("scoreboardTopSet1"),
   scoreboardTopSet2: document.getElementById("scoreboardTopSet2"),
   scoreboardTopSet3: document.getElementById("scoreboardTopSet3"),
@@ -89,8 +72,6 @@ const els = {
   scoreboardBottomSet3: document.getElementById("scoreboardBottomSet3"),
   scoreboardTopMatch: document.getElementById("scoreboardTopMatch"),
   scoreboardBottomMatch: document.getElementById("scoreboardBottomMatch"),
-  scoreboardStatus: document.getElementById("scoreboardStatus"),
-  authNotice: document.getElementById("authNotice"),
   signInBtn: document.getElementById("signInBtn"),
   courseGrid: document.getElementById("courseGrid"),
   specialCourseSlot: document.getElementById("specialCourseSlot"),
@@ -101,8 +82,8 @@ const els = {
   undoBtn: document.getElementById("undoBtn"),
   eventLog: document.getElementById("eventLog"),
   realtimeStatusText: document.getElementById("realtimeStatusText"),
-  realtimeChannelName: document.getElementById("realtimeChannelName"),
-  realtimeViewerCount: document.getElementById("realtimeViewerCount"),
+  realtimePulse: document.getElementById("realtimePulse"),
+  lastUpdatedText: document.getElementById("lastUpdatedText"),
 };
 
 function setError(message){
@@ -184,6 +165,13 @@ function getPlayerLabel(player){
 
 function getCourseName(courseId){
   return COURSE_BY_ID.get(Number(courseId))?.name || "Unknown course";
+}
+
+function getCourseHoleLabel(courseId){
+  const normalizedCourseId = Number(courseId);
+  if(!COURSE_BY_ID.has(normalizedCourseId)) return "";
+  const firstHole = ((normalizedCourseId - 1) * 3) + 1;
+  return `Holes ${firstHole}-${firstHole + 2}`;
 }
 
 function sanitizeSet(rawSet, setNumber){
@@ -403,16 +391,16 @@ function getMatchPhase(matchState){
   if(!matchState.started){
     return {
       type: "start",
-      prompt: "Start the live match.",
-      detail: "This creates the first persisted match-state action.",
+      prompt: "Start match",
+      detail: "Ready when both players are here.",
     };
   }
 
   if(!matchState.hole13CtpWinner){
     return {
       type: "ctp",
-      prompt: "Choose the winner of Hole 13 CTP.",
-      detail: "The CTP winner gets first course selection in Set 1.",
+      prompt: "Hole 13 CTP",
+      detail: "Who won it?",
     };
   }
 
@@ -420,8 +408,8 @@ function getMatchPhase(matchState){
   if(matchWinner){
     return {
       type: "complete",
-      prompt: `${getPlayerName(matchWinner)} wins the match.`,
-      detail: "The match is complete. Undo is still available if the last action was entered incorrectly.",
+      prompt: "Match complete",
+      detail: `${getPlayerName(matchWinner)} wins.`,
       player: matchWinner,
     };
   }
@@ -432,7 +420,7 @@ function getMatchPhase(matchState){
     return {
       type: "complete",
       prompt: "The match is complete.",
-      detail: "No more match actions are available.",
+      detail: "Final result locked.",
     };
   }
 
@@ -444,11 +432,11 @@ function getMatchPhase(matchState){
     return {
       type: "course",
       prompt: isSuddenDeathPick
-        ? "Sudden death: choose the final unplayed course."
-        : `Set ${currentSet.setNumber}: ${getPlayerName(picker)} chooses the next course.`,
+        ? "Sudden death"
+        : "Course pick",
       detail: isSuddenDeathPick
-        ? "The next point wins Set 3."
-        : `${availableCourseCount} course${availableCourseCount === 1 ? "" : "s"} available in this set.`,
+        ? "Choose the final unplayed course."
+        : `${getPlayerName(picker)} chooses. ${availableCourseCount} left.`,
       setIndex: currentSetIndex,
       setState: currentSet,
       player: picker,
@@ -460,8 +448,8 @@ function getMatchPhase(matchState){
   const picker = getPickerForPointIndex(currentSet, result.pointWinners.length);
   return {
     type: "point",
-    prompt: `Set ${currentSet.setNumber}: choose the point winner.`,
-    detail: `${getCourseName(courseId)} was picked by ${getPlayerName(picker)}.`,
+    prompt: `${getCourseName(courseId)} result`,
+    detail: "Who won the point?",
     setIndex: currentSetIndex,
     setState: currentSet,
     course: courseId,
@@ -471,6 +459,14 @@ function getMatchPhase(matchState){
 
 function getAuthDiscordId(){
   return normalizeDiscordId(state.profile?.discord_user_id);
+}
+
+function getCurrentViewerPlayerNumber(){
+  const discordUserId = getAuthDiscordId();
+  if(!discordUserId || !state.match) return null;
+  if(discordUserId === normalizeDiscordId(getDiscordIdForPlayerName(state.match.top?.name))) return 1;
+  if(discordUserId === normalizeDiscordId(getDiscordIdForPlayerName(state.match.bottom?.name))) return 2;
+  return null;
 }
 
 function getCanEditMatch(){
@@ -484,10 +480,10 @@ function getCanApplyActions(){
 function getActionRestrictionMessage(){
   if(state.isSaving) return "Saving the latest match state...";
   if(state.liveError) return state.liveError;
-  if(!state.session) return "Sign in with your Discord-linked account to control this match.";
-  if(!getAuthDiscordId()) return "Your profile is missing a Discord ID, so controls are locked.";
+  if(!state.session) return "Sign in to control the match.";
+  if(!getAuthDiscordId()) return "Discord ID missing.";
   if(!isUserParticipantInMatch(getAuthDiscordId(), state.match)){
-    return "You can view this match, but only the two matchup participants can enter live actions.";
+    return "View only.";
   }
   return "";
 }
@@ -517,11 +513,6 @@ function isUserParticipantInMatch(userDiscordId, matchData){
 
 function formatSeedLabel(seed){
   return seed == null ? "TBD" : String(seed);
-}
-
-function formatDiscordLabel(name){
-  const discordId = getDiscordIdForPlayerName(name);
-  return discordId ? `Discord ID ${discordId}` : "Discord ID unavailable";
 }
 
 function getProviderProfileName(user){
@@ -676,53 +667,13 @@ function renderStatus(message, type = ""){
   els.pageStatus.className = `match-page-status${clean ? "" : " is-hidden"}${type === "error" ? " is-error" : ""}`;
 }
 
-function renderParticipantCard(prefix, slot){
-  const seedEl = prefix === "top" ? els.participantTopSeed : els.participantBottomSeed;
-  const nameEl = prefix === "top" ? els.participantTopName : els.participantBottomName;
-  const discordEl = prefix === "top" ? els.participantTopDiscord : els.participantBottomDiscord;
-  seedEl.textContent = formatSeedLabel(slot?.seed);
-  nameEl.textContent = normalizeName(slot?.name) || "TBD";
-  discordEl.textContent = formatDiscordLabel(slot?.name);
-}
-
-function getAuthChipState(){
-  if(!state.session){
-    return { label: "SIGNED OUT", tone: "muted" };
-  }
-
-  const discordUserId = getAuthDiscordId();
-  if(!discordUserId){
-    return { label: "PROFILE DISCORD ID MISSING", tone: "warn" };
-  }
-
-  if(isUserParticipantInMatch(discordUserId, state.match)){
-    return { label: "SIGNED IN AS PARTICIPANT", tone: "ok" };
-  }
-
-  return { label: "SIGNED IN, NOT A PARTICIPANT", tone: "warn" };
-}
-
 function renderAuthNotice(){
   if(!state.session){
-    els.authNotice.textContent = "Sign in with your Discord-linked account to confirm player access for this match.";
     els.signInBtn.hidden = false;
     return;
   }
 
-  const discordUserId = getAuthDiscordId();
   els.signInBtn.hidden = true;
-
-  if(!discordUserId){
-    els.authNotice.textContent = "You are signed in, but your public profile does not have a Discord ID yet.";
-    return;
-  }
-
-  if(isUserParticipantInMatch(discordUserId, state.match)){
-    els.authNotice.textContent = "Your Discord-linked profile matches one of the seeded participants for this matchup.";
-    return;
-  }
-
-  els.authNotice.textContent = "You are signed in, but your profile Discord ID does not match either seeded participant for this matchup.";
 }
 
 function formatSetScoreValue(matchState, setIndex, player){
@@ -746,12 +697,13 @@ function renderScoreboard(){
   const matchState = state.matchState;
   const setsWon = getSetsWon(matchState);
   const matchWinner = getMatchWinner(matchState);
-  const phase = getMatchPhase(matchState);
 
   els.scoreboardTopSeed.textContent = formatSeedLabel(state.match?.top?.seed);
   els.scoreboardTopName.textContent = normalizeName(state.match?.top?.name) || "TBD";
   els.scoreboardBottomSeed.textContent = formatSeedLabel(state.match?.bottom?.seed);
   els.scoreboardBottomName.textContent = normalizeName(state.match?.bottom?.name) || "TBD";
+  els.scoreboardTopOnline.className = `online-dot${state.onlinePlayers[1] ? " is-online" : ""}`;
+  els.scoreboardBottomOnline.className = `online-dot${state.onlinePlayers[2] ? " is-online" : ""}`;
 
   setScoreCell(els.scoreboardTopSet1, formatSetScoreValue(matchState, 0, 1), matchState.sets[0].winner === 1);
   setScoreCell(els.scoreboardTopSet2, formatSetScoreValue(matchState, 1, 1), matchState.sets[1].winner === 1);
@@ -764,13 +716,6 @@ function renderScoreboard(){
   els.scoreboardBottomMatch.textContent = String(setsWon[2]);
   els.scoreboardTopMatch.className = `scoreboard-match-score${matchWinner === 1 ? " is-won" : ""}`;
   els.scoreboardBottomMatch.className = `scoreboard-match-score${matchWinner === 2 ? " is-won" : ""}`;
-  els.scoreboardStatus.textContent = phase.suddenDeath
-    ? "Sudden death"
-    : matchWinner
-      ? "Match complete"
-      : phase.type === "course" || phase.type === "point"
-        ? `Set ${phase.setState?.setNumber || 1}`
-        : "Pregame";
 }
 
 function getCourseSelectionInfo(matchState, courseId){
@@ -805,7 +750,6 @@ function createCourseButton(course, phase, availableCourseIds){
     info.selected ? "is-picked" : "",
     info.owner === 1 ? "is-player-one" : "",
     info.owner === 2 ? "is-player-two" : "",
-    isCoursePhase && isAvailable && !info.selected ? "is-available" : "",
   ].filter(Boolean).join(" ");
   button.disabled = !canApply || !isCoursePhase || info.selected || !isAvailable;
   button.setAttribute("aria-pressed", info.selected ? "true" : "false");
@@ -817,13 +761,7 @@ function createCourseButton(course, phase, availableCourseIds){
 
   const meta = document.createElement("span");
   meta.className = "course-button-meta";
-  if(info.selected){
-    meta.textContent = `Picked by ${getPlayerName(info.owner)}`;
-  }else if(isCoursePhase && isAvailable){
-    meta.textContent = phase.suddenDeath ? "Sudden death" : "Available";
-  }else{
-    meta.textContent = "Unused";
-  }
+  meta.textContent = getCourseHoleLabel(course.id);
   button.append(meta);
 
   return button;
@@ -840,7 +778,7 @@ function renderCourses(){
   els.courseGrid.replaceChildren(...COURSE_CHOICES.slice(0, 6).map((course) => createCourseButton(course, phase, availableCourseIds)));
   els.specialCourseSlot.replaceChildren(createCourseButton(COURSE_CHOICES[6], phase, availableCourseIds));
   els.courseHint.textContent = phase.type === "course"
-    ? phase.prompt
+    ? phase.detail
     : currentSet
       ? "Course choices reset at the beginning of each set."
       : "Courses will unlock after the match starts and Hole 13 CTP is recorded.";
@@ -874,18 +812,18 @@ function renderFlow(){
     els.actionButtons.append(createActionButton("Start match", "start"));
   }else if(phase.type === "ctp"){
     els.actionButtons.append(
-      createActionButton(`${getPlayerName(1)} won Hole 13 CTP`, "ctp", 1),
-      createActionButton(`${getPlayerName(2)} won Hole 13 CTP`, "ctp", 2)
+      createActionButton(getPlayerName(1), "ctp", 1),
+      createActionButton(getPlayerName(2), "ctp", 2)
     );
   }else if(phase.type === "point"){
     els.actionButtons.append(
-      createActionButton(`${getPlayerName(1)} won the point`, "point", 1),
-      createActionButton(`${getPlayerName(2)} won the point`, "point", 2)
+      createActionButton(getPlayerName(1), "point", 1),
+      createActionButton(getPlayerName(2), "point", 2)
     );
   }else if(phase.type === "course"){
     const note = document.createElement("span");
     note.className = "flow-action-note";
-    note.textContent = "Select a course above.";
+    note.textContent = "Pick below";
     els.actionButtons.append(note);
   }
 
@@ -897,12 +835,28 @@ function formatEventTimestamp(value){
   const date = new Date(value);
   if(Number.isNaN(date.getTime())) return "Time unavailable";
   return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+}
+
+function formatLastUpdatedTimestamp(value){
+  const date = new Date(value);
+  if(Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
   }).format(date);
+}
+
+function getEventSetLabel(event){
+  if(event.setNumber) return `Set ${event.setNumber}`;
+  if(event.type === "hole13_ctp") return "CTP";
+  return "Match";
 }
 
 function formatHistoryEvent(event){
@@ -935,6 +889,10 @@ function renderEventLog(){
       event.player === 2 ? "is-player-two" : "",
     ].filter(Boolean).join(" ");
 
+    const setLabel = document.createElement("span");
+    setLabel.className = "event-log-set";
+    setLabel.textContent = getEventSetLabel(event);
+
     const timestamp = document.createElement("time");
     timestamp.className = "event-log-time";
     timestamp.dateTime = event.at || "";
@@ -944,41 +902,21 @@ function renderEventLog(){
     message.className = "event-log-message";
     message.textContent = formatHistoryEvent(event);
 
-    item.append(timestamp, message);
+    item.append(setLabel, timestamp, message);
     return item;
   }));
 }
 
 function renderRealtimeState(){
-  const channelName = state.matchId ? buildMatchRealtimeChannelName(state.matchId) : "lightningcup:match";
-  els.realtimeChannelName.textContent = `${channelName} -> public.${MATCH_STATE_TABLE}`;
-  els.realtimeViewerCount.textContent = `${state.realtimeViewerCount} viewer${state.realtimeViewerCount === 1 ? "" : "s"}`;
-  els.realtimeChip.textContent = state.realtimeStatus.toUpperCase();
+  const isError = !!state.saveError || !!state.liveError || state.realtimeStatus === "CHANNEL_ERROR" || state.realtimeStatus === "TIMED_OUT";
+  const isLive = state.realtimeStatus === "SUBSCRIBED" && !isError;
 
-  const toneClass = state.realtimeStatus === "SUBSCRIBED"
-    ? "is-ok"
-    : state.realtimeStatus === "CHANNEL_ERROR" || state.realtimeStatus === "TIMED_OUT" || state.liveError
-      ? "is-error"
-      : "";
-  els.realtimeChip.className = `match-status-chip ${toneClass}`.trim();
-
-  if(state.saveError){
-    els.realtimeStatusText.textContent = state.saveError;
-  }else if(state.liveError){
-    els.realtimeStatusText.textContent = state.liveError;
-  }else if(state.isSaving){
-    els.realtimeStatusText.textContent = "Saving the latest match state to Supabase.";
-  }else if(state.matchStateLoadStatus === "not-created"){
-    els.realtimeStatusText.textContent = "No saved state exists yet. Start match will create the live row.";
-  }else if(state.realtimeStatus === "SUBSCRIBED"){
-    els.realtimeStatusText.textContent = state.matchStateRowUpdatedAt
-      ? `Live state synced. Last DB update: ${formatEventTimestamp(state.matchStateRowUpdatedAt)}.`
-      : "Live state synced. Waiting for the first saved update.";
-  }else if(state.realtimeStatus === "CHANNEL_ERROR" || state.realtimeStatus === "TIMED_OUT"){
-    els.realtimeStatusText.textContent = "Realtime could not connect cleanly. Refresh or check Supabase Realtime publication settings.";
-  }else{
-    els.realtimeStatusText.textContent = "Connecting to the match-state row.";
-  }
+  els.realtimeStatusText.textContent = isError
+    ? (state.saveError || state.liveError || "SYNC ERROR")
+    : "LIVE";
+  els.realtimeStatusText.className = `realtime-state${isError ? " is-error" : ""}`;
+  els.realtimePulse.className = `live-dot${isLive ? " is-live" : ""}`;
+  els.lastUpdatedText.textContent = `Last updated: ${state.matchStateRowUpdatedAt ? formatLastUpdatedTimestamp(state.matchStateRowUpdatedAt) : "-"}`;
 }
 
 function renderPage(){
@@ -989,9 +927,6 @@ function renderPage(){
   }
 
   if(!state.match){
-    els.matchTitle.textContent = "Lightning Cup Match";
-    els.matchMeta.textContent = "Load a valid match to see the live match controls.";
-    els.matchIdValue.textContent = state.matchId == null ? "Unknown" : String(state.matchId);
     renderAuthNotice();
     renderScoreboard();
     renderCourses();
@@ -1002,27 +937,8 @@ function renderPage(){
   }
 
   const roundLabel = formatRoundLabel(state.match.round);
-  const regionName = getRegionNameForMatch(state.match);
-  const matchMetaParts = [`${roundLabel}`];
-  if(shouldShowRegionLabel(state.match.round) && regionName){
-    matchMetaParts.push(`${regionName} region`);
-  }
-
   document.title = `${roundLabel} Match ${state.match.id} | Lightning Cup`;
-  els.matchTitle.textContent = `${normalizeName(state.match.top?.name) || "TBD"} vs ${normalizeName(state.match.bottom?.name) || "TBD"}`;
-  els.matchMeta.textContent = matchMetaParts.join(" / ").toUpperCase();
-  els.matchIdValue.textContent = String(state.match.id);
-
-  const authChip = getAuthChipState();
-  els.authChip.textContent = authChip.label;
-  els.authChip.className = `match-status-chip${authChip.tone === "ok" ? " is-ok" : authChip.tone === "warn" ? " is-warn" : ""}`;
-
-  renderParticipantCard("top", state.match.top);
-  renderParticipantCard("bottom", state.match.bottom);
   renderAuthNotice();
-
-  const regionAccent = REGION_ACCENT_RGB_BY_NAME[regionName] || FALLBACK_REGION_RGB;
-  document.documentElement.style.setProperty("--match-region-rgb", regionAccent);
 
   renderScoreboard();
   renderCourses();
@@ -1033,9 +949,16 @@ function renderPage(){
 
 function updateRealtimeViewerCount(channel){
   const presenceState = typeof channel?.presenceState === "function" ? channel.presenceState() : {};
+  const onlinePlayers = { 1: false, 2: false };
   state.realtimeViewerCount = Object.values(presenceState || {}).reduce((count, entries) => {
+    (Array.isArray(entries) ? entries : []).forEach((entry) => {
+      const player = parsePlayerValue(entry?.player);
+      if(player) onlinePlayers[player] = true;
+    });
     return count + (Array.isArray(entries) ? entries.length : 0);
   }, 0);
+  state.onlinePlayers = onlinePlayers;
+  renderScoreboard();
   renderRealtimeState();
 }
 
@@ -1098,6 +1021,7 @@ async function subscribeToMatchRealtime(){
       viewedAt: new Date().toISOString(),
       matchId: state.matchId,
       participant: isUserParticipantInMatch(getAuthDiscordId(), state.match),
+      player: getCurrentViewerPlayerNumber(),
       userId: normalizeName(state.session?.user?.id) || "anonymous",
     }).then(() => {
       updateRealtimeViewerCount(channel);
