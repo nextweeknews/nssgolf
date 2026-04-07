@@ -563,7 +563,7 @@ function getDiscordIdForPlayerName(name){
 
 function formatDiscordMentionForPlayer(player){
   const discordId = normalizeDiscordId(getDiscordIdForPlayerName(getPlayerSlot(player)?.name)).replace(/^@+/, "");
-  return discordId ? `@${discordId}` : `Player ${player}`;
+  return discordId ? `<@${discordId}>` : `Player ${player}`;
 }
 
 function formatExportRoundLabel(roundCode){
