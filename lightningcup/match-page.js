@@ -156,11 +156,17 @@ function getPlayerSlot(player){
 }
 
 function getPlayerName(player){
-  return normalizeName(getPlayerSlot(player)?.name) || `Player ${player}`;
+  if(player === 1) return normalizeName(getPlayerSlot(player)?.name) || "Top player";
+  if(player === 2) return normalizeName(getPlayerSlot(player)?.name) || "Bottom player";
+  return "Player";
 }
 
 function getPlayerLabel(player){
-  return player === 1 || player === 2 ? `${getPlayerName(player)} (Player ${player})` : "System";
+  return player === 1 || player === 2 ? getPlayerName(player) : "System";
+}
+
+function getPlayerClass(player){
+  return player === 1 ? "is-player-one" : player === 2 ? "is-player-two" : "";
 }
 
 function getCourseName(courseId){
@@ -172,6 +178,20 @@ function getCourseHoleLabel(courseId){
   if(!COURSE_BY_ID.has(normalizedCourseId)) return "";
   const firstHole = ((normalizedCourseId - 1) * 3) + 1;
   return `Holes ${firstHole}-${firstHole + 2}`;
+}
+
+function getRemainingCourseId(courseSelections){
+  const selectedCourses = new Set(courseSelections);
+  return COURSE_CHOICES.find((course) => !selectedCourses.has(course.id))?.id || null;
+}
+
+function getSuddenDeathCourseId(setState){
+  const result = deriveSetResult(setState);
+  if(Number(setState.setNumber) !== 3 || !result.suddenDeath) return null;
+
+  const selections = result.courseSelections;
+  return selections[COURSE_CHOICES.length - 1] ||
+    (selections.length === COURSE_CHOICES.length - 1 ? getRemainingCourseId(selections) : null);
 }
 
 function sanitizeSet(rawSet, setNumber){
@@ -195,6 +215,7 @@ function sanitizeHistoryEvent(event){
   const at = normalizeName(event.at);
   const setNumber = Number(event.setNumber);
   const course = parseCourseValue(event.course);
+  const score = normalizeName(event.score);
   const sanitized = {
     type,
     player: parsePlayerValue(event.player),
@@ -205,6 +226,9 @@ function sanitizeHistoryEvent(event){
   }
   if(course != null){
     sanitized.course = course;
+  }
+  if(/^\d+-\d+$/.test(score)){
+    sanitized.score = score;
   }
   return sanitized;
 }
@@ -302,8 +326,17 @@ function reconcileMatchState(matchState){
     setState.courseSelections = toCsv(trimmedCourseSelections);
 
     const trimmedResult = deriveSetResult(setState);
-    setState.suddenDeath = trimmedResult.suddenDeath;
-    setState.winner = trimmedResult.winner;
+    if(setState.setNumber === 3 && trimmedResult.suddenDeath && !trimmedResult.winner){
+      const selections = parseCourseSelections(setState.courseSelections);
+      const suddenDeathCourse = getSuddenDeathCourseId(setState);
+      if(suddenDeathCourse && selections.length === COURSE_CHOICES.length - 1){
+        setState.courseSelections = toCsv([...selections, suddenDeathCourse]);
+      }
+    }
+
+    const finalResult = deriveSetResult(setState);
+    setState.suddenDeath = finalResult.suddenDeath;
+    setState.winner = finalResult.winner;
   });
 
   matchState.history = Array.isArray(matchState.history)
@@ -392,15 +425,15 @@ function getMatchPhase(matchState){
     return {
       type: "start",
       prompt: "Start match",
-      detail: "Ready when both players are here.",
+      detail: "",
     };
   }
 
   if(!matchState.hole13CtpWinner){
     return {
       type: "ctp",
-      prompt: "Hole 13 CTP",
-      detail: "Who won it?",
+      prompt: "Select Hole 13 CTP winner:",
+      detail: "",
     };
   }
 
@@ -409,7 +442,7 @@ function getMatchPhase(matchState){
     return {
       type: "complete",
       prompt: "Match complete",
-      detail: `${getPlayerName(matchWinner)} wins.`,
+      detail: "",
       player: matchWinner,
     };
   }
@@ -420,27 +453,28 @@ function getMatchPhase(matchState){
     return {
       type: "complete",
       prompt: "The match is complete.",
-      detail: "Final result locked.",
+      detail: "",
     };
   }
 
   const result = deriveSetResult(currentSet);
   if(result.courseSelections.length === result.pointWinners.length){
     const picker = getPickerForPointIndex(currentSet, result.courseSelections.length);
-    const availableCourseCount = COURSE_CHOICES.length - result.courseSelections.length;
     const isSuddenDeathPick = currentSet.setNumber === 3 && result.suddenDeath;
+    const previousSet = currentSetIndex > 0 ? matchState.sets[currentSetIndex - 1] : null;
+    const isOpeningSet = result.courseSelections.length === 0 && result.pointWinners.length === 0;
     return {
       type: "course",
       prompt: isSuddenDeathPick
         ? "Sudden death"
-        : "Course pick",
-      detail: isSuddenDeathPick
-        ? "Choose the final unplayed course."
-        : `${getPlayerName(picker)} chooses. ${availableCourseCount} left.`,
+        : `${getPlayerName(picker)} selects a course`,
+      detail: "",
       setIndex: currentSetIndex,
       setState: currentSet,
       player: picker,
       suddenDeath: isSuddenDeathPick,
+      previousSetNumber: isOpeningSet && previousSet?.winner ? previousSet.setNumber : null,
+      previousSetWinner: isOpeningSet ? parsePlayerValue(previousSet?.winner) : null,
     };
   }
 
@@ -448,12 +482,15 @@ function getMatchPhase(matchState){
   const picker = getPickerForPointIndex(currentSet, result.pointWinners.length);
   return {
     type: "point",
-    prompt: `${getCourseName(courseId)} result`,
-    detail: "Who won the point?",
+    prompt: currentSet.setNumber === 3 && result.suddenDeath
+      ? `SUDDEN DEATH! Next lead wins. Select ${getCourseName(courseId)} SD winner:`
+      : "Select point winner:",
+    detail: "",
     setIndex: currentSetIndex,
     setState: currentSet,
     course: courseId,
     player: picker,
+    suddenDeath: currentSet.setNumber === 3 && result.suddenDeath,
   };
 }
 
@@ -475,17 +512,6 @@ function getCanEditMatch(){
 
 function getCanApplyActions(){
   return getCanEditMatch() && !state.isSaving && !state.liveError;
-}
-
-function getActionRestrictionMessage(){
-  if(state.isSaving) return "Saving the latest match state...";
-  if(state.liveError) return state.liveError;
-  if(!state.session) return "Sign in to control the match.";
-  if(!getAuthDiscordId()) return "Discord ID missing.";
-  if(!isUserParticipantInMatch(getAuthDiscordId(), state.match)){
-    return "View only.";
-  }
-  return "";
 }
 
 async function fetchSheet(range){
@@ -688,9 +714,13 @@ function formatSetScoreValue(matchState, setIndex, player){
   return shouldShowScore ? String(result.score[player]) : "-";
 }
 
-function setScoreCell(cell, value, isWon){
+function setScoreCell(cell, value, player, isWon){
   cell.textContent = value;
-  cell.className = `scoreboard-score${isWon ? " is-won" : ""}`;
+  cell.className = [
+    "scoreboard-score",
+    getPlayerClass(player),
+    isWon ? "is-won" : "",
+  ].filter(Boolean).join(" ");
 }
 
 function renderScoreboard(){
@@ -705,35 +735,46 @@ function renderScoreboard(){
   els.scoreboardTopOnline.className = `online-dot${state.onlinePlayers[1] ? " is-online" : ""}`;
   els.scoreboardBottomOnline.className = `online-dot${state.onlinePlayers[2] ? " is-online" : ""}`;
 
-  setScoreCell(els.scoreboardTopSet1, formatSetScoreValue(matchState, 0, 1), matchState.sets[0].winner === 1);
-  setScoreCell(els.scoreboardTopSet2, formatSetScoreValue(matchState, 1, 1), matchState.sets[1].winner === 1);
-  setScoreCell(els.scoreboardTopSet3, formatSetScoreValue(matchState, 2, 1), matchState.sets[2].winner === 1);
-  setScoreCell(els.scoreboardBottomSet1, formatSetScoreValue(matchState, 0, 2), matchState.sets[0].winner === 2);
-  setScoreCell(els.scoreboardBottomSet2, formatSetScoreValue(matchState, 1, 2), matchState.sets[1].winner === 2);
-  setScoreCell(els.scoreboardBottomSet3, formatSetScoreValue(matchState, 2, 2), matchState.sets[2].winner === 2);
+  setScoreCell(els.scoreboardTopSet1, formatSetScoreValue(matchState, 0, 1), 1, matchState.sets[0].winner === 1);
+  setScoreCell(els.scoreboardTopSet2, formatSetScoreValue(matchState, 1, 1), 1, matchState.sets[1].winner === 1);
+  setScoreCell(els.scoreboardTopSet3, formatSetScoreValue(matchState, 2, 1), 1, matchState.sets[2].winner === 1);
+  setScoreCell(els.scoreboardBottomSet1, formatSetScoreValue(matchState, 0, 2), 2, matchState.sets[0].winner === 2);
+  setScoreCell(els.scoreboardBottomSet2, formatSetScoreValue(matchState, 1, 2), 2, matchState.sets[1].winner === 2);
+  setScoreCell(els.scoreboardBottomSet3, formatSetScoreValue(matchState, 2, 2), 2, matchState.sets[2].winner === 2);
 
   els.scoreboardTopMatch.textContent = String(setsWon[1]);
   els.scoreboardBottomMatch.textContent = String(setsWon[2]);
-  els.scoreboardTopMatch.className = `scoreboard-match-score${matchWinner === 1 ? " is-won" : ""}`;
-  els.scoreboardBottomMatch.className = `scoreboard-match-score${matchWinner === 2 ? " is-won" : ""}`;
+  els.scoreboardTopMatch.className = [
+    "scoreboard-match-score",
+    "is-player-one",
+    matchWinner === 1 ? "is-won" : "",
+  ].filter(Boolean).join(" ");
+  els.scoreboardBottomMatch.className = [
+    "scoreboard-match-score",
+    "is-player-two",
+    matchWinner === 2 ? "is-won" : "",
+  ].filter(Boolean).join(" ");
 }
 
 function getCourseSelectionInfo(matchState, courseId){
   const currentSetIndex = getCurrentSetIndex(matchState);
   const currentSet = currentSetIndex >= 0 ? matchState.sets[currentSetIndex] : null;
-  if(!currentSet) return { selected: false, owner: null, selectedIndex: -1 };
+  if(!currentSet) return { selected: false, owner: null, selectedIndex: -1, suddenDeath: false };
 
   const selections = parseCourseSelections(currentSet.courseSelections);
   const selectedIndex = selections.indexOf(courseId);
   if(selectedIndex < 0){
-    return { selected: false, owner: null, selectedIndex: -1, setState: currentSet };
+    return { selected: false, owner: null, selectedIndex: -1, setState: currentSet, suddenDeath: false };
   }
 
+  const suddenDeathCourse = getSuddenDeathCourseId(currentSet);
+  const isSuddenDeathCourse = suddenDeathCourse === courseId && selectedIndex === COURSE_CHOICES.length - 1;
   return {
     selected: true,
-    owner: getPickerForPointIndex(currentSet, selectedIndex),
+    owner: isSuddenDeathCourse ? null : getPickerForPointIndex(currentSet, selectedIndex),
     selectedIndex,
     setState: currentSet,
+    suddenDeath: isSuddenDeathCourse,
   };
 }
 
@@ -748,6 +789,7 @@ function createCourseButton(course, phase, availableCourseIds){
   button.className = [
     "course-button",
     info.selected ? "is-picked" : "",
+    info.suddenDeath ? "is-sudden-death" : "",
     info.owner === 1 ? "is-player-one" : "",
     info.owner === 2 ? "is-player-two" : "",
   ].filter(Boolean).join(" ");
@@ -777,11 +819,9 @@ function renderCourses(){
 
   els.courseGrid.replaceChildren(...COURSE_CHOICES.slice(0, 6).map((course) => createCourseButton(course, phase, availableCourseIds)));
   els.specialCourseSlot.replaceChildren(createCourseButton(COURSE_CHOICES[6], phase, availableCourseIds));
-  els.courseHint.textContent = phase.type === "course"
-    ? phase.detail
-    : currentSet
-      ? "Course choices reset at the beginning of each set."
-      : "Courses will unlock after the match starts and Hole 13 CTP is recorded.";
+  els.courseHint.textContent = currentSet
+    ? "Course choices reset at the beginning of each set."
+    : "Courses will unlock after the match starts and Hole 13 CTP is recorded.";
 }
 
 function createActionButton(label, action, player = null){
@@ -801,11 +841,60 @@ function createActionButton(label, action, player = null){
   return button;
 }
 
+function createPromptPlayer(player){
+  const playerName = document.createElement("span");
+  playerName.className = [
+    "flow-prompt-player",
+    getPlayerClass(player),
+  ].filter(Boolean).join(" ");
+  playerName.textContent = getPlayerName(player);
+  return playerName;
+}
+
+function renderFlowPrompt(phase){
+  els.flowPrompt.replaceChildren();
+  els.flowPrompt.hidden = phase.type === "start";
+
+  if(phase.type === "start"){
+    return;
+  }
+
+  if(phase.type === "course"){
+    if(phase.previousSetWinner && phase.previousSetNumber){
+      els.flowPrompt.append(
+        createPromptPlayer(phase.previousSetWinner),
+        document.createTextNode(` wins Set ${phase.previousSetNumber}. `)
+      );
+    }
+    els.flowPrompt.append(createPromptPlayer(phase.player), document.createTextNode(" selects a course"));
+    return;
+  }
+
+  if(phase.type === "point" && phase.suddenDeath){
+    const courseName = document.createElement("span");
+    courseName.className = "flow-prompt-danger";
+    courseName.textContent = getCourseName(phase.course);
+    els.flowPrompt.append(
+      document.createTextNode("SUDDEN DEATH! Next lead wins. Select "),
+      courseName,
+      document.createTextNode(" SD winner:")
+    );
+    return;
+  }
+
+  if(phase.type === "complete" && phase.player){
+    els.flowPrompt.append(document.createTextNode("Match complete: "), createPromptPlayer(phase.player), document.createTextNode(" wins"));
+    return;
+  }
+
+  els.flowPrompt.textContent = phase.prompt;
+}
+
 function renderFlow(){
   const phase = getMatchPhase(state.matchState);
-  const restriction = getActionRestrictionMessage();
-  els.flowPrompt.textContent = phase.prompt;
-  els.flowDetail.textContent = restriction || phase.detail || "";
+  renderFlowPrompt(phase);
+  els.flowDetail.hidden = true;
+  els.flowDetail.textContent = "";
   els.actionButtons.replaceChildren();
 
   if(phase.type === "start"){
@@ -820,11 +909,6 @@ function renderFlow(){
       createActionButton(getPlayerName(1), "point", 1),
       createActionButton(getPlayerName(2), "point", 2)
     );
-  }else if(phase.type === "course"){
-    const note = document.createElement("span");
-    note.className = "flow-action-note";
-    note.textContent = "Pick below";
-    els.actionButtons.append(note);
   }
 
   const canUndo = Array.isArray(state.matchState.undoStack) && state.matchState.undoStack.length > 0;
@@ -866,7 +950,7 @@ function formatHistoryEvent(event){
   if(event.type === "course_pick") return `Set ${event.setNumber} course pick: ${getCourseName(event.course)} by ${playerLabel}`;
   if(event.type === "point_win") return `Set ${event.setNumber} point won by ${playerLabel}`;
   if(event.type === "set_win") return `Set ${event.setNumber} won by ${playerLabel}`;
-  if(event.type === "sudden_death") return `Set ${event.setNumber} sudden death started`;
+  if(event.type === "sudden_death") return `Set ${event.setNumber} sudden death started${event.course ? `: ${getCourseName(event.course)}` : ""}`;
   if(event.type === "match_win") return `Match won by ${playerLabel}`;
   return event.type.replaceAll("_", " ");
 }
@@ -881,7 +965,7 @@ function renderEventLog(){
     return;
   }
 
-  els.eventLog.replaceChildren(...events.map((event) => {
+  els.eventLog.replaceChildren(...events.slice().reverse().map((event) => {
     const item = document.createElement("li");
     item.className = [
       "event-log-item",
@@ -898,11 +982,16 @@ function renderEventLog(){
     timestamp.dateTime = event.at || "";
     timestamp.textContent = formatEventTimestamp(event.at);
 
+    const score = document.createElement("span");
+    score.className = "event-log-score";
+    score.textContent = event.score || "";
+    score.setAttribute("aria-label", event.score ? `Set score ${event.score}` : "");
+
     const message = document.createElement("span");
     message.className = "event-log-message";
     message.textContent = formatHistoryEvent(event);
 
-    item.append(setLabel, timestamp, message);
+    item.append(setLabel, timestamp, score, message);
     return item;
   }));
 }
@@ -1107,19 +1196,23 @@ async function applyMatchAction(action, payload = {}){
     const setState = nextState.sets[phase.setIndex];
     const beforeSetResult = deriveSetResult(setState);
     setState.pointWinners = toCsv([...beforeSetResult.pointWinners, player]);
+    const pointScore = deriveSetResult(setState).score;
     recordEvent(nextState, {
       type: "point_win",
       player,
       setNumber: setState.setNumber,
+      score: `${pointScore[1]}-${pointScore[2]}`,
       at: now,
     });
     reconcileMatchState(nextState);
     const afterSetState = nextState.sets[phase.setIndex];
     if(afterSetState.suddenDeath && !beforeSetResult.suddenDeath && !afterSetState.winner){
+      const suddenDeathCourse = getSuddenDeathCourseId(afterSetState);
       recordEvent(nextState, {
         type: "sudden_death",
         player: null,
         setNumber: afterSetState.setNumber,
+        course: suddenDeathCourse,
         at: now,
       });
     }

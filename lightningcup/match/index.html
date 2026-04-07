@@ -217,9 +217,15 @@
       font-variant-numeric: tabular-nums;
     }
     .scoreboard-score.is-won{
-      color:#fef3c7;
-      background: rgba(250,204,21,.12);
-      border-color: rgba(148,163,184,.30);
+      color:#020617;
+    }
+    .scoreboard-score.is-won.is-player-one{
+      background: rgba(var(--player-one-rgb), .94);
+      border-color: rgba(var(--player-one-rgb), .96);
+    }
+    .scoreboard-score.is-won.is-player-two{
+      background: rgba(var(--player-two-rgb), .9);
+      border-color: rgba(var(--player-two-rgb), .96);
     }
     .scoreboard-match-score{
       background: rgba(255,255,255,.08);
@@ -227,8 +233,15 @@
       font-size:25px;
     }
     .scoreboard-match-score.is-won{
-      background: rgba(250,204,21,.18);
-      color:#fef08a;
+      color:#020617;
+    }
+    .scoreboard-match-score.is-won.is-player-one{
+      background: rgba(var(--player-one-rgb), .94);
+      border-color: rgba(var(--player-one-rgb), .96);
+    }
+    .scoreboard-match-score.is-won.is-player-two{
+      background: rgba(var(--player-two-rgb), .9);
+      border-color: rgba(var(--player-two-rgb), .96);
     }
     .flow-panel{
       width:min(680px, 100%);
@@ -250,13 +263,11 @@
       font-weight:950;
     }
     .flow-detail{
-      margin:0;
-      min-height:1.25em;
-      color: rgba(191,219,254,.92);
-      font-size:14px;
-      line-height:1.4;
-      font-weight:700;
+      display:none;
     }
+    .flow-prompt-player.is-player-one{ color: rgb(var(--player-one-rgb)); }
+    .flow-prompt-player.is-player-two{ color: rgb(var(--player-two-rgb)); }
+    .flow-prompt-danger{ color:#f87171; }
     .flow-control-row{
       display:flex;
       align-items:center;
@@ -302,13 +313,6 @@
       cursor:not-allowed;
       opacity:.48;
       background: rgba(71,85,105,.64);
-    }
-    .flow-action-note{
-      color: rgba(226,232,240,.9);
-      font-size:12px;
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
     }
     .course-section{
       display:grid;
@@ -361,6 +365,11 @@
     }
     .course-button.is-picked.is-player-one{ background: rgba(var(--player-one-rgb), .94); }
     .course-button.is-picked.is-player-two{ background: rgba(var(--player-two-rgb), .90); }
+    .course-button.is-picked.is-sudden-death{
+      background:#dc2626;
+      border-color: rgba(248,113,113,.96);
+      color:#fff;
+    }
     .course-button-name{
       font-size:13px;
       font-weight:900;
@@ -417,7 +426,7 @@
     }
     .event-log-item{
       display:grid;
-      grid-template-columns:58px 86px minmax(0,1fr);
+      grid-template-columns:58px 86px 48px minmax(0,1fr);
       gap:8px;
       align-items:center;
       border-left:3px solid rgba(148,163,184,.72);
@@ -436,6 +445,13 @@
       font-size:10px;
       font-weight:800;
       letter-spacing:.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .event-log-score{
+      color: rgba(226,232,240,.92);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.05em;
       font-variant-numeric: tabular-nums;
     }
     .event-log-message{
@@ -494,7 +510,8 @@
       .course-board{ grid-template-columns:1fr; }
       .course-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
       .special-course-slot{ min-height:auto; }
-      .event-log-item{ grid-template-columns:50px minmax(0,1fr); gap:4px 8px; }
+      .event-log-item{ grid-template-columns:50px minmax(0,1fr) 44px; gap:4px 8px; }
+      .event-log-score{ grid-column:3; grid-row:1; justify-self:end; }
       .event-log-message{ grid-column:1 / -1; }
     }
   </style>
@@ -553,12 +570,12 @@
       </div>
 
       <section class="flow-panel" aria-label="Match flow">
-        <p class="flow-prompt" id="flowPrompt">Start match</p>
+        <p class="flow-prompt" id="flowPrompt" hidden></p>
         <p class="flow-detail" id="flowDetail"></p>
         <div class="flow-control-row">
           <div class="flow-actions" id="actionButtons"></div>
           <button class="sign-in-button" id="signInBtn" type="button" hidden>Sign In</button>
-          <button class="undo-button" id="undoBtn" type="button">Undo</button>
+          <button class="undo-button" id="undoBtn" type="button">Undo last</button>
         </div>
       </section>
 
@@ -583,6 +600,6 @@
     </section>
   </main>
 
-  <script type="module" src="/lightningcup/match-page.js?v=20260407-compact-ui"></script>
+  <script type="module" src="/lightningcup/match-page.js?v=20260407-prompt-log-update-3"></script>
 </body>
 </html>
