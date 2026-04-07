@@ -2488,6 +2488,14 @@
       return null;
     }
 
+    function getParticipantIdentityForFutureMatch(slot){
+      return {
+        seed: slot?.seed ?? null,
+        name: normalizeName(slot?.name),
+        score: null,
+      };
+    }
+
     function propagateWinnerToNextMatch(predicted, context, matchId, pickedName){
       const link = context.nextMap.get(matchId);
       if(!link) return;
@@ -2496,7 +2504,7 @@
       if(!current || !next) return;
       const participant = getParticipantFromPicked(current, pickedName);
       const fallback = { seed: null, name: "", score: null };
-      next[link.slot] = participant || fallback;
+      next[link.slot] = participant ? getParticipantIdentityForFutureMatch(participant) : fallback;
     }
 
     function applyUserPicksToPredictedBracket(context, picksMap){
@@ -2687,14 +2695,13 @@
 
     function getDisplayedScoreValue(match, slot, mode){
       if(mode === "actual") return normalizeName(slot?.score);
-      const slotScore = normalizeName(slot?.score);
-      const actualMatch = state.context?.byId?.get(match.id);
-      if(!actualMatch) return slotScore;
+      const actualMatch = state.context?.byId?.get(Number(match?.id));
       const slotName = normalizeName(slot?.name);
-      if(!slotName) return slotScore;
+      if(!actualMatch || !slotName) return "";
+      if(normalizeName(actualMatch.round) !== normalizeName(match?.round)) return "";
       if(slotName === normalizeName(actualMatch.top?.name)) return normalizeName(actualMatch.top?.score);
       if(slotName === normalizeName(actualMatch.bottom?.name)) return normalizeName(actualMatch.bottom?.score);
-      return slotScore;
+      return "";
     }
 
     const EMPTY_PREDICTED_SLOT_APPEARANCE = Object.freeze({
