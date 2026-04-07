@@ -147,6 +147,47 @@
       background: rgba(103,232,249,.95);
       border-color: rgba(103,232,249,.95);
     }
+    .lc-countdown-strip{
+      display:grid;
+      justify-items:center;
+      gap:4px;
+      color:#fff;
+      text-align:center;
+    }
+    .lc-countdown-copy{
+      margin:0;
+      width:100%;
+      color:#fff;
+      font-size:12px;
+      line-height:1.2;
+      white-space:nowrap;
+    }
+    .lc-countdown-copy strong{
+      font-weight:900;
+    }
+    .lc-countdown-timer{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      color:#fff;
+      font-variant-numeric:tabular-nums;
+      font-size:15px;
+      font-weight:850;
+      line-height:1.1;
+      text-transform:uppercase;
+    }
+    .lc-countdown-unit{
+      display:inline-flex;
+      align-items:baseline;
+      gap:3px;
+      white-space:nowrap;
+    }
+    .lc-countdown-unit-label{
+      font-size:.7em;
+      font-weight:650;
+      opacity:.88;
+    }
     .headline{ margin:0; font-size:26px; font-weight:950; color:var(--title); letter-spacing:.035em; text-transform:uppercase; text-align:center; }
     .season-head{ min-height:44px; padding:2px 0; margin-bottom:8px; display:flex; align-items:center; justify-content:center; }
     .status{ margin:0; color:var(--muted); font-size:12px; text-align:center; }
@@ -1464,6 +1505,17 @@
       }
       .user-greeting{ display:none; }
       .container{ padding-right:14px; padding-left:14px; }
+      .lc-countdown-copy{
+        font-size:9.5px;
+        line-height:1.15;
+      }
+      .lc-countdown-timer{
+        gap:5px;
+        font-size:12px;
+      }
+      .lc-countdown-unit-label{
+        font-size:.62em;
+      }
       .lc-next-match-card{
         --lc-next-match-font-size:11px;
         padding:10px 12px;
@@ -1729,6 +1781,20 @@
   </div>
 
   <main class="container">
+    <div class="row auth-buttons auth-buttons-floating" id="authButtonsRow">
+      <button class="btn discord-login-button" id="discordLoginBtn" type="button">
+        <img class="discord-login-icon" src="/logos/discord.svg" alt="" loading="lazy" decoding="async" />
+        <span>Sign in with Discord</span>
+      </button>
+    </div>
+
+    <section class="lc-countdown-strip" aria-label="Countdown to Lightning Cup start and Bracket Game lock">
+      <p class="lc-countdown-copy">
+        <strong>Lightning Cup begins</strong> and <strong>Bracket Game locks</strong> in
+      </p>
+      <div class="lc-countdown-timer" id="lightningCupCountdownTimer">0 days 00 hours 00 minutes 00 seconds</div>
+    </section>
+
     <section class="card lc-next-match-card" id="nextMatchCard" hidden>
       <div class="lc-next-match-card-row">
         <div class="lc-next-match-card-copy">
@@ -1741,13 +1807,6 @@
         <a class="lc-next-match-card-button" id="nextMatchCardButton" href="/lightningcup/match/">VIEW MATCH</a>
       </div>
     </section>
-
-    <div class="row auth-buttons auth-buttons-floating" id="authButtonsRow">
-      <button class="btn discord-login-button" id="discordLoginBtn" type="button">
-        <img class="discord-login-icon" src="/logos/discord.svg" alt="" loading="lazy" decoding="async" />
-        <span>Sign in with Discord</span>
-      </button>
-    </div>
 
     <section class="card">
       <div class="season-head">
@@ -1837,6 +1896,7 @@
     const TOTAL_BRACKET_MATCHES = 63;
     const REGION_TAB_PICK_TOTALS = new Map(REGION_TABS.map((tab) => [tab, tab === "Finals" ? 3 : 15]));
     const TOURNAMENT_YEAR = "2026";
+    const LIGHTNING_CUP_STARTS_AT_MS = Date.UTC(2026, 3, 10, 17, 0, 0);
     const VIEW_QUERY_RESULTS = "results";
     const VIEW_QUERY_BRACKET_GAME = "bracket-game";
     const BRACKET_GAME_TAB_QUERY_VALUE_BY_MAIN_TAB = {
@@ -1914,6 +1974,7 @@
       nextMatchCardOpponent: document.getElementById("nextMatchCardOpponent"),
       nextMatchCardRegion: document.getElementById("nextMatchCardRegion"),
       nextMatchCardButton: document.getElementById("nextMatchCardButton"),
+      lightningCupCountdownTimer: document.getElementById("lightningCupCountdownTimer"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
       pickProgressCount: document.getElementById("pickProgressCount"),
@@ -2011,6 +2072,29 @@
       const fallbackRgb = REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
       const accentRgb = REGION_ACCENT_RGB_BY_TAB[activeTab] || fallbackRgb;
       document.documentElement.style.setProperty("--region-accent-rgb", accentRgb);
+    }
+    function renderCountdownUnit(value, label){
+      return `<span class="lc-countdown-unit"><span>${escapeHtml(value)}</span><span class="lc-countdown-unit-label">${escapeHtml(label)}</span></span>`;
+    }
+    function renderLightningCupCountdown(){
+      if(!els.lightningCupCountdownTimer) return;
+      const remainingMs = Math.max(0, LIGHTNING_CUP_STARTS_AT_MS - Date.now());
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      const padUnit = (value) => String(value).padStart(2, "0");
+      els.lightningCupCountdownTimer.innerHTML = [
+        renderCountdownUnit(days, days === 1 ? "day" : "days"),
+        renderCountdownUnit(padUnit(hours), "hours"),
+        renderCountdownUnit(padUnit(minutes), "minutes"),
+        renderCountdownUnit(padUnit(seconds), "seconds"),
+      ].join("");
+    }
+    function startLightningCupCountdown(){
+      renderLightningCupCountdown();
+      window.setInterval(renderLightningCupCountdown, 1000);
     }
     const modalState = { chooseUsernameSubmitting: false };
     let discordSignInPending = false;
@@ -4367,6 +4451,7 @@
     async function init(){
       bindEvents();
       initializeRadixControls();
+      startLightningCupCountdown();
       applyUrlStateToView();
       try{
         await syncSessionFromSupabase();
