@@ -30,6 +30,24 @@ const COURSE_CHOICES = Object.freeze([
   { id: 7, name: "Special" },
 ]);
 const COURSE_BY_ID = new Map(COURSE_CHOICES.map((course) => [course.id, course]));
+const COURSE_SHORT_LABEL_BY_ID = new Map([
+  [1, "RA"],
+  [2, "RB"],
+  [3, "RC"],
+  [4, "CA"],
+  [5, "CB"],
+  [6, "CC"],
+  [7, "S"],
+]);
+const EXPORT_ROUND_LABEL_BY_CODE = {
+  R64: "Round of 64",
+  R32: "Round of 32",
+  R16: "Round of 16",
+  R8: "Round of 8",
+  R4: "Round of 4",
+  Final: "Finals",
+  final: "Finals",
+};
 
 const supabase = createBrowserSupabaseClient();
 
@@ -173,6 +191,10 @@ function getCourseName(courseId){
   return COURSE_BY_ID.get(Number(courseId))?.name || "Unknown course";
 }
 
+function formatCourseShortLabel(courseId){
+  return COURSE_SHORT_LABEL_BY_ID.get(Number(courseId)) || "";
+}
+
 function getCourseHoleLabel(courseId){
   const normalizedCourseId = Number(courseId);
   if(!COURSE_BY_ID.has(normalizedCourseId)) return "";
@@ -229,6 +251,12 @@ function sanitizeHistoryEvent(event){
   }
   if(/^\d+-\d+$/.test(score)){
     sanitized.score = score;
+  }
+  if(event.setWon === true){
+    sanitized.setWon = true;
+  }
+  if(event.matchWon === true){
+    sanitized.matchWon = true;
   }
   return sanitized;
 }
@@ -531,6 +559,103 @@ function getDiscordIdForPlayerName(name){
   const exact = normalizeDiscordId(state.seedDiscordMap.get(clean));
   if(exact) return exact;
   return normalizeDiscordId(state.seedDiscordMapLower.get(clean.toLowerCase()));
+}
+
+function formatDiscordMentionForPlayer(player){
+  const discordId = normalizeDiscordId(getDiscordIdForPlayerName(getPlayerSlot(player)?.name)).replace(/^@+/, "");
+  return discordId ? `@${discordId}` : `Player ${player}`;
+}
+
+function formatExportRoundLabel(roundCode){
+  return EXPORT_ROUND_LABEL_BY_CODE[normalizeName(roundCode)] || "Match";
+}
+
+function formatExportMatchId(){
+  const matchId = Number(state.match?.id ?? state.matchId);
+  return Number.isFinite(matchId) ? String(matchId) : normalizeName(state.match?.id ?? state.matchId);
+}
+
+function buildCompletedMatchExportMarkdown(){
+  const matchWinner = getMatchWinner(state.matchState);
+  const ctpWinner = parsePlayerValue(state.matchState.hole13CtpWinner);
+  if(!state.match || !matchWinner || !ctpWinner) return "";
+
+  const setsWon = getSetsWon(state.matchState);
+  const lines = [
+    `## ${formatDiscordMentionForPlayer(1)} **${setsWon[1]}-${setsWon[2]}** ${formatDiscordMentionForPlayer(2)}`,
+    `-# Hole 13 CTP: Player ${ctpWinner}`,
+  ];
+
+  state.matchState.sets.forEach((setState) => {
+    const result = deriveSetResult(setState);
+    const winner = parsePlayerValue(result.winner);
+    if(!winner) return;
+
+    const otherPlayer = getOtherPlayer(winner);
+    const courses = result.courseSelections.map(formatCourseShortLabel).filter(Boolean).join(", ");
+    lines.push(
+      `\`Set ${Number(setState.setNumber)}:\` **Player ${winner}** wins **${result.score[winner]}-${result.score[otherPlayer]}**`,
+      `-# Courses: ${courses}`
+    );
+  });
+
+  lines.push(`\`${formatExportRoundLabel(state.match.round)} • Match ID: ${formatExportMatchId()}\``);
+  return lines.join("\n");
+}
+
+async function writeTextToClipboard(text){
+  if(globalThis.navigator?.clipboard?.writeText){
+    await globalThis.navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.top = "-9999px";
+  textArea.style.left = "-9999px";
+  document.body.append(textArea);
+  textArea.select();
+
+  try{
+    const didCopy = document.execCommand("copy");
+    if(!didCopy) throw new Error("Clipboard copy failed.");
+  }finally{
+    textArea.remove();
+  }
+}
+
+async function copyCompletedMatchResults(button = null){
+  const markdown = buildCompletedMatchExportMarkdown();
+  if(!markdown){
+    renderStatus("Completed match results are not ready to copy.", "error");
+    return;
+  }
+
+  const originalText = button?.textContent || "";
+  if(button){
+    button.disabled = true;
+    button.textContent = "Copying...";
+  }
+
+  try{
+    await writeTextToClipboard(markdown);
+    if(button){
+      button.textContent = "Copied";
+      setTimeout(() => {
+        if(!button.isConnected) return;
+        button.disabled = false;
+        button.textContent = originalText || "Copy results";
+      }, 1400);
+    }
+  }catch{
+    renderStatus("Could not copy results. Please try again.", "error");
+    if(button){
+      button.disabled = false;
+      button.textContent = originalText || "Copy results";
+    }
+  }
 }
 
 function isUserParticipantInMatch(userDiscordId, matchData){
@@ -841,6 +966,15 @@ function createActionButton(label, action, player = null){
   return button;
 }
 
+function createCopyResultsButton(){
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "flow-action";
+  button.dataset.copyResults = "true";
+  button.textContent = "Copy results";
+  return button;
+}
+
 function createPromptPlayer(player){
   const playerName = document.createElement("span");
   playerName.className = [
@@ -909,6 +1043,8 @@ function renderFlow(){
       createActionButton(getPlayerName(1), "point", 1),
       createActionButton(getPlayerName(2), "point", 2)
     );
+  }else if(phase.type === "complete" && getMatchWinner(state.matchState)){
+    els.actionButtons.append(createCopyResultsButton());
   }
 
   const canUndo = Array.isArray(state.matchState.undoStack) && state.matchState.undoStack.length > 0;
@@ -959,6 +1095,33 @@ function createEventPlayerName(player){
   return playerName;
 }
 
+function getRenderableHistoryEvents(events){
+  const renderedEvents = [];
+  for(let index = 0; index < events.length; index += 1){
+    const event = events[index];
+    if(event.type !== "point_win"){
+      renderedEvents.push(event);
+      continue;
+    }
+
+    const mergedEvent = { ...event };
+    const setWinEvent = events[index + 1];
+    if(setWinEvent?.type === "set_win" && setWinEvent.player === event.player && setWinEvent.setNumber === event.setNumber){
+      mergedEvent.setWon = true;
+      index += 1;
+
+      const matchWinEvent = events[index + 1];
+      if(matchWinEvent?.type === "match_win" && matchWinEvent.player === event.player){
+        mergedEvent.matchWon = true;
+        index += 1;
+      }
+    }
+
+    renderedEvents.push(mergedEvent);
+  }
+  return renderedEvents;
+}
+
 function renderHistoryEventMessage(event, message){
   if(event.type === "start_match"){
     message.textContent = "Match started";
@@ -977,7 +1140,10 @@ function renderHistoryEventMessage(event, message){
 
   if(event.type === "point_win"){
     const score = getPlayerFirstEventScore(event);
-    message.append(document.createTextNode("Point won by "), createEventPlayerName(event.player));
+    const resultParts = ["Point"];
+    if(event.setWon) resultParts.push("set");
+    if(event.matchWon) resultParts.push("match");
+    message.append(document.createTextNode(`${resultParts.join(", ")} won by `), createEventPlayerName(event.player));
     if(score){
       message.append(document.createTextNode(` (${score})`));
     }
@@ -1012,7 +1178,7 @@ function renderEventLog(){
     return;
   }
 
-  els.eventLog.replaceChildren(...events.slice().reverse().map((event) => {
+  els.eventLog.replaceChildren(...getRenderableHistoryEvents(events).slice().reverse().map((event) => {
     const item = document.createElement("li");
     item.className = [
       "event-log-item",
@@ -1239,15 +1405,19 @@ async function applyMatchAction(action, payload = {}){
     const beforeSetResult = deriveSetResult(setState);
     setState.pointWinners = toCsv([...beforeSetResult.pointWinners, player]);
     const pointScore = deriveSetResult(setState).score;
+    reconcileMatchState(nextState);
+    const afterSetState = nextState.sets[phase.setIndex];
+    const didWinSet = !!afterSetState.winner && beforeSetResult.winner !== afterSetState.winner;
+    const matchWinner = didWinSet ? getMatchWinner(nextState) : null;
     recordEvent(nextState, {
       type: "point_win",
       player,
       setNumber: setState.setNumber,
       score: `${pointScore[1]}-${pointScore[2]}`,
+      setWon: didWinSet,
+      matchWon: matchWinner === player,
       at: now,
     });
-    reconcileMatchState(nextState);
-    const afterSetState = nextState.sets[phase.setIndex];
     if(afterSetState.suddenDeath && !beforeSetResult.suddenDeath && !afterSetState.winner){
       const suddenDeathCourse = getSuddenDeathCourseId(afterSetState);
       recordEvent(nextState, {
@@ -1257,22 +1427,6 @@ async function applyMatchAction(action, payload = {}){
         course: suddenDeathCourse,
         at: now,
       });
-    }
-    if(afterSetState.winner && beforeSetResult.winner !== afterSetState.winner){
-      recordEvent(nextState, {
-        type: "set_win",
-        player: afterSetState.winner,
-        setNumber: afterSetState.setNumber,
-        at: now,
-      });
-      const matchWinner = getMatchWinner(nextState);
-      if(matchWinner){
-        recordEvent(nextState, {
-          type: "match_win",
-          player: matchWinner,
-          at: now,
-        });
-      }
     }
   }else{
     return;
@@ -1336,6 +1490,12 @@ els.signInBtn.addEventListener("click", () => {
 });
 
 els.actionButtons.addEventListener("click", (event) => {
+  const copyButton = event.target.closest("button[data-copy-results]");
+  if(copyButton){
+    void copyCompletedMatchResults(copyButton);
+    return;
+  }
+
   const button = event.target.closest("button[data-action]");
   if(!button) return;
   void applyMatchAction(button.dataset.action, {
