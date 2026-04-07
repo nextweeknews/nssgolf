@@ -124,7 +124,7 @@
     .match-page-status.is-hidden{ display:none; }
     .scoreboard-shell{
       display:grid;
-      gap:8px;
+      gap:6px;
     }
     .scoreboard-header,
     .scoreboard-row{
@@ -134,7 +134,11 @@
       align-items:center;
     }
     .scoreboard-header{
-      min-height:24px;
+      min-height:16px;
+      padding:0 8px;
+      border-left:3px solid transparent;
+      border-right:1px solid transparent;
+      align-items:end;
       color: rgba(148,163,184,.86);
       font-size:10px;
       font-weight:900;
@@ -143,10 +147,12 @@
     }
     .scoreboard-header span{
       display:grid;
-      place-items:center;
-      min-height:100%;
+      align-items:end;
+      justify-items:center;
+      min-height:0;
       text-align:center;
       line-height:1.1;
+      white-space:nowrap;
     }
     .scoreboard-row{
       min-height:64px;
@@ -258,7 +264,7 @@
     .flow-prompt{
       margin:0;
       color:#fff;
-      font-size:26px;
+      font-size:18px;
       line-height:1.2;
       font-weight:950;
     }
@@ -498,7 +504,12 @@
         grid-template-columns:minmax(0,1fr) repeat(3, 26px) 34px;
         gap:4px;
       }
-      .scoreboard-header{ font-size:7px; }
+      .scoreboard-header{
+        min-height:14px;
+        padding:0 5px;
+        font-size:6.5px;
+        letter-spacing:.08em;
+      }
       .scoreboard-row{ min-height:48px; padding:5px; }
       .scoreboard-player{ gap:4px; }
       .scoreboard-name{
@@ -514,7 +525,7 @@
       .scoreboard-score{ min-height:30px; font-size:12px; border-radius:6px; }
       .scoreboard-match-score{ min-height:30px; font-size:16px; border-radius:6px; }
       .flow-panel{ padding:16px 12px; }
-      .flow-prompt{ font-size:22px; }
+      .flow-prompt{ font-size:16px; }
       .course-board{ grid-template-columns:1fr; }
       .course-grid{
         grid-template-columns:repeat(2, minmax(0,1fr));
