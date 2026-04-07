@@ -495,19 +495,37 @@
     @media (max-width:760px){
       .scoreboard-header,
       .scoreboard-row{
-        grid-template-columns:6px minmax(0,1fr) repeat(3, 38px) 50px;
-        gap:6px;
+        grid-template-columns:4px minmax(0,1fr) repeat(3, 26px) 34px;
+        gap:4px;
       }
-      .scoreboard-row{ min-height:58px; padding:7px; }
-      .scoreboard-name{ font-size:14px; }
-      .scoreboard-seed{ font-size:11px; }
-      .scoreboard-score{ min-height:40px; font-size:16px; }
-      .scoreboard-match-score{ min-height:40px; font-size:21px; }
+      .scoreboard-header{ font-size:7px; }
+      .scoreboard-row{ min-height:48px; padding:5px; }
+      .scoreboard-player{ gap:4px; }
+      .scoreboard-name{
+        font-size:11px;
+        line-height:1.08;
+        overflow:visible;
+        overflow-wrap:anywhere;
+        text-overflow:clip;
+        white-space:normal;
+      }
+      .scoreboard-seed{ font-size:9px; }
+      .online-dot{ width:6px; height:6px; }
+      .scoreboard-score{ min-height:30px; font-size:12px; border-radius:6px; }
+      .scoreboard-match-score{ min-height:30px; font-size:16px; border-radius:6px; }
       .flow-panel{ padding:16px 12px; }
       .flow-prompt{ font-size:22px; }
       .course-board{ grid-template-columns:1fr; }
-      .course-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
-      .special-course-slot{ min-height:auto; }
+      .course-grid{
+        grid-template-columns:repeat(2, minmax(0,1fr));
+        grid-template-rows:repeat(3, auto);
+        grid-auto-flow:column;
+      }
+      .special-course-slot{
+        min-height:auto;
+        grid-template-columns:minmax(0, calc((100% - 8px) / 2));
+        justify-content:center;
+      }
       .event-log-item{ grid-template-columns:50px minmax(0,1fr); gap:4px 8px; }
       .event-log-message{ grid-column:1 / -1; }
     }

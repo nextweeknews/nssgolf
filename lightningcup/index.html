@@ -195,6 +195,7 @@
       transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
     .lc-nav-trigger-label{ display:block; width:100%; text-align:center; }
+    .lc-nav-mobile-break{ display:none; }
     .lc-nav-trigger::after{
       content:"";
       position:absolute;
@@ -1394,9 +1395,171 @@
       .lc-match-popover-player-seed{ font-size:11px; }
       .lc-match-popover-player-stat{ font-size:11px; }
     }
+    @media (max-width:760px){
+      :root{
+        --leaderboard-rank-col:44px;
+        --leaderboard-score-col:52px;
+        --leaderboard-max-col:64px;
+      }
+      .topbar-inner{ flex-wrap:nowrap; }
+      .brand{ min-width:0; }
+      .page-nav-select{ max-width:min(54vw, 260px); }
+      .topbar-user{
+        width:auto;
+        margin-left:auto;
+        justify-content:flex-end;
+      }
+      .user-greeting{ display:none; }
+      .container{ padding-right:14px; padding-left:14px; }
+      .lc-next-match-card{
+        --lc-next-match-font-size:11px;
+        padding:10px 12px;
+      }
+      .lc-next-match-card-row{
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+      }
+      .lc-next-match-card-copy{
+        width:100%;
+        justify-content:center;
+        flex-wrap:wrap;
+        gap:4px 7px;
+        overflow:visible;
+        text-align:center;
+      }
+      .lc-next-match-card-opponent{
+        max-width:100%;
+      }
+      .lc-next-match-card-button{
+        min-height:32px;
+        padding:0 12px;
+        align-self:center;
+      }
+      .lc-nav-list{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .lc-nav-trigger{
+        min-height:42px;
+        padding:5px 2px 6px;
+        font-size:9px;
+        line-height:1.08;
+        white-space:normal;
+      }
+      .lc-nav-mobile-break{ display:block; }
+      .lc-region-tabs-list{ grid-template-columns:repeat(5, minmax(0,1fr)); }
+      .lc-region-tabs-trigger{
+        min-height:40px;
+        padding:5px 1px 7px;
+        font-size:7.5px;
+        line-height:1.05;
+      }
+      .lc-region-tabs-trigger-label{
+        width:min-content;
+        max-width:100%;
+        margin:0 auto;
+        white-space:normal;
+      }
+      .lc-region-tabs-indicator{
+        top:4px;
+        right:2px;
+        transform:none;
+        min-width:auto;
+        font-size:7px;
+      }
+      .lc-region-tabs-indicator-icon{
+        width:10px;
+        height:10px;
+      }
+      .qualifier-bracket-scroll{
+        scroll-snap-type:x mandatory;
+        scroll-behavior:smooth;
+        scroll-padding-inline:12px;
+        overscroll-behavior-x:contain;
+        -webkit-overflow-scrolling:touch;
+      }
+      .qualifier-bracket-grid{
+        grid-auto-columns:minmax(238px, calc(100vw - 82px));
+        gap:14px;
+        justify-content:flex-start;
+      }
+      .qualifier-round-column{
+        scroll-snap-align:start;
+        scroll-snap-stop:always;
+      }
+      .lc-match-popover-content{
+        width:calc(100vw - 28px);
+        max-height:86vh;
+        overflow:auto;
+        padding:10px 8px;
+        border-radius:12px;
+        gap:7px;
+      }
+      .lc-match-popover-compare{
+        grid-template-columns:minmax(0,1fr) 52px minmax(0,1fr);
+        column-gap:6px;
+        row-gap:5px;
+      }
+      .lc-match-popover-row{
+        min-height:24px;
+        padding:3px 1px;
+        font-size:10px;
+      }
+      .lc-match-popover-player-name,
+      .lc-match-popover-player-seed,
+      .lc-match-popover-player-stat{
+        font-size:10px;
+      }
+      .lc-match-popover-section-head{ font-size:8px; }
+      .lc-match-popover-ranked-value{ gap:4px; }
+      .lc-match-popover-summary-label{ font-size:8px; }
+      .lc-match-popover-arrow{ display:none; }
+      table.leaderboard{
+        min-width:0;
+        border-spacing:0 6px;
+        font-size:10px;
+      }
+      .leaderboard thead th,
+      .leaderboard tbody td{
+        padding-right:2px;
+        padding-left:2px;
+      }
+      .leaderboard-header-label,
+      .leaderboard-sort-button{
+        min-height:30px;
+        padding:0 4px;
+        font-size:7.5px;
+        line-height:1.1;
+        white-space:normal;
+      }
+      .leaderboard-sort-button{ gap:3px; }
+      .leaderboard-rank-chip,
+      .leaderboard-metric-chip,
+      .leaderboard-name-button,
+      .leaderboard-name-static{
+        min-height:44px;
+        padding:0 5px;
+        border-radius:8px;
+      }
+      .leaderboard-rank-chip{ font-size:14px; }
+      .leaderboard-metric-chip{ font-size:13px; }
+      .leaderboard-name-text{ font-size:12px; }
+      .leaderboard-detail-card{
+        padding:8px;
+        gap:8px;
+      }
+      .leaderboard-detail-panel{ padding:8px 6px 6px; }
+      .leaderboard-detail-tabs .lc-region-tabs-trigger{
+        min-height:34px;
+        padding-right:1px;
+        padding-left:1px;
+      }
+    }
     @media (max-width:620px){
-      .lc-match-popover-content{ width: calc(100vw - 16px); }
-      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 58px minmax(0,1fr); }
+      .lc-match-popover-content{
+        width:calc(100vw - 24px);
+        max-height:82vh;
+      }
+      .lc-match-popover-compare{ grid-template-columns: minmax(0,1fr) 48px minmax(0,1fr); }
       .lc-match-popover-center-label{ font-size:8px; letter-spacing:.09em; }
       .lc-match-popover-player-heading{ gap:4px; }
       .lc-match-popover-player-head::after{ height:2px; }
