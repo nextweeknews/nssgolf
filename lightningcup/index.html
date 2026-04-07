@@ -2857,7 +2857,7 @@
                 const detailPointsMarkup = !isPicked
                   ? ""
                   : hydrated?.is_correct === true
-                    ? `${getRadixCheckIconMarkup()}<span>+${hydrated.points_awarded || 0} pts</span>`
+                    ? `<span>+${hydrated.points_awarded || 0} pts</span>${getRadixCheckIconMarkup()}`
                     : hydrated?.is_correct === false || isFutureIncorrect
                       ? getRadixCross2IconMarkup()
                       : "";
