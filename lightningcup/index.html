@@ -1837,6 +1837,25 @@
     const TOTAL_BRACKET_MATCHES = 63;
     const REGION_TAB_PICK_TOTALS = new Map(REGION_TABS.map((tab) => [tab, tab === "Finals" ? 3 : 15]));
     const TOURNAMENT_YEAR = "2026";
+    const VIEW_QUERY_RESULTS = "results";
+    const VIEW_QUERY_BRACKET_GAME = "bracket-game";
+    const BRACKET_GAME_TAB_QUERY_VALUE_BY_MAIN_TAB = {
+      "Your Bracket": "your-bracket",
+      Leaderboard: "leaderboard",
+    };
+    const MAIN_TAB_BY_BRACKET_GAME_TAB_QUERY_VALUE = Object.fromEntries(
+      Object.entries(BRACKET_GAME_TAB_QUERY_VALUE_BY_MAIN_TAB).map(([tab, value]) => [value, tab])
+    );
+    const REGION_QUERY_VALUE_BY_TAB = {
+      "Wii Plaza": "wii-plaza",
+      "Wuhu Island": "wuhu-island",
+      "Wedge Island": "wedge-island",
+      "Spocco Square": "spocco-square",
+      Finals: "finals",
+    };
+    const REGION_TAB_BY_QUERY_VALUE = Object.fromEntries(
+      Object.entries(REGION_QUERY_VALUE_BY_TAB).map(([tab, value]) => [value, tab])
+    );
     const BRACKET_DRAFT_STORAGE_VERSION = 1;
     const BRACKET_DRAFT_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-draft";
     const BRACKET_SAVED_MARKER_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-saved";
@@ -1936,6 +1955,57 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+    function normalizeUrlQueryValue(value){
+      return normalizeName(value).toLowerCase().replace(/[\s_]+/g, "-");
+    }
+    function getMainTabViewQueryValue(mainTab = state.mainTab){
+      return mainTab === "Actual Bracket" ? VIEW_QUERY_RESULTS : VIEW_QUERY_BRACKET_GAME;
+    }
+    function getBracketGameTabQueryValue(mainTab = state.mainTab){
+      return BRACKET_GAME_TAB_QUERY_VALUE_BY_MAIN_TAB[mainTab] || BRACKET_GAME_TAB_QUERY_VALUE_BY_MAIN_TAB["Your Bracket"];
+    }
+    function applyUrlStateToView(){
+      const params = new URLSearchParams(window.location.search);
+      const view = normalizeUrlQueryValue(params.get("view"));
+      const bracketGameTab = normalizeUrlQueryValue(params.get("tab"));
+      const requestedBracketGameTab = MAIN_TAB_BY_BRACKET_GAME_TAB_QUERY_VALUE[bracketGameTab] || "";
+      if(view === VIEW_QUERY_RESULTS){
+        state.mainTab = "Actual Bracket";
+      }else if(view === VIEW_QUERY_BRACKET_GAME){
+        state.mainTab = requestedBracketGameTab || "Your Bracket";
+      }else if(requestedBracketGameTab){
+        state.mainTab = requestedBracketGameTab;
+      }
+
+      const regionTab = REGION_TAB_BY_QUERY_VALUE[normalizeUrlQueryValue(params.get("region"))] || "";
+      if(regionTab){
+        state.activeTab = regionTab;
+        state.leaderboardDetailTab = regionTab;
+      }
+    }
+    function syncUrlStateFromView(){
+      const url = new URL(window.location.href);
+      const view = getMainTabViewQueryValue();
+      url.searchParams.set("view", view);
+      url.searchParams.set("year", TOURNAMENT_YEAR);
+      if(view === VIEW_QUERY_BRACKET_GAME){
+        url.searchParams.set("tab", getBracketGameTabQueryValue());
+      }else{
+        url.searchParams.delete("tab");
+      }
+
+      if(state.mainTab === "Actual Bracket" || state.mainTab === "Your Bracket"){
+        url.searchParams.set("region", REGION_QUERY_VALUE_BY_TAB[state.activeTab] || REGION_QUERY_VALUE_BY_TAB["Wii Plaza"]);
+      }else{
+        url.searchParams.delete("region");
+      }
+
+      const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+      const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if(nextUrl !== currentUrl){
+        window.history.replaceState(window.history.state, "", nextUrl);
+      }
     }
     function applyActiveRegionAccentTheme(activeTab){
       const fallbackRgb = REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
@@ -3229,6 +3299,7 @@
       els.leaderboardPanel.classList.toggle("is-active", canAccessLeaderboardTab() && state.mainTab === "Leaderboard");
       const showRegionTabs = state.mainTab === "Actual Bracket" || (loggedIn && state.mainTab === "Your Bracket");
       els.regionTabs.style.display = showRegionTabs ? "" : "none";
+      syncUrlStateFromView();
       renderRadixControls(loggedIn);
     }
 
@@ -4260,6 +4331,14 @@
         if(userMenuOpen) setUserMenuOpen(false);
         if(els.chooseUsernameModal.classList.contains("is-open") && !modalState.chooseUsernameSubmitting) closeChooseUsernameModal();
       });
+      window.addEventListener("popstate", () => {
+        applyUrlStateToView();
+        if(state.context){
+          renderView();
+        }else{
+          renderAuthShell();
+        }
+      });
 
       state.authSub = supabase.auth.onAuthStateChange((eventName, session) => {
         if(eventName === "INITIAL_SESSION") return;
@@ -4288,6 +4367,7 @@
     async function init(){
       bindEvents();
       initializeRadixControls();
+      applyUrlStateToView();
       try{
         await syncSessionFromSupabase();
         await loadTournament();
