@@ -943,16 +943,63 @@ function getEventSetLabel(event){
   return "Match";
 }
 
-function formatHistoryEvent(event){
-  const playerLabel = event.player ? getPlayerLabel(event.player) : "System";
-  if(event.type === "start_match") return "Match started";
-  if(event.type === "hole13_ctp") return `Hole 13 CTP won by ${playerLabel}`;
-  if(event.type === "course_pick") return `Set ${event.setNumber} course pick: ${getCourseName(event.course)} by ${playerLabel}`;
-  if(event.type === "point_win") return `Set ${event.setNumber} point won by ${playerLabel}`;
-  if(event.type === "set_win") return `Set ${event.setNumber} won by ${playerLabel}`;
-  if(event.type === "sudden_death") return `Set ${event.setNumber} sudden death started${event.course ? `: ${getCourseName(event.course)}` : ""}`;
-  if(event.type === "match_win") return `Match won by ${playerLabel}`;
-  return event.type.replaceAll("_", " ");
+function getPlayerFirstEventScore(event){
+  const scoreParts = normalizeName(event.score).split("-").map((value) => Number(value));
+  if(scoreParts.length !== 2 || scoreParts.some((value) => !Number.isFinite(value))) return "";
+  return event.player === 2 ? `${scoreParts[1]}-${scoreParts[0]}` : `${scoreParts[0]}-${scoreParts[1]}`;
+}
+
+function createEventPlayerName(player){
+  const playerName = document.createElement("span");
+  playerName.className = [
+    "event-log-player",
+    getPlayerClass(player),
+  ].filter(Boolean).join(" ");
+  playerName.textContent = getPlayerLabel(player);
+  return playerName;
+}
+
+function renderHistoryEventMessage(event, message){
+  if(event.type === "start_match"){
+    message.textContent = "Match started";
+    return;
+  }
+
+  if(event.type === "hole13_ctp"){
+    message.append(document.createTextNode("Hole 13 CTP won by "), createEventPlayerName(event.player));
+    return;
+  }
+
+  if(event.type === "course_pick"){
+    message.append(document.createTextNode(`Course pick: ${getCourseName(event.course)} by `), createEventPlayerName(event.player));
+    return;
+  }
+
+  if(event.type === "point_win"){
+    const score = getPlayerFirstEventScore(event);
+    message.append(document.createTextNode("Point won by "), createEventPlayerName(event.player));
+    if(score){
+      message.append(document.createTextNode(` (${score})`));
+    }
+    return;
+  }
+
+  if(event.type === "set_win"){
+    message.append(document.createTextNode("Set won by "), createEventPlayerName(event.player));
+    return;
+  }
+
+  if(event.type === "sudden_death"){
+    message.textContent = `Sudden death started${event.course ? `: ${getCourseName(event.course)}` : ""}`;
+    return;
+  }
+
+  if(event.type === "match_win"){
+    message.append(document.createTextNode("Match won by "), createEventPlayerName(event.player));
+    return;
+  }
+
+  message.textContent = event.type.replaceAll("_", " ");
 }
 
 function renderEventLog(){
@@ -982,16 +1029,11 @@ function renderEventLog(){
     timestamp.dateTime = event.at || "";
     timestamp.textContent = formatEventTimestamp(event.at);
 
-    const score = document.createElement("span");
-    score.className = "event-log-score";
-    score.textContent = event.score || "";
-    score.setAttribute("aria-label", event.score ? `Set score ${event.score}` : "");
-
     const message = document.createElement("span");
     message.className = "event-log-message";
-    message.textContent = formatHistoryEvent(event);
+    renderHistoryEventMessage(event, message);
 
-    item.append(setLabel, timestamp, score, message);
+    item.append(setLabel, timestamp, message);
     return item;
   }));
 }
