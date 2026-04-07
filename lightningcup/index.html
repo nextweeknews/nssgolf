@@ -1576,35 +1576,65 @@
       .lc-match-popover-summary-label{ font-size:8px; }
       .lc-match-popover-arrow{ display:none; }
       table.leaderboard{
+        --leaderboard-mobile-columns:
+          clamp(26px, 8vw, 32px)
+          minmax(0, 1fr)
+          clamp(34px, 9vw, 40px)
+          clamp(40px, 11vw, 48px)
+          clamp(40px, 11vw, 48px);
+        display:grid;
+        grid-template-columns:var(--leaderboard-mobile-columns);
+        column-gap:3px;
+        row-gap:5px;
+        width:100%;
         min-width:0;
-        border-spacing:0 6px;
-        font-size:10px;
+        border-spacing:0;
+        font-size:9px;
+      }
+      .leaderboard colgroup{
+        display:none;
+      }
+      .leaderboard thead,
+      .leaderboard tbody,
+      .leaderboard tr{
+        display:contents;
       }
       .leaderboard thead th,
       .leaderboard tbody td{
-        padding-right:2px;
-        padding-left:2px;
+        display:block;
+        min-width:0;
+        padding:0;
       }
       .leaderboard-header-label,
       .leaderboard-sort-button{
-        min-height:30px;
-        padding:0 4px;
-        font-size:7.5px;
-        line-height:1.1;
+        min-height:24px;
+        padding:0 2px;
+        gap:2px;
+        border-radius:7px;
+        font-size:6.5px;
+        line-height:1.05;
+        letter-spacing:.04em;
         white-space:normal;
       }
-      .leaderboard-sort-button{ gap:3px; }
+      .leaderboard-sort-indicator{ font-size:.82em; }
       .leaderboard-rank-chip,
       .leaderboard-metric-chip,
       .leaderboard-name-button,
       .leaderboard-name-static{
-        min-height:44px;
-        padding:0 5px;
-        border-radius:8px;
+        min-height:36px;
+        padding:0 4px;
+        border-radius:7px;
       }
-      .leaderboard-rank-chip{ font-size:14px; }
-      .leaderboard-metric-chip{ font-size:13px; }
-      .leaderboard-name-text{ font-size:12px; }
+      .leaderboard-rank-chip{ font-size:11px; }
+      .leaderboard-metric-chip{ font-size:10px; }
+      .leaderboard-name-button,
+      .leaderboard-name-static{
+        justify-content:flex-start;
+        padding-right:7px;
+        padding-left:7px;
+      }
+      .leaderboard-name-text{ font-size:10.5px; }
+      .leaderboard-detail-row td{ grid-column:1 / -1; }
       .leaderboard-detail-card{
         padding:8px;
         gap:8px;
