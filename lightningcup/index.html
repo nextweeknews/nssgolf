@@ -1165,6 +1165,9 @@
       font:inherit;
       transition: background-color 140ms ease, color 140ms ease;
     }
+    .leaderboard-header-label{
+      font:inherit;
+    }
     .leaderboard-sort-button:hover{
       background: rgba(148,163,184,.18);
       color: rgba(233,238,248,.96);
@@ -1257,6 +1260,18 @@
       letter-spacing:.02em;
       transition: background-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
       box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .leaderboard-name-static{
+      width:100%;
+      min-height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      padding:0 18px;
+      color:#fff;
+      text-align:left;
+      text-transform:uppercase;
+      letter-spacing:.02em;
     }
     .leaderboard-name-button:hover{
       background: rgba(255,255,255,.11);
@@ -3153,6 +3168,10 @@
       window.setTimeout(cleanup, 360);
     }
 
+    function canViewLeaderboardBrackets(){
+      return state.lockFlag === "yes";
+    }
+
     function setLeaderboardRowExpandedState(bracketId, isExpanded){
       const safeBracketId = normalizeName(bracketId);
       if(!safeBracketId) return;
@@ -3163,6 +3182,7 @@
     }
 
     function toggleLeaderboardBracketDetail(bracketId){
+      if(!canViewLeaderboardBrackets()) return;
       const nextBracketId = normalizeName(bracketId);
       if(!nextBracketId) return;
       const currentBracketId = normalizeName(state.selectedBracketId);
@@ -3192,6 +3212,11 @@
     }
 
     function renderExpandedLeaderboardDetail(selectedRow){
+      if(!canViewLeaderboardBrackets()){
+        state.detailPredicted = new Map();
+        return;
+      }
+
       if(!selectedRow){
         state.detailPredicted = new Map();
         return;
@@ -3223,6 +3248,12 @@
     }
 
     function renderLeaderboard({ animateOpen = false } = {}){
+      const canViewBrackets = canViewLeaderboardBrackets();
+      if(!canViewBrackets && state.selectedBracketId){
+        state.selectedBracketId = null;
+        state.detailPredicted = new Map();
+      }
+
       const pickByBracket = new Map();
       state.allPicks.forEach((p) => {
         if(!pickByBracket.has(p.bracket_id)) pickByBracket.set(p.bracket_id, []);
@@ -3278,7 +3309,7 @@
       state.leaderboardDetailTab = detailTab;
       const detailAccent = REGION_ACCENT_RGB_BY_TAB[detailTab] || REGION_ACCENT_RGB_BY_TAB["Spocco Square"];
       const tableMarkup = rows.map((row) => {
-        const isExpanded = row.id === state.selectedBracketId;
+        const isExpanded = canViewBrackets && row.id === state.selectedBracketId;
         const rowClass = `leaderboard-row${isExpanded ? " is-expanded" : ""}`;
         const rankPlacementClass = row.rankOrder === 1
           ? " is-gold"
@@ -3291,7 +3322,10 @@
         const detailRowMarkup = !isExpanded
           ? ""
           : `<tr class="leaderboard-detail-row"><td colspan="5"><div class="leaderboard-detail-shell${animateOpen ? "" : " is-expanded"}" data-leaderboard-detail-shell="${escapeHtml(row.id)}"><div class="leaderboard-detail-card" style="--region-accent-rgb:${detailAccent};"><div class="leaderboard-detail-tabs"><div class="lc-region-tabs-list">${REGION_TABS.map((tab) => `<button class="lc-region-tabs-trigger" type="button" data-detail-tab="${escapeHtml(tab)}" data-bracket-id="${escapeHtml(row.id)}" data-state="${tab === detailTab ? "active" : "inactive"}"><span class="lc-region-tabs-trigger-label">${escapeHtml(tab)}</span></button>`).join("")}</div></div><div class="leaderboard-detail-panel qualifier-bracket-scroll"><div class="qualifier-bracket-grid leaderboard-detail-grid" id="leaderboardDetailGrid-${escapeHtml(row.id)}"></div></div></div></div></td></tr>`;
-        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td><button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></button></td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
+        const bracketNameMarkup = canViewBrackets
+          ? `<button class="leaderboard-name-button" type="button" data-toggle-bracket-detail="${escapeHtml(row.id)}"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></button>`
+          : `<span class="leaderboard-name-static"><span class="leaderboard-name-text">${escapeHtml(row.bracket_name)}</span></span>`;
+        return `<tr class="${rowClass}"><td><div class="${rankChipClass}">${escapeHtml(row.rankLabel)}</div></td><td>${bracketNameMarkup}</td><td><div class="leaderboard-metric-chip is-score">${row.actual}</div></td><td><div class="leaderboard-metric-chip">${row.currentMax}</div></td><td><div class="leaderboard-metric-chip">${row.initialMax}</div></td></tr>${detailRowMarkup}`;
       }).join("");
 
       els.leaderboardTable.innerHTML = `<colgroup><col class="leaderboard-col-rank" /><col class="leaderboard-col-name" /><col class="leaderboard-col-score" /><col class="leaderboard-col-current-max" /><col class="leaderboard-col-initial-max" /></colgroup><thead><tr><th>${renderLeaderboardSortButton("rank", "Rank")}</th><th><span class="leaderboard-header-label">Name</span></th><th>${renderLeaderboardSortButton("actual", "Score")}</th><th>${renderLeaderboardSortButton("currentMax", "Max Score")}</th><th>${renderLeaderboardSortButton("initialMax", "Initial Max")}</th></tr></thead><tbody>${tableMarkup}</tbody>`;
@@ -3845,6 +3879,7 @@
 
         const detailTabButton = event.target.closest("button[data-detail-tab]");
         if(detailTabButton){
+          if(!canViewLeaderboardBrackets()) return;
           const nextTab = detailTabButton.dataset.detailTab;
           if(REGION_TABS.includes(nextTab)){
             state.leaderboardDetailTab = nextTab;
@@ -3855,6 +3890,7 @@
 
         const bracketToggle = event.target.closest("button[data-toggle-bracket-detail]");
         if(bracketToggle){
+          if(!canViewLeaderboardBrackets()) return;
           toggleLeaderboardBracketDetail(bracketToggle.dataset.toggleBracketDetail);
         }
       });
