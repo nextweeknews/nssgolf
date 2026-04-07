@@ -1788,7 +1788,7 @@
       </button>
     </div>
 
-    <section class="lc-countdown-strip" aria-label="Countdown to Lightning Cup start and Bracket Game lock">
+    <section class="lc-countdown-strip" id="lightningCupCountdownStrip" aria-label="Countdown to Lightning Cup start and Bracket Game lock">
       <p class="lc-countdown-copy">
         <strong>Lightning Cup begins</strong> and <strong>Bracket Game locks</strong> in
       </p>
@@ -1974,6 +1974,7 @@
       nextMatchCardOpponent: document.getElementById("nextMatchCardOpponent"),
       nextMatchCardRegion: document.getElementById("nextMatchCardRegion"),
       nextMatchCardButton: document.getElementById("nextMatchCardButton"),
+      lightningCupCountdownStrip: document.getElementById("lightningCupCountdownStrip"),
       lightningCupCountdownTimer: document.getElementById("lightningCupCountdownTimer"),
       lockStatusInput: document.getElementById("lockStatusInput"),
       pickStatus: document.getElementById("pickStatus"),
@@ -2076,9 +2077,21 @@
     function renderCountdownUnit(value, label){
       return `<span class="lc-countdown-unit"><span>${escapeHtml(value)}</span><span class="lc-countdown-unit-label">${escapeHtml(label)}</span></span>`;
     }
+    function removeLightningCupCountdown(){
+      if(lightningCupCountdownIntervalId != null){
+        window.clearInterval(lightningCupCountdownIntervalId);
+        lightningCupCountdownIntervalId = null;
+      }
+      els.lightningCupCountdownStrip?.remove();
+    }
     function renderLightningCupCountdown(){
-      if(!els.lightningCupCountdownTimer) return;
-      const remainingMs = Math.max(0, LIGHTNING_CUP_STARTS_AT_MS - Date.now());
+      if(!els.lightningCupCountdownStrip?.isConnected || !els.lightningCupCountdownTimer?.isConnected) return;
+      const remainingMs = LIGHTNING_CUP_STARTS_AT_MS - Date.now();
+      if(remainingMs <= 0){
+        removeLightningCupCountdown();
+        return;
+      }
+      els.lightningCupCountdownStrip.hidden = false;
       const totalSeconds = Math.floor(remainingMs / 1000);
       const days = Math.floor(totalSeconds / 86400);
       const hours = Math.floor((totalSeconds % 86400) / 3600);
@@ -2093,10 +2106,16 @@
       ].join("");
     }
     function startLightningCupCountdown(){
+      if(lightningCupCountdownIntervalId != null){
+        window.clearInterval(lightningCupCountdownIntervalId);
+        lightningCupCountdownIntervalId = null;
+      }
       renderLightningCupCountdown();
-      window.setInterval(renderLightningCupCountdown, 1000);
+      if(LIGHTNING_CUP_STARTS_AT_MS <= Date.now()) return;
+      lightningCupCountdownIntervalId = window.setInterval(renderLightningCupCountdown, 1000);
     }
     const modalState = { chooseUsernameSubmitting: false };
+    let lightningCupCountdownIntervalId = null;
     let discordSignInPending = false;
     let userMenuOpen = false;
     const roundBasePoints = (roundCode) => ({ R64:1, R32:2, R16:4, R8:8, R4:16, Final:32 }[roundCode] ?? 0);
