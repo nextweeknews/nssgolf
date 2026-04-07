@@ -16,7 +16,7 @@ function getParentValueFromMainTab(mainTab){
   return mainTab === "Actual Bracket" ? "results" : "game";
 }
 
-function MainNavigation({ loggedIn, canAccessLeaderboard = loggedIn, mainTab, year, onMainTabChange }){
+function MainNavigation({ loggedIn, canAccessLeaderboard = true, mainTab, year, onMainTabChange }){
   const selectedParentValue = getParentValueFromMainTab(mainTab);
   const [openParentValue, setOpenParentValue] = React.useState(selectedParentValue);
   const canAccessYourBracket = loggedIn;
@@ -117,7 +117,7 @@ function MainNavigation({ loggedIn, canAccessLeaderboard = loggedIn, mainTab, ye
               </li>
             </ul>
             {!loggedIn ? (
-              <span className="lc-nav-subtext">{canAccessLeaderboard ? "Sign in to view your bracket." : "Leaderboard unlocks when brackets lock."}</span>
+              <span className="lc-nav-subtext">Sign in to view your bracket.</span>
             ) : null}
           </NavigationMenu.Content>
         </NavigationMenu.Item>
