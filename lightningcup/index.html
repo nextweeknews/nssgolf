@@ -154,7 +154,22 @@
     .tabs{ width:100%; }
     .btn{ border:1px solid var(--btn-border); background: var(--btn-bg); color: rgba(255,255,255,.92); border-radius:999px; padding:8px 12px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:850; cursor:pointer; }
     .btn:hover{ background: var(--btn-bg-hover); border-color:var(--btn-border-hover); }
-    .btn-primary{ background: rgba(56,189,248,0.18); border-color: rgba(56,189,248,0.42); }
+    .btn-primary{
+      border-color: rgba(125,211,252,.95);
+      border-radius:8px;
+      background: rgba(125,211,252,.95);
+      color:#020617;
+      font-weight:900;
+    }
+    .btn-primary:hover{
+      background: rgba(186,230,253,.95);
+      border-color: rgba(186,230,253,.95);
+      color:#020617;
+    }
+    .btn-primary:active{
+      background: rgba(103,232,249,.95);
+      border-color: rgba(103,232,249,.95);
+    }
     .btn[disabled]{ opacity:.45; cursor:not-allowed; }
     .lc-nav-root{ width:100%; display:grid; gap:0; }
     .lc-nav-list{
@@ -694,7 +709,45 @@
 
     .auth-grid{ display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; }
     .auth-buttons{ justify-content:center; margin-top:2px; }
+    .auth-buttons-floating{
+      justify-content:center;
+      margin:2px 0 -2px;
+    }
     .auth-buttons.is-logged-in{ justify-content:flex-end; }
+    .discord-login-button{
+      min-height:44px;
+      padding:0 18px;
+      border:0;
+      border-radius:8px;
+      background:#5865f2;
+      color:#fff;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:0;
+      text-transform:none;
+      box-shadow:0 12px 24px rgba(0,0,0,.28);
+      transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease;
+    }
+    .discord-login-button:hover{
+      background:#4752c4;
+      border-color:transparent;
+      color:#fff;
+      box-shadow:0 14px 28px rgba(0,0,0,.32);
+    }
+    .discord-login-button:active{
+      background:#3c45a5;
+      transform:translateY(1px);
+    }
+    .discord-login-icon{
+      width:20px;
+      height:20px;
+      display:block;
+      filter:brightness(0) invert(1);
+    }
     label{ display:grid; gap:4px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
     input, select{ width:100%; border:1px solid rgba(148,163,184,.35); border-radius:10px; background: rgba(2,8,24,.70); color:#fff; padding:10px; font:inherit; }
     .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -1649,12 +1702,16 @@
       </div>
     </section>
 
+    <div class="row auth-buttons auth-buttons-floating" id="authButtonsRow">
+      <button class="btn discord-login-button" id="discordLoginBtn" type="button">
+        <img class="discord-login-icon" src="/logos/discord.svg" alt="" loading="lazy" decoding="async" />
+        <span>Sign in with Discord</span>
+      </button>
+    </div>
+
     <section class="card">
       <div class="season-head">
         <h1 class="headline">Lightning Cup</h1>
-      </div>
-      <div class="row auth-buttons" id="authButtonsRow">
-        <button class="btn btn-primary" id="discordLoginBtn" type="button">Sign In With Discord</button>
       </div>
       <div class="auth-grid auth-only" id="controlsGrid">
         <label>Public Username <input id="usernameInput" type="text" maxlength="32" /></label>
