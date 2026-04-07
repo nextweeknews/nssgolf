@@ -18,6 +18,10 @@
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
       --match-region-rgb: 125,211,252;
+      --player-one-rgb: 96,165,250;
+      --player-two-rgb: 34,197,94;
+      --panel-border: rgba(148,163,184,.20);
+      --panel-fill: rgba(255,255,255,.04);
     }
     *{ box-sizing:border-box; }
     html{ background-color: var(--bg3); }
@@ -68,10 +72,7 @@
       object-fit:contain;
       display:block;
     }
-    .brand-copy{
-      display:grid;
-      gap:2px;
-    }
+    .brand-copy{ display:grid; gap:2px; }
     .brand-kicker{
       font-size:11px;
       font-weight:900;
@@ -194,65 +195,64 @@
       letter-spacing:.12em;
       text-transform:uppercase;
     }
-    .participant-grid{
-      display:grid;
-      grid-template-columns:minmax(0,1fr) 72px minmax(0,1fr);
-      gap:12px;
-      align-items:stretch;
-    }
-    .participant-card{
-      border-radius:16px;
-      border:1px solid rgba(var(--match-region-rgb), .22);
-      background: rgba(255,255,255,.04);
-      padding:14px;
-      display:grid;
-      gap:8px;
-    }
-    .participant-seed{
-      color: rgba(148,163,184,.92);
-      font-size:11px;
-      font-weight:800;
-      letter-spacing:.1em;
-      text-transform:uppercase;
-    }
-    .participant-name{
-      font-size:22px;
-      font-weight:950;
-      letter-spacing:.03em;
-      text-transform:uppercase;
-      color:#fff;
-    }
-    .participant-discord{
-      color: rgba(191,219,254,.92);
-      font-size:11px;
-      font-weight:700;
-      letter-spacing:.04em;
-    }
-    .versus-pill{
-      display:grid;
-      place-items:center;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.1);
-      background: rgba(255,255,255,.04);
-      font-size:16px;
-      font-weight:900;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      color: rgba(250,204,21,.96);
-    }
     .body-copy{
       margin:0;
       color: rgba(233,238,248,.92);
       font-size:14px;
       line-height:1.55;
     }
-    .actions{
+    .match-head-footer{
       display:flex;
       align-items:center;
-      gap:10px;
+      justify-content:space-between;
+      gap:12px;
       flex-wrap:wrap;
+      border-top:1px solid rgba(148,163,184,.16);
+      padding-top:12px;
     }
-    .btn-primary{
+    .access-copy{
+      flex:1 1 320px;
+      margin:0;
+      color: rgba(226,232,240,.92);
+      font-size:13px;
+      line-height:1.45;
+    }
+    .participant-access-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:8px;
+    }
+    .participant-card{
+      border-radius:12px;
+      border:1px solid rgba(var(--match-region-rgb), .22);
+      background: rgba(255,255,255,.04);
+      padding:10px 12px;
+      display:grid;
+      gap:4px;
+      min-width:0;
+    }
+    .participant-seed,
+    .participant-discord{
+      color: rgba(148,163,184,.92);
+      font-size:10px;
+      font-weight:750;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .participant-name{
+      min-width:0;
+      color:#fff;
+      font-size:15px;
+      font-weight:900;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .btn-primary,
+    .flow-action,
+    .undo-button{
       min-height:38px;
       padding:0 14px;
       border:1px solid rgba(96,165,250,.5);
@@ -266,34 +266,294 @@
       cursor:pointer;
       box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
     }
-    .btn-primary:hover{ filter:brightness(1.05); }
+    .btn-primary:hover,
+    .flow-action:hover,
+    .undo-button:hover{ filter:brightness(1.05); }
+    .flow-action.is-player-one{
+      border-color: rgba(var(--player-one-rgb), .78);
+      background: rgba(var(--player-one-rgb), .92);
+    }
+    .flow-action.is-player-two{
+      border-color: rgba(var(--player-two-rgb), .74);
+      background: rgba(var(--player-two-rgb), .88);
+    }
+    .undo-button{
+      background: rgba(255,255,255,.05);
+      border-color: rgba(148,163,184,.32);
+      color: rgba(226,232,240,.94);
+    }
+    .btn-primary[disabled],
+    .flow-action[disabled],
+    .undo-button[disabled]{
+      cursor:not-allowed;
+      opacity:.48;
+      filter:none;
+    }
+    .scoreboard-shell{
+      display:grid;
+      gap:8px;
+    }
+    .scoreboard-header,
+    .scoreboard-row{
+      display:grid;
+      grid-template-columns:8px minmax(0,1fr) repeat(3, 58px) 76px;
+      gap:8px;
+      align-items:stretch;
+    }
+    .scoreboard-header{
+      color: rgba(148,163,184,.86);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      align-items:center;
+    }
+    .scoreboard-header span{
+      text-align:center;
+    }
+    .scoreboard-row{
+      min-height:64px;
+      border-radius:14px;
+      border:1px solid var(--panel-border);
+      background: rgba(255,255,255,.04);
+      padding:8px;
+    }
+    .scoreboard-color-bar{
+      width:100%;
+      min-height:100%;
+      border-radius:999px;
+    }
+    .scoreboard-row.is-player-one .scoreboard-color-bar{ background: rgba(var(--player-one-rgb), .94); }
+    .scoreboard-row.is-player-two .scoreboard-color-bar{ background: rgba(var(--player-two-rgb), .9); }
+    .scoreboard-player{
+      min-width:0;
+      display:flex;
+      align-items:baseline;
+      gap:8px;
+      align-self:center;
+    }
+    .scoreboard-seed{
+      flex:0 0 auto;
+      align-self:flex-end;
+      color: rgba(148,163,184,.92);
+      font-size:12px;
+      font-weight:500;
+      line-height:1;
+    }
+    .scoreboard-name{
+      min-width:0;
+      color:#fff;
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .scoreboard-score,
+    .scoreboard-match-score{
+      display:grid;
+      place-items:center;
+      border-radius:10px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.34);
+      color: rgba(226,232,240,.92);
+      font-size:19px;
+      font-weight:900;
+      font-variant-numeric: tabular-nums;
+    }
+    .scoreboard-score.is-won{
+      border-color: rgba(250,204,21,.46);
+      color:#fef3c7;
+      background: rgba(250,204,21,.12);
+    }
+    .scoreboard-match-score{
+      border-color: rgba(var(--match-region-rgb), .42);
+      background: rgba(var(--match-region-rgb), .14);
+      color:#fff;
+      font-size:25px;
+    }
+    .scoreboard-match-score.is-won{
+      border-color: rgba(250,204,21,.72);
+      background: rgba(250,204,21,.18);
+      color:#fef08a;
+    }
+    .course-board{
+      display:grid;
+      grid-template-columns:minmax(0, 3fr) minmax(126px, .9fr);
+      gap:12px;
+      align-items:center;
+    }
+    .course-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:8px;
+    }
+    .special-course-slot{
+      display:grid;
+      align-items:center;
+      min-height:100%;
+    }
+    .course-button{
+      width:100%;
+      min-height:58px;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,.28);
+      background: rgba(255,255,255,.04);
+      color: rgba(241,245,249,.94);
+      display:grid;
+      gap:4px;
+      align-content:center;
+      justify-items:center;
+      text-align:center;
+      cursor:pointer;
+      transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+    .course-button:not([disabled]):hover{
+      background: rgba(255,255,255,.08);
+      border-color: rgba(226,232,240,.36);
+      transform: translateY(-1px);
+    }
+    .course-button[disabled]{
+      cursor:not-allowed;
+      opacity:.56;
+    }
+    .course-button.is-picked{
+      opacity:1;
+      color:#020617;
+      border-color: transparent;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.20);
+    }
+    .course-button.is-picked.is-player-one{ background: rgba(var(--player-one-rgb), .94); }
+    .course-button.is-picked.is-player-two{ background: rgba(var(--player-two-rgb), .90); }
+    .course-button.is-available{
+      border-color: rgba(var(--match-region-rgb), .46);
+    }
+    .course-button-name{
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .course-button-meta{
+      min-height:1em;
+      color: inherit;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      opacity:.78;
+    }
+    .flow-panel{
+      display:grid;
+      gap:12px;
+    }
+    .flow-prompt{
+      margin:0;
+      color:#fff;
+      font-size:20px;
+      line-height:1.35;
+      font-weight:900;
+    }
+    .flow-detail{
+      margin:0;
+      min-height:1.35em;
+      color: rgba(191,219,254,.92);
+      font-size:13px;
+      line-height:1.45;
+      font-weight:700;
+    }
+    .flow-control-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .flow-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .flow-action-note{
+      color: rgba(148,163,184,.92);
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .event-log{
+      list-style:none;
+      margin:0;
+      padding:0;
+      display:grid;
+      gap:8px;
+    }
+    .event-log-item,
+    .event-log-empty{
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.34);
+      padding:10px 12px;
+    }
+    .event-log-item{
+      display:grid;
+      grid-template-columns:142px minmax(0,1fr);
+      gap:12px;
+      border-left:4px solid rgba(148,163,184,.72);
+    }
+    .event-log-item.is-player-one{ border-left-color: rgba(var(--player-one-rgb), .94); }
+    .event-log-item.is-player-two{ border-left-color: rgba(var(--player-two-rgb), .9); }
+    .event-log-time{
+      color: rgba(148,163,184,.92);
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.03em;
+      font-variant-numeric: tabular-nums;
+    }
+    .event-log-message{
+      color: rgba(241,245,249,.96);
+      font-size:13px;
+      line-height:1.35;
+      font-weight:750;
+    }
+    .event-log-empty{
+      color: rgba(148,163,184,.92);
+      font-size:13px;
+      font-weight:750;
+    }
     .channel-meta{
       color: rgba(148,163,184,.88);
       font-size:12px;
       font-weight:700;
+      overflow-wrap:anywhere;
     }
     .channel-meta code{
       color:#e0f2fe;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size:12px;
     }
-    .realtime-payload{
-      margin:0;
-      min-height:96px;
-      padding:14px;
-      border-radius:14px;
-      border:1px solid rgba(148,163,184,.16);
-      background: rgba(2,6,23,.55);
-      color:#bfdbfe;
-      font-size:12px;
-      line-height:1.5;
-      overflow:auto;
-    }
     @media (max-width:760px){
       .match-title{ font-size:24px; }
-      .participant-grid{ grid-template-columns:1fr; }
-      .versus-pill{ min-height:52px; }
-      .participant-name{ font-size:18px; }
+      .participant-access-grid{ grid-template-columns:1fr; }
+      .scoreboard-header,
+      .scoreboard-row{
+        grid-template-columns:6px minmax(0,1fr) repeat(3, 38px) 50px;
+        gap:6px;
+      }
+      .scoreboard-row{ min-height:58px; padding:7px; }
+      .scoreboard-name{ font-size:14px; }
+      .scoreboard-seed{ font-size:11px; }
+      .scoreboard-score{ font-size:16px; }
+      .scoreboard-match-score{ font-size:21px; }
+      .course-board{ grid-template-columns:1fr; }
+      .course-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .special-course-slot{ min-height:auto; }
+      .event-log-item{ grid-template-columns:1fr; gap:4px; }
+      .flow-prompt{ font-size:18px; }
     }
   </style>
 </head>
@@ -315,61 +575,107 @@
     <p class="match-page-status is-hidden" id="pageStatus"></p>
 
     <section class="card">
-      <span class="match-eyebrow">Authenticated Player Match Shell</span>
+      <span class="match-eyebrow">Live Match Control</span>
       <h1 class="match-title" id="matchTitle">Loading match</h1>
       <p class="match-meta" id="matchMeta">Preparing matchup context</p>
       <div class="match-status-row">
         <span class="match-status-chip" id="authChip">SIGNED OUT</span>
         <span class="match-status-chip" id="realtimeChip">IDLE</span>
       </div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <span class="section-label">Participants</span>
-        <span class="section-label">Match ID <span id="matchIdValue">-</span></span>
-      </div>
-      <div class="participant-grid">
+      <div class="participant-access-grid" aria-label="Participant Discord mapping">
         <article class="participant-card">
           <span class="participant-seed" id="participantTopSeed">TBD</span>
           <span class="participant-name" id="participantTopName">TBD</span>
           <span class="participant-discord" id="participantTopDiscord">Discord ID unavailable</span>
         </article>
-        <div class="versus-pill">VS</div>
         <article class="participant-card">
           <span class="participant-seed" id="participantBottomSeed">TBD</span>
           <span class="participant-name" id="participantBottomName">TBD</span>
           <span class="participant-discord" id="participantBottomDiscord">Discord ID unavailable</span>
         </article>
       </div>
-    </section>
-
-    <section class="card">
-      <div class="section-head">
-        <span class="section-label">Access</span>
-      </div>
-      <p class="body-copy" id="authNotice">Sign in with your Discord-linked account to confirm player access for this match.</p>
-      <div class="actions">
+      <div class="match-head-footer">
+        <p class="access-copy" id="authNotice">Sign in with your Discord-linked account to confirm player access for this match.</p>
         <button class="btn-primary" id="signInBtn" type="button">Sign In With Discord</button>
       </div>
     </section>
 
     <section class="card">
       <div class="section-head">
-        <span class="section-label">Future Match UI</span>
-        <span class="section-label">Phase 1</span>
+        <span class="section-label">Scoreboard</span>
+        <span class="section-label">Match ID <span id="matchIdValue">-</span> / <span id="scoreboardStatus">Pregame</span></span>
       </div>
-      <p class="body-copy" id="placeholderText">This page is the starter shell for the future live Lightning Cup head-to-head experience.</p>
+      <div class="scoreboard-shell" aria-label="Lightning Cup match scoreboard">
+        <div class="scoreboard-header" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span>Set 1</span>
+          <span>Set 2</span>
+          <span>Set 3</span>
+          <span>Match</span>
+        </div>
+        <div class="scoreboard-row is-player-one">
+          <span class="scoreboard-color-bar" aria-hidden="true"></span>
+          <div class="scoreboard-player">
+            <span class="scoreboard-seed" id="scoreboardTopSeed">TBD</span>
+            <span class="scoreboard-name" id="scoreboardTopName">TBD</span>
+          </div>
+          <span class="scoreboard-score" id="scoreboardTopSet1">-</span>
+          <span class="scoreboard-score" id="scoreboardTopSet2">-</span>
+          <span class="scoreboard-score" id="scoreboardTopSet3">-</span>
+          <span class="scoreboard-match-score" id="scoreboardTopMatch">0</span>
+        </div>
+        <div class="scoreboard-row is-player-two">
+          <span class="scoreboard-color-bar" aria-hidden="true"></span>
+          <div class="scoreboard-player">
+            <span class="scoreboard-seed" id="scoreboardBottomSeed">TBD</span>
+            <span class="scoreboard-name" id="scoreboardBottomName">TBD</span>
+          </div>
+          <span class="scoreboard-score" id="scoreboardBottomSet1">-</span>
+          <span class="scoreboard-score" id="scoreboardBottomSet2">-</span>
+          <span class="scoreboard-score" id="scoreboardBottomSet3">-</span>
+          <span class="scoreboard-match-score" id="scoreboardBottomMatch">0</span>
+        </div>
+      </div>
     </section>
 
     <section class="card">
       <div class="section-head">
-        <span class="section-label">Realtime Foundation</span>
+        <span class="section-label">Course Selection</span>
+      </div>
+      <div class="course-board">
+        <div class="course-grid" id="courseGrid" aria-label="Course choices"></div>
+        <div class="special-course-slot" id="specialCourseSlot" aria-label="Special course choice"></div>
+      </div>
+      <p class="body-copy" id="courseHint">Courses will unlock after the match starts and Hole 13 CTP is recorded.</p>
+    </section>
+
+    <section class="card flow-panel">
+      <div class="section-head">
+        <span class="section-label">Match Flow</span>
+      </div>
+      <p class="flow-prompt" id="flowPrompt">Start the live match.</p>
+      <p class="flow-detail" id="flowDetail"></p>
+      <div class="flow-control-row">
+        <div class="flow-actions" id="actionButtons"></div>
+        <button class="undo-button" id="undoBtn" type="button">Undo</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <span class="section-label">Live Event Log</span>
+      </div>
+      <ol class="event-log" id="eventLog"></ol>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <span class="section-label">Realtime Sync</span>
         <span class="section-label" id="realtimeViewerCount">0 viewers</span>
       </div>
-      <p class="body-copy" id="realtimeStatusText">Connecting the match-specific Realtime channel.</p>
+      <p class="body-copy" id="realtimeStatusText">Connecting to the match-state row.</p>
       <div class="channel-meta">Channel <code id="realtimeChannelName">lightningcup:match</code></div>
-      <pre class="realtime-payload" id="realtimePayload">Waiting for match-state broadcasts.</pre>
     </section>
   </main>
 
