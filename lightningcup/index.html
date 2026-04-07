@@ -83,7 +83,7 @@
       padding:12px 14px;
     }
     .lc-next-match-card-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; min-width:0; }
-    .lc-next-match-card-copy{ min-width:0; flex:1; display:flex; align-items:center; gap:10px; overflow:hidden; }
+    .lc-next-match-card-copy{ min-width:0; flex:1; display:flex; align-items:center; gap:6px; overflow:hidden; }
     .lc-next-match-card-label,
     .lc-next-match-card-vs{
       color: rgba(148,163,184,.92);
@@ -110,17 +110,34 @@
       letter-spacing:.05em;
       text-transform:uppercase;
       white-space:nowrap;
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      overflow:hidden;
+    }
+    .lc-next-match-card-opponent-seed{
+      flex:0 0 auto;
+      color:#93c5fd;
+      font-size:.76em;
+      font-weight:400;
+      line-height:1;
+      font-variant-numeric:tabular-nums;
+    }
+    .lc-next-match-card-opponent-name{
+      min-width:0;
       overflow:hidden;
       text-overflow:ellipsis;
+      white-space:nowrap;
     }
     .lc-next-match-card-region{
       color: rgba(var(--lc-next-match-region-rgb, 125,211,252), .98);
       font-size:var(--lc-next-match-font-size);
-      font-weight:800;
+      font-weight:400;
       letter-spacing:.08em;
       text-transform:uppercase;
       white-space:nowrap;
     }
+    .lc-next-match-card-mobile-break{ display:none; }
     .lc-next-match-card-button{
       flex:0 0 auto;
       min-height:38px;
@@ -136,7 +153,7 @@
       font-size:var(--lc-next-match-font-size);
       font-weight:900;
       letter-spacing:.08em;
-      text-transform:uppercase;
+      text-transform:none;
       transition: background-color 120ms ease, border-color 120ms ease;
     }
     .lc-next-match-card-button:hover{
@@ -486,7 +503,7 @@
     .qualifier-bracket-scroll{ width:100%; overflow-x:auto; overflow-y:hidden; padding-bottom:4px; }
     .qualifier-bracket-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:var(--qualifier-round-column-width); gap:18px; align-items:start; width:max-content; min-width:100%; justify-content:center; padding:2px; }
     .qualifier-round-column{ display:flex; flex-direction:column; gap:8px; min-width:0; }
-    .qualifier-round-title{ margin:0; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); text-align:center; }
+    .qualifier-round-title{ margin:0; font-size:10px; font-weight:900; letter-spacing:.09em; color:var(--muted); text-align:center; }
     .qualifier-round-stack{ display:flex; flex-direction:column; gap: var(--qualifier-round-gap, 8px); }
     .qualifier-round-stack .qualifier-bracket-match:first-child{ padding-top: var(--qualifier-round-padding-top, 0px); }
     .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{ padding-top: var(--qualifier-round-gap, 8px); }
@@ -1473,7 +1490,7 @@
       .topbar-user{ width:100%; justify-content:flex-end; }
       .lc-next-match-card{ --lc-next-match-font-size:13px; }
       .lc-next-match-card-row{ gap:12px; }
-      .lc-next-match-card-copy{ gap:8px; }
+      .lc-next-match-card-copy{ gap:5px; }
       .lc-nav-list{ grid-template-columns:1fr; }
       .lc-region-tabs-list{ grid-template-columns: repeat(3, minmax(0,1fr)); }
       .lc-match-popover-content{
@@ -1530,12 +1547,18 @@
         width:100%;
         justify-content:center;
         flex-wrap:wrap;
-        gap:4px 7px;
+        gap:3px 4px;
         overflow:visible;
         text-align:center;
       }
       .lc-next-match-card-opponent{
         max-width:100%;
+      }
+      .lc-next-match-card-mobile-break{
+        display:block;
+        flex:0 0 100%;
+        width:100%;
+        height:0;
       }
       .lc-next-match-card-button{
         min-height:32px;
@@ -1800,11 +1823,15 @@
         <div class="lc-next-match-card-copy">
           <span class="lc-next-match-card-label">YOUR NEXT MATCH:</span>
           <span class="lc-next-match-card-round" id="nextMatchCardRound">MATCH</span>
+          <span class="lc-next-match-card-mobile-break" aria-hidden="true"></span>
           <span class="lc-next-match-card-vs">vs.</span>
-          <span class="lc-next-match-card-opponent" id="nextMatchCardOpponent">TBD</span>
+          <span class="lc-next-match-card-opponent" id="nextMatchCardOpponent">
+            <span class="lc-next-match-card-opponent-seed" id="nextMatchCardOpponentSeed"></span>
+            <span class="lc-next-match-card-opponent-name" id="nextMatchCardOpponentName">TBD</span>
+          </span>
           <span class="lc-next-match-card-region" id="nextMatchCardRegion"></span>
         </div>
-        <a class="lc-next-match-card-button" id="nextMatchCardButton" href="/lightningcup/match/">VIEW MATCH</a>
+        <a class="lc-next-match-card-button" id="nextMatchCardButton" href="/lightningcup/match/">Match page</a>
       </div>
     </section>
 
@@ -1866,7 +1893,6 @@
     import { mountLightningCupMatchInfoPopover, mountLightningCupRadixControls } from "/lightningcup/radix-controls.bundle.js";
     import {
       buildMatchPageUrl as buildLightningCupMatchPageUrl,
-      formatMatchCardOpponentLabel,
       formatRoundLabel as formatLightningCupRoundLabel,
       getAuthenticatedTournamentPlayer as resolveAuthenticatedTournamentPlayer,
       getNextMatchForTournamentPlayer as resolveNextMatchForTournamentPlayer,
@@ -1972,6 +1998,8 @@
       nextMatchCard: document.getElementById("nextMatchCard"),
       nextMatchCardRound: document.getElementById("nextMatchCardRound"),
       nextMatchCardOpponent: document.getElementById("nextMatchCardOpponent"),
+      nextMatchCardOpponentSeed: document.getElementById("nextMatchCardOpponentSeed"),
+      nextMatchCardOpponentName: document.getElementById("nextMatchCardOpponentName"),
       nextMatchCardRegion: document.getElementById("nextMatchCardRegion"),
       nextMatchCardButton: document.getElementById("nextMatchCardButton"),
       lightningCupCountdownStrip: document.getElementById("lightningCupCountdownStrip"),
@@ -2728,6 +2756,13 @@
       return formatLightningCupRoundLabel(roundCode);
     }
 
+    function formatBracketRoundLabel(roundCode){
+      const normalizedRoundCode = normalizeName(roundCode);
+      const roundNumberMatch = normalizedRoundCode.match(/^R(\d+)$/i);
+      if(roundNumberMatch) return `Round of ${roundNumberMatch[1]}`;
+      return normalizedRoundCode || "Round";
+    }
+
     function getRankedEntryForPlayerSeason(playerId, season){
       const normalizedPlayerId = normalizeDiscordPlayerId(playerId);
       if(!normalizedPlayerId) return null;
@@ -3247,7 +3282,7 @@
         const roundTopPadding = baseRoundTopPadding + (roundTopPaddingAdjustments[group.round] || 0);
         return `
         <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGap}px;--qualifier-round-padding-top:${roundTopPadding}px;">
-          <h3 class="qualifier-round-title">${group.round}</h3>
+          <h3 class="qualifier-round-title">${escapeHtml(formatBracketRoundLabel(group.round))}</h3>
           <div class="qualifier-round-stack">
             ${group.matches.map((match) => {
               const hasMatchInfoPlayers = !!normalizeName(match.top?.name) && !!normalizeName(match.bottom?.name);
@@ -3518,6 +3553,9 @@
         els.nextMatchCard.hidden = true;
         els.nextMatchCardRegion.hidden = true;
         els.nextMatchCardRegion.textContent = "";
+        els.nextMatchCardOpponentSeed.hidden = true;
+        els.nextMatchCardOpponentSeed.textContent = "";
+        els.nextMatchCardOpponentName.textContent = "TBD";
       };
 
       if(!state.session || !state.context || !(state.seedDiscordMap instanceof Map) || state.seedDiscordMap.size === 0){
@@ -3539,7 +3577,11 @@
 
       els.nextMatchCardRound.textContent = formatRoundLabel(roundCode);
       els.nextMatchCardRound.style.color = isGoldRound ? "rgba(250,204,21,.96)" : "rgba(255,255,255,.98)";
-      els.nextMatchCardOpponent.textContent = formatMatchCardOpponentLabel(nextMatch.opponent);
+      const opponentSeed = nextMatch.opponent?.seed == null ? "" : String(nextMatch.opponent.seed);
+      const opponentName = normalizeName(nextMatch.opponent?.name) || "TBD";
+      els.nextMatchCardOpponentSeed.hidden = !opponentSeed;
+      els.nextMatchCardOpponentSeed.textContent = opponentSeed;
+      els.nextMatchCardOpponentName.textContent = opponentName.toUpperCase();
       els.nextMatchCardButton.href = buildMatchPageUrl(nextMatch.match.id);
 
       if(shouldShowRegionLabel(roundCode) && regionName){
