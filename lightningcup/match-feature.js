@@ -243,7 +243,10 @@ export function getNextMatchForTournamentPlayer({ playerName, actualMatches, con
   }
 
   const unresolvedMatch = candidateMatches.find((match) => !normalizeName(match.winner));
-  const selectedMatch = unresolvedMatch || candidateMatches[candidateMatches.length - 1];
+  if(!unresolvedMatch){
+    return null;
+  }
+  const selectedMatch = unresolvedMatch;
   const opponent = getMatchOpponent(selectedMatch, normalizedPlayerName);
 
   return {
