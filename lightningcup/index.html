@@ -1934,6 +1934,7 @@
     };
     const RANKED_SEASONS = [9, 10, 11];
     const TOTAL_BRACKET_MATCHES = 63;
+    const SUPABASE_SELECT_PAGE_SIZE = 1000;
     const REGION_TAB_PICK_TOTALS = new Map(REGION_TABS.map((tab) => [tab, tab === "Finals" ? 3 : 15]));
     const TOURNAMENT_YEAR = "2026";
     const LIGHTNING_CUP_STARTS_AT_MS = Date.UTC(2026, 3, 10, 17, 0, 0);
@@ -1980,6 +1981,7 @@
       userPicks: /** @type {Map<number, PickRow>} */ (new Map()),
       savedPicksSnapshot: /** @type {Map<number, PickRow>} */ (new Map()),
       savedPicksLoaded: false,
+      savedPickRowCount: 0,
       predicted: /** @type {Map<number, PredictedMatch>} */ (new Map()),
       validUserPicks: /** @type {Map<number, PickRow>} */ (new Map()),
       allBrackets: /** @type {(BracketRow & {username:string})[]} */ ([]),
@@ -2062,6 +2064,21 @@
     }
     function normalizeUrlQueryValue(value){
       return normalizeName(value).toLowerCase().replace(/[\s_]+/g, "-");
+    }
+    // Leaderboard scoring needs every row, not just Supabase's first default page.
+    async function fetchAllSupabaseRows(buildQuery, { pageSize = SUPABASE_SELECT_PAGE_SIZE } = {}){
+      const normalizedPageSize = Math.max(1, Math.trunc(Number(pageSize)) || SUPABASE_SELECT_PAGE_SIZE);
+      const rows = [];
+
+      for(let from = 0;; from += normalizedPageSize){
+        const to = from + normalizedPageSize - 1;
+        const { data, error } = await buildQuery().range(from, to);
+        if(error) return { data: [], error };
+
+        const pageRows = Array.isArray(data) ? data : [];
+        rows.push(...pageRows);
+        if(pageRows.length < normalizedPageSize) return { data: rows, error: null };
+      }
     }
     function getMainTabViewQueryValue(mainTab = state.mainTab){
       return mainTab === "Actual Bracket" ? VIEW_QUERY_RESULTS : VIEW_QUERY_BRACKET_GAME;
@@ -2240,9 +2257,14 @@
       return new Map(validPicks);
     }
 
-    function setSavedPicksSnapshot(picksMap, { loaded = true } = {}){
-      state.savedPicksSnapshot = picksMap instanceof Map ? new Map(picksMap) : new Map();
+    function setSavedPicksSnapshot(picksMap, { loaded = true, rowCount = null } = {}){
+      const normalizedPicksMap = picksMap instanceof Map ? new Map(picksMap) : new Map();
+      const normalizedRowCount = rowCount == null ? normalizedPicksMap.size : Number(rowCount);
+      state.savedPicksSnapshot = normalizedPicksMap;
       state.savedPicksLoaded = !!loaded;
+      state.savedPickRowCount = Number.isFinite(normalizedRowCount) && normalizedRowCount >= 0
+        ? Math.trunc(normalizedRowCount)
+        : normalizedPicksMap.size;
     }
 
     function isCurrentUserBracketStateSaved(){
@@ -2492,7 +2514,7 @@
       state.profile = null;
       state.userBracket = null;
       state.userPicks = new Map();
-      setSavedPicksSnapshot(new Map(), { loaded: false });
+      setSavedPicksSnapshot(new Map(), { loaded: false, rowCount: 0 });
       state.userAvatarUrl = "";
       state.lastDraftRestoreNoticeToken = "";
       state.inlineStatusText = "";
@@ -3489,6 +3511,13 @@
       return picksMap.size;
     }
 
+    function getSavedPickRowCount(){
+      const rowCount = Number(state.savedPickRowCount);
+      return Number.isFinite(rowCount) && rowCount >= 0
+        ? Math.trunc(rowCount)
+        : state.savedPicksSnapshot.size;
+    }
+
     function buildRegionTabProgressMap(){
       const progressByTab = new Map();
       const predictedMatches = state.predicted instanceof Map ? state.predicted : new Map();
@@ -3518,9 +3547,9 @@
     }
 
     function updatePickProgressUI(){
-      const selectedCount = getSelectedPickCount();
-      const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
       const isSaved = isCurrentUserBracketStateSaved();
+      const selectedCount = isSaved ? getSavedPickRowCount() : getSelectedPickCount();
+      const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
       const saveStateLabel = isSaved ? "Saved" : "Unsaved";
       els.pickProgressCount.textContent = `${saveStateLabel}: ${selectedCount}/${TOTAL_BRACKET_MATCHES} picks`;
       els.pickProgressCount.classList.toggle("is-complete", isSaved && isComplete);
@@ -3772,7 +3801,7 @@
         const { validPicks } = applyUserPicksToPredictedBracket(state.context, rawMap);
         const scores = computeScoresFromPicks(validPicks);
         const initialMax = calculateInitialMaxScore(validPicks);
-        const pickProgressCount = Math.min(TOTAL_BRACKET_MATCHES, validPicks.size);
+        const pickProgressCount = raw.length;
         return {
           ...b,
           pickProgressCount,
@@ -4158,6 +4187,7 @@
       state.userBracket = bracketRows || null;
 
       let savedUserPicks = new Map();
+      let savedUserPickRowCount = 0;
       if(state.userBracket?.id){
         const { data: picks, error: picksError } = await supabase
           .from("bracket_picks")
@@ -4165,7 +4195,7 @@
           .eq("bracket_id", state.userBracket.id)
           .eq("year", TOURNAMENT_YEAR);
         if(picksError){
-          setSavedPicksSnapshot(new Map(), { loaded: false });
+          setSavedPicksSnapshot(new Map(), { loaded: false, rowCount: 0 });
           const draftFallback = resolveUserPicksForSession(userId, new Map(), state.userBracket?.id || null);
           state.userPicks = draftFallback.picksMap;
           if(draftFallback.restoredDraft){
@@ -4177,10 +4207,12 @@
           renderAuthShell();
           return { ok: false, message: "Could not load your saved bracket picks." };
         }
-        savedUserPicks = new Map((picks || []).map((p) => [p.match_id, p]));
+        const pickRows = picks || [];
+        savedUserPickRowCount = pickRows.length;
+        savedUserPicks = new Map(pickRows.map((p) => [p.match_id, p]));
       }
 
-      setSavedPicksSnapshot(savedUserPicks, { loaded: true });
+      setSavedPicksSnapshot(savedUserPicks, { loaded: true, rowCount: savedUserPickRowCount });
       const pickResolution = resolveUserPicksForSession(userId, savedUserPicks, state.userBracket?.id || null);
       state.userPicks = pickResolution.picksMap;
       if(pickResolution.restoredDraft){
@@ -4245,9 +4277,21 @@
 
     async function loadLeaderboardData(){
       const [profilesRes, bracketsRes, picksRes] = await Promise.all([
-        supabase.from("profiles").select("user_id,username"),
-        supabase.from("brackets").select("id,user_id,bracket_name,submitted_at,year").eq("year", TOURNAMENT_YEAR),
-        supabase.from("bracket_picks").select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded,year").eq("year", TOURNAMENT_YEAR),
+        fetchAllSupabaseRows(() => supabase
+          .from("profiles")
+          .select("user_id,username")
+          .order("user_id", { ascending: true })),
+        fetchAllSupabaseRows(() => supabase
+          .from("brackets")
+          .select("id,user_id,bracket_name,submitted_at,year")
+          .eq("year", TOURNAMENT_YEAR)
+          .order("id", { ascending: true })),
+        fetchAllSupabaseRows(() => supabase
+          .from("bracket_picks")
+          .select("bracket_id,match_id,round_code,round_number,selected_winner_name,selected_winner_seed,is_correct,points_awarded,year")
+          .eq("year", TOURNAMENT_YEAR)
+          .order("bracket_id", { ascending: true })
+          .order("match_id", { ascending: true })),
       ]);
       if(profilesRes.error || bracketsRes.error || picksRes.error){
         state.allBrackets = [];
@@ -4357,9 +4401,10 @@
       saveLocalSavedMarkerTimestamp(state.session.user.id, TOURNAMENT_YEAR);
       state.lastDraftRestoreNoticeToken = "";
       await refreshAuthDrivenUI("savePicks", { syncSession: false });
-      const selectedCount = getSelectedPickCount();
+      const isSaved = isCurrentUserBracketStateSaved();
+      const selectedCount = isSaved ? getSavedPickRowCount() : getSelectedPickCount();
       const isComplete = selectedCount >= TOTAL_BRACKET_MATCHES;
-      if(isCurrentUserBracketStateSaved()){
+      if(isSaved){
         setMessage(isComplete ? "Bracket saved." : "Bracket progress saved.", "ok");
       }else{
         setMessage("Save submitted, but we could not confirm it yet. Please refresh to recheck.", "error");
