@@ -37,7 +37,7 @@
       padding:12px;
     }
     .obs-shell{
-      width:min(710px, calc(100vw - 24px));
+      width:710px;
       display:grid;
       gap:8px;
     }
@@ -217,40 +217,6 @@
       text-transform:uppercase;
       opacity:.82;
       line-height:1.1;
-    }
-    @media (max-width:820px){
-      body{
-        place-items:start center;
-        overflow:auto;
-        padding:12px;
-      }
-      .obs-shell{
-        width:min(100%, 520px);
-      }
-      .obs-card{
-        padding:10px;
-        border-radius:20px;
-      }
-      .scoreboard-row{
-        grid-template-columns:minmax(0,1fr) repeat(3, 42px) 50px;
-        gap:5px;
-        min-height:54px;
-        padding:5px 7px;
-      }
-      .scoreboard-seed{ font-size:14px; }
-      .scoreboard-name{ font-size:27px; }
-      .scoreboard-score{ min-height:42px; font-size:21px; }
-      .scoreboard-match-score{ min-height:42px; font-size:24px; }
-      .course-board{
-        grid-template-columns:1fr;
-      }
-      .course-grid{
-        grid-template-columns:repeat(2, minmax(0, 1fr));
-      }
-      .special-course-slot{
-        grid-template-columns:minmax(0, calc((100% - 8px) / 2));
-        justify-content:center;
-      }
     }
   </style>
 </head>
