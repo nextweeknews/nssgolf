@@ -583,7 +583,7 @@ function buildCompletedMatchExportMarkdown(){
 
   const setsWon = getSetsWon(state.matchState);
   const lines = [
-    `## ${formatDiscordMentionForPlayer(1)} **${setsWon[1]}-${setsWon[2]}** ${formatDiscordMentionForPlayer(2)}`,
+    `${formatDiscordMentionForPlayer(1)} **${setsWon[1]}-${setsWon[2]}** ${formatDiscordMentionForPlayer(2)}`,
     `-# Hole 13 CTP: Player ${ctpWinner}`,
   ];
 
@@ -595,7 +595,7 @@ function buildCompletedMatchExportMarkdown(){
     const otherPlayer = getOtherPlayer(winner);
     const courses = result.courseSelections.map(formatCourseShortLabel).filter(Boolean).join(", ");
     lines.push(
-      `\`Set ${Number(setState.setNumber)}:\` **Player ${winner}** wins **${result.score[winner]}-${result.score[otherPlayer]}**`,
+      `\`Set ${Number(setState.setNumber)}:\` **${formatDiscordMentionForPlayer(winner)}** wins **${result.score[winner]}-${result.score[otherPlayer]}**`,
       `-# Courses: ${courses}`
     );
   });
