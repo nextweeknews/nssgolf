@@ -102,6 +102,7 @@ const els = {
   realtimeStatusText: document.getElementById("realtimeStatusText"),
   realtimePulse: document.getElementById("realtimePulse"),
   lastUpdatedText: document.getElementById("lastUpdatedText"),
+  obsGraphicLink: document.getElementById("obsGraphicLink"),
 };
 
 function setError(message){
@@ -1216,6 +1217,21 @@ function renderRealtimeState(){
   els.lastUpdatedText.textContent = `Last updated: ${state.matchStateRowUpdatedAt ? formatLastUpdatedTimestamp(state.matchStateRowUpdatedAt) : "-"}`;
 }
 
+function renderObsGraphicLink(){
+  if(!els.obsGraphicLink) return;
+
+  const matchId = Number(state.match?.id ?? state.matchId);
+  if(!Number.isFinite(matchId)){
+    els.obsGraphicLink.hidden = true;
+    return;
+  }
+
+  const url = new URL("/lightningcup/obs/", globalThis.location?.origin || "https://nssgolf.com");
+  url.searchParams.set("matchId", String(matchId));
+  els.obsGraphicLink.href = `${url.pathname}${url.search}`;
+  els.obsGraphicLink.hidden = false;
+}
+
 function renderPage(){
   if(state.error){
     renderStatus(state.error, "error");
@@ -1242,6 +1258,7 @@ function renderPage(){
   renderFlow();
   renderEventLog();
   renderRealtimeState();
+  renderObsGraphicLink();
 }
 
 function updateRealtimeViewerCount(channel){
