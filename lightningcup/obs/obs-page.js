@@ -7,9 +7,7 @@ import {
   buildResolvedMatchMap,
   formatRoundLabel,
   getMatchIdFromSearch,
-  getRegionNameForMatch,
   normalizeName,
-  shouldShowRegionLabel,
 } from "/lightningcup/match-feature.js";
 
 const WORKER_BASE = "https://small-mud-2771.nextweekmedia.workers.dev/";
@@ -40,7 +38,6 @@ const state = {
   liveError: "",
   matchState: createInitialMatchState(),
   matchStateRowUpdatedAt: "",
-  matchStateLoadStatus: "idle",
   realtimeStatus: "idle",
   realtimeChannel: null,
   onlinePlayers: { 1: false, 2: false },
@@ -48,18 +45,10 @@ const state = {
 
 const els = {
   pageStatus: document.getElementById("pageStatus"),
-  roundPill: document.getElementById("roundPill"),
-  regionPill: document.getElementById("regionPill"),
-  matchPill: document.getElementById("matchPill"),
-  realtimeStatusText: document.getElementById("realtimeStatusText"),
-  realtimePulse: document.getElementById("realtimePulse"),
-  lastUpdatedText: document.getElementById("lastUpdatedText"),
   scoreboardTopName: document.getElementById("scoreboardTopName"),
   scoreboardTopSeed: document.getElementById("scoreboardTopSeed"),
-  scoreboardTopOnline: document.getElementById("scoreboardTopOnline"),
   scoreboardBottomName: document.getElementById("scoreboardBottomName"),
   scoreboardBottomSeed: document.getElementById("scoreboardBottomSeed"),
-  scoreboardBottomOnline: document.getElementById("scoreboardBottomOnline"),
   scoreboardTopSet1: document.getElementById("scoreboardTopSet1"),
   scoreboardTopSet2: document.getElementById("scoreboardTopSet2"),
   scoreboardTopSet3: document.getElementById("scoreboardTopSet3"),
@@ -68,13 +57,8 @@ const els = {
   scoreboardBottomSet3: document.getElementById("scoreboardBottomSet3"),
   scoreboardTopMatch: document.getElementById("scoreboardTopMatch"),
   scoreboardBottomMatch: document.getElementById("scoreboardBottomMatch"),
-  ctpStatus: document.getElementById("ctpStatus"),
-  courseSetLabel: document.getElementById("courseSetLabel"),
-  flowSummary: document.getElementById("flowSummary"),
-  phaseMeta: document.getElementById("phaseMeta"),
   courseGrid: document.getElementById("courseGrid"),
   specialCourseSlot: document.getElementById("specialCourseSlot"),
-  courseHint: document.getElementById("courseHint"),
 };
 
 function setError(message){
@@ -317,22 +301,12 @@ function getPlayerSlot(player){
   return player === 1 ? state.match?.top : player === 2 ? state.match?.bottom : null;
 }
 
-function getPlayerName(player){
-  if(player === 1) return normalizeName(getPlayerSlot(player)?.name) || "Top player";
-  if(player === 2) return normalizeName(getPlayerSlot(player)?.name) || "Bottom player";
-  return "Player";
-}
-
 function getPlayerClass(player){
   return player === 1 ? "is-player-one" : player === 2 ? "is-player-two" : "";
 }
 
 function formatSeedLabel(seed){
   return seed == null ? "TBD" : `#${seed}`;
-}
-
-function getCourseName(courseId){
-  return COURSE_BY_ID.get(Number(courseId))?.name || "Unknown course";
 }
 
 function getCourseHoleLabel(courseId){
@@ -344,83 +318,36 @@ function getCourseHoleLabel(courseId){
 
 function getMatchPhase(matchState){
   if(!matchState.started){
-    return {
-      type: "start",
-      player: null,
-      setIndex: -1,
-      course: null,
-      suddenDeath: false,
-      previousSetNumber: null,
-      previousSetWinner: null,
-    };
+    return { type: "start", setIndex: -1, course: null };
   }
 
   if(!matchState.hole13CtpWinner){
-    return {
-      type: "ctp",
-      player: null,
-      setIndex: -1,
-      course: null,
-      suddenDeath: false,
-      previousSetNumber: null,
-      previousSetWinner: null,
-    };
+    return { type: "ctp", setIndex: -1, course: null };
   }
 
-  const matchWinner = getMatchWinner(matchState);
-  if(matchWinner){
-    return {
-      type: "complete",
-      player: matchWinner,
-      setIndex: -1,
-      course: null,
-      suddenDeath: false,
-      previousSetNumber: null,
-      previousSetWinner: null,
-    };
+  if(getMatchWinner(matchState)){
+    return { type: "complete", setIndex: -1, course: null };
   }
 
   const currentSetIndex = getCurrentSetIndex(matchState);
   const currentSet = matchState.sets[currentSetIndex];
   if(!currentSet){
-    return {
-      type: "complete",
-      player: null,
-      setIndex: -1,
-      course: null,
-      suddenDeath: false,
-      previousSetNumber: null,
-      previousSetWinner: null,
-    };
+    return { type: "complete", setIndex: -1, course: null };
   }
 
   const result = deriveSetResult(currentSet);
   if(result.courseSelections.length === result.pointWinners.length){
-    const picker = getPickerForPointIndex(currentSet, result.courseSelections.length);
-    const isSuddenDeathPick = currentSet.setNumber === 3 && result.suddenDeath;
-    const previousSet = currentSetIndex > 0 ? matchState.sets[currentSetIndex - 1] : null;
-    const isOpeningSet = result.courseSelections.length === 0 && result.pointWinners.length === 0;
     return {
       type: "course",
-      player: picker,
       setIndex: currentSetIndex,
       course: null,
-      suddenDeath: isSuddenDeathPick,
-      previousSetNumber: isOpeningSet && previousSet?.winner ? previousSet.setNumber : null,
-      previousSetWinner: isOpeningSet ? parsePlayerValue(previousSet?.winner) : null,
     };
   }
 
-  const courseId = result.courseSelections[result.pointWinners.length];
-  const picker = getPickerForPointIndex(currentSet, result.pointWinners.length);
   return {
     type: "point",
-    player: picker,
     setIndex: currentSetIndex,
-    course: courseId,
-    suddenDeath: currentSet.setNumber === 3 && result.suddenDeath,
-    previousSetNumber: null,
-    previousSetWinner: null,
+    course: result.courseSelections[result.pointWinners.length],
   };
 }
 
@@ -462,12 +389,12 @@ function setScoreCell(cell, value, player, isWon){
 
 function getCourseSelectionInfo(matchState, courseId, setIndex){
   const targetSet = Number.isInteger(setIndex) && setIndex >= 0 ? matchState.sets[setIndex] : null;
-  if(!targetSet) return { selected: false, owner: null, selectedIndex: -1, suddenDeath: false };
+  if(!targetSet) return { selected: false, owner: null, suddenDeath: false };
 
   const selections = parseCourseSelections(targetSet.courseSelections);
   const selectedIndex = selections.indexOf(courseId);
   if(selectedIndex < 0){
-    return { selected: false, owner: null, selectedIndex: -1, suddenDeath: false };
+    return { selected: false, owner: null, suddenDeath: false };
   }
 
   const suddenDeathCourse = getSuddenDeathCourseId(targetSet);
@@ -475,28 +402,8 @@ function getCourseSelectionInfo(matchState, courseId, setIndex){
   return {
     selected: true,
     owner: isSuddenDeathCourse ? null : getPickerForPointIndex(targetSet, selectedIndex),
-    selectedIndex,
     suddenDeath: isSuddenDeathCourse,
   };
-}
-
-function createAccentSpan(text, className){
-  const span = document.createElement("span");
-  if(className){
-    span.className = className;
-  }
-  span.textContent = text;
-  return span;
-}
-
-function setPanelChip(label, extraClass = ""){
-  els.phaseMeta.textContent = label;
-  els.phaseMeta.className = ["panel-chip", extraClass].filter(Boolean).join(" ");
-}
-
-function setNoteChip(label, extraClass = ""){
-  els.ctpStatus.textContent = label;
-  els.ctpStatus.className = ["note-chip", extraClass].filter(Boolean).join(" ");
 }
 
 function renderStatus(){
@@ -505,37 +412,15 @@ function renderStatus(){
   els.pageStatus.className = `obs-status${message ? "" : " is-hidden"}`;
 }
 
-function renderHeader(){
-  const roundLabel = state.match ? formatRoundLabel(state.match.round) : "Lightning Cup";
-  const matchLabel = Number.isFinite(Number(state.match?.id ?? state.matchId))
-    ? `Match ${Number(state.match?.id ?? state.matchId)}`
-    : "Match";
-
-  els.roundPill.textContent = roundLabel;
-  els.matchPill.textContent = matchLabel;
-
-  const showRegion = !!state.match && shouldShowRegionLabel(state.match.round);
-  const regionName = showRegion ? getRegionNameForMatch(state.match) : "";
-  els.regionPill.hidden = !regionName;
-  if(regionName){
-    els.regionPill.textContent = regionName;
-  }
-
-  document.title = `${roundLabel} ${matchLabel} | Lightning Cup OBS`;
-}
-
 function renderScoreboard(){
   const matchState = state.matchState;
   const setsWon = getSetsWon(matchState);
   const matchWinner = getMatchWinner(matchState);
-  const ctpWinner = parsePlayerValue(matchState.hole13CtpWinner);
 
   els.scoreboardTopSeed.textContent = formatSeedLabel(state.match?.top?.seed);
   els.scoreboardTopName.textContent = normalizeName(state.match?.top?.name) || "TBD";
   els.scoreboardBottomSeed.textContent = formatSeedLabel(state.match?.bottom?.seed);
   els.scoreboardBottomName.textContent = normalizeName(state.match?.bottom?.name) || "TBD";
-  els.scoreboardTopOnline.className = `online-dot${state.onlinePlayers[1] ? " is-online" : ""}`;
-  els.scoreboardBottomOnline.className = `online-dot${state.onlinePlayers[2] ? " is-online" : ""}`;
 
   setScoreCell(els.scoreboardTopSet1, formatSetScoreValue(matchState, 0, 1), 1, matchState.sets[0].winner === 1);
   setScoreCell(els.scoreboardTopSet2, formatSetScoreValue(matchState, 1, 1), 1, matchState.sets[1].winner === 1);
@@ -546,95 +431,12 @@ function renderScoreboard(){
 
   setScoreCell(els.scoreboardTopMatch, String(setsWon[1]), 1, matchWinner === 1);
   setScoreCell(els.scoreboardBottomMatch, String(setsWon[2]), 2, matchWinner === 2);
-
-  if(!matchState.started){
-    setNoteChip("Match has not started");
-    return;
-  }
-
-  if(ctpWinner){
-    setNoteChip(`Hole 13 CTP: ${getPlayerName(ctpWinner)}`, getPlayerClass(ctpWinner));
-    return;
-  }
-
-  setNoteChip("Awaiting Hole 13 CTP result");
-}
-
-function renderFlowSummary(){
-  const phase = getMatchPhase(state.matchState);
-  const displaySetIndex = getDisplaySetIndex(state.matchState);
-  els.courseSetLabel.textContent = `Set ${displaySetIndex + 1} Course Board`;
-  els.flowSummary.replaceChildren();
-
-  if(phase.type === "start"){
-    els.flowSummary.textContent = "Waiting to start";
-    setPanelChip("Start pending");
-    return phase;
-  }
-
-  if(phase.type === "ctp"){
-    els.flowSummary.textContent = "Awaiting Hole 13 CTP winner";
-    setPanelChip("CTP pending");
-    return phase;
-  }
-
-  if(phase.type === "course"){
-    if(phase.previousSetWinner && phase.previousSetNumber){
-      els.flowSummary.append(
-        document.createTextNode(`Set ${phase.previousSetNumber} to `),
-        createAccentSpan(getPlayerName(phase.previousSetWinner), getPlayerClass(phase.previousSetWinner)),
-        document.createTextNode(". ")
-      );
-    }
-    if(phase.suddenDeath){
-      els.flowSummary.textContent = "Sudden death course locked in";
-      setPanelChip("Sudden death", "is-danger");
-      return phase;
-    }
-    els.flowSummary.append(
-      createAccentSpan(getPlayerName(phase.player), getPlayerClass(phase.player)),
-      document.createTextNode(" selects the next course")
-    );
-    setPanelChip("Course pick", getPlayerClass(phase.player));
-    return phase;
-  }
-
-  if(phase.type === "point"){
-    if(phase.suddenDeath){
-      els.flowSummary.append(
-        document.createTextNode("Sudden death on "),
-        createAccentSpan(getCourseName(phase.course), "is-course")
-      );
-      setPanelChip("Next lead wins", "is-danger");
-      return phase;
-    }
-    els.flowSummary.append(
-      createAccentSpan(getCourseName(phase.course), "is-course"),
-      document.createTextNode(" is live")
-    );
-    setPanelChip("Point live");
-    return phase;
-  }
-
-  if(phase.type === "complete" && phase.player){
-    els.flowSummary.append(
-      document.createTextNode("Match won by "),
-      createAccentSpan(getPlayerName(phase.player), getPlayerClass(phase.player))
-    );
-    setPanelChip("Final", getPlayerClass(phase.player));
-    return phase;
-  }
-
-  els.flowSummary.textContent = "Match complete";
-  setPanelChip("Final");
-  return phase;
 }
 
 function createCourseTile(course, phase, displaySetIndex){
   const info = getCourseSelectionInfo(state.matchState, course.id, displaySetIndex);
   const isCurrentSet = phase.setIndex === displaySetIndex;
   const isLiveCourse = phase.type === "point" && isCurrentSet && Number(phase.course) === course.id;
-  const isAvailable = phase.type === "course" && isCurrentSet && !info.selected;
 
   const tile = document.createElement("article");
   tile.className = [
@@ -644,116 +446,41 @@ function createCourseTile(course, phase, displaySetIndex){
     info.owner === 1 ? "is-player-one" : "",
     info.owner === 2 ? "is-player-two" : "",
     isLiveCourse ? "is-live" : "",
-    isAvailable ? "is-available" : "",
   ].filter(Boolean).join(" ");
-
-  const head = document.createElement("div");
-  head.className = "course-tile-head";
 
   const name = document.createElement("span");
   name.className = "course-tile-name";
   name.textContent = course.name;
-  head.append(name);
 
-  const badgeText = info.suddenDeath
-    ? "SD"
-    : isLiveCourse
-      ? "Live"
-      : info.selected
-        ? String(info.selectedIndex + 1)
-        : "";
-  if(badgeText){
-    const badge = document.createElement("span");
-    badge.className = `course-badge${isLiveCourse ? " is-live" : ""}`;
-    badge.textContent = badgeText;
-    head.append(badge);
-  }
-
-  const meta = document.createElement("div");
+  const meta = document.createElement("span");
   meta.className = "course-tile-meta";
+  meta.textContent = getCourseHoleLabel(course.id);
 
-  const holes = document.createElement("span");
-  holes.textContent = getCourseHoleLabel(course.id);
-  meta.append(holes);
-
-  const stateLabel = document.createElement("span");
-  stateLabel.className = "course-tile-state";
-  if(info.suddenDeath){
-    stateLabel.textContent = "Sudden death";
-  }else if(isLiveCourse){
-    stateLabel.textContent = "In play";
-  }else if(info.owner === 1){
-    stateLabel.textContent = "Top pick";
-  }else if(info.owner === 2){
-    stateLabel.textContent = "Bottom pick";
-  }else if(isAvailable){
-    stateLabel.textContent = "Available";
-  }else{
-    stateLabel.textContent = "";
-  }
-  meta.append(stateLabel);
-
-  tile.append(head, meta);
+  tile.append(name, meta);
   return tile;
 }
 
 function renderCourses(){
-  const phase = renderFlowSummary();
+  const phase = getMatchPhase(state.matchState);
   const displaySetIndex = getDisplaySetIndex(state.matchState);
 
   els.courseGrid.replaceChildren(...COURSE_CHOICES.slice(0, 6).map((course) => createCourseTile(course, phase, displaySetIndex)));
   els.specialCourseSlot.replaceChildren(createCourseTile(COURSE_CHOICES[6], phase, displaySetIndex));
-
-  if(!state.matchState.started){
-    els.courseHint.textContent = "Course picks will appear here once the match starts.";
-    return;
-  }
-
-  if(!state.matchState.hole13CtpWinner){
-    els.courseHint.textContent = "The board unlocks after Hole 13 CTP is recorded.";
-    return;
-  }
-
-  if(phase.type === "complete"){
-    els.courseHint.textContent = "Showing the most recently active set. Blue and green tiles indicate each player's picks.";
-    return;
-  }
-
-  els.courseHint.textContent = "Blue and green tiles track the current set's course picks in real time.";
 }
 
-function formatLastUpdatedTimestamp(value){
-  const date = new Date(value);
-  if(Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
-}
-
-function renderRealtimeState(){
-  const isError = !!state.liveError || state.realtimeStatus === "CHANNEL_ERROR" || state.realtimeStatus === "TIMED_OUT";
-  const isLive = state.realtimeStatus === "SUBSCRIBED" && !isError;
-
-  els.realtimeStatusText.textContent = isError
-    ? "Sync error"
-    : isLive
-      ? "Live"
-      : "Connecting";
-  els.realtimeStatusText.className = `realtime-state${isError ? " is-error" : ""}`;
-  els.realtimePulse.className = `live-dot${isLive ? " is-live" : ""}`;
-  els.lastUpdatedText.textContent = `Updated ${state.matchStateRowUpdatedAt ? formatLastUpdatedTimestamp(state.matchStateRowUpdatedAt) : "-"}`;
+function updateDocumentTitle(){
+  const roundLabel = state.match ? formatRoundLabel(state.match.round) : "Lightning Cup";
+  const matchLabel = Number.isFinite(Number(state.match?.id ?? state.matchId))
+    ? `Match ${Number(state.match?.id ?? state.matchId)}`
+    : "Match";
+  document.title = `${roundLabel} ${matchLabel} | Lightning Cup OBS`;
 }
 
 function renderPage(){
   renderStatus();
-  renderHeader();
+  updateDocumentTitle();
   renderScoreboard();
   renderCourses();
-  renderRealtimeState();
 }
 
 async function fetchSheet(range){
@@ -780,7 +507,6 @@ async function loadMatchContext(){
 }
 
 async function loadPersistedMatchState(){
-  state.matchStateLoadStatus = "loading";
   state.liveError = "";
   renderPage();
 
@@ -791,14 +517,12 @@ async function loadPersistedMatchState(){
     .maybeSingle();
 
   if(error){
-    state.matchStateLoadStatus = "error";
     state.liveError = "Live match state could not load.";
     return;
   }
 
   state.matchState = sanitizeMatchState(data?.state || createInitialMatchState());
   state.matchStateRowUpdatedAt = normalizeName(data?.updated_at);
-  state.matchStateLoadStatus = data ? "loaded" : "not-created";
 }
 
 function updateRealtimePresence(channel){
@@ -823,7 +547,6 @@ function handlePostgresMatchStateChange(payload){
   if(!row || Number(row.match_id) !== Number(state.matchId)) return;
   state.matchState = sanitizeMatchState(row.state || createInitialMatchState());
   state.matchStateRowUpdatedAt = normalizeName(row.updated_at);
-  state.matchStateLoadStatus = "loaded";
   state.liveError = "";
   renderPage();
 }
@@ -868,7 +591,6 @@ async function subscribeToMatchRealtime(){
 
   channel.subscribe((status) => {
     state.realtimeStatus = normalizeName(status) || "idle";
-    renderRealtimeState();
 
     if(status !== "SUBSCRIBED") return;
     void channel.track({
