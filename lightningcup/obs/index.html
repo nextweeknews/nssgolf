@@ -87,9 +87,22 @@
     .scoreboard-row.is-player-two{ border-left-color:rgba(var(--player-two-rgb), .92); }
     .scoreboard-player{
       min-width:0;
-      display:flex;
+      display:grid;
+      grid-template-columns:28px minmax(0, 1fr);
       align-items:center;
       gap:6px;
+    }
+    .scoreboard-seed-slot{
+      display:grid;
+      align-items:center;
+      justify-items:center;
+      min-width:0;
+    }
+    .scoreboard-name-slot{
+      min-width:0;
+      display:grid;
+      align-items:center;
+      justify-items:start;
     }
     .scoreboard-seed{
       color:rgba(191,219,254,.94);
@@ -97,6 +110,7 @@
       font-weight:900;
       line-height:1;
       font-variant-numeric:tabular-nums;
+      text-align:center;
     }
     .scoreboard-name{
       min-width:0;
@@ -248,8 +262,8 @@
       <div class="scoreboard-shell" aria-label="Lightning Cup match scoreboard">
         <div class="scoreboard-row is-player-one">
           <div class="scoreboard-player">
-            <span class="scoreboard-seed" id="scoreboardTopSeed">TBD</span>
-            <span class="scoreboard-name" id="scoreboardTopName">TBD</span>
+            <span class="scoreboard-seed-slot"><span class="scoreboard-seed" id="scoreboardTopSeed">TBD</span></span>
+            <span class="scoreboard-name-slot"><span class="scoreboard-name" id="scoreboardTopName">TBD</span></span>
           </div>
           <span class="scoreboard-score" id="scoreboardTopSet1">-</span>
           <span class="scoreboard-score" id="scoreboardTopSet2">-</span>
@@ -259,8 +273,8 @@
 
         <div class="scoreboard-row is-player-two">
           <div class="scoreboard-player">
-            <span class="scoreboard-seed" id="scoreboardBottomSeed">TBD</span>
-            <span class="scoreboard-name" id="scoreboardBottomName">TBD</span>
+            <span class="scoreboard-seed-slot"><span class="scoreboard-seed" id="scoreboardBottomSeed">TBD</span></span>
+            <span class="scoreboard-name-slot"><span class="scoreboard-name" id="scoreboardBottomName">TBD</span></span>
           </div>
           <span class="scoreboard-score" id="scoreboardBottomSet1">-</span>
           <span class="scoreboard-score" id="scoreboardBottomSet2">-</span>
