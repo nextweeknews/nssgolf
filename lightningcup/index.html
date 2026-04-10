@@ -1961,7 +1961,7 @@
     const BRACKET_DRAFT_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-draft";
     const BRACKET_SAVED_MARKER_STORAGE_PREFIX = "nssgolf:lightningcup:bracket-saved";
 
-    /** @typedef {{seed:number|null,name:string,score:string|null}} PlayerSlot */
+    /** @typedef {{seed:number|null,name:string,score:string|null,setScores:string[]}} PlayerSlot */
     /** @typedef {{id:number,round:string,region:number,top:PlayerSlot,bottom:PlayerSlot,winner:string}} ActualMatch */
     /** @typedef {{id:number,round:string,roundNumber:number,region:number,top:PlayerSlot,bottom:PlayerSlot,pickedWinner:string}} PredictedMatch */
     /** @typedef {{user_id:string,username:string|null,discord_user_id?:string|null,full_name?:string|null}} ProfileRow */
@@ -2585,12 +2585,23 @@
 
     function buildActualMatchesFromSheet(raw){
       const rows = Array.isArray(raw?.values) ? raw.values : [];
+      const buildSetScores = (row, startIndex) => [0, 1, 2].map((offset) => normalizeName(row?.[startIndex + offset]));
       return rows.slice(1).map((r) => ({
         id: Number(r[0]),
         round: normalizeName(r[1]),
         region: Number(r[2]) || 0,
-        top: { seed: Number(r[3]) || null, name: normalizeName(r[4]), score: normalizeName(r[5]) || null },
-        bottom: { seed: Number(r[6]) || null, name: normalizeName(r[7]), score: normalizeName(r[8]) || null },
+        top: {
+          seed: Number(r[3]) || null,
+          name: normalizeName(r[4]),
+          score: normalizeName(r[5]) || null,
+          setScores: buildSetScores(r, 14),
+        },
+        bottom: {
+          seed: Number(r[6]) || null,
+          name: normalizeName(r[7]),
+          score: normalizeName(r[8]) || null,
+          setScores: buildSetScores(r, 17),
+        },
         winner: normalizeName(r[9]),
       })).filter((m) => Number.isFinite(m.id) && ROUND_ORDER.includes(m.round));
     }
@@ -3213,6 +3224,47 @@
       return { setScores, finalScore };
     }
 
+    function normalizeBracketSetScores(values){
+      if(!Array.isArray(values)) return ["", "", ""];
+      const next = values.slice(0, 3).map((value) => normalizeName(value));
+      while(next.length < 3){
+        next.push("");
+      }
+      return next;
+    }
+
+    function getDisplayedScoreParts(match, slot, mode){
+      if(mode === "actual"){
+        const parsed = parseScoreSegments(slot?.score);
+        return {
+          setScores: normalizeBracketSetScores(slot?.setScores).some(Boolean)
+            ? normalizeBracketSetScores(slot?.setScores)
+            : parsed.setScores,
+          finalScore: parsed.finalScore,
+        };
+      }
+
+      const actualMatch = state.context?.byId?.get(Number(match?.id));
+      const slotName = normalizeName(slot?.name);
+      if(!actualMatch || !slotName) return { setScores: ["", "", ""], finalScore: "" };
+      if(normalizeName(actualMatch.round) !== normalizeName(match?.round)) return { setScores: ["", "", ""], finalScore: "" };
+
+      const actualSlot = slotName === normalizeName(actualMatch.top?.name)
+        ? actualMatch.top
+        : slotName === normalizeName(actualMatch.bottom?.name)
+          ? actualMatch.bottom
+          : null;
+      if(!actualSlot) return { setScores: ["", "", ""], finalScore: "" };
+
+      const parsed = parseScoreSegments(actualSlot.score);
+      return {
+        setScores: normalizeBracketSetScores(actualSlot.setScores).some(Boolean)
+          ? normalizeBracketSetScores(actualSlot.setScores)
+          : parsed.setScores,
+        finalScore: parsed.finalScore,
+      };
+    }
+
     function getDisplayedScoreValue(match, slot, mode){
       if(mode === "actual") return normalizeName(slot?.score);
       const actualMatch = state.context?.byId?.get(Number(match?.id));
@@ -3363,7 +3415,7 @@
                 const isInteractive = mode === "pick" && clickable && !lockPicking && !!name;
                 const showPickRadioIndicator = isInteractive;
                 const showPickFeedbackIndicator = mode === "detail" || (mode === "pick" && lockPicking);
-                const scoreParts = parseScoreSegments(getDisplayedScoreValue(match, slot, mode));
+                const scoreParts = getDisplayedScoreParts(match, slot, mode);
                 const isFutureIncorrect = !!carryStatus.futureIncorrect;
                 const isFutureCorrect = !!carryStatus.futureCorrect;
                 const detailStatusClass = hydrated?.is_correct === true
@@ -4141,7 +4193,7 @@
 
     async function loadTournament(){
       const [bracketRaw, lockRaw, playersRaw, seedsRaw] = await Promise.all([
-        fetchSheet("Bracket!A:J"),
+        fetchSheet("Bracket!A:T"),
         fetchSheet("Bracket!I1"),
         fetchSheet("Form Responses!B:H"),
         fetchSheet("Seeds!C:E"),

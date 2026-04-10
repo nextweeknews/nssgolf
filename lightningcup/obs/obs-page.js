@@ -495,7 +495,7 @@ async function fetchSheet(range){
 }
 
 async function loadMatchContext(){
-  const bracketRaw = await fetchSheet("Bracket!A:J");
+  const bracketRaw = await fetchSheet("Bracket!A:T");
   state.actualMatches = buildActualMatchesFromSheet(bracketRaw);
   state.context = buildBracketContext(state.actualMatches);
   state.resolvedMatches = buildResolvedMatchMap(state.actualMatches, state.context);

@@ -42,6 +42,7 @@ export function normalizeDiscordId(value){
 
 export function buildActualMatchesFromSheet(raw){
   const rows = Array.isArray(raw?.values) ? raw.values : [];
+  const buildSetScores = (row, startIndex) => [0, 1, 2].map((offset) => normalizeName(row?.[startIndex + offset]));
   return rows.slice(1).map((row) => ({
     id: Number(row?.[0]),
     round: normalizeName(row?.[1]),
@@ -50,11 +51,13 @@ export function buildActualMatchesFromSheet(raw){
       seed: Number(row?.[3]) || null,
       name: normalizeName(row?.[4]),
       score: normalizeName(row?.[5]) || null,
+      setScores: buildSetScores(row, 14),
     },
     bottom: {
       seed: Number(row?.[6]) || null,
       name: normalizeName(row?.[7]),
       score: normalizeName(row?.[8]) || null,
+      setScores: buildSetScores(row, 17),
     },
     winner: normalizeName(row?.[9]),
   })).filter((match) => Number.isFinite(match.id) && ROUND_NUMBER[match.round]);
@@ -134,6 +137,9 @@ function cloneSlot(slot){
     seed: slot?.seed == null ? null : Number(slot.seed),
     name: normalizeName(slot?.name),
     score: normalizeName(slot?.score) || null,
+    setScores: Array.isArray(slot?.setScores)
+      ? slot.setScores.slice(0, 3).map((score) => normalizeName(score))
+      : ["", "", ""],
   };
 }
 

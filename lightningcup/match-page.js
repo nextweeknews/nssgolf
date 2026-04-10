@@ -774,7 +774,7 @@ async function loadProfileFromCurrentSession(){
 
 async function loadMatchContext(){
   const [bracketRaw, seedsRaw] = await Promise.all([
-    fetchSheet("Bracket!A:J"),
+    fetchSheet("Bracket!A:T"),
     fetchSheet("Seeds!C:E"),
   ]);
 
