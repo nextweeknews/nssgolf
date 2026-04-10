@@ -145,7 +145,7 @@
     }
     .course-board{
       display:grid;
-      grid-template-columns:minmax(0, 3fr) minmax(110px, .9fr);
+      grid-template-columns:minmax(0, 3fr) minmax(0, 1fr);
       gap:8px;
       align-items:stretch;
     }
@@ -156,6 +156,10 @@
     }
     .special-course-slot{
       display:grid;
+      align-items:center;
+    }
+    .special-course-slot .course-tile{
+      align-self:center;
     }
     .course-tile{
       min-height:68px;

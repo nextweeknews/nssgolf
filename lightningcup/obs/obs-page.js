@@ -306,7 +306,7 @@ function getPlayerClass(player){
 }
 
 function formatSeedLabel(seed){
-  return seed == null ? "TBD" : `#${seed}`;
+  return seed == null ? "TBD" : String(seed);
 }
 
 function getCourseHoleLabel(courseId){
