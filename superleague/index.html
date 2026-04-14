@@ -2183,6 +2183,20 @@
         row.rank = row.tied ? `T${displayRank}` : String(displayRank);
       });
 
+      const rankCounts = new Map();
+      ranked.forEach((row) => {
+        const rankValue = String(row.rank ?? "").trim();
+        const rankNumber = rankValue.startsWith("T") ? rankValue.slice(1) : rankValue;
+        if(!rankNumber) return;
+        rankCounts.set(rankNumber, (rankCounts.get(rankNumber) || 0) + 1);
+      });
+      ranked.forEach((row) => {
+        const rankValue = String(row.rank ?? "").trim();
+        if(!rankValue.startsWith("T")) return;
+        const rankNumber = rankValue.slice(1);
+        if(rankCounts.get(rankNumber) === 1) row.rank = rankNumber;
+      });
+
       return ranked;
     }
 
