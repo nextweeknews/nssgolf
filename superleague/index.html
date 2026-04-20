@@ -2226,55 +2226,40 @@
         .filter((row) => row.player !== "");
     }
 
-    function getDivisionRankHighlight(divisionTitle, rankPosition, metadata){
+    function getDivisionRankHighlight(divisionTitle, rankPosition){
       const normalized = String(divisionTitle ?? "").toLowerCase();
       if(normalized.includes("1")){
-        if(metadata){
-          if(rankPosition === 6) return "row-highlight-orange";
-          if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
-          return "";
-        }
         if(rankPosition >= 1 && rankPosition <= 4) return "row-highlight-gold";
-        if(rankPosition === 6) return "row-highlight-orange";
-        if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
+        if(rankPosition === 7) return "row-highlight-orange";
+        if(rankPosition === 8) return "row-highlight-red";
         return "";
       }
 
       if(normalized.includes("2")){
         if(rankPosition >= 1 && rankPosition <= 2) return "row-highlight-green";
         if(rankPosition === 3) return "row-highlight-blue";
-        if(rankPosition === 6) return "row-highlight-orange";
-        if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
+        if(rankPosition === 7) return "row-highlight-orange";
+        if(rankPosition === 8) return "row-highlight-red";
         return "";
       }
 
       if(normalized.includes("3")){
         if(rankPosition >= 1 && rankPosition <= 2) return "row-highlight-green";
         if(rankPosition === 3) return "row-highlight-blue";
-        if(rankPosition >= 5 && rankPosition <= 8) return "row-highlight-red";
+        if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
         return "";
       }
 
       return "";
     }
 
-    function applyPlayoffMedalHighlight(row, metadata){
-      if(!row || !metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return;
-      const rank = metadata.d1FinalRanks.get(row.playerKey);
-      if(rank === 1) row.highlightClass = "row-highlight-gold";
-      if(rank === 2) row.highlightClass = "row-highlight-silver";
-      if(rank === 3) row.highlightClass = "row-highlight-bronze";
-      if(rank === 4) row.highlightClass = "";
-    }
-
-    function applyRowHighlights(rows, divisionTitle, metadata){
+    function applyRowHighlights(rows, divisionTitle){
       for(let idx = 0; idx < rows.length;){
         const row = rows[idx];
         const isTied = String(row.rank ?? "").startsWith("T");
 
         if(!isTied){
-          row.highlightClass = getDivisionRankHighlight(divisionTitle, idx + 1, metadata);
-          applyPlayoffMedalHighlight(row, metadata);
+          row.highlightClass = getDivisionRankHighlight(divisionTitle, idx + 1);
           idx += 1;
           continue;
         }
@@ -2286,12 +2271,11 @@
 
         const groupClasses = new Set();
         for(let pos = idx + 1; pos <= end; pos += 1){
-          groupClasses.add(getDivisionRankHighlight(divisionTitle, pos, metadata));
+          groupClasses.add(getDivisionRankHighlight(divisionTitle, pos));
         }
         const groupHighlight = groupClasses.size === 1 ? [...groupClasses][0] : "";
         for(let i = idx; i < end; i += 1){
           rows[i].highlightClass = groupHighlight;
-          applyPlayoffMedalHighlight(rows[i], metadata);
         }
         idx = end;
       }
@@ -2459,7 +2443,7 @@
       const rowsWithPlayoffs = applyPlayoffStatTotals(baseRows, metadata);
       const rows = rankDivisionRows(rowsWithPlayoffs, division.title, headToHeadByDivision);
       if(normalizeDivisionValue(division.title) === "1") applyDivisionOnePlayoffOverrides(rows, metadata);
-      applyRowHighlights(rows, division.title, metadata);
+      applyRowHighlights(rows, division.title);
       const divisionClass = divisionClassFromLabel(division.title);
 
       const wrapper = document.createElement("section");
