@@ -3872,14 +3872,21 @@
       });
 
       const topScore = rankedRows[0]?.actual ?? null;
-      const rankByScore = new Map();
-      [...new Set(rankedRows.map((row) => row.actual))].forEach((score, idx) => rankByScore.set(score, idx + 1));
+      const tieCountByScore = new Map();
       rankedRows.forEach((row) => {
-        const tiedCount = rankedRows.filter((entry) => entry.actual === row.actual).length;
-        const rankValue = rankByScore.get(row.actual);
+        tieCountByScore.set(row.actual, (tieCountByScore.get(row.actual) || 0) + 1);
+      });
+
+      let previousScore = null;
+      let previousRank = 0;
+      rankedRows.forEach((row, index) => {
+        const tiedCount = tieCountByScore.get(row.actual) || 1;
+        const rankValue = row.actual === previousScore ? previousRank : index + 1;
         row.rankOrder = rankValue;
         row.rankLabel = tiedCount > 1 ? `T-${rankValue}` : `${rankValue}`;
         row.isTopScore = topScore != null && row.actual === topScore;
+        previousScore = row.actual;
+        previousRank = rankValue;
       });
 
       const rows = [...rankedRows].sort(compareLeaderboardRows);
