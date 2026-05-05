@@ -2034,6 +2034,13 @@
       return left > right ? -1 : 1;
     }
 
+    function compareRoundDiffDesc(aWins, aLosses, bWins, bLosses){
+      const aDiff = aWins - aLosses;
+      const bDiff = bWins - bLosses;
+      if(aDiff !== bDiff) return bDiff - aDiff;
+      return 0;
+    }
+
     function getHeadToHeadOutcome(headToHeadMap, playerA, playerB){
       const aKey = String(playerA ?? "").trim().toUpperCase();
       const bKey = String(playerB ?? "").trim().toUpperCase();
@@ -2118,9 +2125,28 @@
 
         if(group.length === 2){
           const h2h = getHeadToHeadOutcome(headToHeadMap, group[0].playerKey, group[1].playerKey);
-          if(h2h === -1) group.reverse();
-          group[0].tied = h2h === null;
-          group[1].tied = h2h === null;
+          if(h2h === -1){
+            group.reverse();
+            group[0].tied = false;
+            group[1].tied = false;
+          }else if(h2h === 1){
+            group[0].tied = false;
+            group[1].tied = false;
+          }else{
+            const gamesCmp = compareRoundDiffDesc(group[0].gamesWon, group[0].gamesLost, group[1].gamesWon, group[1].gamesLost);
+            if(gamesCmp > 0) group.reverse();
+            if(gamesCmp !== 0){
+              group[0].tied = false;
+              group[1].tied = false;
+            }else if(group[0].diff !== group[1].diff){
+              if(group[0].diff > group[1].diff) group.reverse();
+              group[0].tied = false;
+              group[1].tied = false;
+            }else{
+              group[0].tied = true;
+              group[1].tied = true;
+            }
+          }
         }else if(group.length > 2){
           const withHeadToHead = group.map((row) => ({
             ...row,
@@ -2141,7 +2167,7 @@
               }
             }
 
-            const gamesCmp = comparePctDesc(a.gamesWon, a.gamesLost, b.gamesWon, b.gamesLost);
+            const gamesCmp = compareRoundDiffDesc(a.gamesWon, a.gamesLost, b.gamesWon, b.gamesLost);
             if(gamesCmp !== 0) return gamesCmp;
             if(a.diff !== b.diff) return a.diff - b.diff;
             return a.sourceOrder - b.sourceOrder;
@@ -2155,7 +2181,7 @@
               continue;
             }
             const sameHeadToHead = current.headToHeadPct === prev.headToHeadPct;
-            const sameGames = comparePctDesc(current.gamesWon, current.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
+            const sameGames = compareRoundDiffDesc(current.gamesWon, current.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
             const sameDiff = current.diff === prev.diff;
             current.tied = sameHeadToHead && sameGames && sameDiff;
             if(current.tied) prev.tied = true;
@@ -2175,7 +2201,7 @@
         if(idx > 0){
           const prev = ranked[idx - 1];
           const samePrimary = comparePctDesc(row.matchesWon, row.matchesLost, prev.matchesWon, prev.matchesLost) === 0;
-          const sameGames = comparePctDesc(row.gamesWon, row.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
+          const sameGames = compareRoundDiffDesc(row.gamesWon, row.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
           if(!(row.tied && prev.tied && samePrimary && sameGames && row.diff === prev.diff)){
             displayRank = idx + 1;
           }
