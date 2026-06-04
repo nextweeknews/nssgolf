@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020B18" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>NSS Golf Player</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+      --border-lite: rgba(148,163,184,0.20);
+      --panel-bg: rgba(6,24,46,0.72);
+      --btn-bg: rgba(255,255,255,0.06);
+      --btn-bg-hover: rgba(255,255,255,0.10);
+      --btn-border: rgba(255,255,255,0.15);
+      --btn-border-hover: rgba(255,255,255,0.28);
+    }
+
+    *{ box-sizing:border-box; }
+    html{ background-color: var(--bg3); }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background-color: var(--bg3);
+      background-image: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+    .home-badge{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      user-select:none;
+    }
+    .home-badge img{
+      width:70%;
+      height:70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
+    }
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight:900;
+    }
+    .page-nav-select{
+      background: rgba(2,6,23,.85);
+      color: inherit;
+      border: 1px solid rgba(125,211,252,.35);
+      border-radius: 10px;
+      padding: 6px 32px 6px 10px;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: uppercase;
+      max-width: min(56vw, 420px);
+      cursor: pointer;
+    }
+    .page-nav-select:focus-visible{
+      outline: 2px solid rgba(125,211,252,.6);
+      outline-offset: 2px;
+    }
+    .btn{
+      appearance:none;
+      -webkit-appearance:none;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,0.92);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      font-size: 12px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      line-height: 1;
+    }
+    .btn:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+    .discord-button{
+      padding: 8px 12px;
+      font-size: 11px;
+      letter-spacing: .08em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-icon{
+      width: 14px;
+      height: 14px;
+      display:block;
+      fill: currentColor;
+    }
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 28px 18px 56px;
+    }
+    .profile-card{
+      width: min(820px, 100%);
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .profile-header{
+      display:flex;
+      align-items:center;
+      gap: 18px;
+      min-width:0;
+    }
+    .profile-avatar{
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit:cover;
+      border: 1px solid rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.08);
+      flex: 0 0 auto;
+    }
+    .profile-heading{
+      min-width:0;
+    }
+    .headline{
+      font-size: 24px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      overflow-wrap:anywhere;
+    }
+    .profile-muted{
+      margin:0;
+      color: rgba(233,238,248,0.70);
+      font-size: 13px;
+      font-weight: 750;
+      line-height:1.5;
+    }
+    .profile-details{
+      margin: 22px 0 0;
+      padding: 14px 0 0;
+      border-top: 1px solid var(--border-lite);
+      display:grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      gap: 8px 14px;
+    }
+    .profile-details dt{
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .profile-details dd{
+      margin:0;
+      min-width:0;
+      color: rgba(233,238,248,0.92);
+      font-size: 13px;
+      font-weight: 800;
+      overflow-wrap:anywhere;
+    }
+    .profile-section{
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-lite);
+    }
+    .profile-section-title{
+      margin:0 0 12px;
+      color: rgba(255,255,255,0.95);
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .profile-record-list{
+      list-style:none;
+      margin:0;
+      padding:0;
+      display:grid;
+      gap: 8px;
+    }
+    .profile-record-item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: var(--panel-bg);
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .profile-record-name{
+      min-width:0;
+      color: rgba(255,255,255,0.95);
+      font-size: 13px;
+      font-weight: 950;
+      text-transform: uppercase;
+      overflow-wrap:anywhere;
+    }
+    .profile-record-group{
+      color: rgba(233,238,248,0.62);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space:nowrap;
+    }
+    .profile-actions{
+      margin-top: 18px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .status{
+      margin: 0 auto 18px;
+      min-height: 22px;
+      color: rgba(233,238,248,0.72);
+      font-size: 13px;
+      font-weight: 800;
+      text-align:center;
+    }
+    .status[hidden]{
+      display:none;
+    }
+
+    @media (max-width: 760px){
+      .container{ padding: 20px 12px 44px; }
+      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .brand{ flex: 1; min-width: 0; }
+      .brand > div{ min-width: 0; }
+      .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
+      .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
+      .headline{ font-size: 20px; }
+      .profile-card{ padding: 18px 14px; border-radius: 18px; }
+      .profile-header{ align-items:flex-start; gap: 14px; }
+      .profile-avatar{ width: 72px; height: 72px; }
+      .profile-record-item{ align-items:flex-start; flex-direction:column; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </div>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+            <option value="/index.html">Home</option>
+            <option value="/worldopen/index.html">World Open</option>
+            <option value="/proleague/index.html">Shotgun Pro League</option>
+            <option value="/superleague/index.html">Super League</option>
+            <option value="/lightningcup/index.html">Lightning Cup</option>
+            <option value="/beataidan/index.html">Beat Aidan</option>
+            <option value="/records.html" selected>Records</option>
+          </select>
+        </div>
+      </div>
+      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
+        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
+        DISCORD
+      </a>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="status" id="player-status" hidden></div>
+    <div id="player-root"></div>
+  </main>
+
+  <script type="module" src="/player-profile.js"></script>
+</body>
+</html>

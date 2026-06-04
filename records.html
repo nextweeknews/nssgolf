@@ -175,7 +175,29 @@
       border: 1px solid var(--border-lite);
       background: var(--panel-bg);
       border-radius: 16px;
-      padding: 14px;
+      overflow:hidden;
+    }
+    .record-section-toggle{
+      width:100%;
+      appearance:none;
+      -webkit-appearance:none;
+      border:0;
+      background:transparent;
+      color:inherit;
+      padding: 14px 42px 14px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      position:relative;
+      cursor:pointer;
+      text-align:left;
+    }
+    .record-section-toggle:hover{
+      background: rgba(255,255,255,0.05);
+    }
+    .record-section-toggle:focus-visible{
+      outline: 2px solid rgba(125,211,252,.6);
+      outline-offset: -2px;
     }
     .record-section-title{
       margin: 0;
@@ -184,12 +206,38 @@
       font-weight: 950;
       letter-spacing: .10em;
       text-transform: uppercase;
-      text-align:center;
+      text-align:left;
+    }
+    .record-chevron{
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid currentColor;
+      border-bottom: 2px solid currentColor;
+      color: rgba(199,215,255,0.86);
+      position:absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-65%) rotate(45deg);
+      transition: transform 160ms ease;
+    }
+    .record-section-toggle[aria-expanded="true"] .record-chevron{
+      transform: translateY(-35%) rotate(225deg);
+    }
+    .record-section-body{
+      padding: 0 14px 14px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+    }
+    .record-section-body[hidden]{
+      display:none;
     }
     .role-group{
       margin-top: 14px;
       padding-top: 14px;
       border-top: 1px solid rgba(255,255,255,0.10);
+    }
+    .role-group:first-child{
+      border-top: 0;
+      padding-top: 0;
     }
     .role-title{
       margin: 0 0 8px;
@@ -209,13 +257,29 @@
       gap: 8px;
     }
     .member-row{
+      min-width:0;
+    }
+    .member-link{
       display:flex;
       align-items:center;
       gap: 10px;
+      width:100%;
       min-width:0;
       color: rgba(233,238,248,0.92);
       font-size: 13px;
       font-weight: 800;
+      text-decoration:none;
+      border-radius: 10px;
+      padding: 3px 4px;
+      margin: -3px -4px;
+    }
+    .member-link:hover{
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+    }
+    .member-link:focus-visible{
+      outline: 2px solid rgba(125,211,252,.6);
+      outline-offset: 2px;
     }
     .member-avatar{
       width: 28px;
@@ -352,10 +416,33 @@
         const section = document.createElement("section");
         section.className = "record-section";
 
-        const title = document.createElement("h2");
+        const sectionId = `records-section-${group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+        const bodyId = `${sectionId}-body`;
+
+        const toggle = document.createElement("button");
+        toggle.className = "record-section-toggle";
+        toggle.type = "button";
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-controls", bodyId);
+
+        const title = document.createElement("span");
         title.className = "record-section-title";
         title.textContent = group.title;
-        section.appendChild(title);
+        const chevron = document.createElement("span");
+        chevron.className = "record-chevron";
+        chevron.setAttribute("aria-hidden", "true");
+        toggle.append(title, chevron);
+        section.appendChild(toggle);
+
+        const body = document.createElement("div");
+        body.className = "record-section-body";
+        body.id = bodyId;
+        body.hidden = true;
+        toggle.addEventListener("click", () => {
+          const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+          toggle.setAttribute("aria-expanded", isExpanded ? "false" : "true");
+          body.hidden = isExpanded;
+        });
 
         for(const roleId of group.roleIds){
           const role = rolesById.get(roleId);
@@ -386,6 +473,11 @@
               const item = document.createElement("li");
               item.className = "member-row";
 
+              const link = document.createElement("a");
+              link.className = "member-link";
+              link.href = `/${member.discord_user_id}`;
+              link.setAttribute("aria-label", `View ${member.display_name || member.username || member.discord_user_id} profile`);
+
               const avatar = document.createElement("img");
               avatar.className = "member-avatar";
               avatar.src = avatarUrlFor(member);
@@ -398,16 +490,18 @@
               name.className = "member-name";
               name.textContent = member.display_name || member.username || member.discord_user_id;
 
-              item.append(avatar, name);
+              link.append(avatar, name);
+              item.appendChild(link);
               list.appendChild(item);
             }
 
             roleGroup.appendChild(list);
           }
 
-          section.appendChild(roleGroup);
+          body.appendChild(roleGroup);
         }
 
+        section.appendChild(body);
         fragment.appendChild(section);
       }
 
