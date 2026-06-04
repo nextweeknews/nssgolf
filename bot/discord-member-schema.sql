@@ -96,3 +96,5 @@ alter table public.discord_member_roles enable row level security;
 grant select, insert, update, delete on public.discord_guild_members to service_role;
 grant select, insert, update, delete on public.discord_roles to service_role;
 grant select, insert, update, delete on public.discord_member_roles to service_role;
+
+notify pgrst, 'reload schema';

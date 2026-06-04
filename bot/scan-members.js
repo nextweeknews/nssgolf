@@ -29,6 +29,8 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 const outputDir = path.join(__dirname, "output");
 const outputPath = path.join(outputDir, "members.json");
 const chunkSize = 500;
+const missingTableMessage =
+  "Run bot/discord-member-schema.sql in the Supabase SQL editor for the project used by NSSGOLF_SUPABASE_URL, then rerun this workflow.";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
@@ -114,6 +116,20 @@ async function upsertInChunks(tableName, rows, options) {
   }
 }
 
+function isMissingSupabaseTableError(error) {
+  return /schema cache|could not find the table|does not exist/i.test(
+    error?.message || ""
+  );
+}
+
+function throwSupabaseError(context, error) {
+  if (isMissingSupabaseTableError(error)) {
+    throw new Error(`${context}: ${error.message}. ${missingTableMessage}`);
+  }
+
+  throw new Error(`${context}: ${error.message}`);
+}
+
 async function insertInChunks(tableName, rows) {
   if (rows.length === 0) {
     return;
@@ -177,7 +193,7 @@ async function syncMembersToSupabase(guild, members, scannedAt) {
     .update({ is_current_member: false, last_scanned_at: scannedAt })
     .eq("guild_id", guild.id);
   if (markStaleError) {
-    throw new Error(`member stale-mark failed: ${markStaleError.message}`);
+    throwSupabaseError("member stale-mark failed", markStaleError);
   }
 
   const { error: markStaleRolesError } = await supabase
@@ -185,7 +201,7 @@ async function syncMembersToSupabase(guild, members, scannedAt) {
     .update({ is_current_role: false, last_scanned_at: scannedAt })
     .eq("guild_id", guild.id);
   if (markStaleRolesError) {
-    throw new Error(`role stale-mark failed: ${markStaleRolesError.message}`);
+    throwSupabaseError("role stale-mark failed", markStaleRolesError);
   }
 
   await upsertInChunks("discord_guild_members", memberRows, {
@@ -200,7 +216,7 @@ async function syncMembersToSupabase(guild, members, scannedAt) {
     .delete()
     .eq("guild_id", guild.id);
   if (deleteRolesError) {
-    throw new Error(`member role cleanup failed: ${deleteRolesError.message}`);
+    throwSupabaseError("member role cleanup failed", deleteRolesError);
   }
 
   await insertInChunks("discord_member_roles", memberRoleRows);
