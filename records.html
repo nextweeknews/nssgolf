@@ -151,15 +151,6 @@
       margin: 0 0 10px 0;
       text-align:center;
     }
-    .copy{
-      max-width: 760px;
-      margin: 0 auto;
-      color: rgba(233,238,248,0.82);
-      font-size: 14px;
-      line-height: 1.55;
-      font-weight: 700;
-      text-align:center;
-    }
     .status{
       margin: 18px 0 0;
       min-height: 22px;
@@ -167,6 +158,9 @@
       font-size: 13px;
       font-weight: 800;
       text-align:center;
+    }
+    .status[hidden]{
+      display:none;
     }
 
     .records-grid{
@@ -293,8 +287,7 @@
   <main class="container">
     <section class="card" aria-labelledby="records-title">
       <h1 class="headline" id="records-title">NSS Golf Records</h1>
-      <p class="copy">Current Discord record role holders from the NSS Golf server.</p>
-      <div class="status" id="records-status">Loading records...</div>
+      <div class="status" id="records-status" hidden></div>
       <div class="records-grid" id="records-grid" aria-live="polite"></div>
     </section>
   </main>
@@ -339,16 +332,16 @@
     const statusEl = document.getElementById("records-status");
     const gridEl = document.getElementById("records-grid");
 
-    function cleanRoleName(name, fallbackId){
+    function cleanRoleName(name){
       const clean = String(name || "")
         .replace(/^[^A-Za-z0-9]+/, "")
         .replace(/\s+/g, " ")
         .trim();
-      return clean || `Role ${fallbackId}`;
+      return clean || "Record title unavailable";
     }
 
     function avatarUrlFor(member){
-      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
+      return member?.server_avatar_url || "/logos/golf.png";
     }
 
     function renderRecords(groups, rolesById, linksByRoleId, membersById){
@@ -377,7 +370,7 @@
 
           const roleTitle = document.createElement("h3");
           roleTitle.className = "role-title";
-          roleTitle.textContent = cleanRoleName(role?.name, roleId);
+          roleTitle.textContent = cleanRoleName(role?.name);
           roleGroup.appendChild(roleTitle);
 
           if(!members.length){
@@ -423,14 +416,12 @@
 
     async function loadRecords(){
       const roleIds = RECORD_GROUPS.flatMap(group => group.roleIds);
-      statusEl.textContent = "Loading records...";
 
       const [rolesRes, linksRes] = await Promise.all([
         supabase
           .from("discord_roles")
           .select("role_id,name,position")
-          .in("role_id", roleIds)
-          .eq("is_current_role", true),
+          .in("role_id", roleIds),
         supabase
           .from("discord_member_roles")
           .select("role_id,discord_user_id")
@@ -445,7 +436,7 @@
       if(memberIds.length){
         const membersRes = await supabase
           .from("discord_guild_members")
-          .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
+          .select("discord_user_id,username,display_name,server_avatar_url")
           .in("discord_user_id", memberIds)
           .eq("is_current_member", true);
         if(membersRes.error) throw membersRes.error;
@@ -453,6 +444,10 @@
       }
 
       const rolesById = new Map((rolesRes.data || []).map(role => [role.role_id, role]));
+      const missingRoleIds = roleIds.filter(roleId => !rolesById.has(roleId));
+      if(missingRoleIds.length){
+        console.warn("Missing discord_roles rows for record role IDs.", missingRoleIds);
+      }
       const membersById = new Map(members.map(member => [member.discord_user_id, member]));
       const linksByRoleId = new Map();
 
@@ -462,11 +457,11 @@
       }
 
       renderRecords(RECORD_GROUPS, rolesById, linksByRoleId, membersById);
-      statusEl.textContent = "Records loaded.";
     }
 
     loadRecords().catch(error => {
       console.error(error);
+      statusEl.hidden = false;
       statusEl.textContent = `Unable to load records: ${error?.message || "Unknown error"}`;
     });
   </script>

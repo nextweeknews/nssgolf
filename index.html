@@ -103,7 +103,10 @@
       margin:0 auto;
       padding: 28px 18px 56px;
       display:flex;
+      flex-direction:column;
+      align-items:center;
       justify-content:center;
+      gap: 18px;
     }
 
     .card{
@@ -141,10 +144,14 @@
       padding-top: 6px;
     }
 
-    .records-link-row{
+    .archive-card{
+      text-align:center;
+    }
+
+    .archive-actions{
       display:flex;
       justify-content:center;
-      padding-top: 12px;
+      padding-top: 4px;
     }
 
     .league-tabs{
@@ -249,6 +256,18 @@
       box-shadow: 0 0 12px rgba(209,118,255,0.45), 0 0 24px rgba(209,118,255,0.2);
       text-shadow: 0 0 8px rgba(209,118,255,0.9);
     }
+    .btn.solid-teal{
+      background: #14b8a6;
+      border-color: rgba(20,184,166,0.95);
+      color: #02111f;
+      box-shadow: 0 12px 24px rgba(20,184,166,0.24);
+      text-shadow: none;
+    }
+    .btn.solid-teal:hover{
+      background: #2dd4bf;
+      border-color: rgba(45,212,191,0.95);
+      color: #02111f;
+    }
     .btn.neon-gradient{
       border: 1px solid transparent;
       border-image: linear-gradient(90deg, #7dd3fc, #f6ff6a) 1;
@@ -326,11 +345,11 @@
         text-align: center;
         min-height: 44px;
       }
-      .records-link-row{
+      .archive-actions{
         padding-left: 12px;
         padding-right: 12px;
       }
-      .records-link-row .btn{
+      .archive-actions .btn{
         width: 100%;
         justify-content: center;
       }
@@ -367,11 +386,6 @@
   <div class="container">
     <div class="card">
       <h1 class="headline">Leagues &amp; Events</h1>
-      <span class="records-link-row">
-        <a class="btn neon-gradient" href="/records.html" aria-label="Go to NSS Golf Records">
-          NSS Golf Records
-        </a>
-      </span>
       <div class="league-tabs" role="tablist" aria-label="League sections">
         <button class="tab-button tab-primary is-active" id="happening-now-tab" type="button" role="tab" aria-selected="true" aria-controls="happening-now-section" data-target="happening-now-section">
           Happening Now
@@ -417,6 +431,14 @@
       </div>
 
       <div class="footer">NSS Golf Community Events</div>
+    </div>
+    <div class="card archive-card">
+      <h2 class="headline">Archives</h2>
+      <span class="archive-actions">
+        <a class="btn solid-teal" href="/records.html" aria-label="Go to NSS Golf Records">
+          NSS Golf Records
+        </a>
+      </span>
     </div>
   </div>
 
