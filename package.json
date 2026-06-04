@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build:lightningcup-radix": "esbuild lightningcup/radix-controls.jsx --bundle --format=esm --target=es2020 --minify --outfile=lightningcup/radix-controls.bundle.js",
+    "discord:scan-members": "node bot/scan-members.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -26,6 +27,8 @@
     "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-radio-group": "^1.3.8",
     "@radix-ui/react-tabs": "^1.1.13",
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2",
     "esbuild": "^0.28.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
