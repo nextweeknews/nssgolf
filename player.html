@@ -217,6 +217,16 @@
       padding:0;
       display:grid;
       gap: 8px;
+      --record-cell-width: calc((100% - 16px) / 3);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .profile-record-list[data-count="1"]{
+      grid-template-columns: minmax(0, var(--record-cell-width));
+      justify-content:center;
+    }
+    .profile-record-list[data-count="2"]{
+      grid-template-columns: repeat(2, minmax(0, var(--record-cell-width)));
+      justify-content:center;
     }
     .profile-record-item{
       position:relative;
@@ -293,7 +303,8 @@
       .profile-card{ padding: 18px 14px; border-radius: 18px; }
       .profile-header{ align-items:flex-start; gap: 14px; }
       .profile-avatar{ width: 72px; height: 72px; }
-      .profile-record-item{ padding-left: 36px; padding-right: 36px; }
+      .profile-record-item{ padding-left: 24px; padding-right: 24px; }
+      .profile-record-name{ font-size: 20px; }
     }
   </style>
 </head>

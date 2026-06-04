@@ -108,6 +108,16 @@ function displayRecordValue(role){
   return role.name;
 }
 
+function getTopRoleByGroup(trackedRoles){
+  const rolesByGroup = new Map();
+  for(const role of trackedRoles){
+    if(!rolesByGroup.has(role.groupTitle)){
+      rolesByGroup.set(role.groupTitle, role);
+    }
+  }
+  return [...rolesByGroup.values()];
+}
+
 function setStatus(message){
   if(!statusEl) return;
   statusEl.hidden = !message;
@@ -181,25 +191,23 @@ function renderProfile(member, trackedRoles){
 
   headingWrap.append(name, memberSince);
   header.append(avatar, headingWrap);
+  card.appendChild(header);
 
-  const recordsSection = document.createElement("section");
-  recordsSection.className = "profile-section";
+  const bestRoles = getTopRoleByGroup(trackedRoles);
+  if(bestRoles.length){
+    const recordsSection = document.createElement("section");
+    recordsSection.className = "profile-section";
 
-  const recordsTitle = document.createElement("h2");
-  recordsTitle.className = "profile-section-title";
-  recordsTitle.textContent = "Qualified Personal Bests";
-  recordsSection.appendChild(recordsTitle);
+    const recordsTitle = document.createElement("h2");
+    recordsTitle.className = "profile-section-title";
+    recordsTitle.textContent = "Qualified Personal Bests";
+    recordsSection.appendChild(recordsTitle);
 
-  if(!trackedRoles.length){
-    const empty = document.createElement("p");
-    empty.className = "profile-muted";
-    empty.textContent = "No tracked records.";
-    recordsSection.appendChild(empty);
-  }else{
     const list = document.createElement("ul");
     list.className = "profile-record-list";
+    list.dataset.count = String(bestRoles.length);
 
-    for(const role of trackedRoles){
+    for(const role of bestRoles){
       const item = document.createElement("li");
       item.className = "profile-record-item";
       if(isRecordRole(role.name)){
@@ -219,9 +227,9 @@ function renderProfile(member, trackedRoles){
     }
 
     recordsSection.appendChild(list);
+    card.appendChild(recordsSection);
   }
 
-  card.append(header, recordsSection);
   rootEl.appendChild(card);
   setStatus("");
 }
