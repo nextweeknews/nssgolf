@@ -209,6 +209,7 @@
       font-weight: 950;
       letter-spacing: .08em;
       text-transform: uppercase;
+      text-align:center;
     }
     .profile-record-list{
       list-style:none;
@@ -218,22 +219,42 @@
       gap: 8px;
     }
     .profile-record-item{
+      position:relative;
       display:flex;
       align-items:center;
-      justify-content:space-between;
-      gap: 12px;
+      justify-content:center;
+      flex-direction:column;
+      gap: 8px;
       border: 1px solid rgba(255,255,255,0.10);
       background: var(--panel-bg);
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 14px 42px 16px;
+      text-align:center;
+      overflow:hidden;
+    }
+    .profile-record-item.is-record{
+      border-color: rgba(250,204,21,0.46);
+      background: linear-gradient(135deg, rgba(250,204,21,0.16), rgba(6,24,46,0.78));
+      box-shadow: 0 0 24px rgba(250,204,21,0.14), inset 0 0 18px rgba(250,204,21,0.05);
+    }
+    .profile-record-item.is-record::after{
+      content: "★";
+      position:absolute;
+      top: 9px;
+      right: 12px;
+      color: #facc15;
+      font-size: 16px;
+      line-height:1;
+      text-shadow: 0 0 12px rgba(250,204,21,0.55);
     }
     .profile-record-name{
       min-width:0;
       color: rgba(255,255,255,0.95);
-      font-size: 13px;
+      font-size: 24px;
       font-weight: 950;
       text-transform: uppercase;
       overflow-wrap:anywhere;
+      line-height:1.1;
     }
     .profile-record-group{
       color: rgba(233,238,248,0.62);
@@ -241,7 +262,7 @@
       font-weight: 950;
       letter-spacing: .08em;
       text-transform: uppercase;
-      white-space:nowrap;
+      line-height:1;
     }
     .profile-actions{
       margin-top: 18px;
@@ -272,7 +293,7 @@
       .profile-card{ padding: 18px 14px; border-radius: 18px; }
       .profile-header{ align-items:flex-start; gap: 14px; }
       .profile-avatar{ width: 72px; height: 72px; }
-      .profile-record-item{ align-items:flex-start; flex-direction:column; }
+      .profile-record-item{ padding-left: 36px; padding-right: 36px; }
     }
   </style>
 </head>

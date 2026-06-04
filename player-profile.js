@@ -77,6 +77,37 @@ function formatLongDate(value){
   }).format(date);
 }
 
+function isRecordRole(name){
+  return /record/i.test(String(name || ""));
+}
+
+function normalizeUnderParValue(value){
+  const matches = String(value || "").match(/[-−–—]\s*\d+/g);
+  if(!matches?.length) return "";
+  const score = matches[matches.length - 1];
+  return `-${score.replace(/[-−–—\s]/g, "")}`;
+}
+
+function normalizePointValue(value){
+  const source = String(value || "");
+  const pointMatch = source.match(/(\d+)\s*(?:\+)?\s*(?:points?|pts?|game)/i);
+  const fallbackMatch = source.match(/\d+/);
+  const points = pointMatch?.[1] || fallbackMatch?.[0] || "";
+  return points ? `${points}pts` : "";
+}
+
+function displayRecordValue(role){
+  if(role.groupTitle === "18-hole" || role.groupTitle === "9-hole"){
+    return normalizeUnderParValue(role.name) || role.name;
+  }
+
+  if(role.groupTitle === "Global"){
+    return normalizePointValue(role.name) || role.name;
+  }
+
+  return role.name;
+}
+
 function setStatus(message){
   if(!statusEl) return;
   statusEl.hidden = !message;
@@ -151,21 +182,12 @@ function renderProfile(member, trackedRoles){
   headingWrap.append(name, memberSince);
   header.append(avatar, headingWrap);
 
-  const details = document.createElement("dl");
-  details.className = "profile-details";
-
-  const idTerm = document.createElement("dt");
-  idTerm.textContent = "Discord ID";
-  const idValue = document.createElement("dd");
-  idValue.textContent = member.discord_user_id;
-  details.append(idTerm, idValue);
-
   const recordsSection = document.createElement("section");
   recordsSection.className = "profile-section";
 
   const recordsTitle = document.createElement("h2");
   recordsTitle.className = "profile-section-title";
-  recordsTitle.textContent = "Tracked Record Roles";
+  recordsTitle.textContent = "Qualified Personal Bests";
   recordsSection.appendChild(recordsTitle);
 
   if(!trackedRoles.length){
@@ -180,23 +202,26 @@ function renderProfile(member, trackedRoles){
     for(const role of trackedRoles){
       const item = document.createElement("li");
       item.className = "profile-record-item";
-
-      const roleName = document.createElement("span");
-      roleName.className = "profile-record-name";
-      roleName.textContent = role.name;
+      if(isRecordRole(role.name)){
+        item.classList.add("is-record");
+      }
 
       const groupName = document.createElement("span");
       groupName.className = "profile-record-group";
       groupName.textContent = role.groupTitle;
 
-      item.append(roleName, groupName);
+      const roleName = document.createElement("span");
+      roleName.className = "profile-record-name";
+      roleName.textContent = displayRecordValue(role);
+
+      item.append(groupName, roleName);
       list.appendChild(item);
     }
 
     recordsSection.appendChild(list);
   }
 
-  card.append(header, details, recordsSection);
+  card.append(header, recordsSection);
   rootEl.appendChild(card);
   setStatus("");
 }
