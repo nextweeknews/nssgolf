@@ -3,7 +3,7 @@ require("dotenv").config();
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { createClient } = require("@supabase/supabase-js");
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, PermissionFlagsBits } = require("discord.js");
 
 const token = process.env.DISCORD_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
@@ -78,6 +78,27 @@ function memberSummary(member, guild) {
     roles: roleSummary(member, guild),
     joinedAt: member.joinedAt ? member.joinedAt.toISOString() : null,
   };
+}
+
+async function assertSafeBotPermissions(guild) {
+  const botMember = await guild.members.fetchMe();
+  const permissions = botMember.permissions;
+  const unsafePermissions = [];
+
+  if (permissions.has(PermissionFlagsBits.Administrator)) {
+    unsafePermissions.push("Administrator");
+  }
+
+  if (permissions.has(PermissionFlagsBits.ManageRoles)) {
+    unsafePermissions.push("Manage Roles");
+  }
+
+  if (unsafePermissions.length > 0) {
+    throw new Error(
+      `Refusing to scan because the bot has unsafe server permissions: ${unsafePermissions.join(", ")}. ` +
+        "Remove these permissions before running the scheduled scanner."
+    );
+  }
 }
 
 async function upsertInChunks(tableName, rows, options) {
@@ -197,6 +218,7 @@ client.once("ready", async () => {
     console.log(`Logged in as ${client.user.tag}. Fetching guild ${guildId}...`);
 
     const guild = await client.guilds.fetch(guildId);
+    await assertSafeBotPermissions(guild);
     await guild.roles.fetch();
 
     console.log("Fetching all guild members. This requires Server Members Intent.");

@@ -50,6 +50,8 @@ Do not expose the service-role key in browser JavaScript.
 3. Enable **Server Members Intent** under **Privileged Gateway Intents**.
 4. Invite the bot to the server with the `bot` and `applications.commands` OAuth scopes.
 
+Do not grant the bot `Administrator` or `Manage Roles`. The scheduled scanner refuses to run with either permission because it only needs to read members and roles, not create or assign roles.
+
 The bot does not need the Message Content intent for this scan.
 
 ### Local setup
