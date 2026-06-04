@@ -93,6 +93,31 @@ alter table public.discord_guild_members enable row level security;
 alter table public.discord_roles enable row level security;
 alter table public.discord_member_roles enable row level security;
 
+drop policy if exists "discord guild members are publicly readable" on public.discord_guild_members;
+create policy "discord guild members are publicly readable"
+on public.discord_guild_members
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "discord roles are publicly readable" on public.discord_roles;
+create policy "discord roles are publicly readable"
+on public.discord_roles
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "discord member roles are publicly readable" on public.discord_member_roles;
+create policy "discord member roles are publicly readable"
+on public.discord_member_roles
+for select
+to anon, authenticated
+using (true);
+
+grant select on public.discord_guild_members to anon, authenticated;
+grant select on public.discord_roles to anon, authenticated;
+grant select on public.discord_member_roles to anon, authenticated;
+
 grant select, insert, update, delete on public.discord_guild_members to service_role;
 grant select, insert, update, delete on public.discord_roles to service_role;
 grant select, insert, update, delete on public.discord_member_roles to service_role;

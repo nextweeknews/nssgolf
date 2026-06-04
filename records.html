@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020B18" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>NSS Golf Records</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+      --border-lite: rgba(148,163,184,0.20);
+      --panel-bg: rgba(6,24,46,0.72);
+      --btn-bg: rgba(255,255,255,0.06);
+      --btn-bg-hover: rgba(255,255,255,0.10);
+      --btn-border: rgba(255,255,255,0.15);
+      --btn-border-hover: rgba(255,255,255,0.28);
+    }
+
+    *{ box-sizing:border-box; }
+    html{ background-color: var(--bg3); }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background-color: var(--bg3);
+      background-image: linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    .topbar{
+      position: sticky; top:0; z-index:10;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      background: rgba(3,18,42,.70);
+      backdrop-filter: blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center;}
+    .home-badge{
+      width:40px; height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      display:grid; place-items:center;
+      overflow:hidden;
+      user-select:none;
+    }
+    .home-badge img{
+      width:70%;
+      height:70%;
+      object-fit: contain;
+      display:block;
+      pointer-events:none;
+    }
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color: rgba(255,255,255,.65);
+      font-weight:900;
+    }
+    .page-nav-select{
+      background: rgba(2,6,23,.85);
+      color: inherit;
+      border: 1px solid rgba(125,211,252,.35);
+      border-radius: 10px;
+      padding: 6px 32px 6px 10px;
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: uppercase;
+      max-width: min(56vw, 420px);
+      cursor: pointer;
+    }
+    .page-nav-select:focus-visible{
+      outline: 2px solid rgba(125,211,252,.6);
+      outline-offset: 2px;
+    }
+
+    .btn{
+      appearance:none;
+      -webkit-appearance:none;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: rgba(255,255,255,0.92);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      font-size: 12px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      line-height: 1;
+    }
+    .btn:hover{
+      background: var(--btn-bg-hover);
+      border-color: var(--btn-border-hover);
+    }
+    .discord-button{
+      padding: 8px 12px;
+      font-size: 11px;
+      letter-spacing: .08em;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-icon{
+      width: 14px;
+      height: 14px;
+      display:block;
+      fill: currentColor;
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding: 28px 18px 56px;
+    }
+    .card{
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+    .headline{
+      font-size: 24px;
+      font-weight: 950;
+      color: var(--title);
+      letter-spacing: .035em;
+      text-transform: uppercase;
+      margin: 0 0 10px 0;
+      text-align:center;
+    }
+    .copy{
+      max-width: 760px;
+      margin: 0 auto;
+      color: rgba(233,238,248,0.82);
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 700;
+      text-align:center;
+    }
+    .status{
+      margin: 18px 0 0;
+      min-height: 22px;
+      color: rgba(233,238,248,0.72);
+      font-size: 13px;
+      font-weight: 800;
+      text-align:center;
+    }
+
+    .records-grid{
+      margin-top: 22px;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      align-items:start;
+    }
+    .record-section{
+      min-width: 0;
+      border: 1px solid var(--border-lite);
+      background: var(--panel-bg);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .record-section-title{
+      margin: 0;
+      color: var(--title);
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      text-align:center;
+    }
+    .role-group{
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+    }
+    .role-title{
+      margin: 0 0 8px;
+      color: rgba(255,255,255,0.95);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      overflow-wrap:anywhere;
+    }
+    .member-list{
+      list-style:none;
+      margin:0;
+      padding:0;
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+    }
+    .member-row{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width:0;
+      color: rgba(233,238,248,0.92);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .member-avatar{
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08);
+      flex: 0 0 auto;
+    }
+    .member-name{
+      min-width: 0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .empty-role{
+      margin: 0;
+      color: rgba(233,238,248,0.54);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 900px){
+      .records-grid{
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px){
+      .container{ padding: 20px 12px 44px; }
+      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+      .brand{ flex: 1; min-width: 0; }
+      .brand > div{ min-width: 0; }
+      .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
+      .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
+      .headline{ font-size: 20px; }
+      .card{ padding: 18px 14px; border-radius: 18px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="home-badge" aria-hidden="true">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </div>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+            <option value="/index.html">Home</option>
+            <option value="/worldopen/index.html">World Open</option>
+            <option value="/proleague/index.html">Shotgun Pro League</option>
+            <option value="/superleague/index.html">Super League</option>
+            <option value="/lightningcup/index.html">Lightning Cup</option>
+            <option value="/beataidan/index.html">Beat Aidan</option>
+            <option value="/records.html" selected>Records</option>
+          </select>
+        </div>
+      </div>
+      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
+        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
+        DISCORD
+      </a>
+    </div>
+  </div>
+
+  <main class="container">
+    <section class="card" aria-labelledby="records-title">
+      <h1 class="headline" id="records-title">NSS Golf Records</h1>
+      <p class="copy">Current Discord record role holders from the NSS Golf server.</p>
+      <div class="status" id="records-status">Loading records...</div>
+      <div class="records-grid" id="records-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+
+    const RECORD_GROUPS = [
+      {
+        title: "18-hole",
+        roleIds: [
+          "1466897504334516257",
+          "1279498515776540796",
+          "1279498415444856864",
+          "1279498113886982225",
+          "1279497781454569563",
+          "1279497671815725137",
+          "1279496346960789597",
+        ],
+      },
+      {
+        title: "9-hole",
+        roleIds: [
+          "1279496097328398438",
+          "1279495906089111573",
+          "1279495694578614455",
+          "1279495547727909005",
+        ],
+      },
+      {
+        title: "Global",
+        roleIds: [
+          "1247012004028354620",
+          "1095534496570425354",
+          "1077315124613890139",
+          "1279487297246462064",
+        ],
+      },
+    ];
+
+    const supabase = createBrowserSupabaseClient();
+    const statusEl = document.getElementById("records-status");
+    const gridEl = document.getElementById("records-grid");
+
+    function cleanRoleName(name, fallbackId){
+      const clean = String(name || "")
+        .replace(/^[^A-Za-z0-9]+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      return clean || `Role ${fallbackId}`;
+    }
+
+    function avatarUrlFor(member){
+      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
+    }
+
+    function renderRecords(groups, rolesById, linksByRoleId, membersById){
+      gridEl.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+
+      for(const group of groups){
+        const section = document.createElement("section");
+        section.className = "record-section";
+
+        const title = document.createElement("h2");
+        title.className = "record-section-title";
+        title.textContent = group.title;
+        section.appendChild(title);
+
+        for(const roleId of group.roleIds){
+          const role = rolesById.get(roleId);
+          const links = linksByRoleId.get(roleId) || [];
+          const members = links
+            .map(link => membersById.get(link.discord_user_id))
+            .filter(Boolean)
+            .sort((a, b) => String(a.display_name || "").localeCompare(String(b.display_name || "")));
+
+          const roleGroup = document.createElement("div");
+          roleGroup.className = "role-group";
+
+          const roleTitle = document.createElement("h3");
+          roleTitle.className = "role-title";
+          roleTitle.textContent = cleanRoleName(role?.name, roleId);
+          roleGroup.appendChild(roleTitle);
+
+          if(!members.length){
+            const empty = document.createElement("p");
+            empty.className = "empty-role";
+            empty.textContent = "No current holders.";
+            roleGroup.appendChild(empty);
+          }else{
+            const list = document.createElement("ul");
+            list.className = "member-list";
+
+            for(const member of members){
+              const item = document.createElement("li");
+              item.className = "member-row";
+
+              const avatar = document.createElement("img");
+              avatar.className = "member-avatar";
+              avatar.src = avatarUrlFor(member);
+              avatar.alt = "";
+              avatar.loading = "lazy";
+              avatar.decoding = "async";
+              avatar.referrerPolicy = "no-referrer";
+
+              const name = document.createElement("span");
+              name.className = "member-name";
+              name.textContent = member.display_name || member.username || member.discord_user_id;
+
+              item.append(avatar, name);
+              list.appendChild(item);
+            }
+
+            roleGroup.appendChild(list);
+          }
+
+          section.appendChild(roleGroup);
+        }
+
+        fragment.appendChild(section);
+      }
+
+      gridEl.appendChild(fragment);
+    }
+
+    async function loadRecords(){
+      const roleIds = RECORD_GROUPS.flatMap(group => group.roleIds);
+      statusEl.textContent = "Loading records...";
+
+      const [rolesRes, linksRes] = await Promise.all([
+        supabase
+          .from("discord_roles")
+          .select("role_id,name,position")
+          .in("role_id", roleIds)
+          .eq("is_current_role", true),
+        supabase
+          .from("discord_member_roles")
+          .select("role_id,discord_user_id")
+          .in("role_id", roleIds),
+      ]);
+
+      if(rolesRes.error) throw rolesRes.error;
+      if(linksRes.error) throw linksRes.error;
+
+      const memberIds = [...new Set((linksRes.data || []).map(row => row.discord_user_id).filter(Boolean))];
+      let members = [];
+      if(memberIds.length){
+        const membersRes = await supabase
+          .from("discord_guild_members")
+          .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
+          .in("discord_user_id", memberIds)
+          .eq("is_current_member", true);
+        if(membersRes.error) throw membersRes.error;
+        members = membersRes.data || [];
+      }
+
+      const rolesById = new Map((rolesRes.data || []).map(role => [role.role_id, role]));
+      const membersById = new Map(members.map(member => [member.discord_user_id, member]));
+      const linksByRoleId = new Map();
+
+      for(const link of linksRes.data || []){
+        if(!linksByRoleId.has(link.role_id)) linksByRoleId.set(link.role_id, []);
+        linksByRoleId.get(link.role_id).push(link);
+      }
+
+      renderRecords(RECORD_GROUPS, rolesById, linksByRoleId, membersById);
+      statusEl.textContent = "Records loaded.";
+    }
+
+    loadRecords().catch(error => {
+      console.error(error);
+      statusEl.textContent = `Unable to load records: ${error?.message || "Unknown error"}`;
+    });
+  </script>
+</body>
+</html>
