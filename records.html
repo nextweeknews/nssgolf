@@ -334,7 +334,7 @@
 
     function cleanRoleName(name){
       const clean = String(name || "")
-        .replace(/^[^A-Za-z0-9]+/, "")
+        .replace(/^[^A-Za-z0-9\-−–—]+/, "")
         .replace(/\s+/g, " ")
         .trim();
       return clean || "Record title unavailable";
