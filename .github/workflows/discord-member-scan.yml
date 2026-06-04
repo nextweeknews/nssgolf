@@ -16,6 +16,7 @@ jobs:
   scan:
     name: Scan Discord members
     runs-on: ubuntu-latest
+    environment: github-pages
     timeout-minutes: 15
 
     steps:
