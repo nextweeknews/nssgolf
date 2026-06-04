@@ -108,6 +108,25 @@ function displayRecordValue(role){
   return role.name;
 }
 
+function appendRecordValue(target, value){
+  const cleanValue = String(value || "");
+  const pointsMatch = cleanValue.match(/^(\d+)(pts)$/i);
+  if(!pointsMatch){
+    target.textContent = cleanValue;
+    return;
+  }
+
+  const number = document.createElement("span");
+  number.className = "profile-record-number";
+  number.textContent = pointsMatch[1];
+
+  const suffix = document.createElement("span");
+  suffix.className = "profile-record-suffix";
+  suffix.textContent = pointsMatch[2].toLowerCase();
+
+  target.append(number, suffix);
+}
+
 function getTopRoleByGroup(trackedRoles){
   const rolesByGroup = new Map();
   for(const role of trackedRoles){
@@ -220,7 +239,7 @@ function renderProfile(member, trackedRoles){
 
       const roleName = document.createElement("span");
       roleName.className = "profile-record-name";
-      roleName.textContent = displayRecordValue(role);
+      appendRecordValue(roleName, displayRecordValue(role));
 
       item.append(groupName, roleName);
       list.appendChild(item);
