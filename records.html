@@ -263,30 +263,37 @@
       height: 1.55em;
       min-width: 2.7em;
       padding: 0 7px;
-      border: 1px solid rgba(125,211,252,0.28);
+      border: 1px solid rgba(148,163,184,0.24);
       border-radius: 999px;
-      background: rgba(125,211,252,0.10);
-      color: rgba(199,215,255,0.94);
+      background: rgba(2,6,23,0.78);
+      color: rgba(226,232,240,0.82);
       display:inline-flex;
       align-items:center;
       justify-content:center;
       gap: 4px;
       font-size: 11px;
-      font-weight: 950;
+      font-weight: 650;
       letter-spacing: 0;
       line-height: 1;
       flex: 0 0 auto;
-      box-shadow: inset 0 0 10px rgba(125,211,252,0.04);
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.025);
+    }
+    .role-count-value{
+      display:inline-flex;
+      align-items:center;
+      height: 1em;
+      line-height:1;
     }
     .role-count-icon{
-      width: 12px;
-      height: 12px;
+      width: 11px;
+      height: 11px;
       stroke: currentColor;
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round;
       fill: none;
       flex: 0 0 auto;
+      transform: translateY(-0.5px);
     }
     .member-list{
       list-style:none;
@@ -469,6 +476,7 @@
       icon.append(head, shoulders);
 
       const value = document.createElement("span");
+      value.className = "role-count-value";
       value.textContent = String(count);
 
       badge.append(icon, value);
