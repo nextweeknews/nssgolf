@@ -26,6 +26,53 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
   process.exit(1);
 }
 
+function decodeJwtPayload(tokenValue) {
+  const parts = tokenValue.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  try {
+    const normalizedPayload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const paddedPayload = normalizedPayload.padEnd(
+      normalizedPayload.length + ((4 - (normalizedPayload.length % 4)) % 4),
+      "="
+    );
+    return JSON.parse(Buffer.from(paddedPayload, "base64").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function assertSupabaseElevatedKey(keyValue) {
+  const trimmedKey = String(keyValue || "").trim();
+
+  if (trimmedKey.startsWith("sb_publishable_")) {
+    throw new Error(
+      "NSSGOLF_SUPABASE_SERVICE_ROLE_KEY is a publishable key. Use a Supabase secret key (sb_secret_...) or legacy service_role JWT key."
+    );
+  }
+
+  if (trimmedKey.startsWith("sb_secret_")) {
+    return;
+  }
+
+  const jwtPayload = decodeJwtPayload(trimmedKey);
+  if (!jwtPayload) {
+    throw new Error(
+      "NSSGOLF_SUPABASE_SERVICE_ROLE_KEY is not a recognized Supabase secret key or legacy service_role JWT key."
+    );
+  }
+
+  if (jwtPayload.role !== "service_role") {
+    throw new Error(
+      `NSSGOLF_SUPABASE_SERVICE_ROLE_KEY uses the '${jwtPayload.role || "unknown"}' role. Use the legacy service_role JWT key, not the anon key.`
+    );
+  }
+}
+
+assertSupabaseElevatedKey(supabaseServiceRoleKey);
+
 const outputDir = path.join(__dirname, "output");
 const outputPath = path.join(outputDir, "members.json");
 const chunkSize = 500;

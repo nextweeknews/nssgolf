@@ -43,6 +43,8 @@ Run the SQL in `bot/discord-member-schema.sql` in the Supabase SQL editor before
 
 Do not expose the service-role key in browser JavaScript.
 
+Use a Supabase secret key (`sb_secret_...`) or legacy `service_role` JWT key for `NSSGOLF_SUPABASE_SERVICE_ROLE_KEY`. Do not use the publishable key or legacy anon key; those run as low-privilege roles and will fail RLS when the bot writes scan rows.
+
 ### Discord setup
 
 1. Open the bot application in the Discord Developer Portal.
