@@ -199,7 +199,7 @@ function renderProfile(member, trackedRoles){
   headingWrap.className = "profile-heading";
 
   const name = document.createElement("h1");
-  name.className = "headline player-name-title";
+  name.className = "player-name-title";
   name.id = "player-name";
   name.textContent = displayNameFor(member);
 

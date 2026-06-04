@@ -240,13 +240,53 @@
       padding-top: 0;
     }
     .role-title{
-      margin: 0 0 8px;
+      margin: 0;
       color: rgba(255,255,255,0.95);
       font-size: 13px;
       font-weight: 950;
       letter-spacing: .06em;
       text-transform: uppercase;
       overflow-wrap:anywhere;
+    }
+    .role-title-row{
+      margin: 0 0 8px;
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      min-width:0;
+    }
+    .role-title-text{
+      min-width:0;
+      flex: 0 1 auto;
+    }
+    .role-count-badge{
+      height: 1.55em;
+      min-width: 2.7em;
+      padding: 0 7px;
+      border: 1px solid rgba(125,211,252,0.28);
+      border-radius: 999px;
+      background: rgba(125,211,252,0.10);
+      color: rgba(199,215,255,0.94);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 0;
+      line-height: 1;
+      flex: 0 0 auto;
+      box-shadow: inset 0 0 10px rgba(125,211,252,0.04);
+    }
+    .role-count-icon{
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      flex: 0 0 auto;
     }
     .member-list{
       list-style:none;
@@ -408,6 +448,33 @@
       return member?.server_avatar_url || "/logos/golf.png";
     }
 
+    function createPlayerCountBadge(count){
+      const badge = document.createElement("span");
+      badge.className = "role-count-badge";
+      badge.setAttribute("aria-label", `${count} ${count === 1 ? "player" : "players"}`);
+
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      icon.classList.add("role-count-icon");
+      icon.setAttribute("viewBox", "0 0 24 24");
+      icon.setAttribute("aria-hidden", "true");
+
+      const head = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      head.setAttribute("cx", "12");
+      head.setAttribute("cy", "8");
+      head.setAttribute("r", "4");
+
+      const shoulders = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      shoulders.setAttribute("d", "M4 21c1.8-4 4.4-6 8-6s6.2 2 8 6");
+
+      icon.append(head, shoulders);
+
+      const value = document.createElement("span");
+      value.textContent = String(count);
+
+      badge.append(icon, value);
+      return badge;
+    }
+
     function renderRecords(groups, rolesById, linksByRoleId, membersById){
       gridEl.innerHTML = "";
       const fragment = document.createDocumentFragment();
@@ -456,8 +523,13 @@
           roleGroup.className = "role-group";
 
           const roleTitle = document.createElement("h3");
-          roleTitle.className = "role-title";
-          roleTitle.textContent = cleanRoleName(role?.name);
+          roleTitle.className = "role-title role-title-row";
+
+          const roleTitleText = document.createElement("span");
+          roleTitleText.className = "role-title-text";
+          roleTitleText.textContent = cleanRoleName(role?.name);
+
+          roleTitle.append(roleTitleText, createPlayerCountBadge(members.length));
           roleGroup.appendChild(roleTitle);
 
           if(!members.length){
