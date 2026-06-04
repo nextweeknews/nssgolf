@@ -1,0 +1,40 @@
+name: Discord member scan
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-member-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Scan Discord members
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scan server and sync Supabase
+        run: npm run discord:scan-members
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
