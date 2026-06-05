@@ -77,7 +77,7 @@ function parseCurrentRankedLeagueSeasonNumber(){
 
 function rankedSeasonLabel(season){
   const number = Number(season);
-  return Number.isInteger(number) && number > 0 ? `Season ${number}` : "Season";
+  return Number.isInteger(number) && number > 0 ? String(number) : "";
 }
 
 function avatarUrlFor(member){
@@ -309,17 +309,21 @@ function formatRankedInteger(value){
   return Number.isFinite(value) ? new Intl.NumberFormat("en-US").format(value) : "—";
 }
 
+function formatRankedPlainInteger(value){
+  return Number.isFinite(value) ? String(Math.trunc(value)) : "—";
+}
+
 function formatRankedPercent(value){
   const percent = Number.isFinite(value) ? value : 0;
   return `${percent.toFixed(1)}%`;
 }
 
-function renderRankedLeagueCard(rankedRows){
+function renderRankedLeagueSection(rankedRows){
   if(!rankedRows.length) return null;
 
-  const card = document.createElement("section");
-  card.className = "profile-card ranked-league-card";
-  card.setAttribute("aria-labelledby", "ranked-league-title");
+  const section = document.createElement("section");
+  section.className = "profile-section ranked-league-section";
+  section.setAttribute("aria-labelledby", "ranked-league-title");
 
   const title = document.createElement("h2");
   title.className = "profile-section-title ranked-league-title";
@@ -331,6 +335,20 @@ function renderRankedLeagueCard(rankedRows){
 
   const table = document.createElement("table");
   table.className = "ranked-table";
+
+  const colgroup = document.createElement("colgroup");
+  [
+    "ranked-col-season",
+    "ranked-col-rank",
+    "ranked-col-elo",
+    "ranked-col-wins",
+    "ranked-col-matches",
+    "ranked-col-win-rate",
+  ].forEach((className) => {
+    const col = document.createElement("col");
+    col.className = className;
+    colgroup.appendChild(col);
+  });
 
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
@@ -352,13 +370,14 @@ function renderRankedLeagueCard(rankedRows){
     tr.appendChild(season);
 
     [
-      row.rank == null ? "—" : `#${formatRankedInteger(row.rank)}`,
-      formatRankedInteger(row.elo),
-      formatRankedInteger(row.wins),
-      formatRankedInteger(row.matches),
-      formatRankedPercent(row.winRate),
-    ].forEach((value) => {
+      { value: formatRankedPlainInteger(row.rank) },
+      { value: formatRankedPlainInteger(row.elo), className: "ranked-cell-elo" },
+      { value: formatRankedInteger(row.wins) },
+      { value: formatRankedInteger(row.matches) },
+      { value: formatRankedPercent(row.winRate) },
+    ].forEach(({ value, className }) => {
       const td = document.createElement("td");
+      if(className) td.className = className;
       td.textContent = value;
       tr.appendChild(td);
     });
@@ -366,7 +385,7 @@ function renderRankedLeagueCard(rankedRows){
     tbody.appendChild(tr);
   });
 
-  table.append(thead, tbody);
+  table.append(colgroup, thead, tbody);
   tableWrap.appendChild(table);
 
   const link = document.createElement("a");
@@ -374,21 +393,10 @@ function renderRankedLeagueCard(rankedRows){
   link.href = RANKED_LEAGUE_TEAMUP_URL;
   link.target = "_blank";
   link.rel = "noopener noreferrer";
-  link.textContent = "Detailed data available at TeamUp";
+  link.textContent = "Detailed data available at TeamUp →";
 
-  const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  icon.setAttribute("class", "ranked-teamup-icon");
-  icon.setAttribute("viewBox", "0 0 24 24");
-  icon.setAttribute("aria-hidden", "true");
-  icon.setAttribute("focusable", "false");
-
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("d", "M13.5 5.25 20.25 12l-6.75 6.75m5.25-6.75H3.75");
-  icon.appendChild(path);
-  link.appendChild(icon);
-
-  card.append(title, tableWrap, link);
-  return card;
+  section.append(title, tableWrap, link);
+  return section;
 }
 
 function appendRecordValue(target, value){
@@ -532,13 +540,12 @@ function renderProfile(member, trackedRoles, rankedRows = []){
     card.appendChild(recordsSection);
   }
 
-  rootEl.appendChild(card);
-
-  const rankedCard = renderRankedLeagueCard(rankedRows);
-  if(rankedCard){
-    rootEl.appendChild(rankedCard);
+  const rankedSection = renderRankedLeagueSection(rankedRows);
+  if(rankedSection){
+    card.appendChild(rankedSection);
   }
 
+  rootEl.appendChild(card);
   setStatus("");
 }
 
