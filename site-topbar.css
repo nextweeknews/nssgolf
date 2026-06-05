@@ -6,6 +6,55 @@
   display: none;
 }
 
+.topbar .player-page-nav{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.topbar .player-page-nav::after{
+  display: none;
+}
+
+.topbar .player-page-back{
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(233,238,248,0.88);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.topbar .player-page-back:hover{
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+
+.topbar .player-page-back svg{
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.topbar .player-page-title{
+  color: rgba(233,238,248,0.92);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: .10em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .topbar .brand > div:not(.home-badge){
   position: relative;
   display: inline-flex;
@@ -15,15 +64,15 @@
 
 .topbar .brand > div:not(.home-badge)::after{
   content: "";
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
+  width: .52em;
+  height: .52em;
+  border-right: .16em solid currentColor;
+  border-bottom: .16em solid currentColor;
   color: rgba(233,238,248,0.78);
   position: absolute;
-  right: 2px;
+  right: 1px;
   top: 50%;
-  transform: translateY(-65%) rotate(45deg);
+  transform: translateY(-58%) rotate(45deg);
   pointer-events: none;
 }
 
@@ -39,9 +88,9 @@
   background: transparent;
   color: rgba(233,238,248,0.92);
   padding: 6px 18px 6px 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 950;
-  letter-spacing: .12em;
+  letter-spacing: .10em;
   line-height: 1;
   text-transform: uppercase;
   box-shadow: none;
@@ -175,8 +224,22 @@
 @media (max-width: 760px){
   .topbar .page-nav-select{
     max-width: min(54vw, 280px);
-    font-size: 10px;
-    letter-spacing: .09em;
+    font-size: 11px;
+    letter-spacing: .08em;
+  }
+
+  .topbar .player-page-nav{
+    gap: 8px;
+  }
+
+  .topbar .player-page-back{
+    width: 28px;
+    height: 28px;
+  }
+
+  .topbar .player-page-title{
+    font-size: 11px;
+    letter-spacing: .08em;
   }
 
   .topbar-user{

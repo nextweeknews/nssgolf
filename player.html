@@ -452,16 +452,13 @@
         <div class="home-badge" aria-hidden="true">
           <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
         </div>
-        <div>
-          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
-            <option value="/index.html">Home</option>
-            <option value="/worldopen/index.html">World Open</option>
-            <option value="/proleague/index.html">Shotgun Pro League</option>
-            <option value="/superleague/index.html">Super League</option>
-            <option value="/lightningcup/index.html">Lightning Cup</option>
-            <option value="/beataidan/index.html">Beat Aidan</option>
-            <option value="/records.html" selected>Records</option>
-          </select>
+        <div class="player-page-nav">
+          <button class="player-page-back" id="playerBackButton" type="button" aria-label="Go back">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+          </button>
+          <span class="player-page-title">Player Page</span>
         </div>
       </div>
       <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
@@ -478,5 +475,14 @@
 
   <script type="module" src="/player-profile.js"></script>
   <script type="module" src="/site-topbar.js"></script>
+  <script>
+    document.getElementById("playerBackButton")?.addEventListener("click", () => {
+      if(window.history.length > 1){
+        window.history.back();
+        return;
+      }
+      window.location.href = "/records.html";
+    });
+  </script>
 </body>
 </html>
