@@ -76,6 +76,29 @@ npm run discord:scan-members
 
 The scan stores member data in Supabase and also writes a local audit export to `bot/output/members.json`, which is ignored by git.
 
+### Shotgun Pro League player aliases
+
+The Shotgun Pro League Google Sheet uses stable player aliases that do not always match current Discord display names. Use a Supabase alias table to map those sheet names to Discord user IDs without rewriting historical sheet data.
+
+1. Run `bot/proleague-player-alias-schema.sql` in the Supabase SQL editor after `bot/discord-member-schema.sql`.
+2. Refresh Discord member data with `npm run discord:scan-members`.
+3. Generate a review CSV:
+
+```sh
+npm run proleague:aliases:suggest
+```
+
+This writes `bot/output/proleague-alias-review.csv`. High-confidence matches are prefilled with `approval=approve`; ambiguous rows are left blank and include alternatives in `candidates_json`.
+
+4. Review the CSV. For every accepted row, set `approval` to `approve`. If the suggested user is wrong, put the correct Discord user ID in `approved_discord_user_id`.
+5. Import approved rows:
+
+```sh
+npm run proleague:aliases:import
+```
+
+The import upserts approved mappings into `public.player_league_aliases`.
+
 ### Secrets
 
 Use GitHub Secrets only if a GitHub Actions workflow will run the bot. For local development, use an untracked `.env` file. For production hosting, store `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, and `NSSGOLF_SUPABASE_SERVICE_ROLE_KEY` in the host's secret manager or environment variable settings.

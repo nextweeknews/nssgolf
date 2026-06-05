@@ -6,6 +6,8 @@
   "scripts": {
     "build:lightningcup-radix": "esbuild lightningcup/radix-controls.jsx --bundle --format=esm --target=es2020 --minify --outfile=lightningcup/radix-controls.bundle.js",
     "discord:scan-members": "node bot/scan-members.js",
+    "proleague:aliases:suggest": "node bot/proleague-player-aliases.js suggest",
+    "proleague:aliases:import": "node bot/proleague-player-aliases.js import",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
