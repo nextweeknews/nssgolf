@@ -39,6 +39,8 @@ const RECORD_GROUPS = [
 ];
 
 const TRACKED_ROLE_IDS = RECORD_GROUPS.flatMap(group => group.roleIds);
+const VERIFIED_ROLE_ID = "1463770823277154569";
+const PLAYER_PROFILE_ROLE_IDS = [...new Set([...TRACKED_ROLE_IDS, VERIFIED_ROLE_ID])];
 const supabase = createBrowserSupabaseClient();
 const rootEl = document.getElementById("player-root");
 const statusEl = document.getElementById("player-status");
@@ -468,7 +470,21 @@ function renderNotFound(){
   setStatus("");
 }
 
-function renderProfile(member, trackedRoles, rankedRows = []){
+function createVerifiedIcon(){
+  const icon = document.createElement("span");
+  icon.className = "player-verified-icon";
+  icon.setAttribute("aria-label", "Verified");
+  icon.title = "Verified";
+  icon.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 2.75 14.18 5.2l3.25-.36 1.02 3.12 2.98 1.36-1.36 2.98.36 3.25-3.12 1.02-1.36 2.98-2.98-1.36-3.25.36-1.02-3.12-2.98-1.36 1.36-2.98-.36-3.25 3.12-1.02L12 2.75Z"></path>
+      <path d="m9.35 12.15 1.65 1.65 3.8-4.05"></path>
+    </svg>
+  `;
+  return icon;
+}
+
+function renderProfile(member, trackedRoles, rankedRows = [], isVerified = false){
   document.title = `${displayNameFor(member)} | NSS Golf`;
   rootEl.innerHTML = "";
 
@@ -492,7 +508,13 @@ function renderProfile(member, trackedRoles, rankedRows = []){
   const name = document.createElement("h1");
   name.className = "player-name-title";
   name.id = "player-name";
-  name.textContent = displayNameFor(member);
+  const nameText = document.createElement("span");
+  nameText.className = "player-name-text";
+  nameText.textContent = displayNameFor(member);
+  name.appendChild(nameText);
+  if(isVerified){
+    name.appendChild(createVerifiedIcon());
+  }
 
   const sinceDate = formatLongDate(member.joined_at);
   const memberSince = document.createElement("p");
@@ -583,7 +605,7 @@ async function loadPlayerProfile(){
       .from("discord_member_roles")
       .select("role_id,discord_user_id")
       .eq("discord_user_id", discordId)
-      .in("role_id", TRACKED_ROLE_IDS),
+      .in("role_id", PLAYER_PROFILE_ROLE_IDS),
     loadRankedLeagueRows(discordId),
   ]);
 
@@ -622,7 +644,7 @@ async function loadPlayerProfile(){
     }
   }
 
-  renderProfile(member, trackedRoles, rankedRows);
+  renderProfile(member, trackedRoles, rankedRows, heldRoleIds.has(VERIFIED_ROLE_ID));
 }
 
 loadPlayerProfile().catch(error => {
