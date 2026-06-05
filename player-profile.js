@@ -352,7 +352,7 @@ function renderRankedLeagueSection(rankedRows){
 
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  ["Season", "Rank", "Elo", "Wins", "Matches", "Win Rate"].forEach((label) => {
+  ["Season", "Rank", "Elo", "Wins", "Matches", "Win %"].forEach((label) => {
     const th = document.createElement("th");
     th.scope = "col";
     th.textContent = label;
