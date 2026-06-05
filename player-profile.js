@@ -476,9 +476,9 @@ function createVerifiedIcon(){
   icon.setAttribute("aria-label", "Verified");
   icon.title = "Verified";
   icon.innerHTML = `
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path d="M12 2.75 14.18 5.2l3.25-.36 1.02 3.12 2.98 1.36-1.36 2.98.36 3.25-3.12 1.02-1.36 2.98-2.98-1.36-3.25.36-1.02-3.12-2.98-1.36 1.36-2.98-.36-3.25 3.12-1.02L12 2.75Z"></path>
-      <path d="m9.35 12.15 1.65 1.65 3.8-4.05"></path>
+    <svg class="lucide lucide-badge-check" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"></path>
+      <path d="m9 12 2 2 4-4"></path>
     </svg>
   `;
   return icon;
