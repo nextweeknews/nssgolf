@@ -1782,6 +1782,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="/site-topbar.css" />
 </head>
 <body>
   <div class="topbar">
@@ -2570,6 +2571,9 @@
         Object.assign(document.createElement("span"), { className: "user-greeting-name", textContent: greetingName })
       );
       renderTopbarUserAvatar();
+      const profileDiscordId = normalizeDiscordPlayerId(state.profile?.discord_user_id);
+      els.viewPlayerPageBtn.disabled = !profileDiscordId;
+      els.viewPlayerPageBtn.dataset.playerUrl = profileDiscordId ? `/player.html?id=${encodeURIComponent(profileDiscordId)}` : "";
       els.topbarUserMenu.hidden = false;
       els.topbarUserMenu.classList.add("is-visible");
     };
@@ -4524,6 +4528,13 @@
         if(clicked.disabled){
           event.preventDefault();
           event.stopPropagation();
+          return;
+        }
+        if(clicked === els.viewPlayerPageBtn){
+          const playerUrl = normalizeName(els.viewPlayerPageBtn.dataset.playerUrl);
+          if(playerUrl){
+            window.location.href = playerUrl;
+          }
         }
       });
 
