@@ -52,7 +52,8 @@
       flex-wrap:wrap;
     }
     .brand{display:flex; gap:12px; align-items:center;}
-    .home-badge{
+    .home-badge,
+    .home-btn{
       width:40px; height:40px;
       border-radius:16px;
       border:1px solid rgba(255,255,255,.15);
@@ -60,8 +61,10 @@
       display:grid; place-items:center;
       overflow:hidden;
       user-select:none;
+      flex-shrink:0;
     }
-    .home-badge img{
+    .home-badge img,
+    .home-btn img{
       width:70%;
       height:70%;
       object-fit: contain;
