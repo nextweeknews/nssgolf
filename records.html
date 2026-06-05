@@ -597,7 +597,7 @@
 
               const link = document.createElement("a");
               link.className = "member-link";
-              link.href = `/${member.discord_user_id}`;
+              link.href = `/player.html?id=${encodeURIComponent(member.discord_user_id)}`;
               link.setAttribute("aria-label", `View ${member.display_name || member.username || member.discord_user_id} profile`);
 
               const avatar = document.createElement("img");

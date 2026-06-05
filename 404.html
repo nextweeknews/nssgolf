@@ -7,6 +7,16 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
   <title>NSS Golf</title>
+  <script>
+    (() => {
+      const playerId = String(window.location.pathname || "").replace(/^\/+|\/+$/g, "");
+      if(!/^\d+$/.test(playerId)) return;
+
+      const playerUrl = new URL("/player.html", window.location.origin);
+      playerUrl.searchParams.set("id", playerId);
+      window.location.replace(playerUrl.toString());
+    })();
+  </script>
 
   <style>
     :root{
