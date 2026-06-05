@@ -101,12 +101,12 @@
     .container{
       max-width:1100px;
       margin:0 auto;
-      padding: 28px 18px 56px;
+      padding: 16px 18px 56px;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      gap: 18px;
+      gap: 16px;
     }
 
     .card{
@@ -152,6 +152,123 @@
       display:flex;
       justify-content:center;
       padding-top: 4px;
+    }
+    .player-search{
+      position:relative;
+      width:min(520px, 100%);
+      margin: 4px auto 14px;
+    }
+    .player-search-input{
+      appearance:none;
+      -webkit-appearance:none;
+      width:100%;
+      border:1px solid rgba(148,163,184,0.28);
+      background: rgba(255,255,255,0.045);
+      color: rgba(233,238,248,0.95);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      outline: none;
+      text-align:left;
+    }
+    .player-search-input::placeholder{
+      color: rgba(156,163,199,0.72);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .player-search-input:focus{
+      border-color: rgba(45,212,191,0.62);
+      box-shadow: 0 0 0 2px rgba(45,212,191,0.12), 0 0 18px rgba(45,212,191,0.12);
+    }
+    .player-search-results{
+      position:absolute;
+      top: calc(100% + 8px);
+      left:0;
+      right:0;
+      z-index: 20;
+      display:grid;
+      gap: 6px;
+      max-height: 292px;
+      overflow:auto;
+      padding: 8px;
+      border:1px solid rgba(148,163,184,0.28);
+      border-radius: 14px;
+      background: rgba(2,8,24,0.98);
+      box-shadow: 0 22px 34px rgba(0,0,0,0.42);
+      text-align:left;
+    }
+    .player-search-results[hidden]{
+      display:none;
+    }
+    .player-search-result{
+      appearance:none;
+      -webkit-appearance:none;
+      border:1px solid transparent;
+      background: rgba(255,255,255,0.045);
+      color: inherit;
+      border-radius: 10px;
+      padding: 7px 8px;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width:0;
+      cursor:pointer;
+      text-align:left;
+    }
+    .player-search-result:hover,
+    .player-search-result:focus-visible{
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.18);
+      outline: none;
+    }
+    .player-search-avatar{
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08);
+      flex: 0 0 auto;
+    }
+    .player-search-copy{
+      min-width:0;
+      display:flex;
+      align-items:baseline;
+      gap: 8px;
+      flex: 1 1 auto;
+    }
+    .player-search-display{
+      min-width:0;
+      color:#fff;
+      font-size: 13px;
+      font-weight: 950;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .player-search-username{
+      min-width:0;
+      color: rgba(156,163,199,0.78);
+      font-size: 12px;
+      font-weight: 650;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      flex: 1 1 auto;
+    }
+    .player-search-empty{
+      margin:0;
+      padding: 8px 10px;
+      color: rgba(156,163,199,0.86);
+      font-size: 12px;
+      font-weight: 800;
+      text-align:center;
     }
 
     .league-tabs{
@@ -305,8 +422,18 @@
     }
     .home-discord-invite{
       display:flex;
-      justify-content:flex-end;
-      margin: 0 0 12px;
+      justify-content:center;
+      margin: 0;
+    }
+    .home-discord-invite .discord-button{
+      padding: 14px 20px;
+      font-size: 13px;
+      letter-spacing: .1em;
+      border-radius: 18px;
+    }
+    .home-discord-invite .discord-button .btn-icon{
+      width: 18px;
+      height: 18px;
     }
 
     .footer{
@@ -317,14 +444,14 @@
     }
 
     @media (max-width: 760px){
-      .container{ padding: 20px 12px 44px; }
+      .container{ padding: 14px 12px 44px; }
       .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
       .brand{ flex: 1; min-width: 0; }
       .brand > div{ min-width: 0; }
       .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
       .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
       .discord-button .btn-icon{ width: 14px; height: 14px; }
-      .home-discord-invite{ justify-content:center; }
+      .home-discord-invite .discord-button{ padding: 13px 18px; font-size: 12px; }
       .headline{ font-size: 18px; }
       .card{ padding: 18px 14px; border-radius: 18px; }
       .league-tabs{
@@ -353,6 +480,24 @@
       .archive-actions{
         padding-left: 12px;
         padding-right: 12px;
+      }
+      .player-search{
+        width:100%;
+        padding-left:12px;
+        padding-right:12px;
+      }
+      .player-search-results{
+        left:12px;
+        right:12px;
+      }
+      .player-search-copy{
+        align-items:flex-start;
+        flex-direction:column;
+        gap: 3px;
+      }
+      .player-search-display,
+      .player-search-username{
+        width:100%;
       }
       .archive-actions .btn{
         width: 100%;
@@ -384,7 +529,7 @@
       </div>
       <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
         <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
-        DISCORD
+        Join the Discord
       </a>
     </div>
   </div>
@@ -393,7 +538,7 @@
     <div class="home-discord-invite">
       <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
         <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
-        DISCORD
+        Join the Discord
       </a>
     </div>
 
@@ -446,7 +591,21 @@
       <div class="footer">NSS Golf Community Events</div>
     </div>
     <div class="card archive-card">
-      <h2 class="headline">Archives</h2>
+      <h2 class="headline">Records &amp; Data</h2>
+      <div class="player-search" id="playerSearch" role="search">
+        <input
+          class="player-search-input"
+          id="playerSearchInput"
+          type="search"
+          placeholder="Search players"
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Search players by display name or username"
+          aria-controls="playerSearchResults"
+          aria-expanded="false"
+        />
+        <div class="player-search-results" id="playerSearchResults" hidden></div>
+      </div>
       <span class="archive-actions">
         <a class="btn solid-teal" href="/records.html" aria-label="Go to NSS Golf Records">
           NSS Golf Records
@@ -455,9 +614,19 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+
+    const supabase = createBrowserSupabaseClient();
     const leagueTabs = Array.from(document.querySelectorAll(".league-tabs .tab-button[data-target]"));
     const leagueSections = Array.from(document.querySelectorAll("#happening-now-section, #upcoming-section, #archive-section"));
+    const playerSearchEl = document.getElementById("playerSearch");
+    const playerSearchInput = document.getElementById("playerSearchInput");
+    const playerSearchResults = document.getElementById("playerSearchResults");
+    const PLAYER_SEARCH_LIMIT = 8;
+    const MEMBER_PAGE_SIZE = 1000;
+    let memberSearchRows = [];
+    let memberSearchPromise = null;
 
     function setActiveLeagueTab(targetId){
       for(const section of leagueSections){
@@ -493,6 +662,176 @@
     }
 
     initLeagueTabs();
+
+    function normalizeSearchText(value){
+      return String(value || "").trim();
+    }
+
+    function normalizeSearchKey(value){
+      return normalizeSearchText(value).toLowerCase();
+    }
+
+    function avatarUrlForMember(member){
+      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
+    }
+
+    async function loadMemberSearchRows(){
+      if(memberSearchRows.length) return memberSearchRows;
+      if(memberSearchPromise) return memberSearchPromise;
+
+      memberSearchPromise = (async () => {
+        const rows = [];
+        for(let from = 0;; from += MEMBER_PAGE_SIZE){
+          const to = from + MEMBER_PAGE_SIZE - 1;
+          const { data, error } = await supabase
+            .from("discord_guild_members")
+            .select("discord_user_id,username,display_name,server_avatar_url,avatar_url")
+            .eq("is_current_member", true)
+            .range(from, to);
+
+          if(error) throw error;
+          rows.push(...(data || []));
+          if(!data || data.length < MEMBER_PAGE_SIZE) break;
+        }
+
+        memberSearchRows = rows
+          .filter(member => normalizeSearchText(member?.discord_user_id))
+          .map((member) => ({
+            ...member,
+            displaySearch: normalizeSearchKey(member.display_name),
+            usernameSearch: normalizeSearchKey(member.username),
+          }));
+        return memberSearchRows;
+      })().finally(() => {
+        memberSearchPromise = null;
+      });
+
+      return memberSearchPromise;
+    }
+
+    function scoreMemberSearchResult(member, query){
+      const display = member.displaySearch;
+      const username = member.usernameSearch;
+      if(!query) return 0;
+      if(display === query) return 120;
+      if(username === query) return 110;
+      if(display.startsWith(query)) return 95;
+      if(username.startsWith(query)) return 85;
+      if(display.includes(query)) return 65;
+      if(username.includes(query)) return 55;
+      return 0;
+    }
+
+    function hidePlayerSearchResults(){
+      playerSearchResults.hidden = true;
+      playerSearchInput.setAttribute("aria-expanded", "false");
+    }
+
+    function showPlayerSearchResults(){
+      playerSearchResults.hidden = false;
+      playerSearchInput.setAttribute("aria-expanded", "true");
+    }
+
+    function renderPlayerSearchResults(results, query){
+      playerSearchResults.innerHTML = "";
+
+      if(!query){
+        hidePlayerSearchResults();
+        return;
+      }
+
+      if(!results.length){
+        const empty = document.createElement("p");
+        empty.className = "player-search-empty";
+        empty.textContent = "No players found.";
+        playerSearchResults.appendChild(empty);
+        showPlayerSearchResults();
+        return;
+      }
+
+      for(const member of results){
+        const button = document.createElement("button");
+        button.className = "player-search-result";
+        button.type = "button";
+        button.dataset.playerId = member.discord_user_id;
+
+        const avatar = document.createElement("img");
+        avatar.className = "player-search-avatar";
+        avatar.src = avatarUrlForMember(member);
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.decoding = "async";
+        avatar.referrerPolicy = "no-referrer";
+
+        const copy = document.createElement("span");
+        copy.className = "player-search-copy";
+
+        const displayName = document.createElement("span");
+        displayName.className = "player-search-display";
+        displayName.textContent = normalizeSearchText(member.display_name) || normalizeSearchText(member.username) || member.discord_user_id;
+
+        const username = document.createElement("span");
+        username.className = "player-search-username";
+        username.textContent = normalizeSearchText(member.username) || member.discord_user_id;
+
+        copy.append(displayName, username);
+        button.append(avatar, copy);
+        playerSearchResults.appendChild(button);
+      }
+
+      showPlayerSearchResults();
+    }
+
+    async function updatePlayerSearch(){
+      const query = normalizeSearchKey(playerSearchInput.value);
+      if(!query){
+        hidePlayerSearchResults();
+        return;
+      }
+
+      try{
+        const rows = await loadMemberSearchRows();
+        const results = rows
+          .map(member => ({ member, score: scoreMemberSearchResult(member, query) }))
+          .filter(result => result.score > 0)
+          .sort((left, right) => {
+            if(right.score !== left.score) return right.score - left.score;
+            return normalizeSearchText(left.member.display_name || left.member.username)
+              .localeCompare(normalizeSearchText(right.member.display_name || right.member.username));
+          })
+          .slice(0, PLAYER_SEARCH_LIMIT)
+          .map(result => result.member);
+        renderPlayerSearchResults(results, query);
+      }catch(error){
+        console.error(error);
+        playerSearchResults.innerHTML = "";
+        const empty = document.createElement("p");
+        empty.className = "player-search-empty";
+        empty.textContent = "Could not load players.";
+        playerSearchResults.appendChild(empty);
+        showPlayerSearchResults();
+      }
+    }
+
+    playerSearchInput.addEventListener("focus", () => {
+      void loadMemberSearchRows();
+      void updatePlayerSearch();
+    });
+
+    playerSearchInput.addEventListener("input", () => {
+      void updatePlayerSearch();
+    });
+
+    playerSearchResults.addEventListener("click", (event) => {
+      const result = event.target.closest(".player-search-result[data-player-id]");
+      if(!result) return;
+      window.location.href = `/player.html?id=${encodeURIComponent(result.dataset.playerId)}`;
+    });
+
+    document.addEventListener("click", (event) => {
+      if(playerSearchEl.contains(event.target)) return;
+      hidePlayerSearchResults();
+    });
   </script>
   <script type="module" src="/site-topbar.js"></script>
 </body>

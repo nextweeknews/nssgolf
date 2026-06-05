@@ -168,6 +168,15 @@
       align-items:center;
       flex-wrap:wrap;
     }
+    .period-controls{
+      width:100%;
+      display:flex;
+      justify-content:flex-end;
+      margin: 0 0 12px;
+    }
+    .period-controls .header-controls{
+      justify-content:flex-end;
+    }
 
     .container{
       max-width:1100px;
@@ -1622,15 +1631,19 @@
       .container{ padding: 14px 12px 40px; }
       .topbar-inner{
         padding: 12px 12px;
-        flex-wrap: wrap;
-        align-items: flex-start;
+        flex-wrap: nowrap;
+        align-items: center;
       }
       .brand{
-        flex: 1 1 100%;
+        flex: 1;
         min-width: 0;
       }
       .brand > div{ min-width: 0; }
       .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
+      .period-controls{
+        justify-content:stretch;
+        margin-bottom: 12px;
+      }
       .header-controls{
         flex: 1 1 100%;
         width: 100%;
@@ -1758,7 +1771,11 @@
           </select>
         </div>
       </div>
+    </div>
+  </div>
 
+  <div class="container">
+    <div class="period-controls" aria-label="Pro League period controls">
       <div class="header-controls">
         <div class="select-wrap" aria-label="Season selector">
           <label class="select-label" for="seasonSelect">Season</label>
@@ -1771,9 +1788,7 @@
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="container">
     <div id="statusCard" class="card">
       <div class="status">Loading standings…</div>
     </div>
@@ -1878,7 +1893,7 @@
     //   { enabled:true, season:6, stage:2 }
     //   { enabled:true, season:6, stage:"championship" }
     //   { enabled:true, season:5, stage:null }
-    const MANUAL_INITIAL_PERIOD = { enabled: true, season: 7, stage: 1};
+    const MANUAL_INITIAL_PERIOD = { enabled: true, season: 7, stage: 2};
 
     // detection (future-proof ceiling)
     const MAX_SEASON_TO_CHECK = 7;
@@ -3359,7 +3374,12 @@
         DETECTED_CURRENT_STAGE = 1;
       }
 
-      const maxSeason = Math.max(DETECTED_CURRENT_SEASON, 5);
+      const manualSeason = MANUAL_INITIAL_PERIOD?.enabled ? Number(MANUAL_INITIAL_PERIOD.season) : NaN;
+      const maxSeason = Math.max(
+        DETECTED_CURRENT_SEASON,
+        5,
+        Number.isFinite(manualSeason) ? manualSeason : 0
+      );
       AVAILABLE_SEASONS = [];
       for (let i=1; i<=maxSeason; i++) AVAILABLE_SEASONS.push(i);
 

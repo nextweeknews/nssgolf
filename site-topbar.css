@@ -64,15 +64,15 @@
 
 .topbar .brand > div:not(.home-badge)::after{
   content: "";
-  width: .52em;
-  height: .52em;
-  border-right: .16em solid currentColor;
-  border-bottom: .16em solid currentColor;
+  width: .34em;
+  height: .34em;
+  border-right: .11em solid currentColor;
+  border-bottom: .11em solid currentColor;
   color: rgba(233,238,248,0.78);
   position: absolute;
-  right: 1px;
+  right: 3px;
   top: 50%;
-  transform: translateY(-58%) rotate(45deg);
+  transform: translateY(-62%) rotate(45deg);
   pointer-events: none;
 }
 
