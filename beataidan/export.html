@@ -489,8 +489,12 @@
 <body>
   <div class="topbar">
     <div class="topbar-inner">
-      <div>
-                <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+      <div class="brand">
+        <a class="home-btn" href="/index.html" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </a>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
             <option value="/index.html">Home</option>
             <option value="/worldopen/index.html">World Open</option>
             <option value="/proleague/index.html">Shotgun Pro League</option>
@@ -498,6 +502,7 @@
             <option value="/lightningcup/index.html">Lightning Cup</option>
             <option value="/beataidan/index.html" selected>Beat Aidan</option>
           </select>
+        </div>
       </div>
       <div class="controls">
         <select id="weekSelect" class="select" aria-label="Select week"></select>

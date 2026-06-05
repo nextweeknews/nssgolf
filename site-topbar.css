@@ -1,5 +1,37 @@
 .topbar .brand{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
+}
+
+.topbar .home-btn,
+.topbar .home-badge{
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.topbar .home-btn{
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.topbar .home-btn:hover{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.topbar .home-btn img,
+.topbar .home-badge img{
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 .topbar .discord-button{
@@ -55,24 +87,24 @@
   white-space: nowrap;
 }
 
-.topbar .brand > div:not(.home-badge){
+.topbar .brand > div:has(.page-nav-select){
   position: relative;
   display: inline-flex;
   align-items: center;
   min-width: 0;
 }
 
-.topbar .brand > div:not(.home-badge)::after{
+.topbar .brand > div:has(.page-nav-select)::after{
   content: "";
-  width: .34em;
-  height: .34em;
-  border-right: .11em solid currentColor;
-  border-bottom: .11em solid currentColor;
+  width: 4px;
+  height: 4px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
   color: rgba(233,238,248,0.78);
   position: absolute;
-  right: 3px;
+  right: 4px;
   top: 50%;
-  transform: translateY(-62%) rotate(45deg);
+  transform: translateY(-58%) rotate(45deg);
   pointer-events: none;
 }
 
@@ -87,7 +119,7 @@
   border-radius: 0;
   background: transparent;
   color: rgba(233,238,248,0.92);
-  padding: 6px 18px 6px 0;
+  padding: 6px 14px 6px 0;
   font-size: 12px;
   font-weight: 950;
   letter-spacing: .10em;
