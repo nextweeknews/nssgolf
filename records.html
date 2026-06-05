@@ -195,6 +195,9 @@
     .record-section-toggle:hover{
       background: rgba(255,255,255,0.05);
     }
+    .record-section-toggle:disabled{
+      opacity: 1;
+    }
     .record-section-toggle:focus-visible{
       outline: 2px solid rgba(125,211,252,.6);
       outline-offset: -2px;
@@ -350,6 +353,23 @@
       font-weight: 700;
     }
 
+    @media (min-width: 761px){
+      .record-section-toggle{
+        cursor: default;
+        pointer-events: none;
+        padding-right: 14px;
+      }
+      .record-section-toggle:hover{
+        background: transparent;
+      }
+      .record-chevron{
+        display:none;
+      }
+      .record-section-body[hidden]{
+        display:block;
+      }
+    }
+
     @media (max-width: 900px){
       .records-grid{
         grid-template-columns: 1fr;
@@ -442,6 +462,7 @@
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("records-status");
     const gridEl = document.getElementById("records-grid");
+    const desktopRecordsQuery = window.matchMedia("(min-width: 761px)");
 
     function cleanRoleName(name){
       const clean = String(name || "")
@@ -483,6 +504,26 @@
       return badge;
     }
 
+    function syncRecordsLayout(){
+      const isDesktop = desktopRecordsQuery.matches;
+      gridEl.querySelectorAll(".record-section-toggle").forEach((toggle) => {
+        const bodyId = toggle.getAttribute("aria-controls");
+        const body = bodyId ? document.getElementById(bodyId) : null;
+        if(!body) return;
+
+        if(isDesktop){
+          toggle.setAttribute("aria-expanded", "true");
+          toggle.disabled = true;
+          body.hidden = false;
+          return;
+        }
+
+        toggle.disabled = false;
+        toggle.setAttribute("aria-expanded", "false");
+        body.hidden = true;
+      });
+    }
+
     function renderRecords(groups, rolesById, linksByRoleId, membersById){
       gridEl.innerHTML = "";
       const fragment = document.createDocumentFragment();
@@ -514,6 +555,7 @@
         body.id = bodyId;
         body.hidden = true;
         toggle.addEventListener("click", () => {
+          if(desktopRecordsQuery.matches) return;
           const isExpanded = toggle.getAttribute("aria-expanded") === "true";
           toggle.setAttribute("aria-expanded", isExpanded ? "false" : "true");
           body.hidden = isExpanded;
@@ -586,7 +628,10 @@
       }
 
       gridEl.appendChild(fragment);
+      syncRecordsLayout();
     }
+
+    desktopRecordsQuery.addEventListener("change", syncRecordsLayout);
 
     async function loadRecords(){
       const roleIds = RECORD_GROUPS.flatMap(group => group.roleIds);
