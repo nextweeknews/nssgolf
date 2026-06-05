@@ -537,6 +537,20 @@ function renderProfile(member, trackedRoles, rankedRows = []){
     }
 
     recordsSection.appendChild(list);
+
+    if(bestRoles.some(role => isRecordRole(role.name))){
+      const recordKey = document.createElement("p");
+      recordKey.className = "profile-record-key";
+
+      const star = document.createElement("span");
+      star.className = "profile-record-key-star";
+      star.setAttribute("aria-label", "Gold star");
+      star.textContent = "★";
+
+      recordKey.append(star, document.createTextNode(" = RECORD"));
+      recordsSection.appendChild(recordKey);
+    }
+
     card.appendChild(recordsSection);
   }
 
