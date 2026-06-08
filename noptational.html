@@ -220,42 +220,63 @@
       display:grid;
       gap:0;
       min-width:0;
+      width:100%;
     }
     .nopt-tabs-list{
-      display:flex;
-      gap:8px;
-      padding:12px 16px;
+      width:100%;
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:0;
+      padding:0;
+      border:0;
       border-bottom:1px solid rgba(148,163,184,0.16);
-      background:rgba(255,255,255,0.025);
+      border-radius:0;
+      background:transparent;
     }
     .nopt-tabs-trigger{
+      position:relative;
       appearance:none;
-      border:1px solid rgba(148,163,184,0.24);
-      background:rgba(255,255,255,0.055);
-      color:rgba(233,238,248,0.78);
-      min-height:36px;
-      padding:0 14px;
-      border-radius:10px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color:rgba(233,238,248,0.86);
+      min-height:38px;
+      padding:6px 10px 7px;
+      text-align:center;
+      line-height:1.2;
       font:inherit;
       font-size:11px;
-      font-weight:950;
-      letter-spacing:.10em;
+      font-weight:850;
+      letter-spacing:.06em;
       text-transform:uppercase;
       cursor:pointer;
+      transition:background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+    .nopt-tabs-trigger::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:2px;
+      border-radius:0;
+      background:transparent;
+      transition:background-color 140ms ease;
     }
     .nopt-tabs-trigger:hover{
-      border-color:rgba(165,180,252,0.95);
-      background:rgba(129,140,248,0.12);
-      color:#a5b4fc;
+      background:rgba(148,163,184,0.10);
+      color:rgba(255,255,255,0.95);
     }
     .nopt-tabs-trigger[data-state="active"]{
-      border-color:rgba(129,140,248,0.9);
-      background:rgba(129,140,248,0.20);
-      color:#fff;
-      box-shadow:
-        inset 0 -2px 0 #818cf8,
-        0 0 12px rgba(129,140,248,0.45),
-        0 0 24px rgba(99,102,241,0.22);
+      background:rgba(129,140,248,0.09);
+      color:#f4faff;
+    }
+    .nopt-tabs-trigger[data-state="active"]::after{
+      background:rgba(129,140,248,0.78);
+    }
+    .nopt-tabs-trigger:focus-visible{
+      outline:none;
+      box-shadow:inset 0 0 0 1px rgba(129,140,248,0.42);
     }
     .nopt-tabs-content:focus-visible{
       outline:2px solid rgba(129,140,248,0.7);
@@ -616,10 +637,11 @@
       .format-grid{ gap:8px; }
       .format-tile{ padding:10px; border-radius:10px; }
       .format-course{ font-size:14px; }
-      .nopt-tabs-list{ padding:10px 12px; }
       .nopt-tabs-trigger{
-        flex:1 1 0;
-        padding:0 10px;
+        min-height:40px;
+        padding:5px 4px 7px;
+        font-size:9px;
+        line-height:1.05;
       }
       .format-content{ padding:12px; }
       .format-title{ font-size:18px; }
@@ -1015,7 +1037,7 @@
       const avatarUrl = avatarUrlForMember(member);
       const avatarAlt = member ? memberDisplayName(member, player.display) : "";
       const copyHtml = `
-        <img class="player-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(avatarAlt)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+        <img class="player-avatar" src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(avatarAlt)}" width="34" height="34" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />
         <div class="player-copy">
           <div class="player-name">${escapeHtml(player.display)}</div>
           ${username ? `<div class="player-user">${escapeHtml(username)}</div>` : ""}

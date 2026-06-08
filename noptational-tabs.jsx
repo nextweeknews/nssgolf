@@ -112,14 +112,14 @@ function NoptationalTabs(){
         <Tabs.Trigger className="nopt-tabs-trigger" value="leaderboard">Leaderboard</Tabs.Trigger>
         <Tabs.Trigger className="nopt-tabs-trigger" value="format">Format</Tabs.Trigger>
       </Tabs.List>
-      <Tabs.Content className="nopt-tabs-content" value="leaderboard">
+      <Tabs.Content className="nopt-tabs-content" value="leaderboard" forceMount>
         <div id="leaderboardShell" className="leaderboard-shell">
           <div className="empty-state">
             <p className="status">Loading leaderboard...</p>
           </div>
         </div>
       </Tabs.Content>
-      <Tabs.Content className="nopt-tabs-content" value="format">
+      <Tabs.Content className="nopt-tabs-content" value="format" forceMount>
         <FormatPanel />
       </Tabs.Content>
     </Tabs.Root>
