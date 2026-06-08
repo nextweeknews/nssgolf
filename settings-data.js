@@ -72,6 +72,38 @@ export function getSupportedTimeZones(){
   ];
 }
 
+const COMMON_TIME_ZONE_NAMES = {
+  "America/New_York": "US Eastern Time",
+  "America/Detroit": "US Eastern Time",
+  "America/Kentucky/Louisville": "US Eastern Time",
+  "America/Kentucky/Monticello": "US Eastern Time",
+  "America/Indiana/Indianapolis": "US Eastern Time",
+  "America/Indiana/Vincennes": "US Eastern Time",
+  "America/Indiana/Winamac": "US Eastern Time",
+  "America/Indiana/Marengo": "US Eastern Time",
+  "America/Indiana/Petersburg": "US Eastern Time",
+  "America/Indiana/Vevay": "US Eastern Time",
+  "America/Chicago": "US Central Time",
+  "America/Indiana/Tell_City": "US Central Time",
+  "America/Indiana/Knox": "US Central Time",
+  "America/Menominee": "US Central Time",
+  "America/North_Dakota/Center": "US Central Time",
+  "America/North_Dakota/New_Salem": "US Central Time",
+  "America/North_Dakota/Beulah": "US Central Time",
+  "America/Denver": "US Mountain Time",
+  "America/Boise": "US Mountain Time",
+  "America/Phoenix": "US Mountain Time",
+  "America/Los_Angeles": "US Pacific Time",
+  "America/Anchorage": "US Alaska Time",
+  "America/Juneau": "US Alaska Time",
+  "America/Sitka": "US Alaska Time",
+  "America/Metlakatla": "US Alaska Time",
+  "America/Yakutat": "US Alaska Time",
+  "America/Nome": "US Alaska Time",
+  "America/Adak": "Hawaii-Aleutian Time",
+  "Pacific/Honolulu": "Hawaii-Aleutian Time",
+};
+
 export function timeZoneOffsetLabel(timeZone, date = new Date()){
   try{
     const parts = new Intl.DateTimeFormat("en-US", {
@@ -86,9 +118,49 @@ export function timeZoneOffsetLabel(timeZone, date = new Date()){
   }
 }
 
+export function timeZoneOffsetMinutes(timeZone, date = new Date()){
+  try{
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      timeZoneName: "shortOffset",
+      hour: "2-digit",
+    }).formatToParts(date);
+    const value = parts.find((part) => part.type === "timeZoneName")?.value || "GMT";
+    if(value === "GMT" || value === "UTC") return 0;
+
+    const match = value.match(/(?:GMT|UTC)([+-])(\d{1,2})(?::(\d{2}))?/);
+    if(!match) return 0;
+
+    const sign = match[1] === "-" ? -1 : 1;
+    const hours = Number(match[2]);
+    const minutes = Number(match[3] || 0);
+    return sign * ((hours * 60) + minutes);
+  }catch{
+    return 0;
+  }
+}
+
 export function helperCityForTimeZone(timeZone){
   const city = String(timeZone || "").split("/").pop() || "";
   return city.replace(/_/g, " ");
+}
+
+export function commonTimeZoneNameFor(timeZone){
+  const cleanTimeZone = String(timeZone || "").trim();
+  if(!cleanTimeZone) return "";
+  if(COMMON_TIME_ZONE_NAMES[cleanTimeZone]) return COMMON_TIME_ZONE_NAMES[cleanTimeZone];
+
+  try{
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: cleanTimeZone,
+      timeZoneName: "longGeneric",
+      hour: "2-digit",
+    }).formatToParts(new Date());
+    const name = parts.find((part) => part.type === "timeZoneName")?.value || "";
+    if(name && !/Unknown/i.test(name)) return name;
+  }catch{}
+
+  return helperCityForTimeZone(cleanTimeZone);
 }
 
 export function timeZoneLabelFor(timeZone){
@@ -98,8 +170,16 @@ export function timeZoneLabelFor(timeZone){
 }
 
 export function buildTimeZoneOptions(){
-  return getSupportedTimeZones().map((timeZone) => ({
-    timeZone,
-    label: timeZoneLabelFor(timeZone),
-  }));
+  return getSupportedTimeZones()
+    .map((timeZone) => ({
+      timeZone,
+      label: timeZoneLabelFor(timeZone),
+      offsetMinutes: timeZoneOffsetMinutes(timeZone),
+    }))
+    .sort((left, right) => {
+      if(left.offsetMinutes !== right.offsetMinutes){
+        return left.offsetMinutes - right.offsetMinutes;
+      }
+      return left.label.localeCompare(right.label, undefined, { sensitivity: "base" });
+    });
 }

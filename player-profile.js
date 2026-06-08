@@ -8,7 +8,7 @@ import {
   SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
   SUPER_LEAGUE_SEASON,
 } from "/ranked-league-config.js";
-import { countryLabelFor, timeZoneLabelFor } from "/settings-data.js";
+import { commonTimeZoneNameFor, countryLabelFor } from "/settings-data.js";
 
 const RECORD_GROUPS = [
   {
@@ -198,8 +198,8 @@ function playerSettingsLine(settings){
     .map(countryLabelFor)
     .filter(Boolean)
     .join(" / ");
-  const timeZone = timeZoneLabelFor(settings.time_zone);
-  return [countries, timeZone].filter(Boolean).join(" | ");
+  const timeZone = commonTimeZoneNameFor(settings.time_zone);
+  return [countries, timeZone].filter(Boolean).join(" · ");
 }
 
 function getUnofficialRankItems(settings){
