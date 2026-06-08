@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020B18" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>Noptational</title>
+
+  <style>
+    :root{
+      --bg1:#071b34;
+      --bg2:#04142e;
+      --bg3:#020b18;
+      --card-bg:rgba(15,23,42,1);
+      --card-shadow:0 32px 32px rgba(0,0,0,0.65);
+      --header-bg:rgba(148,163,184,0.12);
+      --row-bg:rgba(255,255,255,0.06);
+      --row-bg-2:rgba(255,255,255,0.045);
+      --text:#e9eef8;
+      --title:#c7d7ff;
+      --muted:#9ca3c7;
+      --border-lite:rgba(148,163,184,0.20);
+      --border-strong:rgba(148,163,184,0.38);
+      --accent:#7dd3fc;
+      --accent-2:#2dd4bf;
+      --warn:#facc15;
+      --danger:#fb7185;
+      --rank-col:64px;
+      --name-col:minmax(190px, 1fr);
+      --total-col:86px;
+      --score-cell:78px;
+    }
+
+    *{ box-sizing:border-box; }
+    [hidden]{ display:none !important; }
+    html{ background-color:var(--bg3); }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:var(--text);
+      background-color:var(--bg3);
+      background-image:linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:rgba(3,18,42,.70);
+      backdrop-filter:blur(10px);
+    }
+    .topbar-inner{
+      max-width:1220px;
+      margin:0 auto;
+      padding:14px 18px;
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{ display:flex; gap:12px; align-items:center; min-width:0; }
+    .home-btn{
+      width:40px;
+      height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background:rgba(255,255,255,.05);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      text-decoration:none;
+      cursor:pointer;
+      flex:0 0 auto;
+    }
+    .home-btn:hover{
+      background:rgba(255,255,255,.08);
+      border-color:rgba(255,255,255,.25);
+    }
+    .home-btn img{
+      width:70%;
+      height:70%;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+    }
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.65);
+      font-weight:900;
+    }
+    .page-nav-select{
+      background:rgba(2,6,23,.85);
+      color:inherit;
+      border:1px solid rgba(125,211,252,.35);
+      border-radius:10px;
+      padding:6px 32px 6px 10px;
+      font:inherit;
+      letter-spacing:inherit;
+      text-transform:uppercase;
+      max-width:min(56vw, 420px);
+      cursor:pointer;
+    }
+    .page-nav-select:focus-visible{
+      outline:2px solid rgba(125,211,252,.6);
+      outline-offset:2px;
+    }
+
+    .container{
+      max-width:1220px;
+      margin:0 auto;
+      padding:22px 18px 52px;
+      display:grid;
+      gap:14px;
+    }
+    .card{
+      background:var(--card-bg);
+      border-radius:20px;
+      padding:16px;
+      box-shadow:var(--card-shadow);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .card-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .headline{
+      margin:0;
+      color:var(--title);
+      font-size:26px;
+      font-weight:950;
+      letter-spacing:.045em;
+      text-transform:uppercase;
+      line-height:1.05;
+    }
+    .subhead{
+      margin:6px 0 0;
+      color:rgba(233,238,248,0.76);
+      font-size:13px;
+      line-height:1.45;
+      font-weight:700;
+    }
+    .status{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+      text-align:center;
+    }
+    .status.error{ color:rgba(251,113,133,0.96); }
+
+    .format-grid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+    .format-tile{
+      min-width:0;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.22);
+      background:rgba(255,255,255,0.045);
+      display:grid;
+      gap:8px;
+    }
+    .format-week{
+      color:rgba(233,238,248,0.62);
+      font-size:10px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      font-weight:950;
+    }
+    .format-course{
+      color:#fff;
+      font-size:16px;
+      font-weight:950;
+      line-height:1.05;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .format-meta{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:24px;
+      padding:0 8px;
+      border-radius:999px;
+      border:1px solid rgba(125,211,252,0.30);
+      background:rgba(125,211,252,0.09);
+      color:rgba(224,242,254,0.94);
+      font-size:10px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:900;
+      white-space:nowrap;
+    }
+    .pill.cutline{
+      border-color:rgba(250,204,21,0.36);
+      background:rgba(250,204,21,0.10);
+      color:rgba(254,249,195,0.96);
+    }
+
+    .leaderboard-card{ padding:0; overflow:hidden; }
+    .leaderboard-top{
+      padding:16px 16px 12px;
+      border-bottom:1px solid rgba(148,163,184,0.16);
+    }
+    .leaderboard-shell{ display:grid; gap:0; }
+    .leaderboard-row{
+      display:grid;
+      grid-template-columns:var(--rank-col) var(--name-col) var(--total-col) minmax(0, 1.3fr);
+      min-width:0;
+      align-items:stretch;
+      border-bottom:1px solid rgba(148,163,184,0.12);
+      background:var(--row-bg);
+    }
+    .leaderboard-row:nth-child(even){ background:var(--row-bg-2); }
+    .leaderboard-row.header{
+      min-height:42px;
+      background:var(--header-bg);
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-weight:950;
+    }
+    .leaderboard-row.header .static-cell,
+    .leaderboard-row.header .score-cell{
+      min-height:42px;
+      color:inherit;
+      font-size:inherit;
+      letter-spacing:inherit;
+      text-transform:inherit;
+    }
+    .leaderboard-row.is-cut{
+      opacity:.82;
+      background:rgba(255,255,255,0.035);
+    }
+    .static-cell{
+      min-width:0;
+      min-height:58px;
+      padding:8px 10px;
+      display:flex;
+      align-items:center;
+      border-right:1px solid rgba(148,163,184,0.10);
+    }
+    .rank-cell,
+    .total-cell{
+      justify-content:center;
+      text-align:center;
+      font-variant-numeric:tabular-nums;
+      font-weight:950;
+    }
+    .rank-cell{
+      color:#fff;
+      font-size:18px;
+    }
+    .rank-cell.gold{ color:#ffd700; }
+    .rank-cell.silver{ color:#c0c0c0; }
+    .rank-cell.bronze{ color:#cd7f32; }
+    .rank-cell.cut-rank{
+      color:rgba(251,113,133,0.92);
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .name-cell{
+      justify-content:flex-start;
+      gap:8px;
+    }
+    .player-copy{
+      min-width:0;
+      display:grid;
+      gap:3px;
+    }
+    .player-name{
+      min-width:0;
+      color:#fff;
+      font-size:15px;
+      font-weight:950;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .player-user{
+      min-width:0;
+      color:rgba(156,163,199,0.74);
+      font-size:11px;
+      font-weight:750;
+      line-height:1.1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .total-cell{
+      color:rgba(233,238,248,0.98);
+      font-size:18px;
+    }
+    .score-scroll{
+      min-width:0;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+    }
+    .score-track{
+      width:max-content;
+      min-width:100%;
+      display:grid;
+      grid-template-columns:repeat(9, var(--score-cell));
+    }
+    .score-cell{
+      min-height:58px;
+      padding:6px 7px;
+      border-right:1px solid rgba(148,163,184,0.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:rgba(233,238,248,0.82);
+      font-size:16px;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+      position:relative;
+    }
+    .score-cell.is-counted{
+      color:#03131f;
+      background:linear-gradient(180deg, rgba(125,211,252,0.96), rgba(45,212,191,0.94));
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,0.26);
+      font-weight:950;
+    }
+    .score-cell.is-counted.is-miss{
+      color:rgba(254,205,211,0.98);
+      background:rgba(251,113,133,0.12);
+      box-shadow:inset 0 0 0 1px rgba(251,113,133,0.32);
+    }
+    .score-cell.is-miss{
+      color:rgba(254,205,211,0.94);
+    }
+    .score-cell .round-label{
+      display:none;
+      color:rgba(156,163,199,0.84);
+      font-size:9px;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-weight:900;
+      line-height:1;
+    }
+    .score-cell.is-counted .round-label{ color:rgba(3,19,31,0.70); }
+    .cut-section{
+      border-top:2px solid var(--border-strong);
+      margin-top:-1px;
+    }
+    .cut-heading{
+      min-height:38px;
+      padding:0 16px;
+      display:flex;
+      align-items:center;
+      background:rgba(251,113,133,0.08);
+      border-bottom:1px solid rgba(251,113,133,0.18);
+      color:rgba(254,205,211,0.94);
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-weight:950;
+    }
+    .empty-state{
+      padding:20px 16px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+      text-align:center;
+      background:rgba(255,255,255,0.035);
+    }
+    .footer{
+      margin-top:4px;
+      text-align:center;
+      font-size:12px;
+      color:rgba(233,238,248,0.55);
+    }
+
+    @media (max-width:900px){
+      .format-grid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .leaderboard-row{
+        grid-template-columns:56px minmax(150px, 1fr) 74px minmax(0, 1.1fr);
+      }
+      :root{ --score-cell:72px; }
+    }
+
+    @media (max-width:680px){
+      .topbar-inner{
+        padding:12px;
+        flex-wrap:nowrap;
+      }
+      .brand{ flex:1; }
+      .brand > div{ min-width:0; }
+      .page-nav-select{
+        width:min(100%, 420px);
+        max-width:100%;
+      }
+      .container{ padding:14px 12px 42px; }
+      .card{ padding:14px 12px; border-radius:18px; }
+      .headline{ font-size:21px; }
+      .format-grid{ gap:8px; }
+      .format-tile{ padding:10px; border-radius:10px; }
+      .format-course{ font-size:14px; }
+      .leaderboard-card{ padding:0; }
+      .leaderboard-top{ padding:14px 12px 10px; }
+      .leaderboard-row{
+        grid-template-columns:46px minmax(0, 1fr) 64px;
+        align-items:start;
+      }
+      .leaderboard-row.header{ min-height:unset; }
+      .leaderboard-row.header .scores-head{ display:none; }
+      .static-cell{
+        min-height:48px;
+        padding:7px 8px;
+      }
+      .rank-cell{ font-size:16px; }
+      .rank-cell.cut-rank{ font-size:10px; }
+      .player-name{ font-size:14px; }
+      .player-user{ font-size:10px; }
+      .total-cell{ font-size:16px; }
+      .score-scroll{
+        grid-column:1 / -1;
+        border-top:1px solid rgba(148,163,184,0.10);
+      }
+      .score-track{
+        grid-template-columns:repeat(9, 76px);
+      }
+      .score-cell{
+        min-height:48px;
+        flex-direction:column;
+        gap:4px;
+        font-size:15px;
+      }
+      .score-cell .round-label{ display:block; }
+      .cut-heading{
+        min-height:34px;
+        padding:0 12px;
+        font-size:11px;
+      }
+    }
+
+    @media (max-width:420px){
+      .format-grid{ grid-template-columns:1fr; }
+      .headline{ font-size:19px; }
+      .subhead{ font-size:12px; }
+      .score-track{ grid-template-columns:repeat(9, 72px); }
+    }
+  </style>
+  <link rel="stylesheet" href="/site-topbar.css" />
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="/index.html" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </a>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+            <option value="/index.html">Home</option>
+            <option value="/noptational.html" selected>Noptational</option>
+            <option value="/worldopen/index.html">World Open</option>
+            <option value="/proleague/index.html">Shotgun Pro League</option>
+            <option value="/superleague/index.html">Super League</option>
+            <option value="/lightningcup/index.html">Lightning Cup</option>
+            <option value="/beataidan/index.html">Beat Aidan</option>
+            <option value="/records.html">Records</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="container">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h1 class="headline">Noptational</h1>
+          <p class="subhead">Four weeks, four courses. Every round counts toward the total, and one round each week must meet the course minimum to advance.</p>
+        </div>
+      </div>
+
+      <div class="format-grid" aria-label="Tournament format">
+        <div class="format-tile">
+          <div class="format-week">Week 1</div>
+          <div class="format-course">Classic</div>
+          <div class="format-meta">
+            <span class="pill">2 scores</span>
+            <span class="pill cutline">min -12</span>
+          </div>
+        </div>
+        <div class="format-tile">
+          <div class="format-week">Week 2</div>
+          <div class="format-course">Resort</div>
+          <div class="format-meta">
+            <span class="pill">2 scores</span>
+            <span class="pill cutline">min -10</span>
+          </div>
+        </div>
+        <div class="format-tile">
+          <div class="format-week">Week 3</div>
+          <div class="format-course">Specials</div>
+          <div class="format-meta">
+            <span class="pill">3 scores</span>
+            <span class="pill cutline">min -3</span>
+          </div>
+        </div>
+        <div class="format-tile">
+          <div class="format-week">Week 4</div>
+          <div class="format-course">18 Holes</div>
+          <div class="format-meta">
+            <span class="pill">2 scores</span>
+            <span class="pill cutline">min -22</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="statusCard" class="card">
+      <p id="statusText" class="status">Loading leaderboard...</p>
+    </section>
+
+    <section id="leaderboardCard" class="card leaderboard-card" hidden>
+      <div class="leaderboard-top">
+        <div class="card-head">
+          <div>
+            <h2 class="headline">Leaderboard</h2>
+            <p class="subhead" id="leaderboardMeta">Scores refresh every 60 seconds.</p>
+          </div>
+        </div>
+      </div>
+      <div id="leaderboardShell" class="leaderboard-shell"></div>
+    </section>
+
+    <div class="footer">NSS Golf Noptational</div>
+  </main>
+
+  <script>
+    const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
+    const SHEET_NAME = "Round Scores (2026)";
+    const SHEET_RANGE = `'${SHEET_NAME}'!A1:J250`;
+    const REFRESH_MS = 60000;
+
+    const COURSES = [
+      { key:"classic", name:"Classic", minimum:-12, columns:[1, 2] },
+      { key:"resort", name:"Resort", minimum:-10, columns:[3, 4] },
+      { key:"specials", name:"Specials", minimum:-3, columns:[5, 6, 7] },
+      { key:"eighteen", name:"18 Holes", minimum:-22, columns:[8, 9] },
+    ];
+
+    const SCORE_COLUMNS = [
+      { course:"classic", label:"C1", title:"Classic R1", column:1 },
+      { course:"classic", label:"C2", title:"Classic R2", column:2 },
+      { course:"resort", label:"R1", title:"Resort R1", column:3 },
+      { course:"resort", label:"R2", title:"Resort R2", column:4 },
+      { course:"specials", label:"S1", title:"Specials R1", column:5 },
+      { course:"specials", label:"S2", title:"Specials R2", column:6 },
+      { course:"specials", label:"S3", title:"Specials R3", column:7 },
+      { course:"eighteen", label:"18-1", title:"18 Holes R1", column:8 },
+      { course:"eighteen", label:"18-2", title:"18 Holes R2", column:9 },
+    ];
+
+    const statusCard = document.getElementById("statusCard");
+    const statusText = document.getElementById("statusText");
+    const leaderboardCard = document.getElementById("leaderboardCard");
+    const leaderboardShell = document.getElementById("leaderboardShell");
+    const leaderboardMeta = document.getElementById("leaderboardMeta");
+
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(resp.error){
+        throw new Error(resp.error.message || "Google Sheets request failed.");
+      }
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
+    }
+
+    async function readWorkerResponse(response){
+      const text = await response.text();
+      let payload = null;
+      try{
+        payload = text ? JSON.parse(text) : null;
+      }catch(e){
+        if(!response.ok) throw new Error(`Worker request failed (${response.status}).`);
+        throw new Error("Worker returned an unreadable response.");
+      }
+
+      if(!response.ok){
+        const message = payload?.error?.message || payload?.message || text;
+        throw new Error(`Worker request failed (${response.status}). ${message}`.trim());
+      }
+      return normalizeValues(payload);
+    }
+
+    async function fetchRange(range){
+      const payload = { sheetId:SHEET_ID, range };
+
+      try{
+        const response = await fetch(WORKER_URL, {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify(payload),
+        });
+        return await readWorkerResponse(response);
+      }catch(e){
+        if(e?.message && !/Failed to fetch|NetworkError|Load failed/i.test(e.message)){
+          throw e;
+        }
+      }
+
+      const url = new URL(WORKER_URL);
+      url.searchParams.set("sheetId", SHEET_ID);
+      url.searchParams.set("range", range);
+      return readWorkerResponse(await fetch(url.toString()));
+    }
+
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function parseScore(value){
+      const raw = String(value ?? "").trim();
+      if(!raw) return null;
+      if(/^e$/i.test(raw)) return 0;
+      const cleaned = raw.replace(/[^\d.+-]/g, "");
+      if(!cleaned || cleaned === "+" || cleaned === "-") return null;
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function formatScore(value){
+      if(value === null || value === undefined || value === "") return "-";
+      const n = typeof value === "number" ? value : parseScore(value);
+      if(n === null) return String(value);
+      if(n === 0 || Object.is(n, -0)) return "E";
+      return n > 0 ? `+${n}` : String(n);
+    }
+
+    function getDisplayParts(rawName){
+      const lines = String(rawName ?? "")
+        .split(/\r?\n/)
+        .map(part => part.trim())
+        .filter(Boolean);
+      const display = lines[0] || "";
+      const username = lines[1] || "";
+      return { display, username };
+    }
+
+    function scoreForCourse(row, course){
+      const attempts = course.columns.map((column) => ({
+        column,
+        value:row[column] ?? "",
+        score:parseScore(row[column]),
+      }));
+      const numeric = attempts.filter(attempt => attempt.score !== null);
+      if(!numeric.length){
+        return { attempts, best:null, qualifyingColumn:null, roundTotal:0, roundCount:0, hasScore:false, madeCut:null };
+      }
+      const best = Math.min(...numeric.map(attempt => attempt.score));
+      const qualifyingColumn = numeric.find(attempt => attempt.score === best)?.column ?? null;
+      return {
+        attempts,
+        best,
+        qualifyingColumn,
+        roundTotal:numeric.reduce((sum, attempt) => sum + attempt.score, 0),
+        roundCount:numeric.length,
+        hasScore:true,
+        madeCut:best <= course.minimum,
+      };
+    }
+
+    function buildPlayers(values){
+      const dataRows = (values || []).slice(1);
+      return dataRows.map((row, index) => {
+        const { display, username } = getDisplayParts(row?.[0]);
+        if(!display) return null;
+
+        const courseResults = {};
+        let cutCourse = null;
+        let total = 0;
+        let countedCount = 0;
+
+        COURSES.forEach((course) => {
+          const result = scoreForCourse(row, course);
+          courseResults[course.key] = result;
+
+          total += result.roundTotal;
+          countedCount += result.roundCount;
+
+          if(!cutCourse && result.hasScore){
+            if(!result.madeCut){
+              cutCourse = course;
+            }
+          }
+        });
+
+        return {
+          id:`player-${index}`,
+          display,
+          username,
+          row,
+          courseResults,
+          cutCourse,
+          total,
+          countedCount,
+          rank:null,
+        };
+      }).filter(Boolean);
+    }
+
+    function comparePlayers(a, b){
+      if(a.total !== b.total) return a.total - b.total;
+      if(a.countedCount !== b.countedCount) return b.countedCount - a.countedCount;
+      return a.display.localeCompare(b.display, undefined, { sensitivity:"base" });
+    }
+
+    function rankContenders(players){
+      const sorted = [...players].sort(comparePlayers);
+      let previousTotal = null;
+      let previousRank = 0;
+      sorted.forEach((player, index) => {
+        if(index === 0 || player.total !== previousTotal){
+          previousRank = index + 1;
+          previousTotal = player.total;
+        }
+        player.rank = previousRank;
+      });
+      return sorted;
+    }
+
+    function rankClass(rank){
+      return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+    }
+
+    function renderScoreCells(player){
+      return SCORE_COLUMNS.map((scoreColumn) => {
+        const course = player.courseResults[scoreColumn.course];
+        const value = player.row[scoreColumn.column] ?? "";
+        const parsed = parseScore(value);
+        const isCounted = course?.qualifyingColumn === scoreColumn.column;
+        const isMiss = parsed !== null && course?.hasScore && !course.madeCut;
+        const classes = ["score-cell"];
+        if(isCounted) classes.push("is-counted");
+        if(isMiss) classes.push("is-miss");
+        return `
+          <div class="${classes.join(" ")}" title="${escapeHtml(scoreColumn.title)}">
+            <span class="round-label">${escapeHtml(scoreColumn.label)}</span>
+            <span>${escapeHtml(formatScore(value))}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderPlayerRow(player, isCut = false){
+      const rankContent = isCut ? "Cut" : ordinalRank(player.rank);
+      const total = player.countedCount ? formatScore(player.total) : "-";
+      const username = player.username ? `@${player.username.replace(/^@/, "")}` : "";
+      return `
+        <div class="leaderboard-row ${isCut ? "is-cut" : ""}">
+          <div class="static-cell rank-cell ${isCut ? "cut-rank" : rankClass(player.rank)}">${escapeHtml(rankContent)}</div>
+          <div class="static-cell name-cell">
+            <div class="player-copy">
+              <div class="player-name">${escapeHtml(player.display)}</div>
+              ${username ? `<div class="player-user">${escapeHtml(username)}</div>` : ""}
+            </div>
+          </div>
+          <div class="static-cell total-cell">${escapeHtml(total)}</div>
+          <div class="score-scroll">
+            <div class="score-track">${renderScoreCells(player)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function ordinalRank(rank){
+      const n = Number(rank);
+      if(!Number.isFinite(n)) return "-";
+      const mod100 = n % 100;
+      if(mod100 >= 11 && mod100 <= 13) return `${n}th`;
+      switch(n % 10){
+        case 1: return `${n}st`;
+        case 2: return `${n}nd`;
+        case 3: return `${n}rd`;
+        default: return `${n}th`;
+      }
+    }
+
+    function renderHeader(){
+      return `
+        <div class="leaderboard-row header">
+          <div class="static-cell rank-cell">Rank</div>
+          <div class="static-cell name-cell">Name</div>
+          <div class="static-cell total-cell">Total</div>
+          <div class="score-scroll scores-head">
+            <div class="score-track">
+              ${SCORE_COLUMNS.map(column => `<div class="score-cell">${escapeHtml(column.label)}</div>`).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLeaderboard(players){
+      const contenders = rankContenders(players.filter(player => !player.cutCourse));
+      const cutGroups = COURSES.map(course => ({
+        course,
+        players:players.filter(player => player.cutCourse?.key === course.key).sort(comparePlayers),
+      })).filter(group => group.players.length > 0);
+
+      let html = renderHeader();
+      if(contenders.length){
+        html += contenders.map(player => renderPlayerRow(player)).join("");
+      }else{
+        html += `<div class="empty-state">No active players yet.</div>`;
+      }
+
+      cutGroups.forEach((group) => {
+        html += `
+          <div class="cut-section">
+            <div class="cut-heading">Cut - ${escapeHtml(group.course.name)}</div>
+            ${group.players.map(player => renderPlayerRow(player, true)).join("")}
+          </div>
+        `;
+      });
+
+      leaderboardShell.innerHTML = html;
+      leaderboardMeta.textContent = `${players.length} players loaded. Scores refresh every 60 seconds.`;
+    }
+
+    function showStatus(message, isError = false){
+      statusText.textContent = message;
+      statusText.classList.toggle("error", isError);
+      statusCard.hidden = false;
+      if(isError) leaderboardCard.hidden = true;
+    }
+
+    function showLeaderboard(){
+      statusCard.hidden = true;
+      leaderboardCard.hidden = false;
+    }
+
+    async function loadLeaderboard(){
+      try{
+        const values = await fetchRange(SHEET_RANGE);
+        const players = buildPlayers(values);
+        if(!players.length){
+          showStatus("No leaderboard rows found yet.");
+          return;
+        }
+        renderLeaderboard(players);
+        showLeaderboard();
+      }catch(error){
+        const message = error?.message || "";
+        const friendly = /Failed to fetch|NetworkError|Load failed/i.test(message)
+          ? "Leaderboard unavailable. The Google Sheets worker request was blocked or failed."
+          : message || "Leaderboard unavailable.";
+        showStatus(friendly, true);
+      }
+    }
+
+    loadLeaderboard();
+    window.setInterval(loadLeaderboard, REFRESH_MS);
+  </script>
+</body>
+</html>
