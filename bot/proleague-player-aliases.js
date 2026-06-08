@@ -6,9 +6,12 @@ const { createClient } = require("@supabase/supabase-js");
 
 const defaultWorkerUrl = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const defaultSheetId = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+const defaultSupabaseUrl = "https://kwaprkwemtxizorpnrzq.supabase.co";
+const defaultSupabasePublishableKey = "sb_publishable_gJ6-wdgZYpDBF1YxxNrlLg_BrtYUeL_";
 const defaultLeagueKey = "shotgun_pro_league";
 const outputDir = path.join(__dirname, "output");
 const defaultReviewPath = path.join(outputDir, "proleague-alias-review.csv");
+const defaultSqlPath = path.join(outputDir, "proleague-alias-import.sql");
 
 const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
 const LOOKUP_RANGE_A1 = "A3:S250";
@@ -23,9 +26,29 @@ const LEGACY_SEASON_CONFIG = {
   1: { sheet: "Season 1", rosters: "A3:S38", teamRank: "U4:X10" },
 };
 const STAGED_FORMAT = { rosters: "A3:S63", teamRank: "U4:X15" };
+const knownTeamNames = [
+  "ANIMALS",
+  "TERRIFIC TIGERS",
+  "BREAKERS",
+  "DAGGERS",
+  "SNIPERS",
+  "MCSTROKERS",
+  "INFERNIX",
+  "INFERNIX*",
+  "DOUBLE-EAGLES",
+  "PHANTOM TROUPE",
+  "ASTERISM",
+  "CARROTS",
+  "SPOCCO COWS",
+  "BURGERS",
+  "TREEMEISTERS",
+  "FLAG SMOKERS",
+  "REVERIE",
+];
 
 const csvHeaders = [
   "league_key",
+  "guild_id",
   "league_player_name",
   "league_player_key",
   "occurrences",
@@ -49,26 +72,33 @@ function usage() {
   console.log(`
 Usage:
   node bot/proleague-player-aliases.js suggest [options]
+  node bot/proleague-player-aliases.js export-sql [options]
   node bot/proleague-player-aliases.js import [options]
 
 Commands:
   suggest   Scan the Shotgun Pro League Google Sheet, fuzzy-match names against
             discord_guild_members, and write a review CSV.
+  export-sql
+            Write SQL for approved CSV rows. Use this when write credentials
+            live in GitHub/Supabase instead of local .env.
   import    Upsert CSV rows whose approval column is approve/approved/yes/y.
 
 Options:
   --out <path>              Review CSV output path for suggest.
   --file <path>             Review CSV input path for import.
+  --sql-out <path>          SQL output path for export-sql.
   --league-key <key>        League key. Default: ${defaultLeagueKey}
+  --guild-id <id>           Discord guild ID. Auto-detected when one guild is present.
   --min-score <number>      Lowest candidate score to keep. Default: 0.58
   --auto-threshold <number> Score required to prefill approval=approve. Default: 0.92
   --min-gap <number>        Required gap between best and second candidate. Default: 0.08
   --max-candidates <number> Candidate count to include in candidates_json. Default: 5
 
 Environment:
-  DISCORD_GUILD_ID
-  NSSGOLF_SUPABASE_URL or SUPABASE_URL
-  NSSGOLF_SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE_KEY
+  DISCORD_GUILD_ID optional for suggest when one guild is present
+  NSSGOLF_SUPABASE_URL or SUPABASE_URL optional for suggest
+  NSSGOLF_SUPABASE_PUBLISHABLE_KEY or SUPABASE_ANON_KEY optional for suggest
+  NSSGOLF_SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE_KEY required for import
   PROLEAGUE_SHEET_ID optional
   PROLEAGUE_SHEETS_WORKER_URL optional
   PROLEAGUE_MAX_SEASON_TO_CHECK optional
@@ -127,24 +157,32 @@ function assertSupabaseElevatedKey(keyValue) {
   }
 }
 
-function createSupabaseClient() {
-  const supabaseUrl = process.env.NSSGOLF_SUPABASE_URL || process.env.SUPABASE_URL;
+function createSupabaseClient({ requireServiceRole = false } = {}) {
+  const supabaseUrl =
+    process.env.NSSGOLF_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    defaultSupabaseUrl;
+  const supabaseReadKey =
+    process.env.NSSGOLF_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    defaultSupabasePublishableKey;
   const supabaseServiceRoleKey =
     process.env.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseKey = requireServiceRole ? supabaseServiceRoleKey : supabaseServiceRoleKey || supabaseReadKey;
 
-  if (!process.env.DISCORD_GUILD_ID) {
-    throw new Error("Missing DISCORD_GUILD_ID. Add it to .env before running this workflow.");
-  }
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
+  if (!supabaseUrl || !supabaseKey) {
     throw new Error(
-      "Missing NSSGOLF_SUPABASE_URL or NSSGOLF_SUPABASE_SERVICE_ROLE_KEY. Add them to .env before running this workflow."
+      requireServiceRole
+        ? "Missing NSSGOLF_SUPABASE_URL or NSSGOLF_SUPABASE_SERVICE_ROLE_KEY. Add them to .env or run the import in GitHub Actions."
+        : "Missing NSSGOLF_SUPABASE_URL or NSSGOLF_SUPABASE_PUBLISHABLE_KEY."
     );
   }
 
-  assertSupabaseElevatedKey(supabaseServiceRoleKey);
+  if (requireServiceRole) assertSupabaseElevatedKey(supabaseKey);
 
-  return createClient(supabaseUrl, supabaseServiceRoleKey, {
+  return createClient(supabaseUrl, supabaseKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -223,6 +261,8 @@ function aliasKey(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+const knownTeamKeys = new Set(knownTeamNames.map(aliasKey).filter(Boolean));
+
 function searchKey(value) {
   return String(value || "")
     .normalize("NFKD")
@@ -241,6 +281,7 @@ function addAlias(aliasMap, rawName, season, stage, source) {
   const name = String(rawName || "").trim();
   const key = aliasKey(name);
   if (!name || !key) return;
+  if (knownTeamKeys.has(key)) return;
 
   if (!aliasMap.has(key)) {
     aliasMap.set(key, {
@@ -382,6 +423,31 @@ async function fetchDiscordMembers(supabase, guildId) {
       .eq("is_current_member", true)
       .eq("is_bot", false)
       .order("display_name", { ascending: true })
+  );
+}
+
+async function resolveGuildId(supabase) {
+  const configuredGuildId = getArg("--guild-id", process.env.DISCORD_GUILD_ID || "");
+  if (configuredGuildId) return configuredGuildId;
+
+  const rows = await fetchAllSupabaseRows(() =>
+    supabase
+      .from("discord_guild_members")
+      .select("guild_id")
+      .eq("is_current_member", true)
+      .limit(1000)
+  );
+  const guildIds = [...new Set(rows.map((row) => row.guild_id).filter(Boolean))];
+
+  if (guildIds.length === 1) return guildIds[0];
+  if (guildIds.length === 0) {
+    throw new Error(
+      "Could not auto-detect DISCORD_GUILD_ID because discord_guild_members has no current rows. Run the Discord member scan workflow first."
+    );
+  }
+
+  throw new Error(
+    `Found multiple guild IDs (${guildIds.join(", ")}). Re-run with --guild-id <id> or set DISCORD_GUILD_ID in .env.`
   );
 }
 
@@ -583,9 +649,33 @@ function parseCsv(text) {
   });
 }
 
+async function readCsvFile(filePath) {
+  const buffer = await fs.readFile(filePath);
+  if (buffer[0] === 0x50 && buffer[1] === 0x4b) {
+    throw new Error(
+      `${filePath} is a Numbers/zip document, not a CSV. In Numbers, use File > Export To > CSV, then overwrite this file.`
+    );
+  }
+  return buffer.toString("utf8");
+}
+
+function assertCsvColumns(records, filePath) {
+  const first = records[0] || {};
+  const missing = ["league_key", "guild_id", "league_player_name", "approval"].filter((column) => !(column in first));
+  if (missing.length) {
+    throw new Error(
+      `${filePath} is missing expected columns: ${missing.join(", ")}. Export the edited Numbers sheet as CSV using File > Export To > CSV.`
+    );
+  }
+}
+
+function isApprovedRecord(record) {
+  return ["approve", "approved", "yes", "y", "existing"].includes(String(record.approval || "").trim().toLowerCase());
+}
+
 async function runSuggest() {
-  const supabase = createSupabaseClient();
-  const guildId = process.env.DISCORD_GUILD_ID;
+  const supabase = createSupabaseClient({ requireServiceRole: false });
+  const guildId = await resolveGuildId(supabase);
   const leagueKey = getArg("--league-key", process.env.PROLEAGUE_LEAGUE_KEY || defaultLeagueKey);
   const outPath = path.resolve(getArg("--out", defaultReviewPath));
   const minScore = getNumberArg("--min-score", 0.58);
@@ -612,6 +702,7 @@ async function runSuggest() {
 
     return {
       league_key: leagueKey,
+      guild_id: guildId,
       league_player_name: alias.name,
       league_player_key: alias.key,
       occurrences: alias.occurrences,
@@ -656,14 +747,15 @@ async function runSuggest() {
 }
 
 async function runImport() {
-  const supabase = createSupabaseClient();
-  const guildId = process.env.DISCORD_GUILD_ID;
+  const supabase = createSupabaseClient({ requireServiceRole: true });
+  const guildId = await resolveGuildId(supabase);
   const leagueKey = getArg("--league-key", process.env.PROLEAGUE_LEAGUE_KEY || defaultLeagueKey);
   const filePath = path.resolve(getArg("--file", defaultReviewPath));
-  const text = await fs.readFile(filePath, "utf8");
+  const text = await readCsvFile(filePath);
   const records = parseCsv(text);
+  assertCsvColumns(records, filePath);
   const approvedRows = records.filter((record) =>
-    ["approve", "approved", "yes", "y"].includes(String(record.approval || "").trim().toLowerCase())
+    isApprovedRecord(record)
   );
 
   if (!approvedRows.length) {
@@ -691,7 +783,7 @@ async function runImport() {
     importRows.push({
       league_key: row.league_key || leagueKey,
       league_player_name: leaguePlayerName,
-      guild_id: guildId,
+      guild_id: row.guild_id || guildId,
       discord_user_id: discordUserId,
       active: true,
       source: "proleague-alias-script",
@@ -713,6 +805,103 @@ async function runImport() {
   console.log(`Imported ${importRows.length} approved player alias mappings from ${filePath}.`);
 }
 
+function sqlString(value) {
+  if (value == null || value === "") return "null";
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+async function runExportSql() {
+  const filePath = path.resolve(getArg("--file", defaultReviewPath));
+  const sqlPath = path.resolve(getArg("--sql-out", defaultSqlPath));
+  const text = await readCsvFile(filePath);
+  const records = parseCsv(text);
+  assertCsvColumns(records, filePath);
+
+  const approvedRows = records.filter(isApprovedRecord);
+  const skippedRows = records.filter((record) =>
+    String(record.league_player_name || "").trim() && !isApprovedRecord(record)
+  );
+
+  if (!approvedRows.length && !skippedRows.length) {
+    console.log("No approved or skipped rows found.");
+    return;
+  }
+
+  const values = approvedRows.map((row) => {
+    const leagueKey = row.league_key || defaultLeagueKey;
+    const guildId = row.guild_id || getArg("--guild-id", process.env.DISCORD_GUILD_ID || "");
+    const leaguePlayerName = String(row.league_player_name || "").trim();
+    const discordUserId = String(row.approved_discord_user_id || row.suggested_discord_user_id || "").trim();
+    const notes = row.notes || null;
+
+    if (!guildId) throw new Error(`Missing guild_id for '${leaguePlayerName}'. Re-run suggest or pass --guild-id <id>.`);
+    if (!leaguePlayerName) throw new Error("Approved row is missing league_player_name.");
+    if (!discordUserId) throw new Error(`Approved row for '${leaguePlayerName}' is missing approved_discord_user_id.`);
+
+    return `  (${sqlString(leagueKey)}, ${sqlString(leaguePlayerName)}, ${sqlString(guildId)}, ${sqlString(discordUserId)}, true, 'proleague-alias-script', ${sqlString(notes)})`;
+  });
+
+  const skippedKeysByLeague = new Map();
+  for (const row of skippedRows) {
+    const leagueKey = row.league_key || defaultLeagueKey;
+    const leaguePlayerName = String(row.league_player_name || "").trim();
+    const key = aliasKey(leaguePlayerName);
+    if (!key) continue;
+    if (!skippedKeysByLeague.has(leagueKey)) skippedKeysByLeague.set(leagueKey, new Set());
+    skippedKeysByLeague.get(leagueKey).add(key);
+  }
+
+  const upsertSql = values.length ? `
+insert into public.player_league_aliases (
+  league_key,
+  league_player_name,
+  guild_id,
+  discord_user_id,
+  active,
+  source,
+  notes
+)
+values
+${values.join(",\n")}
+on conflict (league_key, league_player_key)
+do update set
+  league_player_name = excluded.league_player_name,
+  guild_id = excluded.guild_id,
+  discord_user_id = excluded.discord_user_id,
+  active = excluded.active,
+  source = excluded.source,
+  notes = excluded.notes;
+` : "-- No approved mappings to upsert.\n";
+
+  const deactivateSql = [...skippedKeysByLeague.entries()].map(([leagueKey, keys]) => {
+    const keyList = [...keys].sort().map(sqlString).join(", ");
+    return `
+update public.player_league_aliases
+set
+  active = false,
+  source = 'proleague-alias-script',
+  notes = coalesce(notes, 'Skipped during Pro League alias review')
+where league_key = ${sqlString(leagueKey)}
+  and league_player_key in (${keyList});
+`;
+  }).join("");
+
+  const sql = `-- Generated by bot/proleague-player-aliases.js export-sql.
+-- Run after bot/proleague-player-alias-schema.sql.
+-- Approved rows are upserted as active mappings.
+-- Blank/unapproved rows are deactivated so old imports stop linking to player pages.
+
+begin;
+${upsertSql}${deactivateSql || "\n-- No skipped mappings to deactivate.\n"}
+
+commit;
+`;
+
+  await fs.mkdir(path.dirname(sqlPath), { recursive: true });
+  await fs.writeFile(sqlPath, sql);
+  console.log(`Wrote SQL for ${approvedRows.length} approved mappings and ${skippedRows.length} skipped mappings to ${sqlPath}`);
+}
+
 async function main() {
   const command = process.argv[2];
   if (!command || command === "--help" || command === "-h" || command === "help") {
@@ -722,6 +911,11 @@ async function main() {
 
   if (command === "suggest") {
     await runSuggest();
+    return;
+  }
+
+  if (command === "export-sql") {
+    await runExportSql();
     return;
   }
 
