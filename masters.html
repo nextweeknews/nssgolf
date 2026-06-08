@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020B18" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>World Golf Masters</title>
+
+  <style>
+    :root{
+      --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+      --card-bg: rgba(15,23,42,1);
+      --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --text: #e9eef8;
+      --title: #c7d7ff;
+      --muted: #9ca3c7;
+      --border-lite: rgba(148,163,184,0.20);
+      --btn-bg: rgba(255,255,255,0.06);
+      --btn-bg-hover: rgba(255,255,255,0.10);
+      --btn-border: rgba(255,255,255,0.15);
+      --btn-border-hover: rgba(255,255,255,0.28);
+    }
+
+    *{ box-sizing:border-box; }
+    html{ background-color:var(--bg3); }
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:var(--text);
+      background-color:var(--bg3);
+      background-image:linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
+    }
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:10;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:rgba(3,18,42,.70);
+      backdrop-filter:blur(10px);
+    }
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding:14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      min-width:0;
+    }
+    .home-btn{
+      width:40px;
+      height:40px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.15);
+      background:rgba(255,255,255,.05);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      text-decoration:none;
+      flex:0 0 auto;
+    }
+    .home-btn:hover{
+      background:rgba(255,255,255,.08);
+      border-color:rgba(255,255,255,.25);
+    }
+    .home-btn img{
+      width:70%;
+      height:70%;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+    }
+    .kicker{
+      font-size:11px;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.65);
+      font-weight:900;
+    }
+    .page-nav-select{
+      background:rgba(2,6,23,.85);
+      color:inherit;
+      border:1px solid rgba(125,211,252,.35);
+      border-radius:10px;
+      padding:6px 32px 6px 10px;
+      font:inherit;
+      letter-spacing:inherit;
+      text-transform:uppercase;
+      max-width:min(56vw, 420px);
+      cursor:pointer;
+    }
+    .page-nav-select:focus-visible{
+      outline:2px solid rgba(125,211,252,.6);
+      outline-offset:2px;
+    }
+    .btn{
+      appearance:none;
+      -webkit-appearance:none;
+      border:1px solid var(--btn-border);
+      background:var(--btn-bg);
+      color:rgba(255,255,255,0.92);
+      padding:8px 12px;
+      border-radius:14px;
+      font-weight:950;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-size:11px;
+      cursor:pointer;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      line-height:1;
+      flex-shrink:0;
+    }
+    .btn:hover{
+      background:var(--btn-bg-hover);
+      border-color:var(--btn-border-hover);
+    }
+    .btn-icon{
+      width:14px;
+      height:14px;
+      display:block;
+    }
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding:28px 18px 56px;
+      display:grid;
+      place-items:center;
+    }
+    .card{
+      width:min(820px, 100%);
+      background:var(--card-bg);
+      border-radius:20px;
+      padding:22px 20px;
+      box-shadow:var(--card-shadow);
+      border:1px solid rgba(255,255,255,0.10);
+      text-align:center;
+    }
+    .headline{
+      margin:0;
+      color:var(--title);
+      font-size:24px;
+      font-weight:950;
+      letter-spacing:.035em;
+      text-transform:uppercase;
+    }
+    .placeholder{
+      margin:12px 0 0;
+      color:rgba(233,238,248,0.82);
+      font-size:15px;
+      font-weight:800;
+      line-height:1.45;
+    }
+    @media (max-width:760px){
+      .container{ padding:20px 12px 44px; }
+      .topbar-inner{ padding:12px; flex-wrap:nowrap; }
+      .brand{ flex:1; min-width:0; }
+      .brand > div{ min-width:0; }
+      .page-nav-select{ width:min(100%, 420px); max-width:100%; }
+      .discord-button{ padding:8px 10px; font-size:10px; letter-spacing:.06em; }
+      .card{ padding:18px 14px; border-radius:18px; }
+      .headline{ font-size:20px; }
+    }
+  </style>
+  <link rel="stylesheet" href="/site-topbar.css" />
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="/index.html" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </a>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+            <option value="/index.html">Home</option>
+            <option value="/masters.html" selected>World Golf Masters</option>
+            <option value="/noptational.html">The Noptational</option>
+            <option value="/worldopen/index.html">World Open</option>
+            <option value="/proleague/index.html">Shotgun Pro League</option>
+            <option value="/superleague/index.html">Super League</option>
+            <option value="/lightningcup/index.html">Lightning Cup</option>
+            <option value="/beataidan/index.html">Beat Aidan</option>
+            <option value="/records.html">Records</option>
+          </select>
+        </div>
+      </div>
+      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
+        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
+        Discord
+      </a>
+    </div>
+  </div>
+
+  <main class="container">
+    <section class="card" aria-labelledby="masters-title">
+      <h1 class="headline" id="masters-title">World Golf Masters</h1>
+      <p class="placeholder">Coming soon</p>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js"></script>
+</body>
+</html>
