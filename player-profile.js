@@ -1317,7 +1317,7 @@ function renderTournamentsSection(member){
       const player = await loadNoptationalPlayer(member);
       content.innerHTML = "";
       if(!player){
-        content.innerHTML = `<p class="profile-muted proleague-empty">No Noptational row found.</p>`;
+        content.innerHTML = `<p class="profile-muted proleague-empty">No tournaments found.</p>`;
         return;
       }
       content.appendChild(renderNoptationalPlayerTable(player));
