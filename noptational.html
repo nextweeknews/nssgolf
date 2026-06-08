@@ -219,6 +219,7 @@
     .nopt-tabs-root{
       display:grid;
       gap:0;
+      min-width:0;
     }
     .nopt-tabs-list{
       display:flex;
@@ -260,6 +261,7 @@
       outline:2px solid rgba(129,140,248,0.7);
       outline-offset:-2px;
     }
+    .nopt-tabs-content{ min-width:0; }
     .format-content{
       display:grid;
       gap:14px;
@@ -404,9 +406,14 @@
       padding:16px 16px 12px;
       border-bottom:1px solid rgba(148,163,184,0.16);
     }
-    .leaderboard-shell{ display:block; }
+    .leaderboard-shell{
+      display:block;
+      min-width:0;
+      max-width:100%;
+    }
     .leaderboard-table-wrap{
       width:100%;
+      max-width:100%;
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
       scrollbar-width:thin;
@@ -543,11 +550,19 @@
     .sticky-col{
       position:sticky;
       z-index:2;
+      background:var(--row-bg);
     }
-    thead .sticky-col{ z-index:3; }
+    .leaderboard-table tbody tr:nth-child(even) .sticky-col{ background:var(--row-bg-2); }
+    thead .sticky-col{
+      z-index:4;
+      background:var(--header-bg);
+    }
     .sticky-rank{ left:0; }
     .sticky-name{ left:var(--rank-col); }
-    .sticky-total{ left:calc(var(--rank-col) + var(--name-sticky-col)); }
+    .sticky-total{
+      left:calc(var(--rank-col) + var(--name-sticky-col));
+      box-shadow:8px 0 14px rgba(0,0,0,0.24);
+    }
     .cut-row td{
       opacity:.82;
       background:rgba(255,255,255,0.035);
@@ -612,31 +627,59 @@
       .leaderboard-card{ padding:0; }
       .leaderboard-top{ padding:14px 12px 10px; }
       :root{
-        --rank-col:46px;
-        --name-sticky-col:150px;
-        --total-col:64px;
-        --score-cell:76px;
+        --header-bg:#0b1324;
+        --row-bg:#101a2b;
+        --row-bg-2:#0c1626;
+        --rank-col:36px;
+        --name-sticky-col:120px;
+        --total-col:50px;
+        --score-cell:54px;
       }
-      .rank-cell{ font-size:16px; }
-      .rank-cell.cut-rank{ font-size:10px; }
+      .leaderboard-table-wrap{
+        background:var(--row-bg);
+        border-top:1px solid rgba(148,163,184,0.10);
+      }
+      .rank-cell{ font-size:13px; }
+      .rank-cell.cut-rank{
+        font-size:8px;
+        letter-spacing:0;
+      }
       .player-link,
-      .player-static{ gap:8px; }
+      .player-static{ gap:6px; }
       .player-avatar{
-        width:30px;
-        height:30px;
+        width:22px;
+        height:22px;
       }
-      .player-name{ font-size:14px; }
-      .player-user{ font-size:10px; }
-      .total-cell{ font-size:16px; }
-      .leaderboard-table thead th{ height:32px; padding:5px 6px; }
-      .leaderboard-table tbody td{ height:50px; padding:7px 8px; }
+      .player-copy{ gap:1px; }
+      .player-name{ font-size:11px; }
+      .player-user{ font-size:9px; }
+      .total-cell{ font-size:13px; }
+      .leaderboard-table thead th{
+        height:26px;
+        padding:3px 4px;
+        font-size:9px;
+        letter-spacing:.06em;
+      }
+      .leaderboard-table thead .course-heading{ font-size:10px; letter-spacing:.04em; }
+      .leaderboard-table tbody td{
+        height:38px;
+        padding:4px 5px;
+      }
       .score-cell{
-        font-size:15px;
+        font-size:12px;
       }
+      .name-cell{ padding-left:6px !important; padding-right:6px !important; }
       .cut-heading-row td{
         height:34px;
         padding:0 12px;
       }
+      .cut-row td{
+        opacity:1;
+        background:#101a2b;
+      }
+      .leaderboard-table tbody tr:nth-child(even).cut-row td{ background:#0c1626; }
+      .cut-row .sticky-col{ background:#101a2b; }
+      .leaderboard-table tbody tr:nth-child(even).cut-row .sticky-col{ background:#0c1626; }
       .cut-heading{
         font-size:11px;
       }
@@ -647,9 +690,14 @@
       .headline{ font-size:19px; }
       .subhead{ font-size:12px; }
       :root{
-        --name-sticky-col:136px;
-        --score-cell:72px;
+        --rank-col:34px;
+        --name-sticky-col:112px;
+        --total-col:48px;
+        --score-cell:52px;
       }
+      .player-name{ font-size:10px; }
+      .player-user{ font-size:8px; }
+      .score-cell{ font-size:11px; }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
