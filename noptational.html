@@ -216,6 +216,188 @@
       background:rgba(250,204,21,0.10);
       color:rgba(254,249,195,0.96);
     }
+    .nopt-tabs-root{
+      display:grid;
+      gap:0;
+    }
+    .nopt-tabs-list{
+      display:flex;
+      gap:8px;
+      padding:12px 16px;
+      border-bottom:1px solid rgba(148,163,184,0.16);
+      background:rgba(255,255,255,0.025);
+    }
+    .nopt-tabs-trigger{
+      appearance:none;
+      border:1px solid rgba(148,163,184,0.24);
+      background:rgba(255,255,255,0.055);
+      color:rgba(233,238,248,0.78);
+      min-height:36px;
+      padding:0 14px;
+      border-radius:10px;
+      font:inherit;
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      cursor:pointer;
+    }
+    .nopt-tabs-trigger:hover{
+      border-color:rgba(165,180,252,0.95);
+      background:rgba(129,140,248,0.12);
+      color:#a5b4fc;
+    }
+    .nopt-tabs-trigger[data-state="active"]{
+      border-color:rgba(129,140,248,0.9);
+      background:rgba(129,140,248,0.20);
+      color:#fff;
+      box-shadow:
+        inset 0 -2px 0 #818cf8,
+        0 0 12px rgba(129,140,248,0.45),
+        0 0 24px rgba(99,102,241,0.22);
+    }
+    .nopt-tabs-content:focus-visible{
+      outline:2px solid rgba(129,140,248,0.7);
+      outline-offset:-2px;
+    }
+    .format-content{
+      display:grid;
+      gap:14px;
+      padding:16px;
+    }
+    .format-hero{
+      display:grid;
+      gap:10px;
+      padding:16px;
+      border:1px solid rgba(129,140,248,0.28);
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(129,140,248,0.13), rgba(255,255,255,0.045));
+    }
+    .format-title{
+      margin:0;
+      color:#fff;
+      font-size:22px;
+      line-height:1.12;
+      font-weight:950;
+      letter-spacing:.03em;
+      text-transform:uppercase;
+    }
+    .format-copy{
+      margin:0;
+      color:rgba(233,238,248,0.86);
+      font-size:14px;
+      line-height:1.55;
+      font-weight:700;
+    }
+    .format-callout{
+      display:inline-flex;
+      width:max-content;
+      max-width:100%;
+      align-items:center;
+      min-height:30px;
+      padding:0 10px;
+      border-radius:999px;
+      border:1px solid rgba(250,204,21,0.36);
+      background:rgba(250,204,21,0.10);
+      color:rgba(254,249,195,0.96);
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+    .format-section{
+      display:grid;
+      gap:10px;
+      padding-top:2px;
+    }
+    .format-section-title{
+      margin:0;
+      color:var(--title);
+      font-size:17px;
+      font-weight:950;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .format-table-wrap{
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      border:1px solid rgba(148,163,184,0.18);
+      border-radius:12px;
+    }
+    .format-table{
+      width:100%;
+      min-width:720px;
+      border-collapse:collapse;
+      background:rgba(255,255,255,0.04);
+    }
+    .format-table th,
+    .format-table td{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(148,163,184,0.14);
+      border-right:1px solid rgba(148,163,184,0.10);
+      text-align:left;
+      vertical-align:middle;
+    }
+    .format-table th{
+      color:var(--muted);
+      background:var(--header-bg);
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .format-table td{
+      color:rgba(233,238,248,0.88);
+      font-size:13px;
+      font-weight:750;
+      line-height:1.35;
+    }
+    .format-table tr:last-child td{ border-bottom:0; }
+    .format-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:24px;
+      padding:0 8px;
+      border-radius:999px;
+      border:1px solid rgba(125,211,252,0.30);
+      background:rgba(125,211,252,0.09);
+      color:rgba(224,242,254,0.94);
+      font-size:10px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:950;
+      white-space:nowrap;
+    }
+    .format-rule-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:10px;
+    }
+    .format-rule-card{
+      min-width:0;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.20);
+      background:rgba(255,255,255,0.045);
+      display:grid;
+      gap:7px;
+    }
+    .format-rule-label{
+      color:rgba(233,238,248,0.62);
+      font-size:10px;
+      letter-spacing:.13em;
+      text-transform:uppercase;
+      font-weight:950;
+    }
+    .format-rule-text{
+      margin:0;
+      color:rgba(233,238,248,0.88);
+      font-size:13px;
+      line-height:1.45;
+      font-weight:750;
+    }
 
     .leaderboard-card{ padding:0; overflow:hidden; }
     .leaderboard-top{
@@ -419,6 +601,14 @@
       .format-grid{ gap:8px; }
       .format-tile{ padding:10px; border-radius:10px; }
       .format-course{ font-size:14px; }
+      .nopt-tabs-list{ padding:10px 12px; }
+      .nopt-tabs-trigger{
+        flex:1 1 0;
+        padding:0 10px;
+      }
+      .format-content{ padding:12px; }
+      .format-title{ font-size:18px; }
+      .format-rule-grid{ grid-template-columns:1fr; }
       .leaderboard-card{ padding:0; }
       .leaderboard-top{ padding:14px 12px 10px; }
       :root{
@@ -497,16 +687,15 @@
           </div>
         </div>
       </div>
-      <div id="leaderboardShell" class="leaderboard-shell">
-        <div class="empty-state">
-          <p id="statusText" class="status">Loading leaderboard...</p>
-        </div>
-      </div>
+      <div id="noptationalTabsRoot"></div>
     </section>
   </main>
 
   <script type="module">
+    import { mountNoptationalTabs } from "/noptational-tabs.bundle.js";
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+
+    mountNoptationalTabs(document.getElementById("noptationalTabsRoot"));
 
     const supabase = createBrowserSupabaseClient();
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";

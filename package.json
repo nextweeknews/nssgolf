@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build:lightningcup-radix": "esbuild lightningcup/radix-controls.jsx --bundle --format=esm --target=es2020 --minify --outfile=lightningcup/radix-controls.bundle.js",
+    "build:noptational-tabs": "esbuild noptational-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=noptational-tabs.bundle.js",
     "discord:scan-members": "node bot/scan-members.js",
     "proleague:aliases:suggest": "node bot/proleague-player-aliases.js suggest",
     "proleague:aliases:export-sql": "node bot/proleague-player-aliases.js export-sql",
