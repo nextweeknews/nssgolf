@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#020B18" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
-  <title>Noptational</title>
+  <title>The Noptational</title>
 
   <style>
     :root{
@@ -29,6 +29,7 @@
       --danger:#fb7185;
       --rank-col:64px;
       --name-col:minmax(190px, 1fr);
+      --name-sticky-col:220px;
       --total-col:86px;
       --score-cell:78px;
     }
@@ -221,55 +222,64 @@
       padding:16px 16px 12px;
       border-bottom:1px solid rgba(148,163,184,0.16);
     }
-    .leaderboard-shell{ display:grid; gap:0; }
-    .leaderboard-row{
-      display:grid;
-      grid-template-columns:var(--rank-col) var(--name-col) var(--total-col) minmax(0, 1.3fr);
-      min-width:0;
-      align-items:stretch;
+    .leaderboard-shell{ display:block; }
+    .leaderboard-table-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:thin;
+    }
+    .leaderboard-table{
+      width:max-content;
+      min-width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      table-layout:fixed;
+    }
+    .leaderboard-table th,
+    .leaderboard-table td{
+      border-right:1px solid rgba(148,163,184,0.10);
       border-bottom:1px solid rgba(148,163,184,0.12);
       background:var(--row-bg);
+      vertical-align:middle;
     }
-    .leaderboard-row:nth-child(even){ background:var(--row-bg-2); }
-    .leaderboard-row.header{
-      min-height:42px;
+    .leaderboard-table tbody tr:nth-child(even) td{ background:var(--row-bg-2); }
+    .leaderboard-table thead th{
+      height:34px;
+      padding:6px 7px;
+      text-align:center;
       background:var(--header-bg);
       color:var(--muted);
       font-size:11px;
       letter-spacing:.10em;
       text-transform:uppercase;
       font-weight:950;
+      white-space:nowrap;
     }
-    .leaderboard-row.header .static-cell,
-    .leaderboard-row.header .score-cell{
-      min-height:42px;
-      color:inherit;
-      font-size:inherit;
-      letter-spacing:inherit;
-      text-transform:inherit;
+    .leaderboard-table thead .course-heading{
+      color:rgba(233,238,248,0.88);
+      font-size:12px;
+      letter-spacing:.08em;
     }
-    .leaderboard-row.is-cut{
-      opacity:.82;
-      background:rgba(255,255,255,0.035);
+    .leaderboard-table thead .round-heading{
+      color:rgba(156,163,199,0.92);
+      font-variant-numeric:tabular-nums;
     }
-    .static-cell{
-      min-width:0;
-      min-height:58px;
+    .leaderboard-table tbody td{
+      height:58px;
       padding:8px 10px;
-      display:flex;
-      align-items:center;
-      border-right:1px solid rgba(148,163,184,0.10);
     }
     .rank-cell,
-    .total-cell{
-      justify-content:center;
+    .total-cell,
+    .score-cell{
       text-align:center;
       font-variant-numeric:tabular-nums;
-      font-weight:950;
     }
     .rank-cell{
+      width:var(--rank-col);
       color:#fff;
       font-size:18px;
+      font-weight:950;
     }
     .rank-cell.gold{ color:#ffd700; }
     .rank-cell.silver{ color:#c0c0c0; }
@@ -279,10 +289,13 @@
       font-size:12px;
       letter-spacing:.08em;
       text-transform:uppercase;
+      font-weight:950;
     }
     .name-cell{
-      justify-content:flex-start;
-      gap:8px;
+      width:var(--name-sticky-col);
+      min-width:var(--name-sticky-col);
+      max-width:var(--name-sticky-col);
+      text-align:left;
     }
     .player-copy{
       min-width:0;
@@ -310,70 +323,38 @@
       text-overflow:ellipsis;
     }
     .total-cell{
+      width:var(--total-col);
       color:rgba(233,238,248,0.98);
       font-size:18px;
-    }
-    .score-scroll{
-      min-width:0;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      scrollbar-width:thin;
-    }
-    .score-track{
-      width:max-content;
-      min-width:100%;
-      display:grid;
-      grid-template-columns:repeat(9, var(--score-cell));
+      font-weight:950;
     }
     .score-cell{
-      min-height:58px;
-      padding:6px 7px;
-      border-right:1px solid rgba(148,163,184,0.10);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
+      width:var(--score-cell);
+      min-width:var(--score-cell);
       color:rgba(233,238,248,0.82);
       font-size:16px;
       font-weight:850;
-      font-variant-numeric:tabular-nums;
-      position:relative;
     }
-    .score-cell.is-counted{
-      color:#03131f;
-      background:linear-gradient(180deg, rgba(125,211,252,0.96), rgba(45,212,191,0.94));
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,0.26);
-      font-weight:950;
+    .sticky-col{
+      position:sticky;
+      z-index:2;
     }
-    .score-cell.is-counted.is-miss{
-      color:rgba(254,205,211,0.98);
-      background:rgba(251,113,133,0.12);
-      box-shadow:inset 0 0 0 1px rgba(251,113,133,0.32);
+    thead .sticky-col{ z-index:3; }
+    .sticky-rank{ left:0; }
+    .sticky-name{ left:var(--rank-col); }
+    .sticky-total{ left:calc(var(--rank-col) + var(--name-sticky-col)); }
+    .cut-row td{
+      opacity:.82;
+      background:rgba(255,255,255,0.035);
     }
-    .score-cell.is-miss{
-      color:rgba(254,205,211,0.94);
-    }
-    .score-cell .round-label{
-      display:none;
-      color:rgba(156,163,199,0.84);
-      font-size:9px;
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      font-weight:900;
-      line-height:1;
-    }
-    .score-cell.is-counted .round-label{ color:rgba(3,19,31,0.70); }
-    .cut-section{
+    .cut-heading-row td{
+      height:38px;
+      padding:0 16px;
       border-top:2px solid var(--border-strong);
-      margin-top:-1px;
+      border-bottom:1px solid rgba(251,113,133,0.18);
+      background:rgba(251,113,133,0.08);
     }
     .cut-heading{
-      min-height:38px;
-      padding:0 16px;
-      display:flex;
-      align-items:center;
-      background:rgba(251,113,133,0.08);
-      border-bottom:1px solid rgba(251,113,133,0.18);
       color:rgba(254,205,211,0.94);
       font-size:12px;
       letter-spacing:.12em;
@@ -388,19 +369,14 @@
       text-align:center;
       background:rgba(255,255,255,0.035);
     }
-    .footer{
-      margin-top:4px;
-      text-align:center;
-      font-size:12px;
-      color:rgba(233,238,248,0.55);
-    }
-
     @media (max-width:900px){
       .format-grid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
-      .leaderboard-row{
-        grid-template-columns:56px minmax(150px, 1fr) 74px minmax(0, 1.1fr);
+      :root{
+        --rank-col:56px;
+        --name-sticky-col:180px;
+        --total-col:74px;
+        --score-cell:72px;
       }
-      :root{ --score-cell:72px; }
     }
 
     @media (max-width:680px){
@@ -422,38 +398,27 @@
       .format-course{ font-size:14px; }
       .leaderboard-card{ padding:0; }
       .leaderboard-top{ padding:14px 12px 10px; }
-      .leaderboard-row{
-        grid-template-columns:46px minmax(0, 1fr) 64px;
-        align-items:start;
-      }
-      .leaderboard-row.header{ min-height:unset; }
-      .leaderboard-row.header .scores-head{ display:none; }
-      .static-cell{
-        min-height:48px;
-        padding:7px 8px;
+      :root{
+        --rank-col:46px;
+        --name-sticky-col:150px;
+        --total-col:64px;
+        --score-cell:76px;
       }
       .rank-cell{ font-size:16px; }
       .rank-cell.cut-rank{ font-size:10px; }
       .player-name{ font-size:14px; }
       .player-user{ font-size:10px; }
       .total-cell{ font-size:16px; }
-      .score-scroll{
-        grid-column:1 / -1;
-        border-top:1px solid rgba(148,163,184,0.10);
-      }
-      .score-track{
-        grid-template-columns:repeat(9, 76px);
-      }
+      .leaderboard-table thead th{ height:32px; padding:5px 6px; }
+      .leaderboard-table tbody td{ height:50px; padding:7px 8px; }
       .score-cell{
-        min-height:48px;
-        flex-direction:column;
-        gap:4px;
         font-size:15px;
       }
-      .score-cell .round-label{ display:block; }
-      .cut-heading{
-        min-height:34px;
+      .cut-heading-row td{
+        height:34px;
         padding:0 12px;
+      }
+      .cut-heading{
         font-size:11px;
       }
     }
@@ -462,7 +427,10 @@
       .format-grid{ grid-template-columns:1fr; }
       .headline{ font-size:19px; }
       .subhead{ font-size:12px; }
-      .score-track{ grid-template-columns:repeat(9, 72px); }
+      :root{
+        --name-sticky-col:136px;
+        --score-cell:72px;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -478,7 +446,7 @@
         <div>
           <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
             <option value="/index.html">Home</option>
-            <option value="/noptational.html" selected>Noptational</option>
+            <option value="/noptational.html" selected>The Noptational</option>
             <option value="/worldopen/index.html">World Open</option>
             <option value="/proleague/index.html">Shotgun Pro League</option>
             <option value="/superleague/index.html">Super League</option>
@@ -492,67 +460,21 @@
   </div>
 
   <main class="container">
-    <section class="card">
-      <div class="card-head">
-        <div>
-          <h1 class="headline">Noptational</h1>
-          <p class="subhead">Four weeks, four courses. Every round counts toward the total, and one round each week must meet the course minimum to advance.</p>
-        </div>
-      </div>
-
-      <div class="format-grid" aria-label="Tournament format">
-        <div class="format-tile">
-          <div class="format-week">Week 1</div>
-          <div class="format-course">Classic</div>
-          <div class="format-meta">
-            <span class="pill">2 scores</span>
-            <span class="pill cutline">min -12</span>
-          </div>
-        </div>
-        <div class="format-tile">
-          <div class="format-week">Week 2</div>
-          <div class="format-course">Resort</div>
-          <div class="format-meta">
-            <span class="pill">2 scores</span>
-            <span class="pill cutline">min -10</span>
-          </div>
-        </div>
-        <div class="format-tile">
-          <div class="format-week">Week 3</div>
-          <div class="format-course">Specials</div>
-          <div class="format-meta">
-            <span class="pill">3 scores</span>
-            <span class="pill cutline">min -3</span>
-          </div>
-        </div>
-        <div class="format-tile">
-          <div class="format-week">Week 4</div>
-          <div class="format-course">18 Holes</div>
-          <div class="format-meta">
-            <span class="pill">2 scores</span>
-            <span class="pill cutline">min -22</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="statusCard" class="card">
-      <p id="statusText" class="status">Loading leaderboard...</p>
-    </section>
-
-    <section id="leaderboardCard" class="card leaderboard-card" hidden>
+    <section id="leaderboardCard" class="card leaderboard-card">
       <div class="leaderboard-top">
         <div class="card-head">
           <div>
-            <h2 class="headline">Leaderboard</h2>
+            <h1 class="headline">The Noptational</h1>
             <p class="subhead" id="leaderboardMeta">Scores refresh every 60 seconds.</p>
           </div>
         </div>
       </div>
-      <div id="leaderboardShell" class="leaderboard-shell"></div>
+      <div id="leaderboardShell" class="leaderboard-shell">
+        <div class="empty-state">
+          <p id="statusText" class="status">Loading leaderboard...</p>
+        </div>
+      </div>
     </section>
-
-    <div class="footer">NSS Golf Noptational</div>
   </main>
 
   <script>
@@ -581,8 +503,6 @@
       { course:"eighteen", label:"18-2", title:"18 Holes R2", column:9 },
     ];
 
-    const statusCard = document.getElementById("statusCard");
-    const statusText = document.getElementById("statusText");
     const leaderboardCard = document.getElementById("leaderboardCard");
     const leaderboardShell = document.getElementById("leaderboardShell");
     const leaderboardMeta = document.getElementById("leaderboardMeta");
@@ -763,69 +683,45 @@
 
     function renderScoreCells(player){
       return SCORE_COLUMNS.map((scoreColumn) => {
-        const course = player.courseResults[scoreColumn.course];
         const value = player.row[scoreColumn.column] ?? "";
-        const parsed = parseScore(value);
-        const isCounted = course?.qualifyingColumn === scoreColumn.column;
-        const isMiss = parsed !== null && course?.hasScore && !course.madeCut;
-        const classes = ["score-cell"];
-        if(isCounted) classes.push("is-counted");
-        if(isMiss) classes.push("is-miss");
         return `
-          <div class="${classes.join(" ")}" title="${escapeHtml(scoreColumn.title)}">
-            <span class="round-label">${escapeHtml(scoreColumn.label)}</span>
-            <span>${escapeHtml(formatScore(value))}</span>
-          </div>
+          <td class="score-cell" title="${escapeHtml(scoreColumn.title)}">${escapeHtml(formatScore(value))}</td>
         `;
       }).join("");
     }
 
     function renderPlayerRow(player, isCut = false){
-      const rankContent = isCut ? "Cut" : ordinalRank(player.rank);
+      const rankContent = isCut ? "Cut" : player.rank;
       const total = player.countedCount ? formatScore(player.total) : "-";
       const username = player.username ? `@${player.username.replace(/^@/, "")}` : "";
       return `
-        <div class="leaderboard-row ${isCut ? "is-cut" : ""}">
-          <div class="static-cell rank-cell ${isCut ? "cut-rank" : rankClass(player.rank)}">${escapeHtml(rankContent)}</div>
-          <div class="static-cell name-cell">
+        <tr class="${isCut ? "cut-row" : ""}">
+          <td class="sticky-col sticky-rank rank-cell ${isCut ? "cut-rank" : rankClass(player.rank)}">${escapeHtml(rankContent)}</td>
+          <td class="sticky-col sticky-name name-cell">
             <div class="player-copy">
               <div class="player-name">${escapeHtml(player.display)}</div>
               ${username ? `<div class="player-user">${escapeHtml(username)}</div>` : ""}
             </div>
-          </div>
-          <div class="static-cell total-cell">${escapeHtml(total)}</div>
-          <div class="score-scroll">
-            <div class="score-track">${renderScoreCells(player)}</div>
-          </div>
-        </div>
+          </td>
+          <td class="sticky-col sticky-total total-cell">${escapeHtml(total)}</td>
+          ${renderScoreCells(player)}
+        </tr>
       `;
-    }
-
-    function ordinalRank(rank){
-      const n = Number(rank);
-      if(!Number.isFinite(n)) return "-";
-      const mod100 = n % 100;
-      if(mod100 >= 11 && mod100 <= 13) return `${n}th`;
-      switch(n % 10){
-        case 1: return `${n}st`;
-        case 2: return `${n}nd`;
-        case 3: return `${n}rd`;
-        default: return `${n}th`;
-      }
     }
 
     function renderHeader(){
       return `
-        <div class="leaderboard-row header">
-          <div class="static-cell rank-cell">Rank</div>
-          <div class="static-cell name-cell">Name</div>
-          <div class="static-cell total-cell">Total</div>
-          <div class="score-scroll scores-head">
-            <div class="score-track">
-              ${SCORE_COLUMNS.map(column => `<div class="score-cell">${escapeHtml(column.label)}</div>`).join("")}
-            </div>
-          </div>
-        </div>
+        <thead>
+          <tr>
+            <th class="sticky-col sticky-rank rank-cell" rowspan="2">Rank</th>
+            <th class="sticky-col sticky-name name-cell" rowspan="2">Name</th>
+            <th class="sticky-col sticky-total total-cell" rowspan="2">Total</th>
+            ${COURSES.map(course => `<th class="course-heading" colspan="${course.columns.length}">${escapeHtml(course.name)}</th>`).join("")}
+          </tr>
+          <tr>
+            ${COURSES.map(course => course.columns.map((column, index) => `<th class="score-cell round-heading">${index + 1}</th>`).join("")).join("")}
+          </tr>
+        </thead>
       `;
     }
 
@@ -836,35 +732,45 @@
         players:players.filter(player => player.cutCourse?.key === course.key).sort(comparePlayers),
       })).filter(group => group.players.length > 0);
 
-      let html = renderHeader();
+      let bodyHtml = "";
       if(contenders.length){
-        html += contenders.map(player => renderPlayerRow(player)).join("");
+        bodyHtml += contenders.map(player => renderPlayerRow(player)).join("");
       }else{
-        html += `<div class="empty-state">No active players yet.</div>`;
+        bodyHtml += `<tr><td class="empty-state" colspan="${SCORE_COLUMNS.length + 3}">No active players yet.</td></tr>`;
       }
 
       cutGroups.forEach((group) => {
-        html += `
-          <div class="cut-section">
-            <div class="cut-heading">Cut - ${escapeHtml(group.course.name)}</div>
+        bodyHtml += `
+          <tr class="cut-heading-row">
+            <td colspan="${SCORE_COLUMNS.length + 3}">
+              <div class="cut-heading">Cut - ${escapeHtml(group.course.name)}</div>
+            </td>
+          </tr>
             ${group.players.map(player => renderPlayerRow(player, true)).join("")}
-          </div>
         `;
       });
 
-      leaderboardShell.innerHTML = html;
+      leaderboardShell.innerHTML = `
+        <div class="leaderboard-table-wrap">
+          <table class="leaderboard-table">
+            ${renderHeader()}
+            <tbody>${bodyHtml}</tbody>
+          </table>
+        </div>
+      `;
       leaderboardMeta.textContent = `${players.length} players loaded. Scores refresh every 60 seconds.`;
     }
 
     function showStatus(message, isError = false){
-      statusText.textContent = message;
-      statusText.classList.toggle("error", isError);
-      statusCard.hidden = false;
-      if(isError) leaderboardCard.hidden = true;
+      leaderboardShell.innerHTML = `
+        <div class="empty-state">
+          <p class="status ${isError ? "error" : ""}">${escapeHtml(message)}</p>
+        </div>
+      `;
+      leaderboardCard.hidden = false;
     }
 
     function showLeaderboard(){
-      statusCard.hidden = true;
       leaderboardCard.hidden = false;
     }
 
