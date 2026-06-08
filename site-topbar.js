@@ -112,14 +112,6 @@ function ensureTopbarMenu(){
   viewPlayer.setAttribute("role", "menuitem");
   viewPlayer.textContent = "View player page";
 
-  const accountSettings = document.createElement("button");
-  accountSettings.className = "user-menu-item";
-  accountSettings.id = "accountSettingsBtn";
-  accountSettings.type = "button";
-  accountSettings.setAttribute("role", "menuitem");
-  accountSettings.disabled = true;
-  accountSettings.textContent = "Account settings";
-
   const divider = document.createElement("div");
   divider.className = "user-menu-divider";
   divider.setAttribute("aria-hidden", "true");
@@ -131,7 +123,7 @@ function ensureTopbarMenu(){
   logout.setAttribute("role", "menuitem");
   logout.textContent = "Log out";
 
-  dropdown.append(viewPlayer, accountSettings, divider, logout);
+  dropdown.append(viewPlayer, divider, logout);
   menu.append(greeting, button, dropdown);
   topbarInner.appendChild(menu);
   return menu;
