@@ -323,16 +323,20 @@
       text-transform:uppercase;
     }
     .format-table-wrap{
-      overflow-x:visible;
+      overflow:hidden;
       -webkit-overflow-scrolling:touch;
       border:1px solid rgba(148,163,184,0.18);
       border-radius:12px;
+      background:rgba(255,255,255,0.04);
     }
     .format-table{
       width:100%;
-      border-collapse:collapse;
+      border-collapse:separate;
+      border-spacing:0;
       table-layout:fixed;
-      background:rgba(255,255,255,0.04);
+      background:transparent;
+      border-radius:12px;
+      overflow:hidden;
     }
     .format-table th,
     .format-table td{
@@ -349,15 +353,18 @@
       font-weight:950;
       letter-spacing:.10em;
       text-transform:uppercase;
-      white-space:nowrap;
+      white-space:normal;
     }
     .format-table td{
       color:rgba(233,238,248,0.88);
       font-size:13px;
       font-weight:750;
       line-height:1.35;
+      text-align:center;
     }
     .format-table tr:last-child td{ border-bottom:0; }
+    .format-table th:last-child,
+    .format-table td:last-child{ border-right:0; }
     .format-rule-list{
       display:grid;
       gap:12px;
@@ -447,6 +454,8 @@
     }
     .rank-cell{
       width:var(--rank-col);
+      min-width:var(--rank-col);
+      max-width:var(--rank-col);
       color:#fff;
       font-size:18px;
       font-weight:950;
@@ -517,6 +526,8 @@
     }
     .total-cell{
       width:var(--total-col);
+      min-width:var(--total-col);
+      max-width:var(--total-col);
       color:rgba(233,238,248,0.98);
       font-size:18px;
       font-weight:950;
@@ -530,19 +541,31 @@
     }
     .sticky-col{
       position:sticky;
-      z-index:2;
+      z-index:5;
       background:var(--row-bg);
     }
     .leaderboard-table tbody tr:nth-child(even) .sticky-col{ background:var(--row-bg-2); }
     thead .sticky-col{
-      z-index:4;
+      z-index:8;
       background:var(--header-bg);
     }
-    .sticky-rank{ left:0; }
-    .sticky-name{ left:var(--rank-col); }
+    .sticky-rank{
+      left:0;
+      z-index:7;
+    }
+    .sticky-name{
+      left:var(--rank-col);
+      z-index:7;
+    }
     .sticky-total{
       left:calc(var(--rank-col) + var(--name-sticky-col));
-      box-shadow:8px 0 14px rgba(0,0,0,0.24);
+      z-index:7;
+      box-shadow:inset -1px 0 rgba(148,163,184,0.14), 8px 0 14px rgba(0,0,0,0.24);
+    }
+    thead .sticky-rank,
+    thead .sticky-name,
+    thead .sticky-total{
+      z-index:10;
     }
     .cut-row td{
       opacity:.82;
@@ -550,14 +573,14 @@
     }
     .cut-heading-row td{
       height:38px;
-      padding:0 16px;
+      padding:0 16px 0 22px;
       border-top:2px solid var(--border-strong);
       border-bottom:1px solid rgba(251,113,133,0.18);
       background:rgba(251,113,133,0.08);
     }
     .no-scores-heading-row td{
       height:38px;
-      padding:0 16px;
+      padding:0 16px 0 22px;
       border-top:2px solid var(--border-strong);
       border-bottom:1px solid rgba(148,163,184,0.18);
       background:rgba(148,163,184,0.08);
@@ -644,6 +667,16 @@
         background:var(--row-bg);
         border-top:1px solid rgba(148,163,184,0.10);
       }
+      .leaderboard-table .sticky-col{
+        border-right-color:transparent;
+      }
+      .sticky-rank,
+      .sticky-name{
+        box-shadow:inset -1px 0 rgba(148,163,184,0.16);
+      }
+      .sticky-total{
+        box-shadow:inset -1px 0 rgba(148,163,184,0.18), 10px 0 16px rgba(0,0,0,0.34);
+      }
       .rank-cell{ font-size:13px; }
       .rank-cell.cut-rank{
         font-size:8px;
@@ -676,11 +709,11 @@
       .name-cell{ padding-left:6px !important; padding-right:6px !important; }
       .cut-heading-row td{
         height:34px;
-        padding:0 12px;
+        padding:0 12px 0 18px;
       }
       .no-scores-heading-row td{
         height:34px;
-        padding:0 12px;
+        padding:0 12px 0 18px;
       }
       .cut-row td{
         opacity:1;
@@ -1155,5 +1188,6 @@
 
     loadLeaderboard();
   </script>
+  <script type="module" src="/site-topbar.js"></script>
 </body>
 </html>
