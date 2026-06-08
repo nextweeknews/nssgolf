@@ -47,6 +47,9 @@ const statusEl = document.getElementById("player-status");
 const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
 const PROLEAGUE_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const PROLEAGUE_SHEET_ID = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+const NOPTATIONAL_SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
+const NOPTATIONAL_SHEET_NAME = "Round Scores (2026)";
+const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
 const PROLEAGUE_MAX_SEASON_TO_CHECK = 7;
 const PROLEAGUE_MANUAL_INITIAL_PERIOD = { enabled: true, season: 7, stage: 2 };
 const PROLEAGUE_PLAYER_STANDINGS_A1 = "AE4:AH101";
@@ -85,6 +88,23 @@ const PROLEAGUE_TEAM_STYLES = {
   "FLAG SMOKERS": { bg: "#03384B", fg: "#ffffff" },
   "REVERIE": { bg: "#d9d2e9", fg: "#00367a" },
 };
+const NOPTATIONAL_COURSES = [
+  { key: "classic", name: "Classic", minimum: -12, columns: [1, 2] },
+  { key: "resort", name: "Resort", minimum: -10, columns: [3, 4] },
+  { key: "specials", name: "Specials", minimum: -3, columns: [5, 6, 7] },
+  { key: "eighteen", name: "18 Holes", minimum: -22, columns: [8, 9] },
+];
+const NOPTATIONAL_SCORE_COLUMNS = [
+  { course: "classic", title: "Classic R1", column: 1 },
+  { course: "classic", title: "Classic R2", column: 2 },
+  { course: "resort", title: "Resort R1", column: 3 },
+  { course: "resort", title: "Resort R2", column: 4 },
+  { course: "specials", title: "Specials R1", column: 5 },
+  { course: "specials", title: "Specials R2", column: 6 },
+  { course: "specials", title: "Specials R3", column: 7 },
+  { course: "eighteen", title: "18 Holes R1", column: 8 },
+  { course: "eighteen", title: "18 Holes R2", column: 9 },
+];
 const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
 let proLeagueDetectionPromise = null;
@@ -468,6 +488,9 @@ function proLeagueTeamStyle(name){
 
 function normalizeProLeagueValues(resp){
   if(!resp) return [];
+  if(resp.error){
+    throw new Error(resp.error.message || "Google Sheets request failed.");
+  }
   if(Array.isArray(resp)) return resp;
   if(Array.isArray(resp.values)) return resp.values;
   if(Array.isArray(resp.data?.values)) return resp.data.values;
@@ -475,8 +498,8 @@ function normalizeProLeagueValues(resp){
   return [];
 }
 
-async function fetchProLeagueRange(range){
-  const payload = { sheetId: PROLEAGUE_SHEET_ID, range };
+async function fetchSheetRange(sheetId, range){
+  const payload = { sheetId, range };
 
   try{
     const response = await fetch(PROLEAGUE_WORKER_URL, {
@@ -485,17 +508,25 @@ async function fetchProLeagueRange(range){
       body: JSON.stringify(payload),
     });
     if(response.ok) return normalizeProLeagueValues(await response.json());
-  }catch{}
+  }catch(error){
+    if(error?.message && !/Failed to fetch|NetworkError|Load failed/i.test(error.message)){
+      throw error;
+    }
+  }
 
   const url = new URL(PROLEAGUE_WORKER_URL);
-  url.searchParams.set("sheetId", PROLEAGUE_SHEET_ID);
+  url.searchParams.set("sheetId", sheetId);
   url.searchParams.set("range", range);
   const response = await fetch(url.toString());
   if(!response.ok){
     const text = await response.text().catch(() => "");
-    throw new Error(`Pro League sheet request failed (${response.status}). ${text}`.trim());
+    throw new Error(`Sheet request failed (${response.status}). ${text}`.trim());
   }
   return normalizeProLeagueValues(await response.json());
+}
+
+async function fetchProLeagueRange(range){
+  return fetchSheetRange(PROLEAGUE_SHEET_ID, range);
 }
 
 function proLeagueRowHasAnyValue(row){
@@ -521,6 +552,183 @@ function proLeagueFmtScore(value){
 
 function proLeagueRankClass(rank){
   return rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : "";
+}
+
+function parseNoptationalScore(value){
+  const raw = String(value ?? "").trim();
+  if(!raw) return null;
+  if(/^e$/i.test(raw)) return 0;
+  const cleaned = raw.replace(/[^\d.+-]/g, "");
+  if(!cleaned || cleaned === "+" || cleaned === "-") return null;
+  const number = Number(cleaned);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatNoptationalScore(value){
+  if(value === null || value === undefined || value === "") return "-";
+  const number = typeof value === "number" ? value : parseNoptationalScore(value);
+  if(number === null) return String(value);
+  if(number === 0 || Object.is(number, -0)) return "E";
+  return number > 0 ? `+${number}` : String(number);
+}
+
+function parseNoptationalPlayerCell(value){
+  const lines = String(value ?? "")
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+  return {
+    display: lines[0] || "",
+    username: lines[1] || "",
+  };
+}
+
+function normalizeNoptationalUsername(value){
+  return String(value ?? "").trim().replace(/^@+/, "").toLowerCase();
+}
+
+function scoreNoptationalCourse(row, course){
+  const attempts = course.columns.map((column) => ({
+    column,
+    value: row?.[column] ?? "",
+    score: parseNoptationalScore(row?.[column]),
+  }));
+  const numeric = attempts.filter(attempt => attempt.score !== null);
+  if(!numeric.length){
+    return { attempts, best: null, roundTotal: 0, roundCount: 0, hasScore: false, madeCut: null };
+  }
+  const best = Math.min(...numeric.map(attempt => attempt.score));
+  return {
+    attempts,
+    best,
+    roundTotal: numeric.reduce((sum, attempt) => sum + attempt.score, 0),
+    roundCount: numeric.length,
+    hasScore: true,
+    madeCut: best <= course.minimum,
+  };
+}
+
+function buildNoptationalPlayers(values){
+  return (values || []).slice(1).map((row, index) => {
+    const { display, username } = parseNoptationalPlayerCell(row?.[0]);
+    if(!display) return null;
+
+    const courseResults = {};
+    let cutCourse = null;
+    let total = 0;
+    let countedCount = 0;
+
+    NOPTATIONAL_COURSES.forEach((course) => {
+      const result = scoreNoptationalCourse(row, course);
+      courseResults[course.key] = result;
+      total += result.roundTotal;
+      countedCount += result.roundCount;
+
+      if(!cutCourse && result.hasScore && !result.madeCut){
+        cutCourse = course;
+      }
+    });
+
+    return {
+      id: `noptational-${index}`,
+      display,
+      username,
+      usernameKey: normalizeNoptationalUsername(username),
+      row,
+      courseResults,
+      cutCourse,
+      total,
+      countedCount,
+      rank: null,
+    };
+  }).filter(Boolean);
+}
+
+function compareNoptationalPlayers(a, b){
+  if(a.total !== b.total) return a.total - b.total;
+  if(a.countedCount !== b.countedCount) return b.countedCount - a.countedCount;
+  return a.display.localeCompare(b.display, undefined, { sensitivity: "base" });
+}
+
+function rankNoptationalContenders(players){
+  const sorted = [...players].sort(compareNoptationalPlayers);
+  let previousTotal = null;
+  let previousRank = 0;
+  sorted.forEach((player, index) => {
+    if(index === 0 || player.total !== previousTotal){
+      previousRank = index + 1;
+      previousTotal = player.total;
+    }
+    player.rank = previousRank;
+  });
+  return sorted;
+}
+
+async function loadNoptationalPlayer(member){
+  const values = await fetchSheetRange(NOPTATIONAL_SHEET_ID, NOPTATIONAL_SHEET_RANGE);
+  const players = buildNoptationalPlayers(values);
+  const playersWithScores = players.filter(player => player.countedCount > 0);
+  rankNoptationalContenders(playersWithScores.filter(player => !player.cutCourse));
+
+  const usernameKey = normalizeNoptationalUsername(member?.username);
+  const displayKey = String(displayNameFor(member)).trim().toLowerCase();
+  return players.find(player => usernameKey && player.usernameKey === usernameKey)
+    || players.find(player => String(player.display || "").trim().toLowerCase() === displayKey)
+    || null;
+}
+
+function renderNoptationalPlayerTable(player){
+  const state = player.cutCourse ? "cut" : player.countedCount ? "active" : "no-scores";
+  const rankText = state === "cut" ? "Cut" : state === "no-scores" ? "-" : String(player.rank ?? "-");
+  const totalText = player.countedCount ? formatNoptationalScore(player.total) : "-";
+  const scoreCells = NOPTATIONAL_SCORE_COLUMNS.map((scoreColumn) => {
+    const value = player.row?.[scoreColumn.column] ?? "";
+    return `<td title="${escapeHtml(scoreColumn.title)}">${escapeHtml(formatNoptationalScore(value))}</td>`;
+  }).join("");
+
+  const table = document.createElement("div");
+  table.className = "tournament-history";
+  table.innerHTML = `
+    <h3 class="tournament-title">Noptational</h3>
+    <div class="tournament-table-wrap">
+      <table class="tournament-table noptational-player-table">
+        <thead>
+          <tr>
+            <th rowspan="2">Rank</th>
+            <th rowspan="2">Total</th>
+            ${NOPTATIONAL_COURSES.map(course => `<th colspan="${course.columns.length}">${escapeHtml(course.name)}</th>`).join("")}
+          </tr>
+          <tr>
+            ${NOPTATIONAL_COURSES.map(course => course.columns.map((column, index) => `<th>${index + 1}</th>`).join("")).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="${state === "cut" ? "is-cut" : state === "no-scores" ? "is-no-scores" : ""}">
+            <td>${escapeHtml(rankText)}</td>
+            <td>${escapeHtml(totalText)}</td>
+            ${scoreCells}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  return table;
+}
+
+function createProfileSummary(label){
+  const summary = document.createElement("summary");
+  summary.className = "proleague-summary";
+  summary.innerHTML = `
+    <span class="proleague-summary-title">
+      <span>${escapeHtml(label)}</span>
+      <span class="proleague-summary-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </span>
+    </span>
+  `;
+  return summary;
 }
 
 function isProLeagueStagedSeason(season){
@@ -1055,16 +1263,7 @@ function renderProLeagueSection(aliasNames){
   const details = document.createElement("details");
   details.className = "proleague-details";
 
-  const summary = document.createElement("summary");
-  summary.className = "proleague-summary";
-  summary.innerHTML = `
-    <span class="proleague-summary-title">Shotgun Pro League</span>
-    <span class="proleague-summary-icon" aria-hidden="true">
-      <svg viewBox="0 0 24 24" focusable="false">
-        <path d="m6 9 6 6 6-6"></path>
-      </svg>
-    </span>
-  `;
+  const summary = createProfileSummary("Shotgun Pro League");
 
   const content = document.createElement("div");
   content.className = "proleague-content";
@@ -1088,6 +1287,43 @@ function renderProLeagueSection(aliasNames){
     }catch(error){
       console.error("Unable to load Pro League player history", error);
       content.innerHTML = `<div class="proleague-error">Unable to load Shotgun Pro League data.</div>`;
+    }
+  });
+
+  return section;
+}
+
+function renderTournamentsSection(member){
+  const section = document.createElement("section");
+  section.className = "profile-section proleague-section tournaments-section";
+
+  const details = document.createElement("details");
+  details.className = "proleague-details";
+
+  const summary = createProfileSummary("Tournaments");
+
+  const content = document.createElement("div");
+  content.className = "proleague-content";
+  content.innerHTML = `<div class="proleague-loading">Loading tournament data...</div>`;
+
+  details.append(summary, content);
+  section.appendChild(details);
+
+  let loaded = false;
+  details.addEventListener("toggle", async () => {
+    if(!details.open || loaded) return;
+    loaded = true;
+    try{
+      const player = await loadNoptationalPlayer(member);
+      content.innerHTML = "";
+      if(!player){
+        content.innerHTML = `<p class="profile-muted proleague-empty">No Noptational row found.</p>`;
+        return;
+      }
+      content.appendChild(renderNoptationalPlayerTable(player));
+    }catch(error){
+      console.error("Unable to load Noptational player history", error);
+      content.innerHTML = `<div class="proleague-error">Unable to load tournament data.</div>`;
     }
   });
 
@@ -1212,7 +1448,7 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
   const sinceDate = formatLongDate(member.joined_at);
   const memberSince = document.createElement("p");
   memberSince.className = "profile-muted";
-  memberSince.textContent = sinceDate ? `Member since ${sinceDate}` : "Member since unavailable";
+  memberSince.textContent = sinceDate ? `Joined ${sinceDate}` : "Joined date unavailable";
 
   headingWrap.append(name, memberSince);
   header.append(avatar, headingWrap);
@@ -1278,6 +1514,8 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
   if(proLeagueSection){
     card.appendChild(proLeagueSection);
   }
+
+  card.appendChild(renderTournamentsSection(member));
 
   rootEl.appendChild(card);
   setStatus("");

@@ -448,23 +448,27 @@
     }
     .proleague-summary{
       position: relative;
-      width: 100%;
+      width: fit-content;
+      max-width: 100%;
       cursor: pointer;
       list-style: none;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 42px;
-      border: 1px solid rgba(255,255,255,0.10);
-      background: rgba(6,24,46,0.72);
-      border-radius: 12px;
-      padding: 12px 14px;
+      justify-content: flex-start;
+      gap: 6px;
+      min-height: 26px;
+      border: 0;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
       color: rgba(255,255,255,0.95);
       user-select: none;
     }
     .proleague-summary::-webkit-details-marker{ display:none; }
     .proleague-summary-title{
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       font-size: 12px;
       font-weight: 950;
       letter-spacing: .10em;
@@ -655,6 +659,63 @@
     }
     .proleague-history .stage-rounds tr:nth-child(even) td{ background: var(--row-bg-2); }
     .proleague-history .stage-rounds td.sep-right{ border-right: 2px solid var(--sep); }
+    .tournament-history{
+      width: 100%;
+      min-width: 0;
+    }
+    .tournament-title{
+      margin: 0 0 8px;
+      color: rgba(255,255,255,0.92);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .tournament-table-wrap{
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid rgba(148,163,184,0.28);
+      background: rgba(6,24,46,0.72);
+      -webkit-overflow-scrolling: touch;
+    }
+    .tournament-table{
+      width: 100%;
+      min-width: 640px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: rgba(15,23,42,0.86);
+      color: rgba(233,238,248,0.92);
+      font-size: 11px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+    .tournament-table th,
+    .tournament-table td{
+      border: 1px solid rgba(148,163,184,0.20);
+      padding: 8px 5px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .tournament-table thead th{
+      background: rgba(15,23,42,0.95);
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .tournament-table tbody td{
+      background: rgba(255,255,255,0.045);
+      font-size: 15px;
+      font-weight: 950;
+    }
+    .tournament-table tbody tr.is-cut td{
+      color: rgba(252,165,165,0.98);
+      background: rgba(127,29,29,0.22);
+    }
+    .tournament-table tbody tr.is-no-scores td{
+      color: rgba(233,238,248,0.70);
+    }
     .status{
       margin: 0 auto 18px;
       min-height: 22px;
@@ -710,6 +771,21 @@
         padding: 7px 3px;
         font-size: 10px;
       }
+      .tournament-table{
+        min-width: 540px;
+        font-size: 10px;
+      }
+      .tournament-table th,
+      .tournament-table td{
+        padding: 7px 3px;
+      }
+      .tournament-table thead th{
+        font-size: 8px;
+        letter-spacing: .04em;
+      }
+      .tournament-table tbody td{
+        font-size: 11px;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -743,7 +819,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260608-proleague"></script>
+  <script type="module" src="/player-profile.js?v=20260608-tournaments"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {
