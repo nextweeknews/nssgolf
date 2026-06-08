@@ -7,7 +7,7 @@ function FormatTable(){
   const levels = [
     { level: "Level 1", course: "Classic", rounds: "2", scoreMinimum: "-12" },
     { level: "Level 2", course: "Resort", rounds: "2", scoreMinimum: "-10" },
-    { level: "Level 3", course: "Bonus", rounds: "3", scoreMinimum: "-3" },
+    { level: "Level 3", course: "Special", rounds: "3", scoreMinimum: "-3" },
     { level: "Level 4", course: "18 Hole", rounds: "2", scoreMinimum: "-22" },
   ];
 
@@ -41,11 +41,9 @@ function FormatPanel(){
   return (
     <div className="format-content">
       <section className="format-intro">
-        <h2 className="format-title">All 21 Holes Count</h2>
         <p className="format-copy">
-          This tournament will have all 21 holes played across multiple levels, with a minimum score cutoff. Do not give up early in any round, because your score from every level counts toward your final score total.
+          This Tournament will have ALL 21 Holes played, across multiple levels, with a minimum score cutoff! Make sure to not give up early each round, because your score from EVERY LEVEL will be counted toward your Final Score Total. The player that survives elimination after all 4 Levels AND has the best Final Score Total will be dubbed, <strong>“TopNotchOne”</strong>
         </p>
-        <p className="format-copy">Champion title: TopNotchOne</p>
       </section>
 
       <section className="format-section">
