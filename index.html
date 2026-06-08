@@ -420,6 +420,28 @@
       border-color: rgba(253,230,138,0.95);
       background: var(--btn-bg-hover);
     }
+    .btn.light-green{
+      color: #bef264;
+      border-color: rgba(190,242,100,0.9);
+      box-shadow: 0 0 12px rgba(190,242,100,0.38), 0 0 24px rgba(132,204,22,0.18);
+      text-shadow: 0 0 8px rgba(190,242,100,0.78);
+    }
+    .btn.light-green:hover{
+      color: #d9f99d;
+      border-color: rgba(217,249,157,0.95);
+      background: var(--btn-bg-hover);
+    }
+    .btn.royal-blue{
+      color: #60a5fa;
+      border-color: rgba(37,99,235,0.95);
+      box-shadow: 0 0 12px rgba(37,99,235,0.48), 0 0 24px rgba(29,78,216,0.24);
+      text-shadow: 0 0 8px rgba(96,165,250,0.85);
+    }
+    .btn.royal-blue:hover{
+      color: #93c5fd;
+      border-color: rgba(96,165,250,0.95);
+      background: var(--btn-bg-hover);
+    }
     .btn.neon-gradient{
       border: 1px solid transparent;
       border-image: linear-gradient(90deg, #7dd3fc, #f6ff6a) 1;
@@ -630,8 +652,8 @@
 
       <div class="league-section" id="happening-now-section" aria-labelledby="happening-now-tab">
         <div class="actions">
-          <a class="btn neon-red" href="https://teamupdiscord.com/leaderboard/client/DISCORD%7C1069003073311211601/leaderboard/Season_12/rating_type/player_global_all/format/global" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
-            Ranked League - Season 12
+          <a class="btn neon-red" id="rankedLeagueButton" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
+            Ranked League
           </a>
 
           <a class="btn neon-blue" href="/proleague" aria-label="Go to Pro League">
@@ -656,7 +678,7 @@
         <div class="upcoming-schedule">
           <div class="schedule-row">
             <span class="schedule-month">JUL</span>
-            <a class="btn gold" href="/championship.html" aria-label="Go to World Championship">
+            <a class="btn light-green" href="/championship.html" aria-label="Go to World Championship">
               World Championship
             </a>
           </div>
@@ -668,7 +690,7 @@
           </div>
           <div class="schedule-row">
             <span class="schedule-month">NOV</span>
-            <a class="btn gold" href="/worldcup.html" aria-label="Go to World Cup">
+            <a class="btn royal-blue" href="/worldcup.html" aria-label="Go to World Cup">
               World Cup
             </a>
           </div>
@@ -710,10 +732,12 @@
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { RANKED_LEAGUE_TEAMUP_URL } from "/ranked-league-config.js";
 
     const supabase = createBrowserSupabaseClient();
     const leagueTabs = Array.from(document.querySelectorAll(".league-tabs .tab-button[data-target]"));
     const leagueSections = Array.from(document.querySelectorAll("#happening-now-section, #upcoming-section, #archive-section"));
+    const rankedLeagueButton = document.getElementById("rankedLeagueButton");
     const playerSearchEl = document.getElementById("playerSearch");
     const playerSearchInput = document.getElementById("playerSearchInput");
     const playerSearchResults = document.getElementById("playerSearchResults");
@@ -721,6 +745,10 @@
     const MEMBER_PAGE_SIZE = 1000;
     let memberSearchRows = [];
     let memberSearchPromise = null;
+
+    if(rankedLeagueButton){
+      rankedLeagueButton.href = RANKED_LEAGUE_TEAMUP_URL;
+    }
 
     function setActiveLeagueTab(targetId){
       for(const section of leagueSections){
