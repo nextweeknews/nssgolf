@@ -435,6 +435,230 @@
       color: #f8fbff;
       text-decoration: none;
     }
+    .proleague-section{
+      --gold: #facc15;
+      --silver: #e2e8f0;
+      --bronze: #fb923c;
+      --row-bg: rgba(255,255,255,0.045);
+      --row-bg-2: rgba(148,163,184,0.10);
+      --sep: rgba(255,255,255,0.24);
+    }
+    .proleague-details{
+      width: 100%;
+    }
+    .proleague-summary{
+      position: relative;
+      width: 100%;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 42px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(6,24,46,0.72);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: rgba(255,255,255,0.95);
+      user-select: none;
+    }
+    .proleague-summary::-webkit-details-marker{ display:none; }
+    .proleague-summary::after{
+      content: "⌄";
+      flex: 0 0 auto;
+      color: rgba(233,238,248,0.72);
+      font-size: 16px;
+      line-height: 1;
+      transition: transform .16s ease;
+    }
+    .proleague-details[open] .proleague-summary::after{
+      transform: rotate(180deg);
+    }
+    .proleague-summary-title{
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .proleague-summary-meta{
+      min-width: 0;
+      color: rgba(233,238,248,0.62);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .06em;
+      line-height: 1.2;
+      text-transform: uppercase;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .proleague-content{
+      margin-top: 12px;
+    }
+    .proleague-loading,
+    .proleague-error,
+    .proleague-empty{
+      margin: 0;
+      padding: 12px 2px 2px;
+      color: rgba(233,238,248,0.72);
+      font-size: 12px;
+      font-weight: 850;
+      text-align: center;
+    }
+    .proleague-error{
+      color: rgba(252,165,165,0.95);
+    }
+    .proleague-history .season-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .proleague-history .season-entry{
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .proleague-history .season-entry + .season-entry{ margin-top: 10px; }
+    .proleague-history .season-entry-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .proleague-history .season-entry-name{
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,0.92);
+    }
+    .proleague-history .stage-block{ padding-top: 8px; }
+    .proleague-history .stage-block + .stage-block{
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+      padding-top: 12px;
+    }
+    .proleague-history .stage-header{
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      color: rgba(255,255,255,0.70);
+      margin-bottom: 8px;
+    }
+    .proleague-history .btn-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      justify-content: flex-end;
+      -webkit-overflow-scrolling: touch;
+    }
+    .proleague-history .btn-row + .btn-row{ margin-top: 8px; }
+    .proleague-history .chip{
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      border-radius: 12px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .proleague-history .chip.rank{
+      background: rgba(255,255,255,0.04);
+      color: var(--title);
+      border-color: rgba(255,255,255,0.10);
+    }
+    .proleague-history .chip.rank.gold{
+      color: var(--gold);
+      border-color: rgba(250,204,21,0.65);
+    }
+    .proleague-history .chip.rank.silver{
+      color: var(--silver);
+      border-color: rgba(226,232,240,0.65);
+    }
+    .proleague-history .chip.rank.bronze{
+      color: var(--bronze);
+      border-color: rgba(251,146,60,0.6);
+    }
+    .proleague-history .chip.rank.blue{
+      color: rgba(186,230,253,0.95);
+      border-color: rgba(56,189,248,0.6);
+    }
+    .proleague-history .chip.team{
+      background: var(--team-bg, rgba(255,255,255,0.06));
+      color: var(--team-fg, rgba(255,255,255,0.92));
+      border-color: rgba(255,255,255,0.14);
+      justify-content: center;
+      text-align: center;
+    }
+    .proleague-history .chip.score{
+      background: #d9d9d9;
+      color: #000000;
+      border-color: rgba(0,0,0,0.08);
+      letter-spacing: .08em;
+    }
+    .proleague-history table.stage-rounds{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      table-layout: fixed;
+      margin-top: 10px;
+    }
+    .proleague-history .stage-rounds thead th{
+      background: rgba(15,23,42,0.92);
+      padding: 6px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .proleague-history .stage-rounds td{
+      padding: 8px 6px;
+      font-size: 10px;
+      color: rgba(233,238,248,0.92);
+      text-align: center;
+      font-weight: 950;
+      background: var(--row-bg);
+      border-top: 1px solid rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      font-variant-numeric: tabular-nums;
+    }
+    .proleague-history .stage-rounds td.counted{
+      color: rgba(190,242,100,0.98);
+      background: rgba(132,204,22,0.14);
+    }
+    .proleague-history .stage-rounds tr:nth-child(even) td{ background: var(--row-bg-2); }
+    .proleague-history .stage-rounds td.sep-right{ border-right: 2px solid var(--sep); }
     .status{
       margin: 0 auto 18px;
       min-height: 22px;
@@ -474,6 +698,36 @@
       .ranked-table thead th{ font-size: 9px; letter-spacing: .04em; }
       .ranked-table tbody td,
       .ranked-table tbody th{ font-size: 10px; }
+      .proleague-summary{
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .proleague-summary::after{
+        position: absolute;
+        right: 14px;
+        top: 13px;
+      }
+      .proleague-summary-meta{
+        max-width: calc(100% - 24px);
+        text-align: left;
+      }
+      .proleague-history .btn-row{
+        justify-content: flex-start;
+      }
+      .proleague-history .chip{
+        font-size: 10px;
+        letter-spacing: .06em;
+      }
+      .proleague-history .stage-rounds thead th{
+        font-size: 8px;
+        letter-spacing: .04em;
+        padding: 5px 2px;
+      }
+      .proleague-history .stage-rounds td{
+        padding: 7px 3px;
+        font-size: 10px;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -507,7 +761,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260605-verified-badge-check"></script>
+  <script type="module" src="/player-profile.js?v=20260608-proleague"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {

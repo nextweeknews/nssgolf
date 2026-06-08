@@ -18,18 +18,40 @@ create table if not exists public.player_league_aliases (
   league_player_name text not null check (length(trim(league_player_name)) > 0),
   league_player_key text generated always as (public.normalize_player_alias_key(league_player_name)) stored,
   guild_id text not null check (guild_id ~ '^[0-9]+$'),
-  discord_user_id text not null check (discord_user_id ~ '^[0-9]+$'),
+  discord_user_id text check (discord_user_id is null or discord_user_id ~ '^[0-9]+$'),
   active boolean not null default true,
   source text not null default 'manual',
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (league_key, league_player_key),
+  constraint player_league_aliases_active_discord_user_id_check
+    check (active = false or discord_user_id is not null),
   foreign key (guild_id, discord_user_id)
     references public.discord_guild_members (guild_id, discord_user_id)
     on update cascade
     on delete restrict
 );
+
+alter table public.player_league_aliases
+alter column discord_user_id drop not null;
+
+alter table public.player_league_aliases
+drop constraint if exists player_league_aliases_discord_user_id_check;
+
+alter table public.player_league_aliases
+drop constraint if exists player_league_aliases_discord_user_id_format_check;
+
+alter table public.player_league_aliases
+add constraint player_league_aliases_discord_user_id_format_check
+check (discord_user_id is null or discord_user_id ~ '^[0-9]+$');
+
+alter table public.player_league_aliases
+drop constraint if exists player_league_aliases_active_discord_user_id_check;
+
+alter table public.player_league_aliases
+add constraint player_league_aliases_active_discord_user_id_check
+check (active = false or discord_user_id is not null);
 
 create index if not exists player_league_aliases_discord_user_idx
 on public.player_league_aliases (guild_id, discord_user_id)
