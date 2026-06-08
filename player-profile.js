@@ -3,6 +3,10 @@ import {
   CURRENT_RANKED_LEAGUE_SEASON,
   RANKED_LEAGUE_TEAMUP_URL,
   RANKED_LEAGUE_WORKER_URL,
+  SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
+  SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
+  SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
+  SUPER_LEAGUE_SEASON,
 } from "/ranked-league-config.js";
 
 const RECORD_GROUPS = [
@@ -48,13 +52,17 @@ const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
 const PROLEAGUE_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const PROLEAGUE_SHEET_ID = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 const SUPERLEAGUE_SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
-const SUPERLEAGUE_SHEET_NAME = "Season 6";
+const SUPERLEAGUE_SHEET_NAME = SUPER_LEAGUE_SEASON;
 const SUPERLEAGUE_DISCORD_IDS_SHEET = "Discord IDs";
 const NOPTATIONAL_SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
 const NOPTATIONAL_SHEET_NAME = "Round Scores (2026)";
 const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
-const PROLEAGUE_MAX_SEASON_TO_CHECK = 7;
-const PROLEAGUE_MANUAL_INITIAL_PERIOD = { enabled: true, season: 7, stage: 2 };
+const PROLEAGUE_MAX_SEASON_TO_CHECK = SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK;
+const PROLEAGUE_MANUAL_INITIAL_PERIOD = {
+  enabled: true,
+  season: SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
+  stage: SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
+};
 const PROLEAGUE_PLAYER_STANDINGS_A1 = "AE4:AH101";
 const PROLEAGUE_LOOKUP_RANGE_A1 = "A3:S250";
 const PROLEAGUE_DETECT_R1 = "L5:S63";
@@ -119,8 +127,8 @@ const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
 let proLeagueDetectionPromise = null;
-let proLeagueCurrentSeason = 7;
-let proLeagueCurrentStage = 1;
+let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
+let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
 let proLeagueStageDataBySeason = new Map();
 

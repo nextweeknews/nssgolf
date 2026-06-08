@@ -1634,7 +1634,7 @@
     <div class="card">
       <section id="seasonPage">
         <div class="season-head">
-          <h1 class="headline">Season 6 Standings</h1>
+          <h1 class="headline" data-superleague-season-title="Standings">Standings</h1>
         </div>
 
         <p class="status" id="status"></p>
@@ -1662,7 +1662,7 @@
 
       <section id="qualifiersPage" hidden>
         <div class="season-head">
-          <h1 class="headline">Season 6 Qualifiers</h1>
+          <h1 class="headline" data-superleague-season-title="Qualifiers">Qualifiers</h1>
         </div>
 
         <div class="qualifiers-layout">
@@ -1718,7 +1718,7 @@
 
       <section id="playoffsPage" hidden>
         <div class="season-head">
-          <h1 class="headline">Season 6 Playoffs</h1>
+          <h1 class="headline" data-superleague-season-title="Playoffs">Playoffs</h1>
         </div>
 
         <div class="playoffs-wrap">
@@ -1870,10 +1870,14 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { SUPER_LEAGUE_SEASON } from "/ranked-league-config.js";
+
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
-    const SHEET_NAME = "Season 6";
+    const SHEET_NAME = SUPER_LEAGUE_SEASON;
+    const SUPER_LEAGUE_SEASON_NUMBER = Number(String(SHEET_NAME).match(/\d+/)?.[0] || 0);
+    const SUPER_LEAGUE_SHORT_SEASON = SUPER_LEAGUE_SEASON_NUMBER ? `S${SUPER_LEAGUE_SEASON_NUMBER}` : "S6";
 
     const DIVISIONS = [
       { title: "Division 1", range: "B3:G10" },
@@ -1883,12 +1887,12 @@
     const SCHEDULE_RANGE = "I2:AB85";
     const QUALIFIER_LIST_RANGE = "A:B";
     const DIVISION_QUALIFICATIONS_RANGE = "A4:C11";
-    const DIVISION_QUALIFICATIONS_SHEET = "S6 Divisions";
+    const DIVISION_QUALIFICATIONS_SHEET = `${SUPER_LEAGUE_SHORT_SEASON} Divisions`;
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
-    const QUALIFIER_BRACKET_SHEET = "S6 Winners Bracket";
+    const QUALIFIER_BRACKET_SHEET = `${SUPER_LEAGUE_SHORT_SEASON} Winners Bracket`;
     const WINNER_THIRD_PLACE_RANGE = "A68:H68";
     const LOSER_BRACKET_RANGE = "A4:H62";
-    const LOSER_BRACKET_SHEET = "S6 Losers Bracket";
+    const LOSER_BRACKET_SHEET = `${SUPER_LEAGUE_SHORT_SEASON} Losers Bracket`;
     const LOSER_THIRD_PLACE_RANGE = "A62:H62";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"];
@@ -1903,6 +1907,13 @@
     const qualifierMobileQuery = window.matchMedia("(max-width: 760px)");
     const playerDivisionLookup = new Map();
     const playerStatsLookup = new Map();
+
+    function applySuperLeagueSeasonHeadings(){
+      document.querySelectorAll("[data-superleague-season-title]").forEach((heading) => {
+        const suffix = heading.getAttribute("data-superleague-season-title") || "";
+        heading.textContent = `${SHEET_NAME} ${suffix}`.trim();
+      });
+    }
 
     function divisionClassFromLabel(label){
       const normalized = String(label ?? "").toLowerCase();
@@ -3456,7 +3467,7 @@
         winnerThirdPlaceValues,
         loserThirdPlaceValues,
       ] = await Promise.all([
-        fetchRange(QUALIFIER_LIST_RANGE, "Season 6 Qualifiers"),
+        fetchRange(QUALIFIER_LIST_RANGE, `${SHEET_NAME} Qualifiers`),
         fetchRange(DIVISION_QUALIFICATIONS_RANGE, DIVISION_QUALIFICATIONS_SHEET),
         fetchRange(QUALIFIER_BRACKET_RANGE, QUALIFIER_BRACKET_SHEET),
         fetchRange(LOSER_BRACKET_RANGE, LOSER_BRACKET_SHEET),
@@ -3530,6 +3541,7 @@
       }
     }
 
+    applySuperLeagueSeasonHeadings();
     setupViewNav();
     setupScheduleNav();
     setupQualifierRoundNav();

@@ -1884,7 +1884,13 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import {
+      SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
+      SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
+      SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
+    } from "/ranked-league-config.js";
+
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 
@@ -1894,10 +1900,14 @@
     //   { enabled:true, season:6, stage:2 }
     //   { enabled:true, season:6, stage:"championship" }
     //   { enabled:true, season:5, stage:null }
-    const MANUAL_INITIAL_PERIOD = { enabled: true, season: 7, stage: 2};
+    const MANUAL_INITIAL_PERIOD = {
+      enabled: true,
+      season: SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
+      stage: SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
+    };
 
     // detection (future-proof ceiling)
-    const MAX_SEASON_TO_CHECK = 7;
+    const MAX_SEASON_TO_CHECK = SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK;
 
     // Sheet ranges
     const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
@@ -2210,8 +2220,8 @@
     }
 
     // Determine if a stage/season period is concluded (for placement trophies / best finishes)
-    let DETECTED_CURRENT_SEASON = 7;
-    let DETECTED_CURRENT_STAGE = 1; // only meaningful for seasons >= 6
+    let DETECTED_CURRENT_SEASON = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
+    let DETECTED_CURRENT_STAGE = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE; // only meaningful for seasons >= 6
     function isPeriodConcluded(seasonNum, stageVal){
       const s = Number(seasonNum);
       if (s < DETECTED_CURRENT_SEASON) return true;
