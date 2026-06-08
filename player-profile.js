@@ -560,6 +560,12 @@ function formatSuperLeagueDiff(value){
   return "0";
 }
 
+function superLeagueSeasonLabel(){
+  const label = String(SUPERLEAGUE_SHEET_NAME || "").trim();
+  const match = label.match(/Season\s+\d+/i);
+  return match ? match[0].replace(/^season/i, "Season") : label || "Season";
+}
+
 function normalizeSuperLeagueDivisionValue(value){
   const text = String(value ?? "").trim();
   const match = text.match(/(\d+)/);
@@ -1411,7 +1417,7 @@ function renderSuperLeaguePlayerPanel(data){
   panel.innerHTML = `
     <div class="superleague-player-panel">
       <div class="superleague-player-head">
-        <h3 class="superleague-player-name">${escapeHtml(data.name)}</h3>
+        <h3 class="superleague-player-name">${escapeHtml(superLeagueSeasonLabel())}</h3>
         <span class="superleague-player-divider" aria-hidden="true">|</span>
         <p class="superleague-player-division ${escapeHtml(data.divisionClass)}">${escapeHtml(data.divisionTitle)}</p>
       </div>
