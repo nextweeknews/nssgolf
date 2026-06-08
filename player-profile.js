@@ -1059,7 +1059,11 @@ function renderProLeagueSection(aliasNames){
   summary.className = "proleague-summary";
   summary.innerHTML = `
     <span class="proleague-summary-title">Shotgun Pro League</span>
-    <span class="proleague-summary-meta">${aliasNames.map(escapeHtml).join(" / ")}</span>
+    <span class="proleague-summary-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path d="m6 9 6 6 6-6"></path>
+      </svg>
+    </span>
   `;
 
   const content = document.createElement("div");
