@@ -7,44 +7,48 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/settings-page.css" />
   <link rel="stylesheet" href="/site-topbar.css" />
+  <link rel="stylesheet" href="/settings-page.css" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="/index.html">NSS Golf</a>
-      <select class="page-selector" aria-label="Navigate to page" onchange="if(this.value) window.location.href=this.value">
-        <option value="/index.html">Home</option>
-        <option value="/records.html">Records</option>
-        <option value="/player-settings.html" selected>Player Settings</option>
-        <option value="/noptational.html">The Noptational</option>
-        <option value="/proleague.html">Shotgun Pro League</option>
-        <option value="/lightningcup/index.html">Lightning Cup</option>
-      </select>
+      <div class="settings-brand">
+        <a class="settings-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title" aria-label="Player Settings">
+          <svg class="topbar-page-title-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <span>Player Settings</span>
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="settings-main">
     <section class="settings-card" aria-labelledby="settings-title">
-      <p class="settings-kicker">Account</p>
       <h1 class="settings-title" id="settings-title">Player Settings</h1>
-      <p class="settings-copy">These optional details appear on your public player page. Global ranks are self-reported and not saved to cloud leaderboards.</p>
+      <p class="settings-copy">These optional details appear on your public player page. Global ranks are self-reported and unofficial.</p>
 
       <form class="settings-form" id="playerSettingsForm" hidden>
-        <div class="settings-grid">
+        <div class="settings-grid settings-grid-profile">
           <label class="settings-field">
-            <span class="settings-label">Country 1</span>
+            <span class="settings-label">Primary Country</span>
             <select class="settings-select" id="country1" name="country_1"></select>
           </label>
           <label class="settings-field">
-            <span class="settings-label">Country 2</span>
+            <span class="settings-label">Secondary Country</span>
             <select class="settings-select" id="country2" name="country_2"></select>
           </label>
-          <label class="settings-field full">
+          <label class="settings-field">
             <span class="settings-label">Time zone</span>
             <select class="settings-select" id="timeZone" name="time_zone"></select>
           </label>
+        </div>
+        <div class="settings-grid settings-grid-ranks">
           <label class="settings-field">
             <span class="settings-label">Current Global Rank</span>
             <select class="settings-select" id="currentRank" name="current_global_rank"></select>
@@ -53,14 +57,13 @@
             <span class="settings-label">Maximum Global Rank (no cloud saves)</span>
             <select class="settings-select" id="maxRankNoCs" name="max_global_rank_no_cs"></select>
           </label>
-          <label class="settings-field full">
+          <label class="settings-field">
             <span class="settings-label">Maximum Global Rank (with cloud saves)</span>
             <select class="settings-select" id="maxRankCs" name="max_global_rank_cs"></select>
           </label>
         </div>
         <div class="settings-actions">
           <button class="settings-button" id="saveSettingsBtn" type="submit">Save Settings</button>
-          <a class="settings-button secondary" id="viewPlayerLink" href="/index.html">View Player Page</a>
         </div>
       </form>
 
@@ -82,7 +85,6 @@
     const loginBtn = document.getElementById("loginBtn");
     const saveBtn = document.getElementById("saveSettingsBtn");
     const statusEl = document.getElementById("settingsStatus");
-    const viewPlayerLink = document.getElementById("viewPlayerLink");
     const country1 = document.getElementById("country1");
     const country2 = document.getElementById("country2");
     const timeZone = document.getElementById("timeZone");
@@ -218,7 +220,6 @@
         return;
       }
 
-      viewPlayerLink.href = `/player.html?id=${encodeURIComponent(currentDiscordId)}`;
       const settings = await loadSettings(currentUser.id);
       setFormValues(settings);
       loginActions.hidden = true;

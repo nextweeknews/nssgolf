@@ -1,23 +1,25 @@
 :root{
   color-scheme: dark;
-  --bg:#06111f;
-  --panel:rgba(9,20,34,0.92);
-  --panel-strong:rgba(13,25,43,0.98);
-  --border:rgba(255,255,255,0.14);
-  --muted:rgba(233,238,248,0.70);
-  --text:#f8fafc;
-  --title:#ffffff;
+  --bg1:#071b34;
+  --bg2:#04142e;
+  --bg3:#020b18;
+  --panel:rgba(15,23,42,1);
+  --panel-strong:rgba(2,6,23,0.86);
+  --border:rgba(255,255,255,0.10);
+  --muted:#9ca3c7;
+  --text:#e9eef8;
+  --title:#c7d7ff;
   --accent:#4f46e5;
   --accent-strong:#6366f1;
+  --accent-blue:#7dd3fc;
 }
 *{ box-sizing:border-box; }
 body{
   margin:0;
   min-height:100vh;
   font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(79,70,229,0.18), transparent 34rem),
-    linear-gradient(180deg, #071527 0%, #030812 100%);
+  background-color:var(--bg3);
+  background-image:linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
   color:var(--text);
 }
 a{ color:inherit; }
@@ -25,26 +27,73 @@ a{ color:inherit; }
   position:sticky;
   top:0;
   z-index:20;
-  background:rgba(3,8,18,0.78);
   border-bottom:1px solid rgba(255,255,255,0.10);
-  backdrop-filter:blur(18px);
+  background:rgba(3,18,42,.70);
+  backdrop-filter:blur(10px);
 }
 .topbar-inner{
-  width:min(1040px, calc(100% - 32px));
-  min-height:64px;
+  max-width:1220px;
   margin:0 auto;
+  padding:14px 18px;
   display:flex;
   align-items:center;
-  gap:18px;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
 }
-.brand{
-  color:#fff;
-  font-size:13px;
-  font-weight:950;
-  letter-spacing:.12em;
+.settings-brand{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.settings-home-btn{
+  width:40px;
+  height:40px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.05);
+  display:grid;
+  place-items:center;
+  overflow:hidden;
   text-decoration:none;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.settings-home-btn:hover{
+  background:rgba(255,255,255,.08);
+  border-color:rgba(255,255,255,.25);
+}
+.settings-home-btn img{
+  width:70%;
+  height:70%;
+  object-fit:contain;
+  display:block;
+  pointer-events:none;
+}
+.topbar-page-title{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  color:rgba(233,238,248,0.88);
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.12em;
+  line-height:1;
   text-transform:uppercase;
   white-space:nowrap;
+}
+.topbar-page-title-icon{
+  width:17px;
+  height:17px;
+  color:var(--accent-blue);
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  flex:0 0 auto;
 }
 .page-selector{
   appearance:none;
@@ -59,15 +108,15 @@ a{ color:inherit; }
   text-transform:uppercase;
 }
 .settings-main{
-  width:min(760px, calc(100% - 32px));
-  margin:36px auto 64px;
+  width:min(1220px, calc(100% - 36px));
+  margin:22px auto 52px;
 }
 .settings-card{
   border:1px solid var(--border);
-  border-radius:16px;
+  border-radius:20px;
   background:var(--panel);
-  box-shadow:0 28px 80px rgba(0,0,0,0.34);
-  padding:28px;
+  box-shadow:0 32px 32px rgba(0,0,0,0.65);
+  padding:18px;
 }
 .settings-kicker{
   margin:0 0 8px;
@@ -80,26 +129,27 @@ a{ color:inherit; }
 .settings-title{
   margin:0;
   color:var(--title);
-  font-size:clamp(28px, 5vw, 42px);
+  font-size:26px;
   font-weight:950;
-  line-height:1;
-  letter-spacing:0;
+  line-height:1.05;
+  letter-spacing:.045em;
+  text-transform:uppercase;
 }
 .settings-copy{
-  margin:12px 0 0;
-  color:var(--muted);
-  font-size:14px;
-  font-weight:700;
-  line-height:1.55;
+  margin:6px 0 0;
+  color:rgba(233,238,248,0.76);
+  font-size:13px;
+  font-weight:500;
+  line-height:1.45;
 }
 .settings-form{
   display:grid;
-  gap:16px;
-  margin-top:26px;
+  gap:14px;
+  margin-top:18px;
 }
 .settings-grid{
   display:grid;
-  grid-template-columns:repeat(2, minmax(0, 1fr));
+  grid-template-columns:repeat(3, minmax(0, 1fr));
   gap:14px;
 }
 .settings-field{
@@ -115,6 +165,7 @@ a{ color:inherit; }
   font-weight:900;
   letter-spacing:.06em;
   text-transform:uppercase;
+  line-height:1.2;
 }
 .settings-select{
   width:100%;
@@ -190,11 +241,19 @@ a{ color:inherit; }
 }
 @media (max-width: 640px){
   .topbar-inner{
-    width:min(100% - 20px, 1040px);
+    width:100%;
+    padding:12px 10px;
     gap:10px;
-    min-height:58px;
   }
-  .brand{ font-size:11px; }
+  .settings-home-btn{
+    width:38px;
+    height:38px;
+    border-radius:14px;
+  }
+  .topbar-page-title{
+    font-size:11px;
+    letter-spacing:.10em;
+  }
   .page-selector{
     min-width:0;
     max-width:52vw;
@@ -208,6 +267,9 @@ a{ color:inherit; }
   .settings-card{
     border-radius:12px;
     padding:18px;
+  }
+  .settings-title{
+    font-size:21px;
   }
   .settings-grid{
     grid-template-columns:1fr;
