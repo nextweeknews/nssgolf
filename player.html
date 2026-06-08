@@ -716,6 +716,167 @@
     .tournament-table tbody tr.is-no-scores td{
       color: rgba(233,238,248,0.70);
     }
+    .superleague-history{
+      width: 100%;
+      min-width: 0;
+    }
+    .superleague-player-panel{
+      width: 100%;
+      border: 1px solid var(--border-lite);
+      border-radius: 14px;
+      background: rgba(15,23,42,0.82);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .superleague-player-head{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap: 8px;
+      flex-wrap: wrap;
+      text-align:center;
+    }
+    .superleague-player-name{
+      margin: 0;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.96);
+    }
+    .superleague-player-divider{
+      color: var(--muted);
+      font-weight: 900;
+    }
+    .superleague-player-division{
+      margin: 0;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .superleague-player-division.division-1{ color: #fcd34d; }
+    .superleague-player-division.division-2{ color: #e5e7eb; }
+    .superleague-player-division.division-3{ color: #fdba74; }
+    .superleague-player-meta{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .superleague-player-meta-cell{
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align:center;
+      min-width:0;
+    }
+    .superleague-player-meta-label{
+      margin:0;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .superleague-player-meta-value{
+      margin: 4px 0 0;
+      color: rgba(255,255,255,0.95);
+      font-size: 18px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+    .superleague-weekly-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table.superleague-weekly{
+      width:100%;
+      min-width: 660px;
+      border-collapse: separate;
+      border-spacing: 0 7px;
+      table-layout: fixed;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    .superleague-weekly th,
+    .superleague-weekly td{
+      padding: 8px 5px;
+      color: rgba(255,255,255,0.94);
+      background: rgba(255,255,255,0.06);
+      border:0;
+      vertical-align: middle;
+      text-align:center;
+    }
+    .superleague-weekly th{
+      background: rgba(148,163,184,0.12);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    .superleague-weekly thead th:first-child,
+    .superleague-weekly tbody td:first-child{ border-radius: 10px 0 0 10px; }
+    .superleague-weekly thead th:last-child,
+    .superleague-weekly tbody td:last-child{ border-radius: 0 10px 10px 0; }
+    .superleague-weekly tbody tr.weekly-section-row td{
+      border-radius: 10px;
+      background: rgba(148,163,184,0.18);
+      color: rgba(231,238,255,0.95);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align:left;
+      padding: 9px 10px;
+    }
+    .superleague-weekly .weekly-col-week{ width: 64px; }
+    .superleague-weekly .weekly-col-opponent{ width: 148px; text-align:left; }
+    .superleague-weekly .weekly-col-result{ width: 78px; }
+    .superleague-weekly .weekly-col-games{ width: 82px; }
+    .superleague-weekly .weekly-col-round{ width: 78px; }
+    .superleague-weekly .opponent-name{
+      color: rgba(255,255,255,0.94);
+      font-weight: 950;
+      text-transform: uppercase;
+      text-decoration:none;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .superleague-weekly a.opponent-name:hover{
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .superleague-weekly .opponent-name.qf-player{ color: #9ca3af; }
+    .superleague-weekly .round-pair{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .superleague-weekly .round-sep{
+      color: rgba(233,238,248,0.72);
+      font-weight: inherit;
+    }
+    .superleague-weekly .score-win{ color: #86efac; }
+    .superleague-weekly .score-loss{ color: #fca5a5; }
+    .superleague-weekly .score-dash,
+    .superleague-weekly .result-pending{
+      color: #fff;
+      font-weight: 900;
+    }
+    .superleague-weekly .result-win{
+      color: #86efac;
+      font-weight: 950;
+    }
+    .superleague-weekly .result-loss{
+      color: #fca5a5;
+      font-weight: 950;
+    }
     .status{
       margin: 0 auto 18px;
       min-height: 22px;
@@ -786,6 +947,50 @@
       .tournament-table tbody td{
         font-size: 11px;
       }
+      .superleague-player-panel{
+        padding: 10px;
+        border-radius: 12px;
+      }
+      .superleague-player-name,
+      .superleague-player-division{
+        font-size: 12px;
+      }
+      .superleague-player-meta{
+        gap: 5px;
+      }
+      .superleague-player-meta-cell{
+        padding: 7px 4px;
+        border-radius: 8px;
+      }
+      .superleague-player-meta-label{
+        font-size: 8px;
+        letter-spacing: .03em;
+      }
+      .superleague-player-meta-value{
+        font-size: 13px;
+      }
+      table.superleague-weekly{
+        min-width: 500px;
+        border-spacing: 0 5px;
+        font-size: 10px;
+      }
+      .superleague-weekly th,
+      .superleague-weekly td{
+        padding: 6px 3px;
+      }
+      .superleague-weekly th{
+        font-size: 8px;
+        letter-spacing: .03em;
+      }
+      .superleague-weekly .weekly-col-week{ width: 40px; }
+      .superleague-weekly .weekly-col-opponent{ width: 90px; }
+      .superleague-weekly .weekly-col-result{ width: 48px; }
+      .superleague-weekly .weekly-col-games{ width: 54px; }
+      .superleague-weekly .weekly-col-round{ width: 48px; }
+      .superleague-weekly tbody tr.weekly-section-row td{
+        font-size: 9px;
+        padding: 7px 8px;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -819,7 +1024,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260608-tournaments"></script>
+  <script type="module" src="/player-profile.js?v=20260608-superleague"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {

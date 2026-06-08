@@ -47,6 +47,9 @@ const statusEl = document.getElementById("player-status");
 const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
 const PROLEAGUE_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const PROLEAGUE_SHEET_ID = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+const SUPERLEAGUE_SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
+const SUPERLEAGUE_SHEET_NAME = "Season 6";
+const SUPERLEAGUE_DISCORD_IDS_SHEET = "Discord IDs";
 const NOPTATIONAL_SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
 const NOPTATIONAL_SHEET_NAME = "Round Scores (2026)";
 const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
@@ -61,6 +64,13 @@ const PROLEAGUE_CH_SEMIS_BLOCK = "O3:P9";
 const PROLEAGUE_CH_FINALS_TOP = "R4:S4";
 const PROLEAGUE_CH_FINALS_BOTTOM = "R8:S8";
 const PROLEAGUE_CH_CHAMPION_CELL = "U6:U6";
+const SUPERLEAGUE_DIVISIONS = [
+  { title: "Division 1", range: "B3:G10" },
+  { title: "Division 2", range: "B13:G20" },
+  { title: "Division 3", range: "B23:G30" },
+];
+const SUPERLEAGUE_SCHEDULE_RANGE = "I2:AB85";
+const SUPERLEAGUE_PLAYOFF_RANGE = "I87:AB92";
 const PROLEAGUE_LEGACY_SEASON_CONFIG = {
   5: { sheet: "Season 5", rosters: "A3:S63", teamRank: "U4:X15" },
   4: { sheet: "Season 4", rosters: "A3:S53", teamRank: "U4:X13" },
@@ -107,6 +117,7 @@ const NOPTATIONAL_SCORE_COLUMNS = [
 ];
 const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
+let superLeagueDiscordIdMapPromise = null;
 let proLeagueDetectionPromise = null;
 let proLeagueCurrentSeason = 7;
 let proLeagueCurrentStage = 1;
@@ -529,6 +540,643 @@ async function fetchProLeagueRange(range){
   return fetchSheetRange(PROLEAGUE_SHEET_ID, range);
 }
 
+async function fetchSuperLeagueRange(a1, sheetName = SUPERLEAGUE_SHEET_NAME){
+  return fetchSheetRange(SUPERLEAGUE_SHEET_ID, `'${sheetName}'!${a1}`);
+}
+
+function normalizeSuperLeagueNameKey(value){
+  return String(value ?? "").trim().toUpperCase();
+}
+
+function superLeagueNumOrZero(value){
+  const number = Number(String(value ?? "").trim());
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatSuperLeagueDiff(value){
+  const number = superLeagueNumOrZero(value);
+  if(number > 0) return `+${number}`;
+  if(number < 0) return `${number}`;
+  return "0";
+}
+
+function normalizeSuperLeagueDivisionValue(value){
+  const text = String(value ?? "").trim();
+  const match = text.match(/(\d+)/);
+  return match ? match[1] : text;
+}
+
+function superLeagueDivisionClassFromLabel(label){
+  const normalized = String(label ?? "").toLowerCase();
+  if(normalized.includes("1")) return "division-1";
+  if(normalized.includes("2")) return "division-2";
+  if(normalized.includes("3")) return "division-3";
+  return "";
+}
+
+function compareSuperLeaguePctDesc(aWins, aLosses, bWins, bLosses){
+  const aTotal = aWins + aLosses;
+  const bTotal = bWins + bLosses;
+  if(aTotal === 0 && bTotal === 0) return 0;
+  if(aTotal === 0) return bWins > 0 ? 1 : -1;
+  if(bTotal === 0) return aWins > 0 ? -1 : 1;
+
+  const left = aWins * bTotal;
+  const right = bWins * aTotal;
+  if(left === right) return 0;
+  return left > right ? -1 : 1;
+}
+
+function compareSuperLeagueRoundDiffDesc(aWins, aLosses, bWins, bLosses){
+  const aDiff = aWins - aLosses;
+  const bDiff = bWins - bLosses;
+  return aDiff !== bDiff ? bDiff - aDiff : 0;
+}
+
+function getSuperLeagueHeadToHeadOutcome(headToHeadMap, playerA, playerB){
+  const aKey = normalizeSuperLeagueNameKey(playerA);
+  const bKey = normalizeSuperLeagueNameKey(playerB);
+  if(!aKey || !bKey) return null;
+
+  const aVs = headToHeadMap.get(aKey);
+  if(aVs?.has(bKey)) return aVs.get(bKey);
+
+  const bVs = headToHeadMap.get(bKey);
+  if(bVs?.has(aKey)) return bVs.get(aKey) === 1 ? -1 : 1;
+  return null;
+}
+
+function buildSuperLeagueHeadToHeadByDivision(scheduleRows){
+  const byDivision = new Map();
+
+  (scheduleRows || []).forEach((row = []) => {
+    const division = normalizeSuperLeagueDivisionValue(row[1]);
+    const p1Name = String(row[3] ?? "").trim();
+    const p2Name = String(row[12] ?? "").trim();
+    const p1Result = String(row[10] ?? "").trim().toUpperCase();
+    const p2Result = String(row[19] ?? "").trim().toUpperCase();
+
+    if(!division || !p1Name || !p2Name) return;
+    if(!((p1Result === "W" && p2Result === "L") || (p1Result === "L" && p2Result === "W"))) return;
+
+    if(!byDivision.has(division)) byDivision.set(division, new Map());
+    const divisionMap = byDivision.get(division);
+
+    const p1Key = normalizeSuperLeagueNameKey(p1Name);
+    const p2Key = normalizeSuperLeagueNameKey(p2Name);
+    if(!divisionMap.has(p1Key)) divisionMap.set(p1Key, new Map());
+    if(!divisionMap.has(p2Key)) divisionMap.set(p2Key, new Map());
+
+    const p1Won = p1Result === "W";
+    divisionMap.get(p1Key).set(p2Key, p1Won ? 1 : -1);
+    divisionMap.get(p2Key).set(p1Key, p1Won ? -1 : 1);
+  });
+
+  return byDivision;
+}
+
+function computeSuperLeagueHeadToHeadPct(row, group, headToHeadMap){
+  let wins = 0;
+  let losses = 0;
+
+  group.forEach((other) => {
+    if(other.playerKey === row.playerKey) return;
+    const outcome = getSuperLeagueHeadToHeadOutcome(headToHeadMap, row.playerKey, other.playerKey);
+    if(outcome === 1) wins += 1;
+    if(outcome === -1) losses += 1;
+  });
+
+  const played = wins + losses;
+  return played === 0 ? null : wins / played;
+}
+
+function rankSuperLeagueDivisionRows(rows, divisionTitle, headToHeadByDivision){
+  const divisionKey = normalizeSuperLeagueDivisionValue(divisionTitle);
+  const headToHeadMap = headToHeadByDivision.get(divisionKey) || new Map();
+  const withKeys = rows.map((row) => ({ ...row, playerKey: normalizeSuperLeagueNameKey(row.player) }));
+
+  withKeys.sort((a, b) => compareSuperLeaguePctDesc(a.matchesWon, a.matchesLost, b.matchesWon, b.matchesLost));
+
+  const ranked = [];
+  for(let i = 0; i < withKeys.length;){
+    const group = [withKeys[i]];
+    let j = i + 1;
+    while(
+      j < withKeys.length &&
+      compareSuperLeaguePctDesc(
+        withKeys[i].matchesWon,
+        withKeys[i].matchesLost,
+        withKeys[j].matchesWon,
+        withKeys[j].matchesLost,
+      ) === 0
+    ){
+      group.push(withKeys[j]);
+      j += 1;
+    }
+
+    if(group.length === 2){
+      const h2h = getSuperLeagueHeadToHeadOutcome(headToHeadMap, group[0].playerKey, group[1].playerKey);
+      if(h2h === -1){
+        group.reverse();
+        group[0].tied = false;
+        group[1].tied = false;
+      }else if(h2h === 1){
+        group[0].tied = false;
+        group[1].tied = false;
+      }else{
+        const gamesCmp = compareSuperLeagueRoundDiffDesc(group[0].gamesWon, group[0].gamesLost, group[1].gamesWon, group[1].gamesLost);
+        if(gamesCmp > 0) group.reverse();
+        if(gamesCmp !== 0){
+          group[0].tied = false;
+          group[1].tied = false;
+        }else if(group[0].diff !== group[1].diff){
+          if(group[0].diff > group[1].diff) group.reverse();
+          group[0].tied = false;
+          group[1].tied = false;
+        }else{
+          group[0].tied = true;
+          group[1].tied = true;
+        }
+      }
+    }else if(group.length > 2){
+      const withHeadToHead = group.map((row) => ({
+        ...row,
+        headToHeadPct: computeSuperLeagueHeadToHeadPct(row, group, headToHeadMap),
+      }));
+      const uniqueHeadToHeadPcts = new Set(withHeadToHead.map((row) => row.headToHeadPct));
+      const canUseHeadToHead = !(uniqueHeadToHeadPcts.size === 1 && uniqueHeadToHeadPcts.has(null));
+
+      withHeadToHead.sort((a, b) => {
+        if(canUseHeadToHead){
+          const aPct = a.headToHeadPct;
+          const bPct = b.headToHeadPct;
+          if(aPct !== bPct){
+            if(aPct === null) return 1;
+            if(bPct === null) return -1;
+            return bPct - aPct;
+          }
+        }
+        const gamesCmp = compareSuperLeagueRoundDiffDesc(a.gamesWon, a.gamesLost, b.gamesWon, b.gamesLost);
+        if(gamesCmp !== 0) return gamesCmp;
+        if(a.diff !== b.diff) return a.diff - b.diff;
+        return a.sourceOrder - b.sourceOrder;
+      });
+
+      for(let k = 0; k < withHeadToHead.length; k += 1){
+        const current = withHeadToHead[k];
+        const prev = withHeadToHead[k - 1];
+        if(!prev){
+          current.tied = false;
+          continue;
+        }
+        const sameHeadToHead = current.headToHeadPct === prev.headToHeadPct;
+        const sameGames = compareSuperLeagueRoundDiffDesc(current.gamesWon, current.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
+        const sameDiff = current.diff === prev.diff;
+        current.tied = sameHeadToHead && sameGames && sameDiff;
+        if(current.tied) prev.tied = true;
+      }
+      group.splice(0, group.length, ...withHeadToHead);
+    }else{
+      group[0].tied = false;
+    }
+
+    ranked.push(...group);
+    i = j;
+  }
+
+  let displayRank = 1;
+  ranked.forEach((row, index) => {
+    if(index > 0){
+      const prev = ranked[index - 1];
+      const samePrimary = compareSuperLeaguePctDesc(row.matchesWon, row.matchesLost, prev.matchesWon, prev.matchesLost) === 0;
+      const sameGames = compareSuperLeagueRoundDiffDesc(row.gamesWon, row.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
+      if(!(row.tied && prev.tied && samePrimary && sameGames && row.diff === prev.diff)){
+        displayRank = index + 1;
+      }
+    }
+    row.rank = row.tied ? `T${displayRank}` : String(displayRank);
+  });
+
+  const rankCounts = new Map();
+  ranked.forEach((row) => {
+    const rankValue = String(row.rank ?? "").trim();
+    const rankNumber = rankValue.startsWith("T") ? rankValue.slice(1) : rankValue;
+    if(!rankNumber) return;
+    rankCounts.set(rankNumber, (rankCounts.get(rankNumber) || 0) + 1);
+  });
+  ranked.forEach((row) => {
+    const rankValue = String(row.rank ?? "").trim();
+    if(!rankValue.startsWith("T")) return;
+    const rankNumber = rankValue.slice(1);
+    if(rankCounts.get(rankNumber) === 1) row.rank = rankNumber;
+  });
+
+  return ranked;
+}
+
+function mapSuperLeagueRows(values){
+  return (values || []).map((row = [], index) => {
+    const player = String(row[0] ?? "").trim();
+    const matchesWon = superLeagueNumOrZero(row[1]);
+    const matchesLost = superLeagueNumOrZero(row[2]);
+    const gamesWon = superLeagueNumOrZero(row[3]);
+    const gamesLost = superLeagueNumOrZero(row[4]);
+    const diff = superLeagueNumOrZero(row[5]);
+    return {
+      player,
+      matchesWon,
+      matchesLost,
+      gamesWon,
+      gamesLost,
+      diff,
+      sourceOrder: index,
+      matches: `${matchesWon}-${matchesLost}`,
+      games: `${gamesWon}-${gamesLost}`,
+      diffText: formatSuperLeagueDiff(diff),
+    };
+  }).filter((row) => row.player !== "");
+}
+
+function isSuperLeagueMatchComplete(matchup){
+  if(!matchup) return false;
+  return matchup.p1.result === "W" || matchup.p2.result === "W";
+}
+
+function getSuperLeagueMatchWinnerKey(matchup){
+  if(!isSuperLeagueMatchComplete(matchup)) return "";
+  if(matchup.p1.result === "W") return normalizeSuperLeagueNameKey(matchup.p1.name);
+  if(matchup.p2.result === "W") return normalizeSuperLeagueNameKey(matchup.p2.name);
+  if(matchup.p1.result === "L") return normalizeSuperLeagueNameKey(matchup.p2.name);
+  if(matchup.p2.result === "L") return normalizeSuperLeagueNameKey(matchup.p1.name);
+  return "";
+}
+
+function getSuperLeagueMatchLoserKey(matchup){
+  if(!isSuperLeagueMatchComplete(matchup)) return "";
+  if(matchup.p1.result === "L") return normalizeSuperLeagueNameKey(matchup.p1.name);
+  if(matchup.p2.result === "L") return normalizeSuperLeagueNameKey(matchup.p2.name);
+  if(matchup.p1.result === "W") return normalizeSuperLeagueNameKey(matchup.p2.name);
+  if(matchup.p2.result === "W") return normalizeSuperLeagueNameKey(matchup.p1.name);
+  return "";
+}
+
+function deriveSuperLeaguePlayoffMetadata(matchups){
+  if(!Array.isArray(matchups) || matchups.length < 6) return null;
+  const championship = matchups[2];
+  const thirdPlace = matchups[3];
+  const oneOffs = [
+    { matchup: matchups[4], label: "Division 1/2 Playoff" },
+    { matchup: matchups[5], label: "Division 2/3 Playoff" },
+  ];
+  const championshipComplete = isSuperLeagueMatchComplete(championship);
+  const thirdPlaceComplete = isSuperLeagueMatchComplete(thirdPlace);
+  const d1FinalRanks = new Map();
+
+  if(championshipComplete && thirdPlaceComplete){
+    const topFour = [
+      getSuperLeagueMatchWinnerKey(championship),
+      getSuperLeagueMatchLoserKey(championship),
+      getSuperLeagueMatchWinnerKey(thirdPlace),
+      getSuperLeagueMatchLoserKey(thirdPlace),
+    ].filter(Boolean);
+    if(topFour.length === 4 && new Set(topFour).size === 4){
+      d1FinalRanks.set(topFour[0], 1);
+      d1FinalRanks.set(topFour[1], 2);
+      d1FinalRanks.set(topFour[2], 3);
+      d1FinalRanks.set(topFour[3], 4);
+    }
+  }
+
+  return { championship, thirdPlace, oneOffs, championshipComplete, thirdPlaceComplete, d1FinalRanks };
+}
+
+function applySuperLeagueDivisionOnePlayoffOverrides(rows, metadata){
+  if(!metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return;
+  if(metadata.d1FinalRanks.size !== 4) return;
+
+  const rankOrder = [];
+  rows.forEach((row, index) => {
+    const playoffRank = metadata.d1FinalRanks.get(row.playerKey);
+    if(!playoffRank) return;
+    row._forcedRank = playoffRank;
+    rankOrder.push({ row, playoffRank, index });
+  });
+  if(!rankOrder.length) return;
+
+  rankOrder.sort((a, b) => a.playoffRank - b.playoffRank || a.index - b.index);
+  const orderedRows = rankOrder.map((entry) => entry.row);
+  const remainingRows = rows.filter((row) => !row._forcedRank);
+  rows.splice(0, rows.length, ...orderedRows, ...remainingRows);
+  rows.forEach((row, index) => {
+    if(row._forcedRank){
+      row.rank = String(row._forcedRank);
+      row.tied = false;
+    }else{
+      row.rank = String(index + 1);
+      row.tied = false;
+    }
+  });
+}
+
+function applySuperLeaguePlayoffStatTotals(baseRows, metadata){
+  const rows = baseRows.map((row) => ({ ...row }));
+  if(!metadata) return rows;
+
+  const statDeltas = new Map();
+  const addResult = (playerKey, matchWon, matchLost, gamesWon, gamesLost) => {
+    if(!playerKey) return;
+    if(!statDeltas.has(playerKey)){
+      statDeltas.set(playerKey, { matchesWon: 0, matchesLost: 0, gamesWon: 0, gamesLost: 0, diff: 0 });
+    }
+    const totals = statDeltas.get(playerKey);
+    totals.matchesWon += matchWon;
+    totals.matchesLost += matchLost;
+    totals.gamesWon += gamesWon;
+    totals.gamesLost += gamesLost;
+    totals.diff += gamesWon - gamesLost;
+  };
+
+  const addMatch = (matchup) => {
+    if(!isSuperLeagueMatchComplete(matchup)) return;
+    const p1Key = normalizeSuperLeagueNameKey(matchup.p1.name);
+    const p2Key = normalizeSuperLeagueNameKey(matchup.p2.name);
+    const p1Games = superLeagueNumOrZero(matchup.p1.gamesWon);
+    const p2Games = superLeagueNumOrZero(matchup.p2.gamesWon);
+    const p1Win = matchup.p1.result === "W";
+    const p2Win = matchup.p2.result === "W";
+    addResult(p1Key, p1Win ? 1 : 0, p1Win ? 0 : 1, p1Games, p2Games);
+    addResult(p2Key, p2Win ? 1 : 0, p2Win ? 0 : 1, p2Games, p1Games);
+  };
+
+  addMatch(metadata.championship);
+  addMatch(metadata.thirdPlace);
+  metadata.oneOffs.forEach((entry) => addMatch(entry.matchup));
+
+  rows.forEach((row) => {
+    const delta = statDeltas.get(normalizeSuperLeagueNameKey(row.player));
+    if(!delta) return;
+    row.matchesWon += delta.matchesWon;
+    row.matchesLost += delta.matchesLost;
+    row.gamesWon += delta.gamesWon;
+    row.gamesLost += delta.gamesLost;
+    row.diff += delta.diff;
+    row.matches = `${row.matchesWon}-${row.matchesLost}`;
+    row.games = `${row.gamesWon}-${row.gamesLost}`;
+    row.diffText = formatSuperLeagueDiff(row.diff);
+  });
+
+  return rows;
+}
+
+function parseSuperLeaguePlayoffRows(values){
+  return (values || []).map((row = []) => ({
+    p1: {
+      seed: String(row[2] ?? "").trim(),
+      name: String(row[3] ?? "").trim(),
+      rounds: [row[4], row[5], row[6]],
+      gamesWon: row[7],
+      result: String(row[10] ?? "").trim().toUpperCase(),
+    },
+    p2: {
+      seed: String(row[11] ?? "").trim(),
+      name: String(row[12] ?? "").trim(),
+      rounds: [row[13], row[14], row[15]],
+      gamesWon: row[16],
+      result: String(row[19] ?? "").trim().toUpperCase(),
+    },
+  }));
+}
+
+function parseSuperLeagueScheduleRows(values){
+  const byWeek = new Map();
+  (values || []).forEach((row = []) => {
+    const week = String(row[0] ?? "").trim();
+    const division = String(row[1] ?? "").trim();
+    const p1Name = String(row[3] ?? "").trim();
+    const p2Name = String(row[12] ?? "").trim();
+    if(!week || !division || (!p1Name && !p2Name)) return;
+
+    const matchup = {
+      division,
+      p1: {
+        name: p1Name,
+        rounds: [row[4], row[5], row[6]],
+        gamesWon: row[7],
+        result: String(row[10] ?? "").trim().toUpperCase(),
+      },
+      p2: {
+        name: p2Name,
+        rounds: [row[13], row[14], row[15]],
+        gamesWon: row[16],
+        result: String(row[19] ?? "").trim().toUpperCase(),
+      },
+    };
+
+    if(!byWeek.has(week)) byWeek.set(week, []);
+    byWeek.get(week).push(matchup);
+  });
+
+  const weekSort = (a, b) => {
+    const aNumber = Number(a);
+    const bNumber = Number(b);
+    if(Number.isFinite(aNumber) && Number.isFinite(bNumber)) return aNumber - bNumber;
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+  };
+
+  return Array.from(byWeek.keys())
+    .sort(weekSort)
+    .map((week) => ({ week, matchups: byWeek.get(week) || [] }));
+}
+
+function superLeagueNumericScore(value){
+  const text = String(value ?? "").trim();
+  if(text === "") return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
+}
+
+function isSuperLeagueRoundWinner(roundA, roundB){
+  const a = superLeagueNumericScore(roundA);
+  const b = superLeagueNumericScore(roundB);
+  if(a === null || b === null) return { a: false, b: false };
+  if(a < b) return { a: true, b: false };
+  if(b < a) return { a: false, b: true };
+  return { a: true, b: true };
+}
+
+function formatSuperLeagueStatValue(value, placeholder = "-"){
+  const text = String(value ?? "").trim();
+  return text === "" ? placeholder : escapeHtml(text);
+}
+
+function isSuperLeagueQfPlayerName(name){
+  return /^QF\b/i.test(String(name ?? "").trim());
+}
+
+function formatSuperLeagueResultChip(value, isWin){
+  return `<span class="${isWin ? "result-win" : "result-loss"}">${escapeHtml(value)}</span>`;
+}
+
+function getSuperLeagueRoundCellHtml(playerScore, opponentScore, side){
+  const score = side === "player" ? playerScore : opponentScore;
+  const safeScore = formatSuperLeagueStatValue(score, "-");
+  if(side !== "player") return `<span>${safeScore}</span>`;
+
+  const winners = isSuperLeagueRoundWinner(playerScore, opponentScore);
+  if(winners.a && !winners.b) return `<span class="score-win">${safeScore}</span>`;
+  if(!winners.a && winners.b) return `<span class="score-loss">${safeScore}</span>`;
+  return `<span>${safeScore}</span>`;
+}
+
+function formatSuperLeagueRoundPair(roundCell){
+  return `<span class="round-pair">${roundCell.player}<span class="round-sep">|</span>${roundCell.opponent}</span>`;
+}
+
+function getSuperLeaguePlayerWeekResult(playerName, weekData){
+  const playerKey = normalizeSuperLeagueNameKey(playerName);
+  const matchup = (weekData?.matchups || []).find((match) => (
+    normalizeSuperLeagueNameKey(match.p1.name) === playerKey ||
+    normalizeSuperLeagueNameKey(match.p2.name) === playerKey
+  ));
+  if(!matchup) return null;
+
+  const isP1 = normalizeSuperLeagueNameKey(matchup.p1.name) === playerKey;
+  const playerSide = isP1 ? matchup.p1 : matchup.p2;
+  const opponentSide = isP1 ? matchup.p2 : matchup.p1;
+  const isWin = playerSide.result === "W";
+  const hasRecordedResult = [
+    playerSide.result,
+    playerSide.gamesWon,
+    opponentSide.gamesWon,
+    ...playerSide.rounds,
+    ...opponentSide.rounds,
+  ].some((value) => String(value ?? "").trim() !== "");
+
+  const round3NotPlayed =
+    String(playerSide.rounds[2] ?? "").trim() === "" &&
+    String(opponentSide.rounds[2] ?? "").trim() === "" &&
+    (superLeagueNumOrZero(playerSide.gamesWon) === 2 || superLeagueNumOrZero(opponentSide.gamesWon) === 2);
+
+  const resultHtml = hasRecordedResult
+    ? formatSuperLeagueResultChip(isWin ? "W" : "L", isWin)
+    : '<span class="result-pending">-</span>';
+  const gamesRecord = `${formatSuperLeagueStatValue(playerSide.gamesWon, "-")}-${formatSuperLeagueStatValue(opponentSide.gamesWon, "-")}`;
+  const gamesHtml = hasRecordedResult
+    ? formatSuperLeagueResultChip(gamesRecord, isWin)
+    : '<span class="result-pending">-</span>';
+
+  return {
+    opponent: opponentSide.name || "TBD",
+    resultHtml,
+    gamesHtml,
+    roundCells: [0, 1, 2].map((index) => {
+      if(index === 2 && round3NotPlayed){
+        return { player: '<span class="score-dash">-</span>', opponent: '<span class="score-dash">-</span>' };
+      }
+      return {
+        player: getSuperLeagueRoundCellHtml(playerSide.rounds[index], opponentSide.rounds[index], "player"),
+        opponent: getSuperLeagueRoundCellHtml(playerSide.rounds[index], opponentSide.rounds[index], "opponent"),
+      };
+    }),
+  };
+}
+
+async function loadSuperLeagueDiscordIdMaps(){
+  if(superLeagueDiscordIdMapPromise) return superLeagueDiscordIdMapPromise;
+
+  superLeagueDiscordIdMapPromise = (async () => {
+    const rows = await fetchSuperLeagueRange("A:B", SUPERLEAGUE_DISCORD_IDS_SHEET);
+    const nameByDiscordId = new Map();
+    const discordIdByName = new Map();
+    (rows || []).forEach((row = []) => {
+      const discordId = normalizeDiscordPlayerId(row[0]);
+      const playerName = String(row[1] ?? "").trim();
+      if(!discordId || !playerName) return;
+      nameByDiscordId.set(discordId, playerName);
+      discordIdByName.set(normalizeSuperLeagueNameKey(playerName), discordId);
+    });
+    return { nameByDiscordId, discordIdByName };
+  })();
+
+  return superLeagueDiscordIdMapPromise;
+}
+
+async function loadSuperLeaguePlayerName(discordId){
+  try{
+    const maps = await loadSuperLeagueDiscordIdMaps();
+    return maps.nameByDiscordId.get(normalizeDiscordPlayerId(discordId)) || "";
+  }catch(error){
+    console.error("Unable to load Super League Discord ID map", error);
+    return "";
+  }
+}
+
+async function loadSuperLeaguePlayerData(playerName){
+  const loaded = await Promise.all([
+    ...SUPERLEAGUE_DIVISIONS.map((division) => fetchSuperLeagueRange(division.range)),
+    fetchSuperLeagueRange(SUPERLEAGUE_SCHEDULE_RANGE),
+    fetchSuperLeagueRange(SUPERLEAGUE_PLAYOFF_RANGE),
+    loadSuperLeagueDiscordIdMaps(),
+  ]);
+
+  const divisionRows = loaded.slice(0, SUPERLEAGUE_DIVISIONS.length);
+  const scheduleRows = loaded[SUPERLEAGUE_DIVISIONS.length] || [];
+  const playoffRows = loaded[SUPERLEAGUE_DIVISIONS.length + 1] || [];
+  const idMaps = loaded[SUPERLEAGUE_DIVISIONS.length + 2] || { discordIdByName: new Map() };
+  const headToHeadByDivision = buildSuperLeagueHeadToHeadByDivision(scheduleRows);
+  const playoffMatchups = parseSuperLeaguePlayoffRows(playoffRows);
+  const playoffMetadata = deriveSuperLeaguePlayoffMetadata(playoffMatchups);
+  const targetKey = normalizeSuperLeagueNameKey(playerName);
+
+  let profile = null;
+  SUPERLEAGUE_DIVISIONS.forEach((division, index) => {
+    const baseRows = mapSuperLeagueRows(divisionRows[index] || []);
+    const rowsWithPlayoffs = applySuperLeaguePlayoffStatTotals(baseRows, playoffMetadata);
+    const rows = rankSuperLeagueDivisionRows(rowsWithPlayoffs, division.title, headToHeadByDivision);
+    if(normalizeSuperLeagueDivisionValue(division.title) === "1"){
+      applySuperLeagueDivisionOnePlayoffOverrides(rows, playoffMetadata);
+    }
+    const row = rows.find((candidate) => normalizeSuperLeagueNameKey(candidate.player) === targetKey);
+    if(!row) return;
+    profile = {
+      name: row.player,
+      divisionTitle: division.title,
+      divisionClass: superLeagueDivisionClassFromLabel(division.title),
+      stats: {
+        rank: row.rank || "-",
+        matches: row.matches || "-",
+        games: row.games || "-",
+        diff: row.diffText || "-",
+      },
+    };
+  });
+
+  if(!profile) return null;
+
+  const scheduleWeeks = parseSuperLeagueScheduleRows(scheduleRows);
+  const rows = [];
+  for(let week = 1; week <= 7; week += 1){
+    const weekData = scheduleWeeks.find((entry) => Number(entry.week) === week);
+    rows.push({ label: String(week), result: weekData ? getSuperLeaguePlayerWeekResult(playerName, weekData) : null });
+  }
+
+  if(playoffMetadata){
+    const playoffEntries = [
+      { label: "Division 1 Championship", matchup: playoffMetadata.championship },
+      { label: "Division 1 3rd Place", matchup: playoffMetadata.thirdPlace },
+      ...playoffMetadata.oneOffs.map((entry) => ({ label: entry.label, matchup: entry.matchup })),
+    ];
+    playoffEntries.forEach((entry) => {
+      const result = entry.matchup ? getSuperLeaguePlayerWeekResult(playerName, { matchups: [entry.matchup] }) : null;
+      if(!result) return;
+      rows.push({ section: entry.label });
+      rows.push({ label: "-", result });
+    });
+  }
+
+  return { ...profile, rows, discordIdByName: idMaps.discordIdByName || new Map() };
+}
+
 function proLeagueRowHasAnyValue(row){
   return Array.isArray(row) && row.some(cell => String(cell ?? "").trim() !== "");
 }
@@ -713,6 +1361,99 @@ function renderNoptationalPlayerTable(player){
     </div>
   `;
   return table;
+}
+
+function renderSuperLeagueOpponent(result, discordIdByName){
+  const opponent = String(result?.opponent || "TBD").trim();
+  const qfClass = isSuperLeagueQfPlayerName(opponent) ? " qf-player" : "";
+  const discordId = discordIdByName?.get(normalizeSuperLeagueNameKey(opponent)) || "";
+  if(discordId && !/^TBD$/i.test(opponent) && !isSuperLeagueQfPlayerName(opponent)){
+    return `<a class="opponent-name${qfClass}" href="/player.html?id=${encodeURIComponent(discordId)}">${escapeHtml(opponent)}</a>`;
+  }
+  return `<span class="opponent-name${qfClass}">${escapeHtml(opponent || "TBD")}</span>`;
+}
+
+function renderSuperLeagueWeeklyRow(row, discordIdByName){
+  if(row.section){
+    return `<tr class="weekly-section-row"><td colspan="7">${escapeHtml(row.section)}</td></tr>`;
+  }
+
+  if(!row.result){
+    return `
+      <tr>
+        <td class="weekly-col-week">${escapeHtml(row.label)}</td>
+        <td class="weekly-col-opponent"><span class="opponent-name">-</span></td>
+        <td class="weekly-col-result"><span class="result-pending">-</span></td>
+        <td class="weekly-col-games"><span class="result-pending">-</span></td>
+        <td class="weekly-col-round"><span class="score-dash">-</span></td>
+        <td class="weekly-col-round"><span class="score-dash">-</span></td>
+        <td class="weekly-col-round"><span class="score-dash">-</span></td>
+      </tr>
+    `;
+  }
+
+  return `
+    <tr>
+      <td class="weekly-col-week">${escapeHtml(row.label)}</td>
+      <td class="weekly-col-opponent">${renderSuperLeagueOpponent(row.result, discordIdByName)}</td>
+      <td class="weekly-col-result">${row.result.resultHtml}</td>
+      <td class="weekly-col-games">${row.result.gamesHtml}</td>
+      <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[0])}</td>
+      <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[1])}</td>
+      <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[2])}</td>
+    </tr>
+  `;
+}
+
+function renderSuperLeaguePlayerPanel(data){
+  const panel = document.createElement("div");
+  panel.className = "superleague-history";
+  panel.innerHTML = `
+    <div class="superleague-player-panel">
+      <div class="superleague-player-head">
+        <h3 class="superleague-player-name">${escapeHtml(data.name)}</h3>
+        <span class="superleague-player-divider" aria-hidden="true">|</span>
+        <p class="superleague-player-division ${escapeHtml(data.divisionClass)}">${escapeHtml(data.divisionTitle)}</p>
+      </div>
+      <div class="superleague-player-meta">
+        <div class="superleague-player-meta-cell">
+          <p class="superleague-player-meta-label">Rank</p>
+          <p class="superleague-player-meta-value">${escapeHtml(data.stats?.rank || "-")}</p>
+        </div>
+        <div class="superleague-player-meta-cell">
+          <p class="superleague-player-meta-label">W-L</p>
+          <p class="superleague-player-meta-value">${escapeHtml(data.stats?.matches || "-")}</p>
+        </div>
+        <div class="superleague-player-meta-cell">
+          <p class="superleague-player-meta-label">Rounds</p>
+          <p class="superleague-player-meta-value">${escapeHtml(data.stats?.games || "-")}</p>
+        </div>
+        <div class="superleague-player-meta-cell">
+          <p class="superleague-player-meta-label">Diff.</p>
+          <p class="superleague-player-meta-value">${escapeHtml(data.stats?.diff || "-")}</p>
+        </div>
+      </div>
+      <div class="superleague-weekly-wrap">
+        <table class="superleague-weekly">
+          <thead>
+            <tr>
+              <th class="weekly-col-week">Week</th>
+              <th class="weekly-col-opponent">Opponent</th>
+              <th class="weekly-col-result">Result</th>
+              <th class="weekly-col-games">Rounds</th>
+              <th class="weekly-col-round">R1</th>
+              <th class="weekly-col-round">R2</th>
+              <th class="weekly-col-round">R3</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(data.rows || []).map((row) => renderSuperLeagueWeeklyRow(row, data.discordIdByName)).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  return panel;
 }
 
 function createProfileSummary(label){
@@ -1293,6 +2034,45 @@ function renderProLeagueSection(aliasNames){
   return section;
 }
 
+function renderSuperLeagueSection(playerName){
+  if(!playerName) return null;
+
+  const section = document.createElement("section");
+  section.className = "profile-section proleague-section superleague-section";
+
+  const details = document.createElement("details");
+  details.className = "proleague-details";
+
+  const summary = createProfileSummary("Super League");
+
+  const content = document.createElement("div");
+  content.className = "proleague-content";
+  content.innerHTML = `<div class="proleague-loading">Loading Super League data...</div>`;
+
+  details.append(summary, content);
+  section.appendChild(details);
+
+  let loaded = false;
+  details.addEventListener("toggle", async () => {
+    if(!details.open || loaded) return;
+    loaded = true;
+    try{
+      const data = await loadSuperLeaguePlayerData(playerName);
+      content.innerHTML = "";
+      if(!data){
+        content.innerHTML = `<p class="profile-muted proleague-empty">No Super League results found.</p>`;
+        return;
+      }
+      content.appendChild(renderSuperLeaguePlayerPanel(data));
+    }catch(error){
+      console.error("Unable to load Super League player history", error);
+      content.innerHTML = `<div class="proleague-error">Unable to load Super League data.</div>`;
+    }
+  });
+
+  return section;
+}
+
 function renderTournamentsSection(member){
   const section = document.createElement("section");
   section.className = "profile-section proleague-section tournaments-section";
@@ -1413,7 +2193,7 @@ function createVerifiedIcon(){
   return icon;
 }
 
-function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases = [], isVerified = false){
+function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases = [], superLeaguePlayerName = "", isVerified = false){
   document.title = `${displayNameFor(member)} | NSS Golf`;
   rootEl.innerHTML = "";
 
@@ -1515,6 +2295,11 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
     card.appendChild(proLeagueSection);
   }
 
+  const superLeagueSection = renderSuperLeagueSection(superLeaguePlayerName);
+  if(superLeagueSection){
+    card.appendChild(superLeagueSection);
+  }
+
   card.appendChild(renderTournamentsSection(member));
 
   rootEl.appendChild(card);
@@ -1530,7 +2315,7 @@ async function loadPlayerProfile(){
 
   setStatus("Loading player...");
 
-  const [membersRes, linksRes, rankedRows, proLeagueAliases] = await Promise.all([
+  const [membersRes, linksRes, rankedRows, proLeagueAliases, superLeaguePlayerName] = await Promise.all([
     supabase
       .from("discord_guild_members")
       .select("discord_user_id,username,display_name,avatar_url,server_avatar_url,joined_at,is_current_member")
@@ -1544,6 +2329,7 @@ async function loadPlayerProfile(){
       .in("role_id", PLAYER_PROFILE_ROLE_IDS),
     loadRankedLeagueRows(discordId),
     loadProLeagueAliases(discordId),
+    loadSuperLeaguePlayerName(discordId),
   ]);
 
   if(membersRes.error) throw membersRes.error;
@@ -1581,7 +2367,7 @@ async function loadPlayerProfile(){
     }
   }
 
-  renderProfile(member, trackedRoles, rankedRows, proLeagueAliases, heldRoleIds.has(VERIFIED_ROLE_ID));
+  renderProfile(member, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, heldRoleIds.has(VERIFIED_ROLE_ID));
 }
 
 loadPlayerProfile().catch(error => {
