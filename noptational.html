@@ -286,16 +286,12 @@
     .nopt-tabs-content[data-state="inactive"]{ display:none; }
     .format-content{
       display:grid;
-      gap:14px;
+      gap:18px;
       padding:16px;
     }
-    .format-hero{
+    .format-intro{
       display:grid;
-      gap:10px;
-      padding:16px;
-      border:1px solid rgba(129,140,248,0.28);
-      border-radius:14px;
-      background:linear-gradient(180deg, rgba(129,140,248,0.13), rgba(255,255,255,0.045));
+      gap:8px;
     }
     .format-title{
       margin:0;
@@ -313,22 +309,6 @@
       line-height:1.55;
       font-weight:700;
     }
-    .format-callout{
-      display:inline-flex;
-      width:max-content;
-      max-width:100%;
-      align-items:center;
-      min-height:30px;
-      padding:0 10px;
-      border-radius:999px;
-      border:1px solid rgba(250,204,21,0.36);
-      background:rgba(250,204,21,0.10);
-      color:rgba(254,249,195,0.96);
-      font-size:11px;
-      font-weight:950;
-      letter-spacing:.09em;
-      text-transform:uppercase;
-    }
     .format-section{
       display:grid;
       gap:10px;
@@ -343,15 +323,15 @@
       text-transform:uppercase;
     }
     .format-table-wrap{
-      overflow-x:auto;
+      overflow-x:visible;
       -webkit-overflow-scrolling:touch;
       border:1px solid rgba(148,163,184,0.18);
       border-radius:12px;
     }
     .format-table{
       width:100%;
-      min-width:720px;
       border-collapse:collapse;
+      table-layout:fixed;
       background:rgba(255,255,255,0.04);
     }
     .format-table th,
@@ -378,37 +358,16 @@
       line-height:1.35;
     }
     .format-table tr:last-child td{ border-bottom:0; }
-    .format-pill{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-height:24px;
-      padding:0 8px;
-      border-radius:999px;
-      border:1px solid rgba(125,211,252,0.30);
-      background:rgba(125,211,252,0.09);
-      color:rgba(224,242,254,0.94);
-      font-size:10px;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      font-weight:950;
-      white-space:nowrap;
-    }
-    .format-rule-grid{
+    .format-rule-list{
       display:grid;
-      grid-template-columns:repeat(3, minmax(0, 1fr));
-      gap:10px;
+      gap:12px;
     }
-    .format-rule-card{
-      min-width:0;
-      padding:12px;
-      border-radius:12px;
-      border:1px solid rgba(148,163,184,0.20);
-      background:rgba(255,255,255,0.045);
+    .format-rule-item{
       display:grid;
-      gap:7px;
+      gap:4px;
     }
     .format-rule-label{
+      margin:0;
       color:rgba(233,238,248,0.62);
       font-size:10px;
       letter-spacing:.13em;
@@ -596,8 +555,22 @@
       border-bottom:1px solid rgba(251,113,133,0.18);
       background:rgba(251,113,133,0.08);
     }
+    .no-scores-heading-row td{
+      height:38px;
+      padding:0 16px;
+      border-top:2px solid var(--border-strong);
+      border-bottom:1px solid rgba(148,163,184,0.18);
+      background:rgba(148,163,184,0.08);
+    }
     .cut-heading{
       color:rgba(254,205,211,0.94);
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      font-weight:950;
+    }
+    .no-scores-heading{
+      color:rgba(203,213,225,0.95);
       font-size:12px;
       letter-spacing:.12em;
       text-transform:uppercase;
@@ -646,7 +619,16 @@
       }
       .format-content{ padding:12px; }
       .format-title{ font-size:18px; }
-      .format-rule-grid{ grid-template-columns:1fr; }
+      .format-table th,
+      .format-table td{
+        padding:7px 6px;
+        font-size:10px;
+        line-height:1.2;
+      }
+      .format-table th{
+        font-size:8px;
+        letter-spacing:.05em;
+      }
       .leaderboard-card{ padding:0; }
       .leaderboard-top{ padding:14px 12px 10px; }
       :root{
@@ -696,6 +678,10 @@
         height:34px;
         padding:0 12px;
       }
+      .no-scores-heading-row td{
+        height:34px;
+        padding:0 12px;
+      }
       .cut-row td{
         opacity:1;
         background:#101a2b;
@@ -704,6 +690,9 @@
       .cut-row .sticky-col{ background:#101a2b; }
       .leaderboard-table tbody tr:nth-child(even).cut-row .sticky-col{ background:#0c1626; }
       .cut-heading{
+        font-size:11px;
+      }
+      .no-scores-heading{
         font-size:11px;
       }
     }
@@ -1029,8 +1018,10 @@
       }).join("");
     }
 
-    function renderPlayerRow(player, isCut = false){
-      const rankContent = isCut ? "Cut" : player.rank;
+    function renderPlayerRow(player, state = "active"){
+      const isCut = state === "cut";
+      const isNoScores = state === "no-scores";
+      const rankContent = isCut ? "Cut" : isNoScores ? "-" : player.rank;
       const total = player.countedCount ? formatScore(player.total) : "-";
       const username = player.username ? `@${player.username.replace(/^@/, "")}` : "";
       const member = player.member || null;
@@ -1045,7 +1036,7 @@
         </div>
       `;
       return `
-        <tr class="${isCut ? "cut-row" : ""}">
+        <tr class="${isCut ? "cut-row" : isNoScores ? "no-scores-row" : ""}">
           <td class="sticky-col sticky-rank rank-cell ${isCut ? "cut-rank" : rankClass(player.rank)}">${escapeHtml(rankContent)}</td>
           <td class="sticky-col sticky-name name-cell">
             ${playerUrl
@@ -1075,16 +1066,18 @@
     }
 
     function renderLeaderboard(players){
-      const contenders = rankContenders(players.filter(player => !player.cutCourse));
+      const playersWithScores = players.filter(player => player.countedCount > 0);
+      const noScorePlayers = players.filter(player => player.countedCount === 0).sort(comparePlayers);
+      const contenders = rankContenders(playersWithScores.filter(player => !player.cutCourse));
       const cutGroups = COURSES.map(course => ({
         course,
-        players:players.filter(player => player.cutCourse?.key === course.key).sort(comparePlayers),
+        players:playersWithScores.filter(player => player.cutCourse?.key === course.key).sort(comparePlayers),
       })).filter(group => group.players.length > 0);
 
       let bodyHtml = "";
       if(contenders.length){
         bodyHtml += contenders.map(player => renderPlayerRow(player)).join("");
-      }else{
+      }else if(!cutGroups.length && !noScorePlayers.length){
         bodyHtml += `<tr><td class="empty-state" colspan="${SCORE_COLUMNS.length + 3}">No active players yet.</td></tr>`;
       }
 
@@ -1095,9 +1088,20 @@
               <div class="cut-heading">Cut - ${escapeHtml(group.course.name)}</div>
             </td>
           </tr>
-            ${group.players.map(player => renderPlayerRow(player, true)).join("")}
+            ${group.players.map(player => renderPlayerRow(player, "cut")).join("")}
         `;
       });
+
+      if(noScorePlayers.length){
+        bodyHtml += `
+          <tr class="no-scores-heading-row">
+            <td colspan="${SCORE_COLUMNS.length + 3}">
+              <div class="no-scores-heading">NO SCORES</div>
+            </td>
+          </tr>
+            ${noScorePlayers.map(player => renderPlayerRow(player, "no-scores")).join("")}
+        `;
+      }
 
       leaderboardShell.innerHTML = `
         <div class="leaderboard-table-wrap">
