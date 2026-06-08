@@ -465,7 +465,6 @@
         <div class="card-head">
           <div>
             <h1 class="headline">The Noptational</h1>
-            <p class="subhead" id="leaderboardMeta">Scores refresh every 60 seconds.</p>
           </div>
         </div>
       </div>
@@ -482,7 +481,6 @@
     const SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
     const SHEET_NAME = "Round Scores (2026)";
     const SHEET_RANGE = `'${SHEET_NAME}'!A1:J250`;
-    const REFRESH_MS = 60000;
 
     const COURSES = [
       { key:"classic", name:"Classic", minimum:-12, columns:[1, 2] },
@@ -505,7 +503,6 @@
 
     const leaderboardCard = document.getElementById("leaderboardCard");
     const leaderboardShell = document.getElementById("leaderboardShell");
-    const leaderboardMeta = document.getElementById("leaderboardMeta");
 
     function normalizeValues(resp){
       if(!resp) return [];
@@ -758,7 +755,6 @@
           </table>
         </div>
       `;
-      leaderboardMeta.textContent = `${players.length} players loaded. Scores refresh every 60 seconds.`;
     }
 
     function showStatus(message, isError = false){
@@ -794,7 +790,6 @@
     }
 
     loadLeaderboard();
-    window.setInterval(loadLeaderboard, REFRESH_MS);
   </script>
 </body>
 </html>
