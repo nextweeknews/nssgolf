@@ -409,6 +409,17 @@
       border-color: rgba(165,180,252,0.95);
       background: var(--btn-bg-hover);
     }
+    .btn.gold{
+      color: #facc15;
+      border-color: rgba(250,204,21,0.9);
+      box-shadow: 0 0 12px rgba(250,204,21,0.42), 0 0 24px rgba(234,179,8,0.18);
+      text-shadow: 0 0 8px rgba(250,204,21,0.82);
+    }
+    .btn.gold:hover{
+      color: #fde68a;
+      border-color: rgba(253,230,138,0.95);
+      background: var(--btn-bg-hover);
+    }
     .btn.neon-gradient{
       border: 1px solid transparent;
       border-image: linear-gradient(90deg, #7dd3fc, #f6ff6a) 1;
@@ -426,6 +437,32 @@
       height: 16px;
       display: block;
       fill: currentColor;
+    }
+    .upcoming-schedule{
+      width: min(420px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 10px;
+      justify-items: stretch;
+      padding-top: 6px;
+    }
+    .schedule-row{
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+    }
+    .schedule-month{
+      color: rgba(233,238,248,0.72);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+    .schedule-row .btn{
+      justify-content: center;
+      width: 100%;
     }
     .btn-icon path{
       fill: currentColor;
@@ -549,7 +586,9 @@
         <div>
                     <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
             <option value="/index.html" selected>Home</option>
+            <option value="/championship.html">World Championship</option>
             <option value="/masters.html">World Golf Masters</option>
+            <option value="/worldcup.html">World Cup</option>
             <option value="/noptational.html">The Noptational</option>
             <option value="/worldopen/index.html">World Open</option>
             <option value="/proleague/index.html">Shotgun Pro League</option>
@@ -614,10 +653,25 @@
       </div>
 
       <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-tab" hidden>
-        <div class="actions">
-          <a class="btn neon-gradient" href="/masters.html" aria-label="Go to World Golf Masters">
-            World Golf Masters
-          </a>
+        <div class="upcoming-schedule">
+          <div class="schedule-row">
+            <span class="schedule-month">JUL</span>
+            <a class="btn gold" href="/championship.html" aria-label="Go to World Championship">
+              World Championship
+            </a>
+          </div>
+          <div class="schedule-row">
+            <span class="schedule-month">AUG</span>
+            <a class="btn gold" href="/masters.html" aria-label="Go to World Golf Masters">
+              World Golf Masters
+            </a>
+          </div>
+          <div class="schedule-row">
+            <span class="schedule-month">NOV</span>
+            <a class="btn gold" href="/worldcup.html" aria-label="Go to World Cup">
+              World Cup
+            </a>
+          </div>
         </div>
       </div>
 
