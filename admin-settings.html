@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Settings | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/settings-page.css" />
+  <link rel="stylesheet" href="/site-topbar.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/index.html">NSS Golf</a>
+      <select class="page-selector" aria-label="Navigate to page" onchange="if(this.value) window.location.href=this.value">
+        <option value="/index.html">Home</option>
+        <option value="/records.html">Records</option>
+        <option value="/player-settings.html">Player Settings</option>
+        <option value="/admin-settings.html" selected>Admin Settings</option>
+        <option value="/noptational.html">The Noptational</option>
+        <option value="/proleague.html">Shotgun Pro League</option>
+        <option value="/lightningcup/index.html">Lightning Cup</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    <section class="settings-card" aria-labelledby="admin-title">
+      <p class="settings-kicker">Administrator</p>
+      <h1 class="settings-title" id="admin-title">Admin Settings</h1>
+      <p class="settings-copy" id="adminCopy">Checking access...</p>
+      <div class="settings-actions" id="adminLoginActions" hidden>
+        <button class="settings-button" id="adminLoginBtn" type="button">Log In With Discord</button>
+      </div>
+      <div class="placeholder-panel" id="adminPlaceholder" hidden>
+        <h2>Coming soon</h2>
+        <p>Admin-only settings will live here once the admin tools are ready.</p>
+      </div>
+      <p class="settings-status" id="adminStatus" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js"></script>
+  <script type="module">
+    import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { ADMIN_ROLE_ID } from "/settings-data.js";
+
+    const supabase = createBrowserSupabaseClient();
+    const copy = document.getElementById("adminCopy");
+    const statusEl = document.getElementById("adminStatus");
+    const loginActions = document.getElementById("adminLoginActions");
+    const loginBtn = document.getElementById("adminLoginBtn");
+    const placeholder = document.getElementById("adminPlaceholder");
+
+    function normalizeText(value){
+      return String(value || "").trim();
+    }
+
+    function normalizeDiscordId(value){
+      return normalizeText(value).replace(/[^\d]/g, "");
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find(identity => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    function setStatus(message, tone = ""){
+      statusEl.textContent = message || "";
+      statusEl.className = `settings-status ${tone}`.trim();
+    }
+
+    async function loadProfileForUser(user){
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("discord_user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function playerHasAdminRole(discordId){
+      const cleanDiscordId = normalizeDiscordId(discordId);
+      if(!cleanDiscordId) return false;
+
+      const { data, error } = await supabase
+        .from("discord_member_roles")
+        .select("role_id")
+        .eq("discord_user_id", cleanDiscordId)
+        .eq("role_id", ADMIN_ROLE_ID)
+        .maybeSingle();
+      if(error) throw error;
+      return !!data;
+    }
+
+    async function initialize(){
+      const { data: sessionData } = await supabase.auth.getSession();
+      if(!sessionData?.session?.user){
+        copy.textContent = "Log in with Discord to access admin settings.";
+        loginActions.hidden = false;
+        setStatus("");
+        return;
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if(userError) throw userError;
+      const profile = await loadProfileForUser(userData.user);
+      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
+      const isAdmin = await playerHasAdminRole(discordId);
+
+      if(!isAdmin){
+        copy.textContent = "Admin access required.";
+        placeholder.hidden = true;
+        setStatus("Your Discord account does not have the administrator role.", "error");
+        return;
+      }
+
+      copy.textContent = "Admin tools are not available yet.";
+      placeholder.hidden = false;
+      setStatus("");
+    }
+
+    loginBtn.addEventListener("click", async () => {
+      setStatus("Opening Discord login...");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: { redirectTo: buildAuthRedirectTo("/admin-settings.html") },
+      });
+      if(error) setStatus(error.message || "Unable to start Discord login.", "error");
+    });
+
+    initialize().catch(error => {
+      console.error(error);
+      copy.textContent = "Unable to check admin access.";
+      setStatus(error?.message || "Unable to load admin settings.", "error");
+    });
+  </script>
+</body>
+</html>

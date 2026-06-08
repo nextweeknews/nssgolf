@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Player Settings | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/settings-page.css" />
+  <link rel="stylesheet" href="/site-topbar.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/index.html">NSS Golf</a>
+      <select class="page-selector" aria-label="Navigate to page" onchange="if(this.value) window.location.href=this.value">
+        <option value="/index.html">Home</option>
+        <option value="/records.html">Records</option>
+        <option value="/player-settings.html" selected>Player Settings</option>
+        <option value="/noptational.html">The Noptational</option>
+        <option value="/proleague.html">Shotgun Pro League</option>
+        <option value="/lightningcup/index.html">Lightning Cup</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    <section class="settings-card" aria-labelledby="settings-title">
+      <p class="settings-kicker">Account</p>
+      <h1 class="settings-title" id="settings-title">Player Settings</h1>
+      <p class="settings-copy">These optional details appear on your public player page. Global ranks are self-reported and not saved to cloud leaderboards.</p>
+
+      <form class="settings-form" id="playerSettingsForm" hidden>
+        <div class="settings-grid">
+          <label class="settings-field">
+            <span class="settings-label">Country 1</span>
+            <select class="settings-select" id="country1" name="country_1"></select>
+          </label>
+          <label class="settings-field">
+            <span class="settings-label">Country 2</span>
+            <select class="settings-select" id="country2" name="country_2"></select>
+          </label>
+          <label class="settings-field full">
+            <span class="settings-label">Time zone</span>
+            <select class="settings-select" id="timeZone" name="time_zone"></select>
+          </label>
+          <label class="settings-field">
+            <span class="settings-label">Current Global Rank</span>
+            <select class="settings-select" id="currentRank" name="current_global_rank"></select>
+          </label>
+          <label class="settings-field">
+            <span class="settings-label">Maximum Global Rank (no cloud saves)</span>
+            <select class="settings-select" id="maxRankNoCs" name="max_global_rank_no_cs"></select>
+          </label>
+          <label class="settings-field full">
+            <span class="settings-label">Maximum Global Rank (with cloud saves)</span>
+            <select class="settings-select" id="maxRankCs" name="max_global_rank_cs"></select>
+          </label>
+        </div>
+        <div class="settings-actions">
+          <button class="settings-button" id="saveSettingsBtn" type="submit">Save Settings</button>
+          <a class="settings-button secondary" id="viewPlayerLink" href="/index.html">View Player Page</a>
+        </div>
+      </form>
+
+      <div class="settings-actions" id="loginActions" hidden>
+        <button class="settings-button" id="loginBtn" type="button">Log In With Discord</button>
+      </div>
+      <p class="settings-status" id="settingsStatus" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js"></script>
+  <script type="module">
+    import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { buildCountryOptions, buildTimeZoneOptions, GLOBAL_RANKS } from "/settings-data.js";
+
+    const supabase = createBrowserSupabaseClient();
+    const form = document.getElementById("playerSettingsForm");
+    const loginActions = document.getElementById("loginActions");
+    const loginBtn = document.getElementById("loginBtn");
+    const saveBtn = document.getElementById("saveSettingsBtn");
+    const statusEl = document.getElementById("settingsStatus");
+    const viewPlayerLink = document.getElementById("viewPlayerLink");
+    const country1 = document.getElementById("country1");
+    const country2 = document.getElementById("country2");
+    const timeZone = document.getElementById("timeZone");
+    const currentRank = document.getElementById("currentRank");
+    const maxRankNoCs = document.getElementById("maxRankNoCs");
+    const maxRankCs = document.getElementById("maxRankCs");
+    let currentUser = null;
+    let currentDiscordId = "";
+
+    function normalizeText(value){
+      return String(value || "").trim();
+    }
+
+    function normalizeDiscordId(value){
+      return normalizeText(value).replace(/[^\d]/g, "");
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find(identity => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    function setStatus(message, tone = ""){
+      statusEl.textContent = message || "";
+      statusEl.className = `settings-status ${tone}`.trim();
+    }
+
+    function addBlankOption(select, label = "Not selected"){
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = label;
+      select.appendChild(option);
+    }
+
+    function fillSelect(select, options, blankLabel = "Not selected"){
+      select.replaceChildren();
+      addBlankOption(select, blankLabel);
+      for(const optionData of options){
+        const option = document.createElement("option");
+        option.value = optionData.value || optionData.code || optionData.timeZone || "";
+        option.textContent = optionData.label;
+        select.appendChild(option);
+      }
+    }
+
+    function fillRankSelect(select){
+      select.replaceChildren();
+      addBlankOption(select);
+      for(const rank of GLOBAL_RANKS){
+        const option = document.createElement("option");
+        option.value = rank;
+        option.textContent = rank;
+        select.appendChild(option);
+      }
+    }
+
+    function setSelectValue(select, value){
+      select.value = normalizeText(value);
+      if(select.value !== normalizeText(value)) select.value = "";
+    }
+
+    function readOptional(select){
+      return normalizeText(select.value) || null;
+    }
+
+    function setFormValues(settings = {}){
+      setSelectValue(country1, settings.country_1);
+      setSelectValue(country2, settings.country_2);
+      setSelectValue(timeZone, settings.time_zone);
+      setSelectValue(currentRank, settings.current_global_rank);
+      setSelectValue(maxRankNoCs, settings.max_global_rank_no_cs);
+      setSelectValue(maxRankCs, settings.max_global_rank_cs);
+    }
+
+    async function loadProfileForUser(user){
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id,username,discord_user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function loadSettings(userId){
+      const { data, error } = await supabase
+        .from("player_settings")
+        .select("country_1,country_2,time_zone,current_global_rank,max_global_rank_no_cs,max_global_rank_cs")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if(error) throw error;
+      return data || {};
+    }
+
+    async function initialize(){
+      fillSelect(country1, buildCountryOptions());
+      fillSelect(country2, buildCountryOptions());
+      fillSelect(timeZone, buildTimeZoneOptions(), "Not selected");
+      fillRankSelect(currentRank);
+      fillRankSelect(maxRankNoCs);
+      fillRankSelect(maxRankCs);
+
+      setStatus("Loading settings...");
+      const { data: sessionData } = await supabase.auth.getSession();
+      if(!sessionData?.session?.user){
+        form.hidden = true;
+        loginActions.hidden = false;
+        setStatus("Log in with Discord to edit your player settings.");
+        return;
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if(userError) throw userError;
+      currentUser = userData.user;
+      const profile = await loadProfileForUser(currentUser);
+      currentDiscordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(currentUser);
+      if(!currentDiscordId){
+        form.hidden = true;
+        loginActions.hidden = true;
+        setStatus("Your account is not linked to a Discord player profile yet.", "error");
+        return;
+      }
+
+      viewPlayerLink.href = `/player.html?id=${encodeURIComponent(currentDiscordId)}`;
+      const settings = await loadSettings(currentUser.id);
+      setFormValues(settings);
+      loginActions.hidden = true;
+      form.hidden = false;
+      setStatus("");
+    }
+
+    loginBtn.addEventListener("click", async () => {
+      setStatus("Opening Discord login...");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: { redirectTo: buildAuthRedirectTo("/player-settings.html") },
+      });
+      if(error) setStatus(error.message || "Unable to start Discord login.", "error");
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if(!currentUser?.id || !currentDiscordId) return;
+
+      const firstCountry = readOptional(country1);
+      const secondCountry = readOptional(country2);
+      if(firstCountry && secondCountry && firstCountry === secondCountry){
+        setStatus("Choose two different countries, or leave one blank.", "error");
+        return;
+      }
+
+      saveBtn.disabled = true;
+      setStatus("Saving settings...");
+      const payload = {
+        user_id: currentUser.id,
+        discord_user_id: currentDiscordId,
+        country_1: firstCountry,
+        country_2: secondCountry,
+        time_zone: readOptional(timeZone),
+        current_global_rank: readOptional(currentRank),
+        max_global_rank_no_cs: readOptional(maxRankNoCs),
+        max_global_rank_cs: readOptional(maxRankCs),
+      };
+
+      const { error } = await supabase
+        .from("player_settings")
+        .upsert(payload, { onConflict: "user_id" });
+
+      saveBtn.disabled = false;
+      if(error){
+        setStatus(error.message || "Unable to save settings.", "error");
+        return;
+      }
+      setStatus("Settings saved.", "success");
+    });
+
+    initialize().catch(error => {
+      console.error(error);
+      form.hidden = true;
+      setStatus(error?.message || "Unable to load settings.", "error");
+    });
+  </script>
+</body>
+</html>

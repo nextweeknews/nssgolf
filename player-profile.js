@@ -8,6 +8,7 @@ import {
   SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
   SUPER_LEAGUE_SEASON,
 } from "/ranked-league-config.js";
+import { countryLabelFor, timeZoneLabelFor } from "/settings-data.js";
 
 const RECORD_GROUPS = [
   {
@@ -174,6 +175,63 @@ function avatarUrlFor(member){
 
 function displayNameFor(member){
   return member?.display_name || member?.username || member?.discord_user_id || "Player";
+}
+
+function normalizeSettingText(value){
+  return String(value || "").trim();
+}
+
+function hasAnyPlayerSetting(settings){
+  return !!settings && [
+    settings.country_1,
+    settings.country_2,
+    settings.time_zone,
+    settings.current_global_rank,
+    settings.max_global_rank_no_cs,
+    settings.max_global_rank_cs,
+  ].some(normalizeSettingText);
+}
+
+function playerSettingsLine(settings){
+  if(!hasAnyPlayerSetting(settings)) return "";
+  const countries = [settings.country_1, settings.country_2]
+    .map(countryLabelFor)
+    .filter(Boolean)
+    .join(" / ");
+  const timeZone = timeZoneLabelFor(settings.time_zone);
+  return [countries, timeZone].filter(Boolean).join(" | ");
+}
+
+function getUnofficialRankItems(settings){
+  if(!settings) return [];
+  return [
+    { groupTitle: "Current", value: settings.current_global_rank },
+    { groupTitle: "Max (no CS)", value: settings.max_global_rank_no_cs },
+    { groupTitle: "Max (CS)", value: settings.max_global_rank_cs },
+  ].filter(item => normalizeSettingText(item.value));
+}
+
+async function loadPlayerSettings(discordId){
+  const cleanDiscordId = normalizeDiscordPlayerId(discordId);
+  if(!cleanDiscordId) return null;
+
+  try{
+    const { data, error } = await supabase
+      .from("player_settings")
+      .select("country_1,country_2,time_zone,current_global_rank,max_global_rank_no_cs,max_global_rank_cs")
+      .eq("discord_user_id", cleanDiscordId)
+      .maybeSingle();
+
+    if(error){
+      console.warn("Unable to load player settings", error);
+      return null;
+    }
+
+    return data || null;
+  }catch(error){
+    console.warn("Unable to load player settings", error);
+    return null;
+  }
 }
 
 function formatLongDate(value){
@@ -2207,7 +2265,7 @@ function createVerifiedIcon(){
   return icon;
 }
 
-function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases = [], superLeaguePlayerName = "", isVerified = false){
+function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases = [], superLeaguePlayerName = "", playerSettings = null, isVerified = false){
   document.title = `${displayNameFor(member)} | NSS Golf`;
   rootEl.innerHTML = "";
 
@@ -2244,7 +2302,16 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
   memberSince.className = "profile-muted";
   memberSince.textContent = sinceDate ? `Joined ${sinceDate}` : "Joined date unavailable";
 
+  const settingsText = playerSettingsLine(playerSettings);
+  const settingsLine = document.createElement("p");
+  settingsLine.className = "profile-muted player-settings-line";
+  settingsLine.textContent = settingsText;
+  settingsLine.hidden = !settingsText;
+
   headingWrap.append(name, memberSince);
+  if(settingsText){
+    headingWrap.appendChild(settingsLine);
+  }
   header.append(avatar, headingWrap);
   card.appendChild(header);
 
@@ -2299,6 +2366,40 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
     card.appendChild(recordsSection);
   }
 
+  const unofficialRanks = getUnofficialRankItems(playerSettings);
+  if(unofficialRanks.length){
+    const ranksSection = document.createElement("section");
+    ranksSection.className = "profile-section";
+
+    const ranksTitle = document.createElement("h2");
+    ranksTitle.className = "profile-section-title";
+    ranksTitle.textContent = "(Unofficial) Global Ranks";
+    ranksSection.appendChild(ranksTitle);
+
+    const list = document.createElement("ul");
+    list.className = "profile-record-list";
+    list.dataset.count = String(unofficialRanks.length);
+
+    for(const rank of unofficialRanks){
+      const item = document.createElement("li");
+      item.className = "profile-record-item";
+
+      const groupName = document.createElement("span");
+      groupName.className = "profile-record-group";
+      groupName.textContent = rank.groupTitle;
+
+      const rankName = document.createElement("span");
+      rankName.className = "profile-record-name";
+      rankName.textContent = normalizeSettingText(rank.value);
+
+      item.append(groupName, rankName);
+      list.appendChild(item);
+    }
+
+    ranksSection.appendChild(list);
+    card.appendChild(ranksSection);
+  }
+
   const rankedSection = renderRankedLeagueSection(rankedRows);
   if(rankedSection){
     card.appendChild(rankedSection);
@@ -2329,7 +2430,7 @@ async function loadPlayerProfile(){
 
   setStatus("Loading player...");
 
-  const [membersRes, linksRes, rankedRows, proLeagueAliases, superLeaguePlayerName] = await Promise.all([
+  const [membersRes, linksRes, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings] = await Promise.all([
     supabase
       .from("discord_guild_members")
       .select("discord_user_id,username,display_name,avatar_url,server_avatar_url,joined_at,is_current_member")
@@ -2344,6 +2445,7 @@ async function loadPlayerProfile(){
     loadRankedLeagueRows(discordId),
     loadProLeagueAliases(discordId),
     loadSuperLeaguePlayerName(discordId),
+    loadPlayerSettings(discordId),
   ]);
 
   if(membersRes.error) throw membersRes.error;
@@ -2381,7 +2483,7 @@ async function loadPlayerProfile(){
     }
   }
 
-  renderProfile(member, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, heldRoleIds.has(VERIFIED_ROLE_ID));
+  renderProfile(member, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, heldRoleIds.has(VERIFIED_ROLE_ID));
 }
 
 loadPlayerProfile().catch(error => {

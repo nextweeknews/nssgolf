@@ -1,4 +1,5 @@
 import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { ADMIN_ROLE_ID } from "/settings-data.js";
 
 const supabase = createBrowserSupabaseClient();
 
@@ -64,6 +65,37 @@ function createFallbackIcon(){
   return svg;
 }
 
+function createMenuIcon(pathData){
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "user-menu-icon");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+
+  pathData.forEach((data) => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", data);
+    svg.appendChild(path);
+  });
+
+  return svg;
+}
+
+function createMenuButton({ id, text, icon, className = "" }){
+  const button = document.createElement("button");
+  button.className = `user-menu-item ${className}`.trim();
+  button.id = id;
+  button.type = "button";
+  button.setAttribute("role", "menuitem");
+  button.append(createMenuIcon(icon), document.createTextNode(text));
+  return button;
+}
+
 function ensureTopbarMenu(){
   const topbarInner = document.querySelector(".topbar-inner");
   if(!topbarInner) return null;
@@ -105,25 +137,50 @@ function ensureTopbarMenu(){
   dropdown.setAttribute("role", "menu");
   dropdown.setAttribute("aria-labelledby", "topbarUserMenuBtn");
 
-  const viewPlayer = document.createElement("button");
-  viewPlayer.className = "user-menu-item";
-  viewPlayer.id = "viewPlayerPageBtn";
-  viewPlayer.type = "button";
-  viewPlayer.setAttribute("role", "menuitem");
-  viewPlayer.textContent = "View player page";
+  const viewPlayer = createMenuButton({
+    id: "viewPlayerPageBtn",
+    text: "View player page",
+    icon: [
+      "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2",
+      "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
+    ],
+  });
+
+  const playerSettings = createMenuButton({
+    id: "playerSettingsBtn",
+    text: "Player settings",
+    icon: [
+      "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z",
+      "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+    ],
+  });
+
+  const adminSettings = createMenuButton({
+    id: "adminSettingsBtn",
+    text: "Admin settings",
+    icon: [
+      "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.81 17 5 19 5a1 1 0 0 1 1 1v7Z",
+      "m9 12 2 2 4-4",
+    ],
+  });
+  adminSettings.hidden = true;
 
   const divider = document.createElement("div");
   divider.className = "user-menu-divider";
   divider.setAttribute("aria-hidden", "true");
 
-  const logout = document.createElement("button");
-  logout.className = "user-menu-item";
-  logout.id = "menuLogoutBtn";
-  logout.type = "button";
-  logout.setAttribute("role", "menuitem");
-  logout.textContent = "Log out";
+  const logout = createMenuButton({
+    id: "menuLogoutBtn",
+    text: "Log out",
+    className: "danger",
+    icon: [
+      "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4",
+      "M16 17l5-5-5-5",
+      "M21 12H9",
+    ],
+  });
 
-  dropdown.append(viewPlayer, divider, logout);
+  dropdown.append(viewPlayer, playerSettings, adminSettings, divider, logout);
   menu.append(greeting, button, dropdown);
   topbarInner.appendChild(menu);
   return menu;
@@ -149,6 +206,24 @@ async function getProfileForUser(user){
     return data || null;
   }catch{
     return null;
+  }
+}
+
+async function playerHasAdminRole(discordId){
+  const cleanDiscordId = normalizeDiscordId(discordId);
+  if(!cleanDiscordId) return false;
+
+  try{
+    const { data, error } = await supabase
+      .from("discord_member_roles")
+      .select("role_id")
+      .eq("discord_user_id", cleanDiscordId)
+      .eq("role_id", ADMIN_ROLE_ID)
+      .maybeSingle();
+    if(error) return false;
+    return !!data;
+  }catch{
+    return false;
   }
 }
 
@@ -202,6 +277,15 @@ async function renderTopbarAuth(){
   viewPlayer.disabled = !discordId;
   viewPlayer.dataset.playerUrl = discordId ? `/player.html?id=${encodeURIComponent(discordId)}` : "";
 
+  const playerSettings = menu.querySelector("#playerSettingsBtn");
+  playerSettings.disabled = !discordId;
+  playerSettings.dataset.settingsUrl = "/player-settings.html";
+
+  const adminSettings = menu.querySelector("#adminSettingsBtn");
+  const isAdmin = await playerHasAdminRole(discordId);
+  adminSettings.hidden = !isAdmin;
+  adminSettings.dataset.settingsUrl = "/admin-settings.html";
+
   menu.hidden = false;
   menu.classList.add("is-visible");
 }
@@ -216,6 +300,8 @@ function bindTopbarMenu(){
   const dropdown = menu.querySelector("#topbarUserDropdown");
   const logout = menu.querySelector("#menuLogoutBtn");
   const viewPlayer = menu.querySelector("#viewPlayerPageBtn");
+  const playerSettings = menu.querySelector("#playerSettingsBtn");
+  const adminSettings = menu.querySelector("#adminSettingsBtn");
   let isOpen = false;
 
   avatar.addEventListener("error", () => {
@@ -252,6 +338,16 @@ function bindTopbarMenu(){
   viewPlayer.addEventListener("click", () => {
     const playerUrl = normalizeText(viewPlayer.dataset.playerUrl);
     if(playerUrl) window.location.href = playerUrl;
+  });
+
+  playerSettings.addEventListener("click", () => {
+    const settingsUrl = normalizeText(playerSettings.dataset.settingsUrl);
+    if(settingsUrl) window.location.href = settingsUrl;
+  });
+
+  adminSettings.addEventListener("click", () => {
+    const settingsUrl = normalizeText(adminSettings.dataset.settingsUrl);
+    if(settingsUrl) window.location.href = settingsUrl;
   });
 
   logout.addEventListener("click", async () => {
