@@ -166,6 +166,75 @@
       display:none;
     }
 
+    .records-tabs-root{
+      width:100%;
+      margin-top: 14px;
+    }
+    .records-tabs-list{
+      width:100%;
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap:0;
+      padding:0;
+      border:0;
+      border-bottom:1px solid rgba(148,163,184,.24);
+      border-radius:0;
+      background: transparent;
+    }
+    .records-tabs-trigger{
+      position:relative;
+      min-height:35px;
+      border:0;
+      border-radius:0;
+      background: transparent;
+      color: rgba(233,238,248,.86);
+      padding:6px 8px 7px;
+      text-align:center;
+      line-height:1.2;
+      font: inherit;
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      appearance:none;
+      cursor:pointer;
+      transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+    .records-tabs-trigger-label{
+      display:block;
+      width:100%;
+      text-align:center;
+    }
+    .records-tabs-trigger::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:2px;
+      border-radius:0;
+      background: transparent;
+      transition: background-color 140ms ease;
+    }
+    .records-tabs-trigger:hover{
+      background: rgba(148,163,184,.10);
+      color: rgba(255,255,255,.95);
+    }
+    .records-tabs-trigger[data-state="active"]{
+      background: rgba(79,70,229,.12);
+      color:#f4faff;
+    }
+    .records-tabs-trigger[data-state="active"]::after{
+      background: rgba(79,70,229,.92);
+    }
+    .records-tabs-trigger:focus-visible{
+      outline:none;
+      box-shadow: inset 0 0 0 1px rgba(79,70,229,.56);
+    }
+    .records-tabs-content[data-state="inactive"]{
+      display:none;
+    }
+
     .records-grid{
       margin-top: 22px;
       display:grid;
@@ -423,13 +492,29 @@
   <main class="container">
     <section class="card" aria-labelledby="records-title">
       <h1 class="headline" id="records-title">NSS Golf Records</h1>
-      <div class="status" id="records-status" hidden></div>
-      <div class="records-grid" id="records-grid" aria-live="polite"></div>
+      <div class="records-tabs-root" id="records-tabs-root">
+        <div class="records-tabs-list" role="tablist" aria-label="Records views">
+          <button class="records-tabs-trigger" id="records-tab-personal-bests" type="button" role="tab" data-records-tab="qualified-personal-bests" aria-controls="records-panel-personal-bests">
+            <span class="records-tabs-trigger-label">Qualified Personal Bests</span>
+          </button>
+          <button class="records-tabs-trigger" id="records-tab-global-ranks" type="button" role="tab" data-records-tab="global-ranks" aria-controls="records-panel-global-ranks">
+            <span class="records-tabs-trigger-label">(Unofficial) Global Ranks</span>
+          </button>
+        </div>
+        <div class="status" id="records-status" hidden></div>
+        <div class="records-tabs-content" id="records-panel-personal-bests" role="tabpanel" data-records-panel="qualified-personal-bests" aria-labelledby="records-tab-personal-bests">
+          <div class="records-grid" id="records-grid" aria-live="polite"></div>
+        </div>
+        <div class="records-tabs-content" id="records-panel-global-ranks" role="tabpanel" data-records-panel="global-ranks" aria-labelledby="records-tab-global-ranks">
+          <div class="records-grid" id="global-ranks-grid" aria-live="polite"></div>
+        </div>
+      </div>
     </section>
   </main>
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { GLOBAL_RANKS_NO_CS, GLOBAL_RANKS_WITH_CS } from "/settings-data.js";
 
     const RECORD_GROUPS = [
       {
@@ -464,10 +549,21 @@
       },
     ];
 
+    const GLOBAL_RANK_GROUPS = [
+      { title: "Current", key: "current_global_rank", rankOrder: GLOBAL_RANKS_WITH_CS },
+      { title: "Max (no CS)", key: "max_global_rank_no_cs", rankOrder: GLOBAL_RANKS_NO_CS },
+      { title: "Max (CS)", key: "max_global_rank_cs", rankOrder: GLOBAL_RANKS_WITH_CS },
+    ];
+    const DEFAULT_RECORDS_TAB = "qualified-personal-bests";
+    const VALID_RECORDS_TABS = new Set([DEFAULT_RECORDS_TAB, "global-ranks"]);
+
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("records-status");
     const gridEl = document.getElementById("records-grid");
+    const globalRanksGridEl = document.getElementById("global-ranks-grid");
     const desktopRecordsQuery = window.matchMedia("(min-width: 761px)");
+    const tabButtons = [...document.querySelectorAll("[data-records-tab]")];
+    const tabPanels = [...document.querySelectorAll("[data-records-panel]")];
 
     function cleanRoleName(name){
       const clean = String(name || "")
@@ -478,8 +574,69 @@
     }
 
     function avatarUrlFor(member){
-      return member?.server_avatar_url || "/logos/golf.png";
+      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
     }
+
+    function playerNameFor(member){
+      return member?.display_name || member?.username || member?.discord_user_id || "Player";
+    }
+
+    function getRecordsTabFromUrl(){
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get("view") || params.get("tab") || DEFAULT_RECORDS_TAB;
+      return VALID_RECORDS_TABS.has(view) ? view : DEFAULT_RECORDS_TAB;
+    }
+
+    function setRecordsTab(tab, options = {}){
+      const nextTab = VALID_RECORDS_TABS.has(tab) ? tab : DEFAULT_RECORDS_TAB;
+      for(const button of tabButtons){
+        const isActive = button.dataset.recordsTab === nextTab;
+        button.dataset.state = isActive ? "active" : "inactive";
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+        button.tabIndex = isActive ? 0 : -1;
+      }
+
+      for(const panel of tabPanels){
+        const isActive = panel.dataset.recordsPanel === nextTab;
+        panel.dataset.state = isActive ? "active" : "inactive";
+        panel.hidden = !isActive;
+      }
+
+      if(options.updateUrl){
+        const url = new URL(window.location.href);
+        url.searchParams.set("view", nextTab);
+        window.history.pushState({ recordsView: nextTab }, "", url);
+      }
+      syncRecordsLayout();
+    }
+
+    function focusTabAt(index){
+      const nextButton = tabButtons[index];
+      if(!nextButton) return;
+      setRecordsTab(nextButton.dataset.recordsTab, { updateUrl: true });
+      nextButton.focus();
+    }
+
+    for(const [index, button] of tabButtons.entries()){
+      button.addEventListener("click", () => setRecordsTab(button.dataset.recordsTab, { updateUrl: true }));
+      button.addEventListener("keydown", (event) => {
+        if(event.key === "ArrowRight"){
+          event.preventDefault();
+          focusTabAt((index + 1) % tabButtons.length);
+        }else if(event.key === "ArrowLeft"){
+          event.preventDefault();
+          focusTabAt((index - 1 + tabButtons.length) % tabButtons.length);
+        }else if(event.key === "Home"){
+          event.preventDefault();
+          focusTabAt(0);
+        }else if(event.key === "End"){
+          event.preventDefault();
+          focusTabAt(tabButtons.length - 1);
+        }
+      });
+    }
+
+    window.addEventListener("popstate", () => setRecordsTab(getRecordsTabFromUrl()));
 
     function createPlayerCountBadge(count){
       const badge = document.createElement("span");
@@ -509,24 +666,134 @@
       return badge;
     }
 
+    function slugifyId(value, fallback = "section"){
+      return String(value || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || fallback;
+    }
+
+    function getRecordGrids(){
+      return [gridEl, globalRanksGridEl].filter(Boolean);
+    }
+
     function syncRecordsLayout(){
       const isDesktop = desktopRecordsQuery.matches;
-      gridEl.querySelectorAll(".record-section-toggle").forEach((toggle) => {
-        const bodyId = toggle.getAttribute("aria-controls");
-        const body = bodyId ? document.getElementById(bodyId) : null;
-        if(!body) return;
+      for(const grid of getRecordGrids()){
+        grid.querySelectorAll(".record-section-toggle").forEach((toggle) => {
+          const bodyId = toggle.getAttribute("aria-controls");
+          const body = bodyId ? document.getElementById(bodyId) : null;
+          if(!body) return;
 
-        if(isDesktop){
-          toggle.setAttribute("aria-expanded", "true");
-          toggle.disabled = true;
-          body.hidden = false;
-          return;
-        }
+          if(isDesktop){
+            toggle.setAttribute("aria-expanded", "true");
+            toggle.disabled = true;
+            body.hidden = false;
+            return;
+          }
 
-        toggle.disabled = false;
-        toggle.setAttribute("aria-expanded", "false");
-        body.hidden = true;
+          toggle.disabled = false;
+          toggle.setAttribute("aria-expanded", "false");
+          body.hidden = true;
+        });
+      }
+    }
+
+    function createRecordSection(titleText, idPrefix){
+      const section = document.createElement("section");
+      section.className = "record-section";
+
+      const sectionId = `${idPrefix}-section-${slugifyId(titleText)}`;
+      const bodyId = `${sectionId}-body`;
+
+      const toggle = document.createElement("button");
+      toggle.className = "record-section-toggle";
+      toggle.type = "button";
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.setAttribute("aria-controls", bodyId);
+
+      const title = document.createElement("span");
+      title.className = "record-section-title";
+      title.textContent = titleText;
+      const chevron = document.createElement("span");
+      chevron.className = "record-chevron";
+      chevron.setAttribute("aria-hidden", "true");
+      toggle.append(title, chevron);
+      section.appendChild(toggle);
+
+      const body = document.createElement("div");
+      body.className = "record-section-body";
+      body.id = bodyId;
+      body.hidden = true;
+      toggle.addEventListener("click", () => {
+        if(desktopRecordsQuery.matches) return;
+        const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+        toggle.setAttribute("aria-expanded", isExpanded ? "false" : "true");
+        body.hidden = isExpanded;
       });
+
+      section.appendChild(body);
+      return { section, body };
+    }
+
+    function createMemberList(members){
+      const list = document.createElement("ul");
+      list.className = "member-list";
+
+      for(const member of members){
+        const item = document.createElement("li");
+        item.className = "member-row";
+
+        const link = document.createElement("a");
+        link.className = "member-link";
+        link.href = `/player.html?id=${encodeURIComponent(member.discord_user_id)}`;
+        link.setAttribute("aria-label", `View ${playerNameFor(member)} profile`);
+
+        const avatar = document.createElement("img");
+        avatar.className = "member-avatar";
+        avatar.src = avatarUrlFor(member);
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.decoding = "async";
+        avatar.referrerPolicy = "no-referrer";
+
+        const name = document.createElement("span");
+        name.className = "member-name";
+        name.textContent = playerNameFor(member);
+
+        link.append(avatar, name);
+        item.appendChild(link);
+        list.appendChild(item);
+      }
+
+      return list;
+    }
+
+    function createRoleGroup(titleText, members){
+      const roleGroup = document.createElement("div");
+      roleGroup.className = "role-group";
+
+      const roleTitle = document.createElement("h3");
+      roleTitle.className = "role-title role-title-row";
+
+      const roleTitleText = document.createElement("span");
+      roleTitleText.className = "role-title-text";
+      roleTitleText.textContent = titleText;
+
+      roleTitle.append(roleTitleText, createPlayerCountBadge(members.length));
+      roleGroup.appendChild(roleTitle);
+
+      if(!members.length){
+        const empty = document.createElement("p");
+        empty.className = "empty-role";
+        empty.textContent = "No players.";
+        roleGroup.appendChild(empty);
+      }else{
+        roleGroup.appendChild(createMemberList(members));
+      }
+
+      return roleGroup;
+    }
+
+    function sortMembersByName(members){
+      return [...members].sort((a, b) => playerNameFor(a).localeCompare(playerNameFor(b), undefined, { sensitivity: "base" }));
     }
 
     function renderRecords(groups, rolesById, linksByRoleId, membersById){
@@ -534,101 +801,16 @@
       const fragment = document.createDocumentFragment();
 
       for(const group of groups){
-        const section = document.createElement("section");
-        section.className = "record-section";
-
-        const sectionId = `records-section-${group.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-        const bodyId = `${sectionId}-body`;
-
-        const toggle = document.createElement("button");
-        toggle.className = "record-section-toggle";
-        toggle.type = "button";
-        toggle.setAttribute("aria-expanded", "false");
-        toggle.setAttribute("aria-controls", bodyId);
-
-        const title = document.createElement("span");
-        title.className = "record-section-title";
-        title.textContent = group.title;
-        const chevron = document.createElement("span");
-        chevron.className = "record-chevron";
-        chevron.setAttribute("aria-hidden", "true");
-        toggle.append(title, chevron);
-        section.appendChild(toggle);
-
-        const body = document.createElement("div");
-        body.className = "record-section-body";
-        body.id = bodyId;
-        body.hidden = true;
-        toggle.addEventListener("click", () => {
-          if(desktopRecordsQuery.matches) return;
-          const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-          toggle.setAttribute("aria-expanded", isExpanded ? "false" : "true");
-          body.hidden = isExpanded;
-        });
+        const { section, body } = createRecordSection(group.title, "records");
 
         for(const roleId of group.roleIds){
           const role = rolesById.get(roleId);
           const links = linksByRoleId.get(roleId) || [];
-          const members = links
-            .map(link => membersById.get(link.discord_user_id))
-            .filter(Boolean)
-            .sort((a, b) => String(a.display_name || "").localeCompare(String(b.display_name || "")));
+          const members = sortMembersByName(links.map(link => membersById.get(link.discord_user_id)).filter(Boolean));
 
-          const roleGroup = document.createElement("div");
-          roleGroup.className = "role-group";
-
-          const roleTitle = document.createElement("h3");
-          roleTitle.className = "role-title role-title-row";
-
-          const roleTitleText = document.createElement("span");
-          roleTitleText.className = "role-title-text";
-          roleTitleText.textContent = cleanRoleName(role?.name);
-
-          roleTitle.append(roleTitleText, createPlayerCountBadge(members.length));
-          roleGroup.appendChild(roleTitle);
-
-          if(!members.length){
-            const empty = document.createElement("p");
-            empty.className = "empty-role";
-            empty.textContent = "No players.";
-            roleGroup.appendChild(empty);
-          }else{
-            const list = document.createElement("ul");
-            list.className = "member-list";
-
-            for(const member of members){
-              const item = document.createElement("li");
-              item.className = "member-row";
-
-              const link = document.createElement("a");
-              link.className = "member-link";
-              link.href = `/player.html?id=${encodeURIComponent(member.discord_user_id)}`;
-              link.setAttribute("aria-label", `View ${member.display_name || member.username || member.discord_user_id} profile`);
-
-              const avatar = document.createElement("img");
-              avatar.className = "member-avatar";
-              avatar.src = avatarUrlFor(member);
-              avatar.alt = "";
-              avatar.loading = "lazy";
-              avatar.decoding = "async";
-              avatar.referrerPolicy = "no-referrer";
-
-              const name = document.createElement("span");
-              name.className = "member-name";
-              name.textContent = member.display_name || member.username || member.discord_user_id;
-
-              link.append(avatar, name);
-              item.appendChild(link);
-              list.appendChild(item);
-            }
-
-            roleGroup.appendChild(list);
-          }
-
-          body.appendChild(roleGroup);
+          body.appendChild(createRoleGroup(cleanRoleName(role?.name), members));
         }
 
-        section.appendChild(body);
         fragment.appendChild(section);
       }
 
@@ -636,7 +818,57 @@
       syncRecordsLayout();
     }
 
+    function normalizeRankValue(value){
+      return String(value || "").trim();
+    }
+
+    function getOrderedRankValues(settingsRows, key, rankOrder){
+      const rankOrderMap = new Map(rankOrder.map((rank, index) => [rank, index]));
+      const values = [...new Set(settingsRows.map(row => normalizeRankValue(row[key])).filter(Boolean))];
+      return values.sort((left, right) => {
+        const leftIndex = rankOrderMap.has(left) ? rankOrderMap.get(left) : -1;
+        const rightIndex = rankOrderMap.has(right) ? rankOrderMap.get(right) : -1;
+        if(leftIndex !== rightIndex) return rightIndex - leftIndex;
+        return right.localeCompare(left, undefined, { numeric: true, sensitivity: "base" });
+      });
+    }
+
+    function renderGlobalRanks(settingsRows, membersById){
+      globalRanksGridEl.innerHTML = "";
+      const rowsWithMembers = settingsRows
+        .map(row => ({ ...row, member: membersById.get(row.discord_user_id) }))
+        .filter(row => row.member);
+      const fragment = document.createDocumentFragment();
+
+      for(const group of GLOBAL_RANK_GROUPS){
+        const { section, body } = createRecordSection(group.title, "global-ranks");
+        const rankValues = getOrderedRankValues(rowsWithMembers, group.key, group.rankOrder);
+
+        if(!rankValues.length){
+          const empty = document.createElement("p");
+          empty.className = "empty-role";
+          empty.textContent = "No players.";
+          body.appendChild(empty);
+        }
+
+        for(const rank of rankValues){
+          const members = sortMembersByName(
+            rowsWithMembers
+              .filter(row => normalizeRankValue(row[group.key]) === rank)
+              .map(row => row.member)
+          );
+          body.appendChild(createRoleGroup(rank, members));
+        }
+
+        fragment.appendChild(section);
+      }
+
+      globalRanksGridEl.appendChild(fragment);
+      syncRecordsLayout();
+    }
+
     desktopRecordsQuery.addEventListener("change", syncRecordsLayout);
+    setRecordsTab(getRecordsTabFromUrl());
 
     async function loadRecords(){
       const roleIds = RECORD_GROUPS.flatMap(group => group.roleIds);
@@ -660,7 +892,7 @@
       if(memberIds.length){
         const membersRes = await supabase
           .from("discord_guild_members")
-          .select("discord_user_id,username,display_name,server_avatar_url")
+          .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
           .in("discord_user_id", memberIds)
           .eq("is_current_member", true);
         if(membersRes.error) throw membersRes.error;
@@ -683,7 +915,44 @@
       renderRecords(RECORD_GROUPS, rolesById, linksByRoleId, membersById);
     }
 
-    loadRecords().catch(error => {
+    async function loadGlobalRanks(){
+      const settingsRes = await supabase
+        .from("player_settings")
+        .select("discord_user_id,current_global_rank,max_global_rank_no_cs,max_global_rank_cs");
+
+      if(settingsRes.error) throw settingsRes.error;
+
+      const settingsRows = (settingsRes.data || [])
+        .map(row => ({
+          ...row,
+          discord_user_id: String(row.discord_user_id || "").trim(),
+          current_global_rank: normalizeRankValue(row.current_global_rank),
+          max_global_rank_no_cs: normalizeRankValue(row.max_global_rank_no_cs),
+          max_global_rank_cs: normalizeRankValue(row.max_global_rank_cs),
+        }))
+        .filter(row => row.discord_user_id && GLOBAL_RANK_GROUPS.some(group => row[group.key]));
+
+      const memberIds = [...new Set(settingsRows.map(row => row.discord_user_id))];
+      let members = [];
+      if(memberIds.length){
+        const membersRes = await supabase
+          .from("discord_guild_members")
+          .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
+          .in("discord_user_id", memberIds)
+          .eq("is_current_member", true);
+        if(membersRes.error) throw membersRes.error;
+        members = membersRes.data || [];
+      }
+
+      const membersById = new Map(members.map(member => [member.discord_user_id, member]));
+      renderGlobalRanks(settingsRows, membersById);
+    }
+
+    async function loadAllRecords(){
+      await Promise.all([loadRecords(), loadGlobalRanks()]);
+    }
+
+    loadAllRecords().catch(error => {
       console.error(error);
       statusEl.hidden = false;
       statusEl.textContent = `Unable to load records: ${error?.message || "Unknown error"}`;
