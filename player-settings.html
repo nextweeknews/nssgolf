@@ -102,6 +102,7 @@
     const saveBtn = document.getElementById("saveSettingsBtn");
     const statusEl = document.getElementById("settingsStatus");
     const customUrlSlug = document.getElementById("customUrlSlug");
+    const customUrlInputFrame = customUrlSlug.closest(".settings-url-input");
     const customUrlStatusIcon = document.getElementById("customUrlStatusIcon");
     const country1 = document.getElementById("country1");
     const country2 = document.getElementById("country2");
@@ -333,6 +334,12 @@
     customUrlSlug.addEventListener("blur", () => {
       const slug = normalizePlayerUrlSlug(customUrlSlug.value);
       customUrlSlug.value = customUrlInputValueForSlug(slug);
+    });
+
+    customUrlInputFrame.addEventListener("click", (event) => {
+      if(event.target === customUrlSlug || customUrlSlug.disabled) return;
+      customUrlSlug.focus();
+      customUrlSlug.setSelectionRange(0, 0);
     });
 
     customUrlSlug.addEventListener("input", () => {
