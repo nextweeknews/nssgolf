@@ -20,6 +20,7 @@ import {
 import {
   buildActualMatchesFromSheet as buildLightningCupActualMatchesFromSheet,
   buildBracketContext as buildLightningCupBracketContext,
+  buildMatchPageUrl as buildLightningCupMatchPageUrl,
   buildResolvedMatchMap as buildLightningCupResolvedMatchMap,
   formatRoundLabel as formatLightningCupRoundLabel,
   parseSeedsNameDiscordMap as parseLightningCupSeedsNameDiscordMap,
@@ -1666,6 +1667,7 @@ function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
 
   return {
     opponent: lightningCupSeedPlayerText(opponentSlot),
+    opponentDiscordId: getLightningCupDiscordIdForPlayerName(seedMaps, opponentSlot?.name),
     result: `${outcome} ${playerSets}-${opponentSets}`,
     outcome: outcome === "W" ? "win" : "loss",
   };
@@ -1703,6 +1705,7 @@ async function loadLightningCupPlayerResults(member){
     .sort(compareLightningCupMatches)
     .map((match) => ({
       id: match.id,
+      matchUrl: buildLightningCupMatchPageUrl(match.id),
       round: formatLightningCupRoundLabel(match.round),
       result: buildLightningCupResultLine(match, discordId, seedMaps),
     }))
@@ -1777,13 +1780,19 @@ function renderLightningCupResults(results){
     const opponentPrefix = document.createElement("span");
     opponentPrefix.className = "lightningcup-result-vs";
     opponentPrefix.textContent = "vs.";
-    const opponentName = document.createElement("span");
+    const opponentName = result.result.opponentDiscordId
+      ? document.createElement("a")
+      : document.createElement("span");
     opponentName.className = "lightningcup-result-opponent-name";
     opponentName.textContent = result.result.opponent;
+    if(result.result.opponentDiscordId){
+      opponentName.href = `/player.html?id=${encodeURIComponent(result.result.opponentDiscordId)}`;
+    }
     opponent.append(opponentPrefix, opponentName);
 
-    const score = document.createElement("span");
+    const score = document.createElement("a");
     score.className = `lightningcup-result-score is-${result.result.outcome}`;
+    score.href = result.matchUrl || "/lightningcup/match/";
     score.textContent = result.result.result;
 
     row.append(round, opponent, score);
