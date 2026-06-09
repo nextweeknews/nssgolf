@@ -353,12 +353,18 @@ function isGlobalRankHidden(moderationSet, discordId, rankKey){
   return moderationSet?.has(moderationKey(discordId, rankKey));
 }
 
+const PLAYER_GLOBAL_RANK_LABELS = {
+  current_global_rank: "Current",
+  max_global_rank_no_cs: "Max (no CS)",
+  max_global_rank_cs: "Max (CS)",
+};
+
 function getUnofficialRankItems(settings, moderationSet = new Set(), viewerContext = { isAdmin: false, isOwner: false }){
   if(!settings) return [];
   return [
-    { groupTitle: GLOBAL_RANK_FIELD_LABELS.current_global_rank, key: "current_global_rank", value: settings.current_global_rank },
-    { groupTitle: GLOBAL_RANK_FIELD_LABELS.max_global_rank_no_cs, key: "max_global_rank_no_cs", value: settings.max_global_rank_no_cs },
-    { groupTitle: GLOBAL_RANK_FIELD_LABELS.max_global_rank_cs, key: "max_global_rank_cs", value: settings.max_global_rank_cs },
+    { groupTitle: PLAYER_GLOBAL_RANK_LABELS.current_global_rank, key: "current_global_rank", value: settings.current_global_rank },
+    { groupTitle: PLAYER_GLOBAL_RANK_LABELS.max_global_rank_no_cs, key: "max_global_rank_no_cs", value: settings.max_global_rank_no_cs },
+    { groupTitle: PLAYER_GLOBAL_RANK_LABELS.max_global_rank_cs, key: "max_global_rank_cs", value: settings.max_global_rank_cs },
   ].map(item => ({
     ...item,
     hidden: isGlobalRankHidden(moderationSet, settings.discord_user_id, item.key),
