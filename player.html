@@ -729,6 +729,9 @@
       width: 100%;
       min-width: 0;
     }
+    .tournament-history + .tournament-history{
+      margin-top: 16px;
+    }
     .tournament-title{
       margin: 0 0 8px;
       color: rgba(255,255,255,0.92);
@@ -781,6 +784,40 @@
     }
     .tournament-table tbody tr.is-no-scores td{
       color: rgba(233,238,248,0.70);
+    }
+    .lightningcup-results-list{
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .lightningcup-result-item{
+      display: grid;
+      grid-template-columns: 104px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(148,163,184,0.20);
+      border-radius: 12px;
+      background: rgba(15,23,42,0.76);
+    }
+    .lightningcup-result-round{
+      color: rgba(125,211,252,0.95);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      line-height: 1.15;
+    }
+    .lightningcup-result-line{
+      min-width: 0;
+      color: rgba(233,238,248,0.94);
+      font-size: 12px;
+      font-weight: 850;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+      text-align: left;
     }
     .superleague-history{
       width: 100%;
@@ -1024,6 +1061,14 @@
         letter-spacing: .04em;
       }
       .tournament-table tbody td{
+        font-size: 11px;
+      }
+      .lightningcup-result-item{
+        grid-template-columns: 1fr;
+        gap: 5px;
+        padding: 10px;
+      }
+      .lightningcup-result-line{
         font-size: 11px;
       }
       .superleague-player-panel{

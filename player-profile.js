@@ -17,6 +17,13 @@ import {
   playerUrlPathForSlug,
   timeZoneOffsetLabel,
 } from "/settings-data.js";
+import {
+  buildActualMatchesFromSheet as buildLightningCupActualMatchesFromSheet,
+  buildBracketContext as buildLightningCupBracketContext,
+  buildResolvedMatchMap as buildLightningCupResolvedMatchMap,
+  formatRoundLabel as formatLightningCupRoundLabel,
+  parseSeedsNameDiscordMap as parseLightningCupSeedsNameDiscordMap,
+} from "/lightningcup/match-feature.js";
 
 const RECORD_GROUPS = [
   {
@@ -66,6 +73,9 @@ const SUPERLEAGUE_DISCORD_IDS_SHEET = "Discord IDs";
 const NOPTATIONAL_SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
 const NOPTATIONAL_SHEET_NAME = "Round Scores (2026)";
 const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
+const LIGHTNING_CUP_SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
+const LIGHTNING_CUP_BRACKET_RANGE = "Bracket!A:T";
+const LIGHTNING_CUP_SEEDS_RANGE = "Seeds!C:E";
 const PROLEAGUE_MANUAL_INITIAL_PERIOD = {
   enabled: true,
   season: SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
@@ -129,6 +139,7 @@ const NOPTATIONAL_SCORE_COLUMNS = [
   { course: "eighteen", title: "18 Holes R1", column: 8 },
   { course: "eighteen", title: "18 Holes R2", column: 9 },
 ];
+const LIGHTNING_CUP_ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final", "final"];
 const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
@@ -1576,6 +1587,120 @@ async function loadNoptationalPlayer(member){
     || null;
 }
 
+function normalizeLightningCupPlayerName(value){
+  return String(value || "").trim().toLowerCase();
+}
+
+function getLightningCupDiscordIdForPlayerName(seedMaps, name){
+  const cleanName = String(name || "").trim();
+  if(!cleanName) return "";
+  return normalizeDiscordPlayerId(seedMaps?.exact?.get(cleanName))
+    || normalizeDiscordPlayerId(seedMaps?.lower?.get(cleanName.toLowerCase()));
+}
+
+function isLightningCupPlayerSlot(slot, seedMaps, discordId){
+  const cleanDiscordId = normalizeDiscordPlayerId(discordId);
+  if(!cleanDiscordId) return false;
+  return getLightningCupDiscordIdForPlayerName(seedMaps, slot?.name) === cleanDiscordId;
+}
+
+function parseLightningCupSetCount(value){
+  const text = String(value ?? "").trim();
+  if(!text) return null;
+  const match = text.match(/-?\d+/);
+  if(!match) return null;
+  const count = Number(match[0]);
+  return Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : null;
+}
+
+function deriveLightningCupSetCounts(match){
+  const topScore = parseLightningCupSetCount(match?.top?.score);
+  const bottomScore = parseLightningCupSetCount(match?.bottom?.score);
+  if(topScore !== null || bottomScore !== null){
+    return {
+      top: topScore ?? 0,
+      bottom: bottomScore ?? 0,
+    };
+  }
+
+  let top = 0;
+  let bottom = 0;
+  const topSetScores = Array.isArray(match?.top?.setScores) ? match.top.setScores : [];
+  const bottomSetScores = Array.isArray(match?.bottom?.setScores) ? match.bottom.setScores : [];
+  for(let index = 0; index < Math.max(topSetScores.length, bottomSetScores.length); index += 1){
+    const topSet = parseLightningCupSetCount(topSetScores[index]);
+    const bottomSet = parseLightningCupSetCount(bottomSetScores[index]);
+    if(topSet === null || bottomSet === null || topSet === bottomSet) continue;
+    if(topSet > bottomSet) top += 1;
+    if(bottomSet > topSet) bottom += 1;
+  }
+
+  return { top, bottom };
+}
+
+function lightningCupSeedPlayerText(slot){
+  const seed = slot?.seed == null ? "" : String(slot.seed);
+  const name = String(slot?.name || "TBD").trim() || "TBD";
+  return [seed, name].filter(Boolean).join(" ");
+}
+
+function buildLightningCupResultLine(match){
+  const winnerName = String(match?.winner || "").trim();
+  if(!winnerName) return "";
+
+  const topName = String(match?.top?.name || "").trim();
+  const bottomName = String(match?.bottom?.name || "").trim();
+  const winnerIsTop = topName && normalizeLightningCupPlayerName(winnerName) === normalizeLightningCupPlayerName(topName);
+  const winnerIsBottom = bottomName && normalizeLightningCupPlayerName(winnerName) === normalizeLightningCupPlayerName(bottomName);
+  if(!winnerIsTop && !winnerIsBottom) return "";
+
+  const winnerSlot = winnerIsTop ? match.top : match.bottom;
+  const loserSlot = winnerIsTop ? match.bottom : match.top;
+  const setCounts = deriveLightningCupSetCounts(match);
+  const winnerSets = winnerIsTop ? setCounts.top : setCounts.bottom;
+  const loserSets = winnerIsTop ? setCounts.bottom : setCounts.top;
+
+  return `${lightningCupSeedPlayerText(winnerSlot)} def. ${lightningCupSeedPlayerText(loserSlot)} (${winnerSets}-${loserSets})`;
+}
+
+function compareLightningCupMatches(left, right){
+  const leftRound = LIGHTNING_CUP_ROUND_ORDER.indexOf(String(left?.round || ""));
+  const rightRound = LIGHTNING_CUP_ROUND_ORDER.indexOf(String(right?.round || ""));
+  const safeLeftRound = leftRound >= 0 ? leftRound : LIGHTNING_CUP_ROUND_ORDER.length;
+  const safeRightRound = rightRound >= 0 ? rightRound : LIGHTNING_CUP_ROUND_ORDER.length;
+  if(safeLeftRound !== safeRightRound) return safeLeftRound - safeRightRound;
+  return Number(left?.id || 0) - Number(right?.id || 0);
+}
+
+async function loadLightningCupPlayerResults(member){
+  const discordId = normalizeDiscordPlayerId(member?.discord_user_id);
+  if(!discordId) return [];
+
+  const [bracketValues, seedValues] = await Promise.all([
+    fetchSheetRange(LIGHTNING_CUP_SHEET_ID, LIGHTNING_CUP_BRACKET_RANGE),
+    fetchSheetRange(LIGHTNING_CUP_SHEET_ID, LIGHTNING_CUP_SEEDS_RANGE),
+  ]);
+
+  const actualMatches = buildLightningCupActualMatchesFromSheet({ values: bracketValues });
+  const seedMaps = parseLightningCupSeedsNameDiscordMap({ values: seedValues });
+  const context = buildLightningCupBracketContext(actualMatches);
+  const resolvedMatches = buildLightningCupResolvedMatchMap(actualMatches, context);
+
+  return [...resolvedMatches.values()]
+    .filter((match) => {
+      if(!String(match?.winner || "").trim()) return false;
+      return isLightningCupPlayerSlot(match.top, seedMaps, discordId)
+        || isLightningCupPlayerSlot(match.bottom, seedMaps, discordId);
+    })
+    .sort(compareLightningCupMatches)
+    .map((match) => ({
+      id: match.id,
+      round: formatLightningCupRoundLabel(match.round),
+      line: buildLightningCupResultLine(match),
+    }))
+    .filter(result => result.line);
+}
+
 function renderNoptationalPlayerTable(player){
   const state = player.cutCourse ? "cut" : player.countedCount ? "active" : "no-scores";
   const rankText = state === "cut" ? "Cut" : state === "no-scores" ? "-" : String(player.rank ?? "-");
@@ -1612,6 +1737,37 @@ function renderNoptationalPlayerTable(player){
     </div>
   `;
   return table;
+}
+
+function renderLightningCupResults(results){
+  const container = document.createElement("div");
+  container.className = "tournament-history lightningcup-history";
+
+  const title = document.createElement("h3");
+  title.className = "tournament-title";
+  title.textContent = "Lightning Cup";
+
+  const list = document.createElement("ul");
+  list.className = "lightningcup-results-list";
+
+  results.forEach((result) => {
+    const item = document.createElement("li");
+    item.className = "lightningcup-result-item";
+
+    const round = document.createElement("span");
+    round.className = "lightningcup-result-round";
+    round.textContent = result.round;
+
+    const line = document.createElement("span");
+    line.className = "lightningcup-result-line";
+    line.textContent = result.line;
+
+    item.append(round, line);
+    list.appendChild(item);
+  });
+
+  container.append(title, list);
+  return container;
 }
 
 function renderSuperLeagueOpponent(result, discordIdByName){
@@ -2330,15 +2486,33 @@ function renderTournamentsSection(member){
     if(!details.open || loaded) return;
     loaded = true;
     try{
-      const player = await loadNoptationalPlayer(member);
+      const [noptationalResult, lightningCupResult] = await Promise.allSettled([
+        loadNoptationalPlayer(member),
+        loadLightningCupPlayerResults(member),
+      ]);
       content.innerHTML = "";
-      if(!player){
-        content.innerHTML = `<p class="profile-muted proleague-empty">No tournaments found.</p>`;
+
+      if(noptationalResult.status === "fulfilled" && noptationalResult.value){
+        content.appendChild(renderNoptationalPlayerTable(noptationalResult.value));
+      }else if(noptationalResult.status === "rejected"){
+        console.error("Unable to load Noptational player history", noptationalResult.reason);
+      }
+
+      if(lightningCupResult.status === "fulfilled" && lightningCupResult.value.length){
+        content.appendChild(renderLightningCupResults(lightningCupResult.value));
+      }else if(lightningCupResult.status === "rejected"){
+        console.error("Unable to load Lightning Cup player history", lightningCupResult.reason);
+      }
+
+      if(!content.children.length){
+        const hasLoadError = noptationalResult.status === "rejected" || lightningCupResult.status === "rejected";
+        content.innerHTML = hasLoadError
+          ? `<div class="proleague-error">Unable to load tournament data.</div>`
+          : `<p class="profile-muted proleague-empty">No tournaments found.</p>`;
         return;
       }
-      content.appendChild(renderNoptationalPlayerTable(player));
     }catch(error){
-      console.error("Unable to load Noptational player history", error);
+      console.error("Unable to load tournament history", error);
       content.innerHTML = `<div class="proleague-error">Unable to load tournament data.</div>`;
     }
   });
