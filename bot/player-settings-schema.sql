@@ -124,6 +124,99 @@ grant select on public.player_settings to anon, authenticated;
 grant insert, update on public.player_settings to authenticated;
 grant select, insert, update, delete on public.player_settings to service_role;
 
+create table if not exists public.player_global_rank_moderation (
+  discord_user_id text not null check (discord_user_id ~ '^[0-9]+$'),
+  rank_key text not null,
+  hidden_at timestamptz not null default now(),
+  hidden_by_user_id uuid references auth.users(id) on delete set null,
+  hidden_by_username text,
+  constraint player_global_rank_moderation_pkey primary key (discord_user_id, rank_key),
+  constraint player_global_rank_moderation_rank_key_check
+    check (rank_key = any (array[
+      'current_global_rank',
+      'max_global_rank_no_cs',
+      'max_global_rank_cs'
+    ]::text[]))
+);
+
+create index if not exists player_global_rank_moderation_rank_key_idx
+on public.player_global_rank_moderation (rank_key);
+
+alter table public.player_global_rank_moderation enable row level security;
+
+drop policy if exists "global rank moderation is publicly readable" on public.player_global_rank_moderation;
+create policy "global rank moderation is publicly readable"
+on public.player_global_rank_moderation
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "admins can create global rank moderation" on public.player_global_rank_moderation;
+create policy "admins can create global rank moderation"
+on public.player_global_rank_moderation
+for insert
+to authenticated
+with check (
+  (hidden_by_user_id is null or hidden_by_user_id = (select auth.uid()))
+  and
+  exists (
+    select 1
+    from public.profiles p
+    join public.discord_member_roles r
+      on r.discord_user_id = p.discord_user_id
+    where p.user_id = (select auth.uid())
+      and r.role_id = '1069007873985740890'
+  )
+);
+
+drop policy if exists "admins can update global rank moderation" on public.player_global_rank_moderation;
+create policy "admins can update global rank moderation"
+on public.player_global_rank_moderation
+for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles p
+    join public.discord_member_roles r
+      on r.discord_user_id = p.discord_user_id
+    where p.user_id = (select auth.uid())
+      and r.role_id = '1069007873985740890'
+  )
+)
+with check (
+  (hidden_by_user_id is null or hidden_by_user_id = (select auth.uid()))
+  and
+  exists (
+    select 1
+    from public.profiles p
+    join public.discord_member_roles r
+      on r.discord_user_id = p.discord_user_id
+    where p.user_id = (select auth.uid())
+      and r.role_id = '1069007873985740890'
+  )
+);
+
+drop policy if exists "admins can delete global rank moderation" on public.player_global_rank_moderation;
+create policy "admins can delete global rank moderation"
+on public.player_global_rank_moderation
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles p
+    join public.discord_member_roles r
+      on r.discord_user_id = p.discord_user_id
+    where p.user_id = (select auth.uid())
+      and r.role_id = '1069007873985740890'
+  )
+);
+
+grant select on public.player_global_rank_moderation to anon, authenticated;
+grant insert, update, delete on public.player_global_rank_moderation to authenticated;
+grant select, insert, update, delete on public.player_global_rank_moderation to service_role;
+
 create table if not exists public.player_custom_urls (
   user_id uuid not null primary key references auth.users(id) on delete cascade,
   discord_user_id text not null unique check (discord_user_id ~ '^[0-9]+$'),

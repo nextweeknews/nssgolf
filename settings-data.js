@@ -92,6 +92,14 @@ export const GLOBAL_RANKS_WITH_CS = [
 
 export const GLOBAL_RANKS = GLOBAL_RANKS_NO_CS;
 
+export const GLOBAL_RANK_FIELD_LABELS = {
+  current_global_rank: "Current Rank",
+  max_global_rank_no_cs: "Max. Rank (no cloud saves)",
+  max_global_rank_cs: "Max. Rank (with cloud saves)",
+};
+
+export const GLOBAL_RANK_FIELD_KEYS = Object.keys(GLOBAL_RANK_FIELD_LABELS);
+
 export const COUNTRY_CODES = [
   "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",
   "BS", "BH", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW", "BV", "BR",

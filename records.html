@@ -381,6 +381,27 @@
     .member-row{
       min-width:0;
     }
+    .member-entry{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      min-width:0;
+      border-radius: 10px;
+      padding: 3px 4px;
+      margin: -3px -4px;
+    }
+    .member-entry .member-link{
+      flex: 1 1 auto;
+      margin: 0;
+      padding: 0;
+    }
+    .member-row.is-hidden-rank .member-entry{
+      background: rgba(239,68,68,0.14);
+      box-shadow: inset 0 0 0 1px rgba(248,113,113,0.38);
+    }
+    .member-row.is-hidden-rank .member-link{
+      color: rgba(254,202,202,0.96);
+    }
     .member-link{
       display:flex;
       align-items:center;
@@ -402,6 +423,48 @@
     .member-link:focus-visible{
       outline: 2px solid rgba(125,211,252,.6);
       outline-offset: 2px;
+    }
+    .rank-visibility-toggle{
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(248,113,113,0.32);
+      border-radius: 999px;
+      background: rgba(2,6,23,0.64);
+      color: rgba(254,202,202,0.94);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+      cursor:pointer;
+      opacity:0;
+      transform: translateX(3px);
+      transition: opacity 130ms ease, transform 130ms ease, background-color 130ms ease, border-color 130ms ease;
+    }
+    .member-row:hover .rank-visibility-toggle,
+    .member-row:focus-within .rank-visibility-toggle,
+    .member-row.is-hidden-rank .rank-visibility-toggle{
+      opacity:1;
+      transform: translateX(0);
+    }
+    .rank-visibility-toggle:hover{
+      background: rgba(127,29,29,0.52);
+      border-color: rgba(248,113,113,0.58);
+    }
+    .rank-visibility-toggle:focus-visible{
+      opacity:1;
+      transform: translateX(0);
+      outline: 2px solid rgba(248,113,113,0.68);
+      outline-offset: 2px;
+    }
+    .rank-visibility-toggle svg{
+      width: 15px;
+      height: 15px;
+      display:block;
+      fill:none;
+      stroke: currentColor;
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-linejoin:round;
     }
     .member-avatar{
       width: 28px;
@@ -514,7 +577,13 @@
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { GLOBAL_RANKS_NO_CS, GLOBAL_RANKS_WITH_CS } from "/settings-data.js";
+    import {
+      ADMIN_ROLE_ID,
+      GLOBAL_RANK_FIELD_KEYS,
+      GLOBAL_RANK_FIELD_LABELS,
+      GLOBAL_RANKS_NO_CS,
+      GLOBAL_RANKS_WITH_CS,
+    } from "/settings-data.js";
 
     const RECORD_GROUPS = [
       {
@@ -550,9 +619,9 @@
     ];
 
     const GLOBAL_RANK_GROUPS = [
-      { title: "Current Rank", key: "current_global_rank", rankOrder: GLOBAL_RANKS_WITH_CS },
-      { title: "Max. Rank (no cloud saves)", key: "max_global_rank_no_cs", rankOrder: GLOBAL_RANKS_NO_CS },
-      { title: "Max. Rank (with cloud saves)", key: "max_global_rank_cs", rankOrder: GLOBAL_RANKS_WITH_CS },
+      { title: GLOBAL_RANK_FIELD_LABELS.current_global_rank, key: "current_global_rank", rankOrder: GLOBAL_RANKS_WITH_CS },
+      { title: GLOBAL_RANK_FIELD_LABELS.max_global_rank_no_cs, key: "max_global_rank_no_cs", rankOrder: GLOBAL_RANKS_NO_CS },
+      { title: GLOBAL_RANK_FIELD_LABELS.max_global_rank_cs, key: "max_global_rank_cs", rankOrder: GLOBAL_RANKS_WITH_CS },
     ];
     const DEFAULT_RECORDS_TAB = "qualified-personal-bests";
     const VALID_RECORDS_TABS = new Set([DEFAULT_RECORDS_TAB, "global-ranks"]);
@@ -564,6 +633,7 @@
     const desktopRecordsQuery = window.matchMedia("(min-width: 761px)");
     const tabButtons = [...document.querySelectorAll("[data-records-tab]")];
     const tabPanels = [...document.querySelectorAll("[data-records-panel]")];
+    let currentAdminContext = { isAdmin: false, userId: "", username: "" };
 
     function cleanRoleName(name){
       const clean = String(name || "")
@@ -579,6 +649,81 @@
 
     function playerNameFor(member){
       return member?.display_name || member?.username || member?.discord_user_id || "Player";
+    }
+
+    function normalizeText(value){
+      return String(value || "").trim();
+    }
+
+    function normalizeDiscordId(value){
+      return normalizeText(value).replace(/[^\d]/g, "");
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find((identity) => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    function getMetadataName(user){
+      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+      return normalizeText(
+        metadata.full_name ||
+        metadata.name ||
+        metadata.global_name ||
+        metadata.preferred_username ||
+        metadata.user_name ||
+        metadata.username
+      );
+    }
+
+    async function loadAdminContext(){
+      const emptyContext = { isAdmin: false, userId: "", username: "" };
+      const { data: sessionData } = await supabase.auth.getSession();
+      if(!sessionData?.session?.user) return emptyContext;
+
+      let user = sessionData.session.user;
+      try{
+        const { data: userData, error } = await supabase.auth.getUser();
+        if(!error && userData?.user?.id === user.id) user = userData.user;
+      }catch{
+        // Session user is enough to continue if enrichment fails.
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("username,discord_user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if(profileError) return emptyContext;
+
+      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(user);
+      if(!discordId) return emptyContext;
+
+      const { data: role, error: roleError } = await supabase
+        .from("discord_member_roles")
+        .select("role_id")
+        .eq("discord_user_id", discordId)
+        .eq("role_id", ADMIN_ROLE_ID)
+        .maybeSingle();
+      if(roleError || !role) return emptyContext;
+
+      return {
+        isAdmin: true,
+        userId: user.id,
+        username: normalizeText(profile?.username) || getMetadataName(user) || discordId,
+      };
     }
 
     function getRecordsTabFromUrl(){
@@ -666,6 +811,48 @@
       return badge;
     }
 
+    function createRankVisibilityIcon(isHidden){
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+
+      const paths = isHidden
+        ? [
+          "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+          "M14.084 14.158a3 3 0 0 1-4.242-4.242",
+          "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+          "m2 2 20 20",
+        ]
+        : [
+          "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+          "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
+        ];
+
+      for(const pathData of paths){
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathData);
+        svg.appendChild(path);
+      }
+
+      return svg;
+    }
+
+    function createRankVisibilityToggle(member, rankKey, isHidden, adminContext){
+      const button = document.createElement("button");
+      button.className = "rank-visibility-toggle";
+      button.type = "button";
+      button.title = isHidden ? "Show self-reported rank" : "Hide self-reported rank";
+      button.setAttribute("aria-label", `${isHidden ? "Show" : "Hide"} ${playerNameFor(member)} ${GLOBAL_RANK_FIELD_LABELS[rankKey] || "self-reported rank"}`);
+      button.appendChild(createRankVisibilityIcon(isHidden));
+      button.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        await toggleGlobalRankModeration(member.discord_user_id, rankKey, !isHidden, adminContext);
+      });
+      return button;
+    }
+
     function slugifyId(value, fallback = "section"){
       return String(value || fallback).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || fallback;
     }
@@ -733,13 +920,16 @@
       return { section, body };
     }
 
-    function createMemberList(members){
+    function createMemberList(members, options = {}){
       const list = document.createElement("ul");
       list.className = "member-list";
 
       for(const member of members){
         const item = document.createElement("li");
         item.className = "member-row";
+        const rankKey = options.getRankKey?.(member) || "";
+        const isHidden = !!options.isHidden?.(member);
+        if(isHidden) item.classList.add("is-hidden-rank");
 
         const link = document.createElement("a");
         link.className = "member-link";
@@ -759,14 +949,21 @@
         name.textContent = playerNameFor(member);
 
         link.append(avatar, name);
-        item.appendChild(link);
+        if(options.showModerationControls && rankKey){
+          const entry = document.createElement("div");
+          entry.className = "member-entry";
+          entry.append(link, createRankVisibilityToggle(member, rankKey, isHidden, options.adminContext));
+          item.appendChild(entry);
+        }else{
+          item.appendChild(link);
+        }
         list.appendChild(item);
       }
 
       return list;
     }
 
-    function createRoleGroup(titleText, members){
+    function createRoleGroup(titleText, members, options = {}){
       const roleGroup = document.createElement("div");
       roleGroup.className = "role-group";
 
@@ -786,7 +983,7 @@
         empty.textContent = "No players.";
         roleGroup.appendChild(empty);
       }else{
-        roleGroup.appendChild(createMemberList(members));
+        roleGroup.appendChild(createMemberList(members, options));
       }
 
       return roleGroup;
@@ -822,6 +1019,66 @@
       return String(value || "").trim();
     }
 
+    function moderationKey(discordId, rankKey){
+      return `${normalizeDiscordId(discordId)}:${rankKey}`;
+    }
+
+    function isGlobalRankHidden(moderationSet, discordId, rankKey){
+      return moderationSet.has(moderationKey(discordId, rankKey));
+    }
+
+    async function loadGlobalRankModeration(){
+      try{
+        const { data, error } = await supabase
+          .from("player_global_rank_moderation")
+          .select("discord_user_id,rank_key");
+        if(error) throw error;
+        return new Set((data || [])
+          .filter(row => GLOBAL_RANK_FIELD_KEYS.includes(row.rank_key))
+          .map(row => moderationKey(row.discord_user_id, row.rank_key)));
+      }catch(error){
+        console.warn("Unable to load global rank moderation", error);
+        return new Set();
+      }
+    }
+
+    async function toggleGlobalRankModeration(discordId, rankKey, shouldHide, adminContext){
+      if(!adminContext?.isAdmin || !GLOBAL_RANK_FIELD_KEYS.includes(rankKey)) return;
+      const cleanDiscordId = normalizeDiscordId(discordId);
+      if(!cleanDiscordId) return;
+
+      const label = GLOBAL_RANK_FIELD_LABELS[rankKey] || "self-reported rank";
+      try{
+        if(shouldHide){
+          const { error } = await supabase
+            .from("player_global_rank_moderation")
+            .upsert({
+              discord_user_id: cleanDiscordId,
+              rank_key: rankKey,
+              hidden_at: new Date().toISOString(),
+              hidden_by_user_id: adminContext.userId || null,
+              hidden_by_username: adminContext.username || null,
+            }, { onConflict: "discord_user_id,rank_key" });
+          if(error) throw error;
+        }else{
+          const { error } = await supabase
+            .from("player_global_rank_moderation")
+            .delete()
+            .eq("discord_user_id", cleanDiscordId)
+            .eq("rank_key", rankKey);
+          if(error) throw error;
+        }
+
+        await loadGlobalRanks(adminContext);
+        statusEl.hidden = false;
+        statusEl.textContent = shouldHide ? `${label} hidden.` : `${label} visible.`;
+      }catch(error){
+        console.error(error);
+        statusEl.hidden = false;
+        statusEl.textContent = `Unable to update rank visibility: ${error?.message || "Unknown error"}`;
+      }
+    }
+
     function getOrderedRankValues(settingsRows, key, rankOrder){
       const rankOrderMap = new Map(rankOrder.map((rank, index) => [rank, index]));
       const values = [...new Set(settingsRows.map(row => normalizeRankValue(row[key])).filter(Boolean))];
@@ -833,7 +1090,7 @@
       });
     }
 
-    function renderGlobalRanks(settingsRows, membersById){
+    function renderGlobalRanks(settingsRows, membersById, moderationSet, adminContext){
       globalRanksGridEl.innerHTML = "";
       const rowsWithMembers = settingsRows
         .map(row => ({ ...row, member: membersById.get(row.discord_user_id) }))
@@ -842,7 +1099,8 @@
 
       for(const group of GLOBAL_RANK_GROUPS){
         const { section, body } = createRecordSection(group.title, "global-ranks");
-        const rankValues = getOrderedRankValues(rowsWithMembers, group.key, group.rankOrder);
+        const visibleRows = rowsWithMembers.filter(row => adminContext?.isAdmin || !isGlobalRankHidden(moderationSet, row.discord_user_id, group.key));
+        const rankValues = getOrderedRankValues(visibleRows, group.key, group.rankOrder);
 
         if(!rankValues.length){
           const empty = document.createElement("p");
@@ -853,11 +1111,20 @@
 
         for(const rank of rankValues){
           const members = sortMembersByName(
-            rowsWithMembers
+            visibleRows
               .filter(row => normalizeRankValue(row[group.key]) === rank)
-              .map(row => row.member)
+              .map(row => ({
+                ...row.member,
+                rankKey: group.key,
+                rankHidden: isGlobalRankHidden(moderationSet, row.discord_user_id, group.key),
+              }))
           );
-          body.appendChild(createRoleGroup(rank, members));
+          body.appendChild(createRoleGroup(rank, members, {
+            adminContext,
+            getRankKey: member => member.rankKey,
+            isHidden: member => member.rankHidden,
+            showModerationControls: !!adminContext?.isAdmin,
+          }));
         }
 
         fragment.appendChild(section);
@@ -915,7 +1182,7 @@
       renderRecords(RECORD_GROUPS, rolesById, linksByRoleId, membersById);
     }
 
-    async function loadGlobalRanks(){
+    async function loadGlobalRanks(adminContext = currentAdminContext){
       const settingsRes = await supabase
         .from("player_settings")
         .select("discord_user_id,current_global_rank,max_global_rank_no_cs,max_global_rank_cs");
@@ -944,12 +1211,14 @@
         members = membersRes.data || [];
       }
 
+      const moderationSet = await loadGlobalRankModeration();
       const membersById = new Map(members.map(member => [member.discord_user_id, member]));
-      renderGlobalRanks(settingsRows, membersById);
+      renderGlobalRanks(settingsRows, membersById, moderationSet, adminContext);
     }
 
     async function loadAllRecords(){
-      await Promise.all([loadRecords(), loadGlobalRanks()]);
+      currentAdminContext = await loadAdminContext();
+      await Promise.all([loadRecords(), loadGlobalRanks(currentAdminContext)]);
     }
 
     loadAllRecords().catch(error => {

@@ -300,6 +300,14 @@
       text-shadow: 0 0 12px rgba(250,204,21,0.55);
       pointer-events:none;
     }
+    .profile-record-item.is-hidden-rank{
+      border-color: rgba(248,113,113,0.46);
+      background: linear-gradient(135deg, rgba(239,68,68,0.18), rgba(6,24,46,0.78));
+      box-shadow: 0 0 24px rgba(239,68,68,0.12), inset 0 0 18px rgba(239,68,68,0.05);
+    }
+    .profile-record-item.is-hidden-rank .profile-record-name{
+      color: rgba(254,202,202,0.96);
+    }
     .profile-record-name{
       min-width:0;
       color: rgba(255,255,255,0.95);
@@ -1042,7 +1050,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260608-resolved-player-id"></script>
+  <script type="module" src="/player-profile.js?v=20260608-global-rank-moderation"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {
