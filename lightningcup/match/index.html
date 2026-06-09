@@ -292,8 +292,7 @@
       flex-wrap:wrap;
     }
     .flow-action,
-    .undo-button,
-    .sign-in-button{
+    .undo-button{
       min-height:42px;
       padding:0 18px;
       border:1px solid rgba(148,163,184,.34);
@@ -308,8 +307,7 @@
       box-shadow:none;
     }
     .flow-action:hover,
-    .undo-button:hover,
-    .sign-in-button:hover{ background: rgba(100,116,139,.96); }
+    .undo-button:hover{ background: rgba(100,116,139,.96); }
     .flow-action.is-player-one{ background: rgba(var(--player-one-rgb), .94); color:#020617; }
     .flow-action.is-player-two{ background: rgba(var(--player-two-rgb), .88); color:#020617; }
     .undo-button{
@@ -317,8 +315,7 @@
       color: rgba(226,232,240,.94);
     }
     .flow-action[disabled],
-    .undo-button[disabled],
-    .sign-in-button[disabled]{
+    .undo-button[disabled]{
       cursor:not-allowed;
       opacity:.48;
       background: rgba(71,85,105,.64);
@@ -635,7 +632,6 @@
         <p class="flow-detail" id="flowDetail"></p>
         <div class="flow-control-row">
           <div class="flow-actions" id="actionButtons"></div>
-          <button class="sign-in-button" id="signInBtn" type="button" hidden>Sign In</button>
           <button class="undo-button" id="undoBtn" type="button">Undo last</button>
         </div>
       </section>

@@ -42,6 +42,50 @@
   display: none;
 }
 
+.topbar-auth-button{
+  margin-left: auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #5865f2;
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.topbar-auth-button.is-visible{
+  display: inline-flex;
+}
+
+.topbar-auth-button:hover{
+  background: #4752c4;
+}
+
+.topbar-auth-button:active{
+  background: #3c45a5;
+}
+
+.topbar-auth-button:disabled{
+  cursor: wait;
+  opacity: .68;
+}
+
+.topbar-auth-icon{
+  width: 19px;
+  height: 19px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
 .topbar .player-page-nav{
   display: inline-flex;
   align-items: center;

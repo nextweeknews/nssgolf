@@ -809,6 +809,19 @@
       display:block;
       filter:brightness(0) invert(1);
     }
+    .topbar .discord-login-button{
+      margin-left:auto;
+      min-height:38px;
+      padding:0 14px;
+      font-size:13px;
+      box-shadow:none;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+    .topbar .discord-login-icon{
+      width:19px;
+      height:19px;
+    }
     label{ display:grid; gap:4px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700; }
     input, select{ width:100%; border:1px solid rgba(148,163,184,.35); border-radius:10px; background: rgba(2,8,24,.70); color:#fff; padding:10px; font:inherit; }
     .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -1531,6 +1544,10 @@
         margin-left:auto;
         justify-content:flex-end;
       }
+      .topbar .discord-login-button{
+        padding:0 10px;
+        font-size:12px;
+      }
       .user-greeting{ display:none; }
       .container{ padding-right:14px; padding-left:14px; }
       .lc-countdown-copy{
@@ -1816,17 +1833,14 @@
           <button class="user-menu-item" id="menuLogoutBtn" type="button" role="menuitem">Log out</button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <main class="container">
-    <div class="row auth-buttons auth-buttons-floating" id="authButtonsRow">
       <button class="btn discord-login-button" id="discordLoginBtn" type="button">
         <img class="discord-login-icon" src="/logos/discord.svg" alt="" loading="lazy" decoding="async" />
         <span>Sign in with Discord</span>
       </button>
     </div>
+  </div>
 
+  <main class="container">
     <section class="lc-countdown-strip" id="lightningCupCountdownStrip" aria-label="Countdown to Lightning Cup start and Bracket Game lock">
       <p class="lc-countdown-copy">
         <strong>Lightning Cup begins</strong> and <strong>Bracket Game locks</strong> in
@@ -3974,7 +3988,7 @@
       const loggedIn = !!state.session;
       document.querySelectorAll(".auth-only").forEach((el) => { el.style.display = loggedIn ? "" : "none"; });
       els.discordLoginBtn.style.display = loggedIn ? "none" : "";
-      els.authButtonsRow.style.display = loggedIn ? "none" : "";
+      if(els.authButtonsRow) els.authButtonsRow.style.display = loggedIn ? "none" : "";
       renderTopbarUserMenu();
       if(!getAvailableMainTabs().includes(state.mainTab)) state.mainTab = "Actual Bracket";
     }

@@ -1,7 +1,12 @@
-import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
 import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
 
 const supabase = createBrowserSupabaseClient();
+const LOGOUT_HOME_PATH = "/lightningcup/index.html";
+const PRIVATE_AFTER_LOGOUT_PATHS = new Set([
+  "/admin-settings.html",
+  "/player-settings.html",
+]);
 
 function normalizeText(value){
   return String(value || "").trim();
@@ -9,6 +14,19 @@ function normalizeText(value){
 
 function normalizeDiscordId(value){
   return normalizeText(value).replace(/[^\d]/g, "");
+}
+
+function getCurrentInternalPath(){
+  const location = globalThis.location;
+  return `${location?.pathname || "/"}${location?.search || ""}${location?.hash || ""}`;
+}
+
+function shouldReturnHomeAfterLogout(){
+  return PRIVATE_AFTER_LOGOUT_PATHS.has(globalThis.location?.pathname || "");
+}
+
+function returnHomeAfterLogout(){
+  globalThis.location.href = LOGOUT_HOME_PATH;
 }
 
 function getMetadataName(user){
@@ -186,6 +204,33 @@ function ensureTopbarMenu(){
   return menu;
 }
 
+function ensureTopbarSignInButton(){
+  const topbarInner = document.querySelector(".topbar-inner");
+  if(!topbarInner) return null;
+
+  const existing = document.getElementById("topbarDiscordLoginBtn");
+  if(existing) return existing;
+
+  const button = document.createElement("button");
+  button.className = "topbar-auth-button";
+  button.id = "topbarDiscordLoginBtn";
+  button.type = "button";
+
+  const icon = document.createElement("img");
+  icon.className = "topbar-auth-icon";
+  icon.src = "/logos/discord.svg";
+  icon.alt = "";
+  icon.loading = "lazy";
+  icon.decoding = "async";
+
+  const label = document.createElement("span");
+  label.textContent = "Sign in with Discord";
+
+  button.append(icon, label);
+  topbarInner.appendChild(button);
+  return button;
+}
+
 function setMenuOpen(menu, open){
   const button = menu.querySelector("#topbarUserMenuBtn");
   const dropdown = menu.querySelector("#topbarUserDropdown");
@@ -247,6 +292,7 @@ async function getApprovedPlayerUrl(discordId){
 
 async function renderTopbarAuth(){
   const menu = ensureTopbarMenu();
+  const signInButton = ensureTopbarSignInButton();
   if(!menu) return;
 
   const { data } = await supabase.auth.getSession();
@@ -255,7 +301,16 @@ async function renderTopbarAuth(){
     menu.hidden = true;
     menu.classList.remove("is-visible");
     setMenuOpen(menu, false);
+    if(signInButton){
+      signInButton.hidden = false;
+      signInButton.classList.add("is-visible");
+    }
     return;
+  }
+
+  if(signInButton){
+    signInButton.hidden = true;
+    signInButton.classList.remove("is-visible");
   }
 
   let user = session.user;
@@ -311,6 +366,7 @@ async function renderTopbarAuth(){
 
 function bindTopbarMenu(){
   const menu = ensureTopbarMenu();
+  const signInButton = ensureTopbarSignInButton();
   if(!menu || menu.dataset.bound === "true") return;
   menu.dataset.bound = "true";
 
@@ -322,6 +378,7 @@ function bindTopbarMenu(){
   const playerSettings = menu.querySelector("#playerSettingsBtn");
   const adminSettings = menu.querySelector("#adminSettingsBtn");
   let isOpen = false;
+  let signInPending = false;
 
   avatar.addEventListener("error", () => {
     avatar.hidden = true;
@@ -369,16 +426,41 @@ function bindTopbarMenu(){
     if(settingsUrl) window.location.href = settingsUrl;
   });
 
+  signInButton?.addEventListener("click", async () => {
+    if(signInPending) return;
+    signInPending = true;
+    signInButton.disabled = true;
+    try{
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: { redirectTo: buildAuthRedirectTo(getCurrentInternalPath()) },
+      });
+      if(error) throw error;
+    }catch{
+      signInPending = false;
+      signInButton.disabled = false;
+    }
+  });
+
   logout.addEventListener("click", async () => {
     await supabase.auth.signOut();
     menu.hidden = true;
     menu.classList.remove("is-visible");
+    if(shouldReturnHomeAfterLogout()){
+      returnHomeAfterLogout();
+    }else{
+      void renderTopbarAuth();
+    }
   });
 }
 
 bindTopbarMenu();
 void renderTopbarAuth();
 
-supabase.auth.onAuthStateChange(() => {
+supabase.auth.onAuthStateChange((eventName) => {
+  if(eventName === "SIGNED_OUT" && shouldReturnHomeAfterLogout()){
+    returnHomeAfterLogout();
+    return;
+  }
   void renderTopbarAuth();
 });

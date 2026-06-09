@@ -1,6 +1,5 @@
-import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
 import {
-  MATCH_PAGE_PATH,
   buildActualMatchesFromSheet,
   buildBracketContext,
   buildMatchRealtimeChannelName,
@@ -90,7 +89,6 @@ const els = {
   scoreboardBottomSet3: document.getElementById("scoreboardBottomSet3"),
   scoreboardTopMatch: document.getElementById("scoreboardTopMatch"),
   scoreboardBottomMatch: document.getElementById("scoreboardBottomMatch"),
-  signInBtn: document.getElementById("signInBtn"),
   courseGrid: document.getElementById("courseGrid"),
   specialCourseSlot: document.getElementById("specialCourseSlot"),
   courseHint: document.getElementById("courseHint"),
@@ -819,15 +817,6 @@ function renderStatus(message, type = ""){
   els.pageStatus.className = `match-page-status${clean ? "" : " is-hidden"}${type === "error" ? " is-error" : ""}`;
 }
 
-function renderAuthNotice(){
-  if(!state.session){
-    els.signInBtn.hidden = false;
-    return;
-  }
-
-  els.signInBtn.hidden = true;
-}
-
 function formatSetScoreValue(matchState, setIndex, player){
   const setState = matchState.sets[setIndex];
   const result = deriveSetResult(setState);
@@ -1240,7 +1229,6 @@ function renderPage(){
   }
 
   if(!state.match){
-    renderAuthNotice();
     renderScoreboard();
     renderCourses();
     renderFlow();
@@ -1251,7 +1239,6 @@ function renderPage(){
 
   const roundLabel = formatRoundLabel(state.match.round);
   document.title = `${roundLabel} Match ${state.match.id} | Lightning Cup`;
-  renderAuthNotice();
 
   renderScoreboard();
   renderCourses();
@@ -1464,17 +1451,6 @@ async function undoLastAction(){
   await persistMatchState(restoredState);
 }
 
-async function handleDiscordSignIn(){
-  const returnPath = `${globalThis.location?.pathname || MATCH_PAGE_PATH}${globalThis.location?.search || ""}`;
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "discord",
-    options: { redirectTo: buildAuthRedirectTo(returnPath) },
-  });
-  if(error){
-    throw error;
-  }
-}
-
 async function init(){
   if(!state.matchId){
     setError("Missing matchId query parameter.");
@@ -1499,12 +1475,6 @@ async function init(){
 
   renderPage();
 }
-
-els.signInBtn.addEventListener("click", () => {
-  void handleDiscordSignIn().catch(() => {
-    renderStatus("Could not start Discord sign-in. Please try again.", "error");
-  });
-});
 
 els.actionButtons.addEventListener("click", (event) => {
   const copyButton = event.target.closest("button[data-copy-results]");
