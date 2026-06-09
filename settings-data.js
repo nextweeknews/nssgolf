@@ -79,11 +79,18 @@ export function playerUrlPathForSlug(slug){
   return cleanSlug ? `/${cleanSlug}` : "";
 }
 
-export const GLOBAL_RANKS = [
+export const GLOBAL_RANKS_NO_CS = [
   "<A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29",
   "S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9",
-  "∞0", "∞1", "∞2", "∞3", "∞4", "∞5", "∞6", "∞7", "∞8", "∞9", "∞10",
+  ...Array.from({ length: 16 }, (_, index) => `∞${index}`),
 ];
+
+export const GLOBAL_RANKS_WITH_CS = [
+  ...GLOBAL_RANKS_NO_CS.slice(0, 20),
+  ...Array.from({ length: 50 }, (_, index) => `∞${index}`),
+];
+
+export const GLOBAL_RANKS = GLOBAL_RANKS_NO_CS;
 
 export const COUNTRY_CODES = [
   "AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ",

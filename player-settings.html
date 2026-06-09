@@ -90,7 +90,8 @@
     import {
       buildCountryOptions,
       buildTimeZoneOptions,
-      GLOBAL_RANKS,
+      GLOBAL_RANKS_NO_CS,
+      GLOBAL_RANKS_WITH_CS,
       normalizePlayerUrlSlug,
       playerUrlSlugError,
     } from "/settings-data.js";
@@ -162,10 +163,10 @@
       }
     }
 
-    function fillRankSelect(select){
+    function fillRankSelect(select, ranks){
       select.replaceChildren();
       addBlankOption(select);
-      for(const rank of GLOBAL_RANKS){
+      for(const rank of ranks){
         const option = document.createElement("option");
         option.value = rank;
         option.textContent = rank;
@@ -295,9 +296,9 @@
       fillSelect(country1, buildCountryOptions());
       fillSelect(country2, buildCountryOptions());
       fillSelect(timeZone, buildTimeZoneOptions(), "Not selected");
-      fillRankSelect(currentRank);
-      fillRankSelect(maxRankNoCs);
-      fillRankSelect(maxRankCs);
+      fillRankSelect(currentRank, GLOBAL_RANKS_WITH_CS);
+      fillRankSelect(maxRankNoCs, GLOBAL_RANKS_NO_CS);
+      fillRankSelect(maxRankCs, GLOBAL_RANKS_WITH_CS);
 
       setStatus("Loading settings...");
       const { data: sessionData } = await supabase.auth.getSession();

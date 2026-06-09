@@ -31,9 +31,9 @@ check (
   current_global_rank is null
   or current_global_rank = any (array[
     '<A20','A21','A22','A23','A24','A25','A26','A27','A28','A29',
-    'S0','S1','S2','S3','S4','S5','S6','S7','S8','S9',
-    '∞0','∞1','∞2','∞3','∞4','∞5','∞6','∞7','∞8','∞9','∞10'
+    'S0','S1','S2','S3','S4','S5','S6','S7','S8','S9'
   ]::text[])
+  or current_global_rank ~ '^∞([0-9]|[1-4][0-9])$'
 );
 
 alter table public.player_settings
@@ -45,9 +45,9 @@ check (
   max_global_rank_no_cs is null
   or max_global_rank_no_cs = any (array[
     '<A20','A21','A22','A23','A24','A25','A26','A27','A28','A29',
-    'S0','S1','S2','S3','S4','S5','S6','S7','S8','S9',
-    '∞0','∞1','∞2','∞3','∞4','∞5','∞6','∞7','∞8','∞9','∞10'
+    'S0','S1','S2','S3','S4','S5','S6','S7','S8','S9'
   ]::text[])
+  or max_global_rank_no_cs ~ '^∞([0-9]|1[0-5])$'
 );
 
 alter table public.player_settings
@@ -59,9 +59,9 @@ check (
   max_global_rank_cs is null
   or max_global_rank_cs = any (array[
     '<A20','A21','A22','A23','A24','A25','A26','A27','A28','A29',
-    'S0','S1','S2','S3','S4','S5','S6','S7','S8','S9',
-    '∞0','∞1','∞2','∞3','∞4','∞5','∞6','∞7','∞8','∞9','∞10'
+    'S0','S1','S2','S3','S4','S5','S6','S7','S8','S9'
   ]::text[])
+  or max_global_rank_cs ~ '^∞([0-9]|[1-4][0-9])$'
 );
 
 create or replace function public.set_player_settings_updated_at()
