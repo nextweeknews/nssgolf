@@ -733,12 +733,23 @@
       margin-top: 16px;
     }
     .tournament-title{
-      margin: 0 0 8px;
+      margin: 0;
+      padding: 8px 0 12px;
       color: rgba(255,255,255,0.92);
       font-size: 11px;
       font-weight: 950;
       letter-spacing: .14em;
       text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tournament-date{
+      color: rgba(233,238,248,0.56);
+      font-size: 10px;
+      letter-spacing: .12em;
     }
     .tournament-table-wrap{
       width: 100%;
@@ -794,13 +805,14 @@
     }
     .lightningcup-result-item{
       display: grid;
-      grid-template-columns: 104px minmax(0, 1fr);
+      grid-template-columns: 104px minmax(0, 1fr) max-content;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border: 1px solid rgba(148,163,184,0.20);
+      gap: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(148,163,184,0.22);
       border-radius: 12px;
-      background: rgba(15,23,42,0.76);
+      background: rgba(125,211,252,0.075);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.025);
     }
     .lightningcup-result-round{
       color: rgba(125,211,252,0.95);
@@ -810,7 +822,7 @@
       text-transform: uppercase;
       line-height: 1.15;
     }
-    .lightningcup-result-line{
+    .lightningcup-result-opponent{
       min-width: 0;
       color: rgba(233,238,248,0.94);
       font-size: 12px;
@@ -818,12 +830,11 @@
       line-height: 1.25;
       overflow-wrap: anywhere;
       text-align: left;
-      display: inline-flex;
-      align-items: baseline;
-      gap: 5px;
-      flex-wrap: wrap;
     }
     .lightningcup-result-score{
+      justify-self: end;
+      white-space: nowrap;
+      font-size: 12px;
       font-weight: 950;
       font-variant-numeric: tabular-nums;
     }
@@ -1080,11 +1091,15 @@
         font-size: 11px;
       }
       .lightningcup-result-item{
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr max-content;
         gap: 5px;
         padding: 10px;
       }
-      .lightningcup-result-line{
+      .lightningcup-result-round{
+        grid-column: 1 / -1;
+      }
+      .lightningcup-result-opponent,
+      .lightningcup-result-score{
         font-size: 11px;
       }
       .superleague-player-panel{

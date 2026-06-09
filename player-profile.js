@@ -1721,7 +1721,7 @@ function renderNoptationalPlayerTable(player){
   const table = document.createElement("div");
   table.className = "tournament-history";
   table.innerHTML = `
-    <h3 class="tournament-title">Noptational</h3>
+    <h3 class="tournament-title"><span>Noptational</span><span class="tournament-date">JUN 2026</span></h3>
     <div class="tournament-table-wrap">
       <table class="tournament-table noptational-player-table">
         <thead>
@@ -1753,7 +1753,12 @@ function renderLightningCupResults(results){
 
   const title = document.createElement("h3");
   title.className = "tournament-title";
-  title.textContent = "Lightning Cup";
+  const titleText = document.createElement("span");
+  titleText.textContent = "Lightning Cup";
+  const titleDate = document.createElement("span");
+  titleDate.className = "tournament-date";
+  titleDate.textContent = "APR 2026";
+  title.append(titleText, titleDate);
 
   const list = document.createElement("ul");
   list.className = "lightningcup-results-list";
@@ -1766,9 +1771,6 @@ function renderLightningCupResults(results){
     round.className = "lightningcup-result-round";
     round.textContent = result.round;
 
-    const line = document.createElement("span");
-    line.className = "lightningcup-result-line";
-
     const opponent = document.createElement("span");
     opponent.className = "lightningcup-result-opponent";
     opponent.textContent = result.result.opponent;
@@ -1777,8 +1779,7 @@ function renderLightningCupResults(results){
     score.className = `lightningcup-result-score is-${result.result.outcome}`;
     score.textContent = result.result.result;
 
-    line.append(opponent, score);
-    item.append(round, line);
+    item.append(round, opponent, score);
     list.appendChild(item);
   });
 
