@@ -37,10 +37,7 @@
         <label class="settings-field">
           <span class="settings-label">Custom Player URL</span>
           <span class="settings-input-wrap">
-            <span class="settings-url-input">
-              <span class="settings-url-prefix">https://nssgolf.com/</span>
-              <input class="settings-input settings-url-slug-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="your-name" maxlength="48" />
-            </span>
+            <input class="settings-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://nssgolf.com/your-name" maxlength="72" />
             <span class="url-status-icon" id="customUrlStatusIcon" hidden aria-live="polite"></span>
           </span>
         </label>
@@ -181,6 +178,11 @@
       return normalizeText(select.value) || null;
     }
 
+    function customUrlInputValueForSlug(slug){
+      const cleanSlug = normalizePlayerUrlSlug(slug);
+      return cleanSlug ? `https://nssgolf.com/${cleanSlug}` : "";
+    }
+
     function setCustomUrlStatus(status){
       const cleanStatus = normalizeText(status).toLowerCase();
       customUrlStatusIcon.className = `url-status-icon ${cleanStatus}`.trim();
@@ -231,7 +233,7 @@
     function setCustomUrlValue(urlClaim = null){
       currentCustomUrl = urlClaim;
       const slug = normalizePlayerUrlSlug(urlClaim?.slug);
-      customUrlSlug.value = slug;
+      customUrlSlug.value = customUrlInputValueForSlug(slug);
       customUrlSlug.disabled = urlClaim?.status === "approved";
       setCustomUrlStatus(urlClaim?.status);
     }
@@ -327,7 +329,7 @@
 
     customUrlSlug.addEventListener("blur", () => {
       const slug = normalizePlayerUrlSlug(customUrlSlug.value);
-      customUrlSlug.value = slug;
+      customUrlSlug.value = customUrlInputValueForSlug(slug);
     });
 
     customUrlSlug.addEventListener("input", () => {
