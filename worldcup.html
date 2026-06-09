@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#020B18" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
+  <link rel="stylesheet" href="/worldcup-flags.css" />
   <title>World Cup</title>
 
   <style>
@@ -299,6 +300,9 @@
     .wc-round-stack .wc-bracket-match + .wc-bracket-match{
       padding-top:var(--wc-round-gap, 8px);
     }
+    .wc-round-stack .wc-bracket-match.has-label + .wc-bracket-match.has-label{
+      padding-top:calc(var(--wc-round-gap, 8px) + 32px);
+    }
     .wc-bracket-match{
       display:grid;
       position:relative;
@@ -309,10 +313,20 @@
       position:absolute;
       left:0;
       right:0;
-      top:-13px;
-      min-height:10px;
+      bottom:calc(100% - 1px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:24px;
+      padding:4px 10px 5px;
+      border:1px solid rgba(96,165,250,.38);
+      border-bottom:0;
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+      background:rgba(15,23,42,.98);
+      box-shadow:0 -10px 18px rgba(0,0,0,.16);
       color:rgba(186,230,253,.96);
-      font-size:8px;
+      font-size:9px;
       font-weight:950;
       letter-spacing:.12em;
       line-height:1;
@@ -328,6 +342,9 @@
       overflow:hidden;
       background:rgba(255,255,255,0.05);
       isolation:isolate;
+    }
+    .wc-match-card.has-label{
+      overflow:visible;
     }
     .wc-match-card::before{
       content:"";
@@ -357,11 +374,21 @@
       border-top-left-radius:10px;
       border-top-right-radius:10px;
     }
+    .wc-match-card.has-label .wc-match-label + .wc-match-row{
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+    }
     .wc-match-row:last-child{
       border-bottom-left-radius:10px;
       border-bottom-right-radius:10px;
     }
     .wc-match-row:nth-child(2){ background:rgba(255,255,255,0.045); }
+    .wc-match-card.has-label .wc-match-label + .wc-match-row{
+      background:rgba(255,255,255,0.06);
+    }
+    .wc-match-card.has-label .wc-match-row:last-child{
+      background:rgba(255,255,255,0.045);
+    }
     .wc-match-row + .wc-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .wc-match-row.is-winner{
       background:rgba(var(--worldcup-accent-rgb), .13);
@@ -376,6 +403,11 @@
       pointer-events:none;
     }
     .wc-match-row.is-winner:first-child::after{
+      border-top:1px solid rgba(96,165,250,.45);
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+    }
+    .wc-match-card.has-label .wc-match-label + .wc-match-row.is-winner::after{
       border-top:1px solid rgba(96,165,250,.45);
       border-top-left-radius:10px;
       border-top-right-radius:10px;
@@ -722,6 +754,7 @@
       parseWorldCupSheet,
       worldCupMatchesForTeam,
       worldCupRoundLabel,
+      worldCupFlagCodeForTeam,
       worldCupTeamLabel,
     } from "/worldcup-data.js";
 
@@ -787,6 +820,19 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function renderWorldCupTeamLabel(teamName, fallback = "TBD"){
+      const rawName = String(teamName ?? "").trim();
+      const label = worldCupTeamLabel(rawName) || rawName || fallback;
+      const flagCode = rawName ? worldCupFlagCodeForTeam(rawName) : "";
+      const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "wc-flag-xx";
+      return `
+        <span class="wc-team-label">
+          ${flagCode ? `<span class="wc-flag-icon ${safeFlagClass}" aria-hidden="true"></span>` : ""}
+          <span class="wc-team-label-text">${escapeHtml(label)}</span>
+        </span>
+      `;
     }
 
     function scoreText(value){
@@ -873,7 +919,7 @@
       const isWinner = outcome?.outcome === "win" && !isBye;
       return `
         <div class="wc-match-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
-          <span class="wc-team-name">${escapeHtml(worldCupTeamLabel(team) || team || "TBD")}</span>
+          <span class="wc-team-name">${renderWorldCupTeamLabel(team)}</span>
           <span class="wc-score ${score ? "" : "is-empty"}">${escapeHtml(scoreText(score))}</span>
         </div>
       `;
@@ -889,8 +935,8 @@
     function renderBracketMatch(match, label = ""){
       return `
         <div class="wc-bracket-match ${label ? "has-label" : ""}">
-          ${label ? `<div class="wc-match-label">${escapeHtml(label)}</div>` : ""}
-          <div class="wc-match-card" title="${escapeHtml(`${worldCupRoundLabel(match.round)} ${match.id || ""}`.trim())}">
+          <div class="wc-match-card ${label ? "has-label" : ""}" title="${escapeHtml(`${worldCupRoundLabel(match.round)} ${match.id || ""}`.trim())}">
+            ${label ? `<div class="wc-match-label">${escapeHtml(label)}</div>` : ""}
             ${renderBracketMatchRow(match, "team1")}
             ${renderBracketMatchRow(match, "team2")}
           </div>
@@ -935,7 +981,7 @@
       const isWinner = outcome?.outcome === "win" && !isBye;
       return `
         <div class="group-game-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
-          <span class="group-game-team">${escapeHtml(worldCupTeamLabel(team) || team || "TBD")}</span>
+          <span class="group-game-team">${renderWorldCupTeamLabel(team)}</span>
           <span>${escapeHtml(scoreText(score))}</span>
         </div>
       `;
@@ -975,7 +1021,7 @@
                   <tbody>
                     ${group.standings.map(row => `
                       <tr>
-                        <td>${escapeHtml(worldCupTeamLabel(row.team))}</td>
+                        <td>${renderWorldCupTeamLabel(row.team, "-")}</td>
                         <td>${escapeHtml(row.points || "-")}</td>
                         <td>${escapeHtml(row.differential || "-")}</td>
                         <td>${escapeHtml(row.record || "-")}</td>
@@ -1090,7 +1136,7 @@
         <div class="rosters-grid">
           ${rosters.map(team => `
             <section class="roster-team-card">
-              <h2 class="roster-team-title">${escapeHtml(worldCupTeamLabel(team.name))}</h2>
+              <h2 class="roster-team-title">${renderWorldCupTeamLabel(team.name, "-")}</h2>
               <div class="roster-player-list">
                 ${team.players.map(player => {
                   const member = player.discordId ? memberCache.get(player.discordId) : null;

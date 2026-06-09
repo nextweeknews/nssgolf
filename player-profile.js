@@ -32,6 +32,7 @@ import {
   getWorldCupMatchOutcome,
   parseWorldCupSheet,
   worldCupMatchesForTeam,
+  worldCupFlagCodeForTeam,
   worldCupTeamLabel,
 } from "/worldcup-data.js";
 
@@ -767,6 +768,19 @@ function escapeHtml(value){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function renderWorldCupTeamLabel(teamName, fallback = "TBD"){
+  const rawName = String(teamName ?? "").trim();
+  const label = worldCupTeamLabel(rawName) || rawName || fallback;
+  const flagCode = rawName ? worldCupFlagCodeForTeam(rawName) : "";
+  const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "wc-flag-xx";
+  return `
+    <span class="wc-team-label">
+      ${flagCode ? `<span class="wc-flag-icon ${safeFlagClass}" aria-hidden="true"></span>` : ""}
+      <span class="wc-team-label-text">${escapeHtml(label)}</span>
+    </span>
+  `;
 }
 
 function proLeagueAliasKey(value){
@@ -2116,7 +2130,7 @@ function renderWorldCupRows(matches){
   return matches.map((result) => `
     <tr class="is-${escapeHtml(result.outcome)}">
       <td class="worldcup-round-cell">${escapeHtml(result.round || result.stage || "-")}</td>
-      <td class="worldcup-opponent-cell">${escapeHtml(worldCupTeamLabel(result.opponent) || result.opponent || "TBD")}</td>
+      <td class="worldcup-opponent-cell">${renderWorldCupTeamLabel(result.opponent)}</td>
       <td class="worldcup-score-cell">${escapeHtml(result.score || "-")}</td>
       <td class="worldcup-result-cell"><span class="worldcup-result-pill is-${escapeHtml(result.outcome)}">${escapeHtml(result.resultLabel)}</span></td>
     </tr>
@@ -2144,7 +2158,7 @@ function renderWorldCupResults(entries){
         <span>World Cup <span class="tournament-date">(${escapeHtml(entry.year)})</span></span>
       </h3>
       <div class="worldcup-team-row">
-        <span class="worldcup-team-chip">${escapeHtml(worldCupTeamLabel(entry.teamName))}</span>
+        <span class="worldcup-team-chip">${renderWorldCupTeamLabel(entry.teamName, "-")}</span>
         ${partnerChip}
         ${standingText ? `<span class="worldcup-standing-chip">${escapeHtml(standingText)}</span>` : ""}
       </div>

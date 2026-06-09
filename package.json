@@ -40,6 +40,7 @@
     "discord.js": "^14.26.4",
     "dotenv": "^17.4.2",
     "esbuild": "^0.28.0",
+    "flag-icons": "^7.5.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   }

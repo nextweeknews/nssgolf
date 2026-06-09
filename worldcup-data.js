@@ -2,28 +2,28 @@ export const WORLD_CUP_SHEET_ID = "1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk"
 export const WORLD_CUP_YEARS = [2025, 2024];
 export const WORLD_CUP_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
 
-const TEAM_FLAG_OVERRIDES = {
-  Australia: "🇦🇺",
-  Canada: "🇨🇦",
-  China: "🇨🇳",
-  England: "🏴",
-  Europe: "🇪🇺",
-  France: "🇫🇷",
-  Germany: "🇩🇪",
-  "Hong Kong": "🇭🇰",
-  India: "🇮🇳",
-  Ireland: "🇮🇪",
-  Italy: "🇮🇹",
-  Jamaica: "🇯🇲",
-  Japan: "🇯🇵",
-  Mexico: "🇲🇽",
-  Montenegro: "🇲🇪",
-  Netherlands: "🇳🇱",
-  ROW: "🌐",
-  Scotland: "🏴",
-  "South Korea": "🇰🇷",
-  Taiwan: "🇹🇼",
-  USA: "🇺🇸",
+const TEAM_FLAG_CODES = {
+  Australia: "au",
+  Canada: "ca",
+  China: "cn",
+  England: "gb-eng",
+  Europe: "eu",
+  France: "fr",
+  Germany: "de",
+  "Hong Kong": "hk",
+  India: "in",
+  Ireland: "ie",
+  Italy: "it",
+  Jamaica: "jm",
+  Japan: "jp",
+  Mexico: "mx",
+  Montenegro: "me",
+  Netherlands: "nl",
+  ROW: "un",
+  Scotland: "gb-sct",
+  "South Korea": "kr",
+  Taiwan: "tw",
+  USA: "us",
 };
 
 const BRACKET_ROUND_LABELS = {
@@ -151,16 +151,26 @@ export function baseWorldCupTeamName(teamName){
   return cleanName.replace(/\s+[A-G]$/i, "");
 }
 
-export function worldCupFlagForTeam(teamName){
+export function worldCupFlagCodeForTeam(teamName){
   if(/^bye$/i.test(clean(teamName))) return "";
   const base = baseWorldCupTeamName(teamName);
-  return TEAM_FLAG_OVERRIDES[base] || TEAM_FLAG_OVERRIDES[clean(teamName)] || "🏳️";
+  return TEAM_FLAG_CODES[base] || TEAM_FLAG_CODES[clean(teamName)] || "xx";
+}
+
+export function worldCupFlagForTeam(teamName){
+  return worldCupFlagCodeForTeam(teamName);
+}
+
+export function worldCupTeamParts(teamName){
+  const name = clean(teamName);
+  return {
+    name,
+    flagCode: name ? worldCupFlagCodeForTeam(name) : "",
+  };
 }
 
 export function worldCupTeamLabel(teamName){
-  const name = clean(teamName);
-  const flag = worldCupFlagForTeam(name);
-  return name ? [flag, name].filter(Boolean).join(" ") : "";
+  return clean(teamName);
 }
 
 export function worldCupRoundLabel(round){
