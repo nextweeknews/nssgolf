@@ -27,6 +27,7 @@
     }
 
     *{ box-sizing:border-box; }
+    [hidden]{ display:none !important; }
     html{
       background-color: var(--bg3);
     }
@@ -286,38 +287,82 @@
     }
 
     .league-tabs{
+      --home-tabs-accent-rgb: 125, 211, 252;
       margin: 16px 0 0;
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      width: 100%;
     }
 
-    .tab-button{
-      appearance:none;
-      -webkit-appearance:none;
-      border: 1px solid var(--btn-border);
-      background: var(--btn-bg);
-      color: rgba(255,255,255,0.92);
-      padding: 10px 16px;
-      border-radius: 999px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: .10em;
+    .home-league-tabs-root{
+      width: 100%;
+    }
+
+    .home-league-tabs-list{
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      padding: 0;
+      border: 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 0;
+      background: transparent;
+    }
+
+    .home-league-tabs-trigger{
+      position: relative;
+      min-height: 35px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(233, 238, 248, 0.86);
+      padding: 6px 8px 7px;
+      text-align: center;
+      line-height: 1.2;
+      font: inherit;
       font-size: 11px;
-      cursor:pointer;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      line-height: 1;
-      flex: 1 1 0;
-      min-width: 160px;
+      font-weight: 850;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      appearance: none;
+      cursor: pointer;
+      transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
 
-    .tab-button.is-active{
-      background: rgba(255,255,255,0.18);
-      border-color: rgba(255,255,255,0.45);
-      color: #fff;
+    .home-league-tabs-trigger-label{
+      display: block;
+      width: 100%;
+      text-align: center;
+    }
+
+    .home-league-tabs-trigger::after{
+      content: "";
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: -1px;
+      height: 2px;
+      border-radius: 999px 999px 0 0;
+      background: transparent;
+      transition: background-color 140ms ease;
+    }
+
+    .home-league-tabs-trigger:hover{
+      background: rgba(var(--home-tabs-accent-rgb), 0.10);
+      color: rgba(255,255,255,0.95);
+    }
+
+    .home-league-tabs-trigger[data-state="active"]{
+      background: rgba(var(--home-tabs-accent-rgb), 0.12);
+      color: #f4fbff;
+    }
+
+    .home-league-tabs-trigger[data-state="active"]::after{
+      background: rgba(var(--home-tabs-accent-rgb), 0.84);
+    }
+
+    .home-league-tabs-trigger:focus-visible{
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(var(--home-tabs-accent-rgb), 0.46);
     }
 
     .league-section{
@@ -544,16 +589,11 @@
       .home-discord-invite .discord-button{ padding: 13px 18px; font-size: 12px; }
       .headline{ font-size: 18px; }
       .card{ padding: 18px 14px; border-radius: 18px; }
-      .league-tabs{
-        display:grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-      }
-      .tab-button{
-        min-width: 0;
-      }
-      .tab-button.tab-primary{
-        grid-column: 1 / -1;
+      .home-league-tabs-trigger{
+        min-height: 38px;
+        padding-left: 4px;
+        padding-right: 4px;
+        font-size: 10px;
       }
       .league-section .actions{
         flex-direction: column;
@@ -565,6 +605,17 @@
         width: 100%;
         justify-content: center;
         text-align: center;
+        min-height: 44px;
+      }
+      .upcoming-schedule{
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      .schedule-row{
+        grid-template-columns: max-content minmax(0, 1fr);
+      }
+      .schedule-row .btn,
+      .archive-actions .btn{
         min-height: 44px;
       }
       .archive-actions{
@@ -638,19 +689,9 @@
 
     <div class="card">
       <h1 class="headline">Leagues &amp; Events</h1>
-      <div class="league-tabs" role="tablist" aria-label="League sections">
-        <button class="tab-button tab-primary is-active" id="happening-now-tab" type="button" role="tab" aria-selected="true" aria-controls="happening-now-section" data-target="happening-now-section">
-          Happening Now
-        </button>
-        <button class="tab-button" id="upcoming-tab" type="button" role="tab" aria-selected="false" aria-controls="upcoming-section" data-target="upcoming-section">
-          Upcoming
-        </button>
-        <button class="tab-button" id="archive-tab" type="button" role="tab" aria-selected="false" aria-controls="archive-section" data-target="archive-section">
-          Archive
-        </button>
-      </div>
+      <div class="league-tabs" id="leagueTabs"></div>
 
-      <div class="league-section" id="happening-now-section" aria-labelledby="happening-now-tab">
+      <div class="league-section" id="happening-now-section" role="tabpanel" aria-labelledby="happening-now-tab">
         <div class="actions">
           <a class="btn neon-red" id="rankedLeagueButton" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
             Ranked League
@@ -674,7 +715,7 @@
         </div>
       </div>
 
-      <div class="league-section" id="upcoming-section" aria-labelledby="upcoming-tab" hidden>
+      <div class="league-section" id="upcoming-section" role="tabpanel" aria-labelledby="upcoming-tab" hidden>
         <div class="upcoming-schedule">
           <div class="schedule-row">
             <span class="schedule-month">JUL</span>
@@ -697,7 +738,7 @@
         </div>
       </div>
 
-      <div class="league-section" id="archive-section" aria-labelledby="archive-tab" hidden>
+      <div class="league-section" id="archive-section" role="tabpanel" aria-labelledby="archive-tab" hidden>
         <div class="actions">
           <a class="btn neon-green" href="/worldopen" aria-label="Go to World Open">
             World Open
@@ -732,17 +773,39 @@
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { mountHomeLeagueTabs } from "/home-tabs.bundle.js";
     import { RANKED_LEAGUE_TEAMUP_URL } from "/ranked-league-config.js";
 
     const supabase = createBrowserSupabaseClient();
-    const leagueTabs = Array.from(document.querySelectorAll(".league-tabs .tab-button[data-target]"));
+    const leagueTabsEl = document.getElementById("leagueTabs");
     const leagueSections = Array.from(document.querySelectorAll("#happening-now-section, #upcoming-section, #archive-section"));
     const rankedLeagueButton = document.getElementById("rankedLeagueButton");
     const playerSearchEl = document.getElementById("playerSearch");
     const playerSearchInput = document.getElementById("playerSearchInput");
     const playerSearchResults = document.getElementById("playerSearchResults");
+    const discordInviteEls = Array.from(document.querySelectorAll('a.discord-button[href*="discord.gg"]'));
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
+    const LEAGUE_TABS = [
+      {
+        id: "happening-now-tab",
+        value: "happening-now-section",
+        controls: "happening-now-section",
+        label: "Happening Now",
+      },
+      {
+        id: "upcoming-tab",
+        value: "upcoming-section",
+        controls: "upcoming-section",
+        label: "Upcoming",
+      },
+      {
+        id: "archive-tab",
+        value: "archive-section",
+        controls: "archive-section",
+        label: "Archive",
+      },
+    ];
     let memberSearchRows = [];
     let memberSearchPromise = null;
 
@@ -756,31 +819,19 @@
         section.hidden = !isActive;
         section.setAttribute("aria-hidden", isActive ? "false" : "true");
       }
-      for(const tab of leagueTabs){
-        const isActive = tab.dataset.target === targetId;
-        tab.classList.toggle("is-active", isActive);
-        tab.setAttribute("aria-selected", isActive ? "true" : "false");
-      }
     }
 
     function initLeagueTabs(){
-      if(!leagueTabs.length) return;
+      if(!leagueTabsEl) return;
       const targetIds = new Set(leagueSections.map(section => section.id));
-      const initial = leagueTabs.find(tab => tab.classList.contains("is-active") && targetIds.has(tab.dataset.target))
-        || leagueTabs.find(tab => targetIds.has(tab.dataset.target))
-        || null;
+      const initialTab = LEAGUE_TABS.find(tab => targetIds.has(tab.value))?.value || "happening-now-section";
 
-      if(initial?.dataset.target){
-        setActiveLeagueTab(initial.dataset.target);
-      }
-
-      for(const tab of leagueTabs){
-        if(!targetIds.has(tab.dataset.target)) continue;
-        tab.addEventListener("click", (event) => {
-          event.preventDefault();
-          setActiveLeagueTab(tab.dataset.target);
-        });
-      }
+      setActiveLeagueTab(initialTab);
+      mountHomeLeagueTabs(leagueTabsEl, {
+        tabs: LEAGUE_TABS.filter(tab => targetIds.has(tab.value)),
+        initialTab,
+        onTabChange: setActiveLeagueTab,
+      });
     }
 
     initLeagueTabs();
@@ -791,6 +842,91 @@
 
     function normalizeSearchKey(value){
       return normalizeSearchText(value).toLowerCase();
+    }
+
+    function normalizeDiscordId(value){
+      return normalizeSearchText(value).replace(/[^\d]/g, "");
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find(identity => normalizeSearchText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    function setDiscordInviteVisible(isVisible){
+      discordInviteEls.forEach((el) => {
+        el.hidden = !isVisible;
+      });
+    }
+
+    async function getProfileDiscordId(user){
+      if(!user?.id) return "";
+
+      try{
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("discord_user_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if(error) return "";
+        return normalizeDiscordId(data?.discord_user_id);
+      }catch{
+        return "";
+      }
+    }
+
+    async function userHasDiscordMemberRecord(user){
+      const discordId = normalizeDiscordId(await getProfileDiscordId(user)) || getDiscordIdFromUser(user);
+      if(!discordId) return false;
+
+      try{
+        const { data, error } = await supabase
+          .from("discord_guild_members")
+          .select("discord_user_id")
+          .eq("discord_user_id", discordId)
+          .eq("is_current_member", true)
+          .maybeSingle();
+        if(error) return false;
+        return !!data;
+      }catch{
+        return false;
+      }
+    }
+
+    async function updateDiscordInviteVisibility(){
+      try{
+        const { data: sessionData } = await supabase.auth.getSession();
+        if(!sessionData?.session?.user){
+          setDiscordInviteVisible(true);
+          return;
+        }
+
+        let user = sessionData.session.user;
+        try{
+          const { data: userData, error } = await supabase.auth.getUser();
+          if(!error && userData?.user?.id === user.id){
+            user = userData.user;
+          }
+        }catch{
+          // Session user is enough for the membership check fallback.
+        }
+
+        setDiscordInviteVisible(!(await userHasDiscordMemberRecord(user)));
+      }catch{
+        setDiscordInviteVisible(true);
+      }
     }
 
     function avatarUrlForMember(member){
@@ -953,6 +1089,11 @@
     document.addEventListener("click", (event) => {
       if(playerSearchEl.contains(event.target)) return;
       hidePlayerSearchResults();
+    });
+
+    void updateDiscordInviteVisibility();
+    supabase.auth.onAuthStateChange(() => {
+      void updateDiscordInviteVisibility();
     });
   </script>
   <script type="module" src="/site-topbar.js"></script>
