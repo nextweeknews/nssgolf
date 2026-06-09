@@ -221,15 +221,15 @@
       color: rgba(255,255,255,.95);
     }
     .records-tabs-trigger[data-state="active"]{
-      background: rgba(79,70,229,.12);
+      background: rgba(45,212,191,.12);
       color:#f4faff;
     }
     .records-tabs-trigger[data-state="active"]::after{
-      background: rgba(79,70,229,.92);
+      background: rgba(45,212,191,.92);
     }
     .records-tabs-trigger:focus-visible{
       outline:none;
-      box-shadow: inset 0 0 0 1px rgba(79,70,229,.56);
+      box-shadow: inset 0 0 0 1px rgba(45,212,191,.56);
     }
     .records-tabs-content[data-state="inactive"]{
       display:none;
@@ -419,7 +419,7 @@
       white-space:nowrap;
     }
     .empty-role{
-      margin: 0;
+      margin: 8px 0 0;
       color: rgba(233,238,248,0.54);
       font-size: 12px;
       font-weight: 700;
@@ -550,9 +550,9 @@
     ];
 
     const GLOBAL_RANK_GROUPS = [
-      { title: "Current", key: "current_global_rank", rankOrder: GLOBAL_RANKS_WITH_CS },
-      { title: "Max (no CS)", key: "max_global_rank_no_cs", rankOrder: GLOBAL_RANKS_NO_CS },
-      { title: "Max (CS)", key: "max_global_rank_cs", rankOrder: GLOBAL_RANKS_WITH_CS },
+      { title: "Current Rank", key: "current_global_rank", rankOrder: GLOBAL_RANKS_WITH_CS },
+      { title: "Max. Rank (no cloud saves)", key: "max_global_rank_no_cs", rankOrder: GLOBAL_RANKS_NO_CS },
+      { title: "Max. Rank (with cloud saves)", key: "max_global_rank_cs", rankOrder: GLOBAL_RANKS_WITH_CS },
     ];
     const DEFAULT_RECORDS_TAB = "qualified-personal-bests";
     const VALID_RECORDS_TABS = new Set([DEFAULT_RECORDS_TAB, "global-ranks"]);
