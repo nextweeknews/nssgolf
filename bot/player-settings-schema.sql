@@ -259,11 +259,12 @@ with check (
 );
 
 drop policy if exists "players can update pending url claims" on public.player_custom_urls;
-create policy "players can update pending url claims"
+drop policy if exists "players can update their own url claims to pending" on public.player_custom_urls;
+create policy "players can update their own url claims to pending"
 on public.player_custom_urls
 for update
 to authenticated
-using (auth.uid() = user_id and status = 'pending')
+using (auth.uid() = user_id)
 with check (
   auth.uid() = user_id
   and status = 'pending'

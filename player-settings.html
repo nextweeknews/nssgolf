@@ -238,7 +238,7 @@
       currentCustomUrl = urlClaim;
       const slug = normalizePlayerUrlSlug(urlClaim?.slug);
       customUrlSlug.value = customUrlInputValueForSlug(slug);
-      customUrlSlug.disabled = urlClaim?.status === "approved";
+      customUrlSlug.disabled = false;
       setCustomUrlStatus(urlClaim?.status);
     }
 
@@ -265,7 +265,7 @@
     async function loadCustomUrl(userId){
       const { data, error } = await supabase
         .from("player_custom_urls")
-        .select("user_id,slug,status")
+        .select("user_id,slug,status,approved_at,approved_by_user_id,approved_by_username")
         .eq("user_id", userId)
         .maybeSingle();
       if(error) throw error;
@@ -337,7 +337,7 @@
     });
 
     customUrlInputFrame.addEventListener("click", (event) => {
-      if(event.target === customUrlSlug || customUrlSlug.disabled) return;
+      if(event.target === customUrlSlug) return;
       customUrlSlug.focus();
       customUrlSlug.setSelectionRange(0, 0);
     });
@@ -374,7 +374,7 @@
       saveBtn.disabled = true;
       setStatus("Saving settings...");
       const cleanCustomUrlSlug = normalizePlayerUrlSlug(customUrlSlug.value);
-      const customUrlError = customUrlSlug.disabled ? "" : await validateCustomUrlAvailability(cleanCustomUrlSlug);
+      const customUrlError = await validateCustomUrlAvailability(cleanCustomUrlSlug);
       if(customUrlError){
         saveBtn.disabled = false;
         setStatus(customUrlError, "error");
@@ -402,15 +402,20 @@
         return;
       }
 
-      if(!customUrlSlug.disabled){
-        if(cleanCustomUrlSlug){
+      if(cleanCustomUrlSlug){
+        const currentSlug = normalizePlayerUrlSlug(currentCustomUrl?.slug);
+        const slugChanged = cleanCustomUrlSlug !== currentSlug;
+        const keepApproved = currentCustomUrl?.status === "approved" && !slugChanged;
+        const nextStatus = keepApproved ? "approved" : "pending";
+
+        if(!keepApproved){
           const { error: urlError } = await supabase
             .from("player_custom_urls")
             .upsert({
               user_id: currentUser.id,
               discord_user_id: currentDiscordId,
               slug: cleanCustomUrlSlug,
-              status: "pending",
+              status: nextStatus,
               approved_at: null,
               approved_by_user_id: null,
               approved_by_username: null,
@@ -420,20 +425,28 @@
             setStatus(urlError.code === "23505" ? "That custom URL is already claimed." : (urlError.message || "Unable to save custom URL."), "error");
             return;
           }
-
-          setCustomUrlValue({ user_id: currentUser.id, slug: cleanCustomUrlSlug, status: "pending" });
-        }else if(currentCustomUrl?.status === "pending"){
-          const { error: deleteError } = await supabase
-            .from("player_custom_urls")
-            .delete()
-            .eq("user_id", currentUser.id);
-
-          if(deleteError){
-            setStatus(deleteError.message || "Unable to remove custom URL request.", "error");
-            return;
-          }
-          setCustomUrlValue(null);
         }
+
+        setCustomUrlValue({
+          ...currentCustomUrl,
+          user_id: currentUser.id,
+          slug: cleanCustomUrlSlug,
+          status: nextStatus,
+          approved_at: keepApproved ? currentCustomUrl?.approved_at : null,
+          approved_by_user_id: keepApproved ? currentCustomUrl?.approved_by_user_id : null,
+          approved_by_username: keepApproved ? currentCustomUrl?.approved_by_username : null,
+        });
+      }else if(currentCustomUrl?.status === "pending"){
+        const { error: deleteError } = await supabase
+          .from("player_custom_urls")
+          .delete()
+          .eq("user_id", currentUser.id);
+
+        if(deleteError){
+          setStatus(deleteError.message || "Unable to remove custom URL request.", "error");
+          return;
+        }
+        setCustomUrlValue(null);
       }
 
       setStatus("Settings saved.", "success");
