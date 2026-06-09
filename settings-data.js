@@ -63,8 +63,8 @@ export function isReservedPlayerUrlSlug(slug){
 export function playerUrlSlugError(slug){
   const cleanSlug = normalizePlayerUrlSlug(slug);
   if(!cleanSlug) return "";
-  if(cleanSlug.length < 3) return "Custom URLs must be at least 3 characters.";
-  if(cleanSlug.length > 32) return "Custom URLs must be 32 characters or fewer.";
+  if(cleanSlug.length < 2) return "Custom URLs must be at least 2 characters.";
+  if(cleanSlug.length > 16) return "Custom URLs must be 16 characters or fewer.";
   if(!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(cleanSlug)){
     return "Use lowercase letters, numbers, and hyphens only.";
   }

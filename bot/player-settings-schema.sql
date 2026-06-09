@@ -135,7 +135,7 @@ create table if not exists public.player_custom_urls (
   approved_by_username text,
   updated_at timestamptz not null default now(),
   constraint player_custom_urls_slug_format_check
-    check (slug ~ '^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$'),
+    check (slug ~ '^[a-z0-9](?:[a-z0-9-]{0,14}[a-z0-9])$'),
   constraint player_custom_urls_status_check
     check (status in ('pending', 'approved')),
   constraint player_custom_urls_pending_approval_check

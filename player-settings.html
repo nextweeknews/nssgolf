@@ -37,7 +37,10 @@
         <label class="settings-field">
           <span class="settings-label">Custom Player URL</span>
           <span class="settings-input-wrap">
-            <input class="settings-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://nssgolf.com/your-name" maxlength="72" />
+            <span class="settings-url-input">
+              <span class="settings-url-prefix" aria-hidden="true">https://nssgolf.com/</span>
+              <input class="settings-input settings-url-slug-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="your-name" maxlength="16" />
+            </span>
             <span class="url-status-icon" id="customUrlStatusIcon" hidden aria-live="polite"></span>
           </span>
         </label>
@@ -180,7 +183,7 @@
 
     function customUrlInputValueForSlug(slug){
       const cleanSlug = normalizePlayerUrlSlug(slug);
-      return cleanSlug ? `https://nssgolf.com/${cleanSlug}` : "";
+      return cleanSlug;
     }
 
     function setCustomUrlStatus(status){
