@@ -43,7 +43,6 @@
         <div class="builder-toolbar">
           <a class="settings-button secondary" href="/admin-settings.html">Admin Actions</a>
           <div class="builder-actions">
-            <button class="settings-button secondary" id="addRowBtn" type="button">Add Row</button>
             <button class="settings-button" id="copyCsvBtn" type="button">Copy CSV</button>
           </div>
         </div>
@@ -54,13 +53,30 @@
               <tr>
                 <th scope="col">Row</th>
                 <th scope="col">Player</th>
-                <th scope="col">Discord ID</th>
+                <th scope="col">
+                  <span class="builder-column-header">
+                    <span>Discord ID</span>
+                    <button class="builder-header-copy" id="copyDiscordColumnBtn" type="button" aria-label="Copy Discord ID column" title="Copy Discord ID column">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                  </span>
+                </th>
                 <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody id="builderRows"></tbody>
           </table>
         </div>
+        <button class="builder-add-row-bar" id="addRowBtn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 5v14"></path>
+            <path d="M5 12h14"></path>
+          </svg>
+          <span>Add row</span>
+        </button>
       </div>
 
       <p class="settings-status" id="builderStatus" aria-live="polite"></p>
@@ -80,11 +96,13 @@
     const rowsEl = document.getElementById("builderRows");
     const addRowBtn = document.getElementById("addRowBtn");
     const copyCsvBtn = document.getElementById("copyCsvBtn");
+    const copyDiscordColumnBtn = document.getElementById("copyDiscordColumnBtn");
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
     let memberSearchRows = [];
     let memberSearchPromise = null;
     let rows = [createEmptyRow()];
+    let draggedRowId = "";
 
     function normalizeText(value){
       return String(value || "").trim();
@@ -263,6 +281,19 @@
         .join("\n");
     }
 
+    function exportDiscordIdColumn(){
+      let lastContentIndex = -1;
+      rows.forEach((row, index) => {
+        if(isRowSelected(row)) lastContentIndex = index;
+      });
+
+      if(lastContentIndex < 0) return "";
+      return rows
+        .slice(0, lastContentIndex + 1)
+        .map(row => isRowSelected(row) ? normalizeDiscordId(row.discordId) : "")
+        .join("\n");
+    }
+
     function draftRowNumbers(){
       return rows
         .map((row, index) => isRowDraft(row) ? index + 1 : null)
@@ -273,10 +304,34 @@
       rowsEl.querySelectorAll(".builder-search-results").forEach((results) => {
         if(results.dataset.rowId === exceptRowId) return;
         results.hidden = true;
+        results.style.removeProperty("left");
+        results.style.removeProperty("top");
+        results.style.removeProperty("width");
+        results.style.removeProperty("max-height");
       });
       rowsEl.querySelectorAll(".builder-search-input").forEach((input) => {
         if(input.dataset.rowId === exceptRowId) return;
         input.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    function positionSearchResults(rowId){
+      const input = document.getElementById(`player-${rowId}`);
+      const results = document.getElementById(`results-${rowId}`);
+      if(!input || !results || results.hidden) return;
+
+      const rect = input.getBoundingClientRect();
+      const viewportGap = 10;
+      const top = Math.min(rect.bottom + 6, window.innerHeight - viewportGap);
+      results.style.left = `${rect.left}px`;
+      results.style.top = `${top}px`;
+      results.style.width = `${rect.width}px`;
+      results.style.maxHeight = `${Math.max(120, window.innerHeight - top - viewportGap)}px`;
+    }
+
+    function positionOpenSearchResults(){
+      rowsEl.querySelectorAll(".builder-search-results:not([hidden])").forEach((results) => {
+        positionSearchResults(results.dataset.rowId);
       });
     }
 
@@ -288,6 +343,10 @@
 
       if(!query){
         resultsEl.hidden = true;
+        resultsEl.style.removeProperty("left");
+        resultsEl.style.removeProperty("top");
+        resultsEl.style.removeProperty("width");
+        resultsEl.style.removeProperty("max-height");
         input.setAttribute("aria-expanded", "false");
         return;
       }
@@ -299,6 +358,7 @@
         resultsEl.appendChild(empty);
         resultsEl.hidden = false;
         input.setAttribute("aria-expanded", "true");
+        positionSearchResults(row.id);
         return;
       }
 
@@ -335,6 +395,7 @@
 
       resultsEl.hidden = false;
       input.setAttribute("aria-expanded", "true");
+      positionSearchResults(row.id);
     }
 
     async function updatePlayerSearch(row){
@@ -360,6 +421,7 @@
         resultsEl.appendChild(empty);
         resultsEl.hidden = false;
         input.setAttribute("aria-expanded", "true");
+        positionSearchResults(row.id);
       }
     }
 
@@ -393,7 +455,28 @@
 
         const numberCell = document.createElement("td");
         numberCell.className = "builder-row-number";
-        numberCell.textContent = String(index + 1);
+        const dragHandle = document.createElement("button");
+        dragHandle.className = "builder-drag-handle";
+        dragHandle.type = "button";
+        dragHandle.draggable = true;
+        dragHandle.dataset.rowId = row.id;
+        dragHandle.setAttribute("aria-label", `Drag row ${index + 1}`);
+        dragHandle.title = "Drag to reorder";
+
+        const gripIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        gripIcon.setAttribute("viewBox", "0 0 24 24");
+        gripIcon.setAttribute("aria-hidden", "true");
+        gripIcon.setAttribute("focusable", "false");
+        for(const data of ["M8 6h.01", "M8 12h.01", "M8 18h.01", "M16 6h.01", "M16 12h.01", "M16 18h.01"]){
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", data);
+          gripIcon.appendChild(path);
+        }
+
+        const rowNumber = document.createElement("span");
+        rowNumber.textContent = String(index + 1);
+        dragHandle.append(gripIcon, rowNumber);
+        numberCell.appendChild(dragHandle);
 
         const playerCell = document.createElement("td");
         playerCell.className = "builder-player-cell";
@@ -443,15 +526,11 @@
         const actions = document.createElement("div");
         actions.className = "builder-icon-actions";
 
-        const insertButton = createIconButton("Insert row beneath", ["M12 5v14", "M5 12h14"]);
-        insertButton.dataset.action = "insert";
-        insertButton.dataset.rowId = row.id;
-
         const clearButton = createIconButton("Clear row", ["M18 6 6 18", "M6 6l12 12"]);
         clearButton.dataset.action = "clear";
         clearButton.dataset.rowId = row.id;
 
-        actions.append(insertButton, clearButton);
+        actions.appendChild(clearButton);
         actionsCell.appendChild(actions);
 
         tr.append(numberCell, playerCell, discordCell, actionsCell);
@@ -467,14 +546,6 @@
 
     function rowIndexById(rowId){
       return rows.findIndex(row => row.id === rowId);
-    }
-
-    function insertRowAfter(rowId){
-      const index = rowIndexById(rowId);
-      if(index < 0) return;
-      const newRow = createEmptyRow();
-      rows.splice(index + 1, 0, newRow);
-      renderRows(newRow.id);
     }
 
     function ensureBlankRowAfter(index){
@@ -498,8 +569,36 @@
     function clearRow(rowId){
       const index = rowIndexById(rowId);
       if(index < 0) return;
+      if(isRowBlank(rows[index]) && rows.length > 1){
+        rows.splice(index, 1);
+        renderRows();
+        return;
+      }
       rows[index] = createEmptyRow();
       renderRows(rows[index].id);
+    }
+
+    function clearDropIndicators(){
+      rowsEl.querySelectorAll(".is-drop-before, .is-drop-after, .is-dragging").forEach((rowEl) => {
+        rowEl.classList.remove("is-drop-before", "is-drop-after", "is-dragging");
+      });
+    }
+
+    function rowDropPlacement(event, rowEl){
+      const rect = rowEl.getBoundingClientRect();
+      return event.clientY > rect.top + rect.height / 2 ? "after" : "before";
+    }
+
+    function moveRow(dragRowId, targetRowId, placement){
+      const fromIndex = rowIndexById(dragRowId);
+      let targetIndex = rowIndexById(targetRowId);
+      if(fromIndex < 0 || targetIndex < 0 || dragRowId === targetRowId) return;
+
+      const [movedRow] = rows.splice(fromIndex, 1);
+      if(fromIndex < targetIndex) targetIndex -= 1;
+      if(placement === "after") targetIndex += 1;
+      rows.splice(Math.max(0, Math.min(targetIndex, rows.length)), 0, movedRow);
+      renderRows(dragRowId);
     }
 
     function selectPlayer(rowId, playerId){
@@ -550,14 +649,58 @@
 
       const actionButton = event.target.closest(".builder-icon-button[data-action][data-row-id]");
       if(!actionButton) return;
-      if(actionButton.dataset.action === "insert") insertRowAfter(actionButton.dataset.rowId);
       if(actionButton.dataset.action === "clear") clearRow(actionButton.dataset.rowId);
+    });
+
+    rowsEl.addEventListener("dragstart", (event) => {
+      const handle = event.target.closest(".builder-drag-handle[data-row-id]");
+      if(!handle) return;
+      draggedRowId = handle.dataset.rowId;
+      hideAllSearchResults();
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", draggedRowId);
+      handle.closest("tr")?.classList.add("is-dragging");
+    });
+
+    rowsEl.addEventListener("dragover", (event) => {
+      const rowEl = event.target.closest("tr[data-row-id]");
+      if(!draggedRowId || !rowEl || rowEl.dataset.rowId === draggedRowId) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      rowsEl.querySelectorAll(".is-drop-before, .is-drop-after").forEach((el) => {
+        el.classList.remove("is-drop-before", "is-drop-after");
+      });
+      rowEl.classList.add(rowDropPlacement(event, rowEl) === "after" ? "is-drop-after" : "is-drop-before");
+    });
+
+    rowsEl.addEventListener("dragleave", (event) => {
+      if(rowsEl.contains(event.relatedTarget)) return;
+      clearDropIndicators();
+    });
+
+    rowsEl.addEventListener("drop", (event) => {
+      const rowEl = event.target.closest("tr[data-row-id]");
+      if(!draggedRowId || !rowEl) return;
+      event.preventDefault();
+      const targetRowId = rowEl.dataset.rowId;
+      const placement = rowDropPlacement(event, rowEl);
+      clearDropIndicators();
+      moveRow(draggedRowId, targetRowId, placement);
+      draggedRowId = "";
+    });
+
+    rowsEl.addEventListener("dragend", () => {
+      draggedRowId = "";
+      clearDropIndicators();
     });
 
     document.addEventListener("click", (event) => {
       if(rowsEl.contains(event.target)) return;
       hideAllSearchResults();
     });
+
+    window.addEventListener("resize", positionOpenSearchResults);
+    window.addEventListener("scroll", positionOpenSearchResults, true);
 
     addRowBtn.addEventListener("click", () => {
       const newRow = createEmptyRow();
@@ -578,6 +721,21 @@
         setStatus("CSV copied.", "success");
       }catch{
         setStatus("Unable to copy CSV from this browser.", "error");
+      }
+    });
+
+    copyDiscordColumnBtn.addEventListener("click", async () => {
+      const draftRows = draftRowNumbers();
+      if(draftRows.length){
+        setStatus(`Select a player from the dropdown for row${draftRows.length === 1 ? "" : "s"} ${draftRows.join(", ")} before copying.`, "error");
+        return;
+      }
+
+      try{
+        await navigator.clipboard.writeText(exportDiscordIdColumn());
+        setStatus("Discord ID column copied.", "success");
+      }catch{
+        setStatus("Unable to copy Discord ID column from this browser.", "error");
       }
     });
 
