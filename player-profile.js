@@ -270,8 +270,9 @@ function getDiscordIdFromUser(user){
   );
 }
 
-async function loadPlayerProfileAdminContext(){
-  const emptyContext = { isAdmin: false };
+async function loadPlayerProfileViewerContext(viewedDiscordId){
+  const cleanViewedDiscordId = normalizeDiscordPlayerId(viewedDiscordId);
+  const emptyContext = { isAdmin: false, isOwner: false };
   try{
     const { data: sessionData } = await supabase.auth.getSession();
     if(!sessionData?.session?.user) return emptyContext;
@@ -289,6 +290,7 @@ async function loadPlayerProfileAdminContext(){
 
     const discordId = normalizeDiscordPlayerId(profile?.discord_user_id) || getDiscordIdFromUser(user);
     if(!discordId) return emptyContext;
+    const isOwner = !!cleanViewedDiscordId && discordId === cleanViewedDiscordId;
 
     const { data: role, error: roleError } = await supabase
       .from("discord_member_roles")
@@ -296,8 +298,8 @@ async function loadPlayerProfileAdminContext(){
       .eq("discord_user_id", discordId)
       .eq("role_id", ADMIN_ROLE_ID)
       .maybeSingle();
-    if(roleError || !role) return emptyContext;
-    return { isAdmin: true };
+    if(roleError || !role) return { isAdmin: false, isOwner };
+    return { isAdmin: true, isOwner };
   }catch{
     return emptyContext;
   }
@@ -356,7 +358,7 @@ function isGlobalRankHidden(moderationSet, discordId, rankKey){
   return moderationSet?.has(moderationKey(discordId, rankKey));
 }
 
-function getUnofficialRankItems(settings, moderationSet = new Set(), adminContext = { isAdmin: false }){
+function getUnofficialRankItems(settings, moderationSet = new Set(), viewerContext = { isAdmin: false, isOwner: false }){
   if(!settings) return [];
   return [
     { groupTitle: GLOBAL_RANK_FIELD_LABELS.current_global_rank, key: "current_global_rank", value: settings.current_global_rank },
@@ -365,7 +367,7 @@ function getUnofficialRankItems(settings, moderationSet = new Set(), adminContex
   ].map(item => ({
     ...item,
     hidden: isGlobalRankHidden(moderationSet, settings.discord_user_id, item.key),
-  })).filter(item => normalizeSettingText(item.value) && (adminContext?.isAdmin || !item.hidden));
+  })).filter(item => normalizeSettingText(item.value) && (viewerContext?.isAdmin || viewerContext?.isOwner || !item.hidden));
 }
 
 async function loadPlayerSettings(discordId){
@@ -2441,7 +2443,24 @@ function createVerifiedIcon(){
   return icon;
 }
 
-function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases = [], superLeaguePlayerName = "", playerSettings = null, isVerified = false, globalRankModeration = new Set(), adminContext = { isAdmin: false }){
+function createHiddenRankIndicator(){
+  const icon = document.createElement("span");
+  icon.className = "profile-hidden-rank-indicator";
+  icon.setAttribute("aria-label", "This rank has been removed.");
+  icon.setAttribute("data-tooltip", "This rank has been removed.");
+  icon.title = "This rank has been removed.";
+  icon.innerHTML = `
+    <svg class="lucide lucide-eye-off" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path>
+      <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path>
+      <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path>
+      <path d="m2 2 20 20"></path>
+    </svg>
+  `;
+  return icon;
+}
+
+function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases = [], superLeaguePlayerName = "", playerSettings = null, isVerified = false, globalRankModeration = new Set(), viewerContext = { isAdmin: false, isOwner: false }){
   document.title = `${displayNameFor(member)} | NSS Golf`;
   rootEl.innerHTML = "";
 
@@ -2542,7 +2561,7 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
     card.appendChild(recordsSection);
   }
 
-  const unofficialRanks = getUnofficialRankItems(playerSettings, globalRankModeration, adminContext);
+  const unofficialRanks = getUnofficialRankItems(playerSettings, globalRankModeration, viewerContext);
   if(unofficialRanks.length){
     const ranksSection = document.createElement("section");
     ranksSection.className = "profile-section";
@@ -2572,6 +2591,9 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
       rankName.textContent = normalizeSettingText(rank.value);
 
       item.append(groupName, rankName);
+      if(rank.hidden){
+        item.appendChild(createHiddenRankIndicator());
+      }
       list.appendChild(item);
     }
 
@@ -2616,7 +2638,7 @@ async function loadPlayerProfile(){
 
   setStatus("Loading player...");
 
-  const [membersRes, linksRes, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, globalRankModeration, adminContext] = await Promise.all([
+  const [membersRes, linksRes, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, globalRankModeration, viewerContext] = await Promise.all([
     supabase
       .from("discord_guild_members")
       .select("discord_user_id,username,display_name,avatar_url,server_avatar_url,joined_at,is_current_member")
@@ -2633,7 +2655,7 @@ async function loadPlayerProfile(){
     loadSuperLeaguePlayerName(discordId),
     loadPlayerSettings(discordId),
     loadGlobalRankModerationForPlayer(discordId),
-    loadPlayerProfileAdminContext(),
+    loadPlayerProfileViewerContext(discordId),
   ]);
 
   if(membersRes.error) throw membersRes.error;
@@ -2675,7 +2697,7 @@ async function loadPlayerProfile(){
     }
   }
 
-  renderProfile(resolvedMember, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, heldRoleIds.has(VERIFIED_ROLE_ID), globalRankModeration, adminContext);
+  renderProfile(resolvedMember, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, heldRoleIds.has(VERIFIED_ROLE_ID), globalRankModeration, viewerContext);
 }
 
 loadPlayerProfile().catch(error => {

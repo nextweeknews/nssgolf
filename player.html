@@ -308,6 +308,59 @@
     .profile-record-item.is-hidden-rank .profile-record-name{
       color: rgba(254,202,202,0.96);
     }
+    .profile-hidden-rank-indicator{
+      position:absolute;
+      top: 8px;
+      right: 8px;
+      width: 22px;
+      height: 22px;
+      border: 1px solid rgba(248,113,113,0.38);
+      border-radius: 999px;
+      background: rgba(127,29,29,0.34);
+      color: rgba(254,202,202,0.96);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      cursor:help;
+    }
+    .profile-hidden-rank-indicator svg{
+      width: 14px;
+      height: 14px;
+      display:block;
+      fill:none;
+      stroke: currentColor;
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+    }
+    .profile-hidden-rank-indicator::after{
+      content: attr(data-tooltip);
+      position:absolute;
+      right: 0;
+      bottom: calc(100% + 8px);
+      width: max-content;
+      max-width: 210px;
+      padding: 7px 9px;
+      border: 1px solid rgba(248,113,113,0.32);
+      border-radius: 8px;
+      background: rgba(2,6,23,0.96);
+      color: rgba(254,226,226,0.98);
+      font-size: 11px;
+      font-weight: 850;
+      line-height: 1.25;
+      text-transform:none;
+      letter-spacing:0;
+      opacity:0;
+      pointer-events:none;
+      transform: translateY(4px);
+      transition: opacity 130ms ease, transform 130ms ease;
+      z-index:3;
+    }
+    .profile-hidden-rank-indicator:hover::after,
+    .profile-hidden-rank-indicator:focus-visible::after{
+      opacity:1;
+      transform: translateY(0);
+    }
     .profile-record-name{
       min-width:0;
       color: rgba(255,255,255,0.95);

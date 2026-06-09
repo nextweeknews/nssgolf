@@ -966,6 +966,7 @@
     function createRoleGroup(titleText, members, options = {}){
       const roleGroup = document.createElement("div");
       roleGroup.className = "role-group";
+      const count = Number.isFinite(options.countOverride) ? options.countOverride : members.length;
 
       const roleTitle = document.createElement("h3");
       roleTitle.className = "role-title role-title-row";
@@ -974,7 +975,7 @@
       roleTitleText.className = "role-title-text";
       roleTitleText.textContent = titleText;
 
-      roleTitle.append(roleTitleText, createPlayerCountBadge(members.length));
+      roleTitle.append(roleTitleText, createPlayerCountBadge(count));
       roleGroup.appendChild(roleTitle);
 
       if(!members.length){
@@ -1099,20 +1100,16 @@
 
       for(const group of GLOBAL_RANK_GROUPS){
         const { section, body } = createRecordSection(group.title, "global-ranks");
-        const visibleRows = rowsWithMembers.filter(row => adminContext?.isAdmin || !isGlobalRankHidden(moderationSet, row.discord_user_id, group.key));
-        const rankValues = getOrderedRankValues(visibleRows, group.key, group.rankOrder);
-
-        if(!rankValues.length){
-          const empty = document.createElement("p");
-          empty.className = "empty-role";
-          empty.textContent = "No players.";
-          body.appendChild(empty);
-        }
+        const rowsWithValue = rowsWithMembers.filter(row => normalizeRankValue(row[group.key]));
+        const displayRows = rowsWithValue.filter(row => adminContext?.isAdmin || !isGlobalRankHidden(moderationSet, row.discord_user_id, group.key));
+        const rankValues = getOrderedRankValues(displayRows, group.key, group.rankOrder);
+        if(!rankValues.length) continue;
 
         for(const rank of rankValues){
+          const rankRows = displayRows.filter(row => normalizeRankValue(row[group.key]) === rank);
+          const publicCount = rankRows.filter(row => !isGlobalRankHidden(moderationSet, row.discord_user_id, group.key)).length;
           const members = sortMembersByName(
-            visibleRows
-              .filter(row => normalizeRankValue(row[group.key]) === rank)
+            rankRows
               .map(row => ({
                 ...row.member,
                 rankKey: group.key,
@@ -1121,6 +1118,7 @@
           );
           body.appendChild(createRoleGroup(rank, members, {
             adminContext,
+            countOverride: publicCount,
             getRankKey: member => member.rankKey,
             isHidden: member => member.rankHidden,
             showModerationControls: !!adminContext?.isAdmin,
