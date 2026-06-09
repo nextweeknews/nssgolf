@@ -196,13 +196,14 @@ a{ color:inherit; }
   cursor:not-allowed;
 }
 .settings-url-input{
-  width:min(100%, 34ch);
-  min-width:0;
+  box-sizing:border-box;
+  width:min(100%, 340px);
+  min-width:340px;
   min-height:44px;
   border:1px solid rgba(255,255,255,0.14);
   border-radius:10px;
   background:var(--panel-strong);
-  display:flex;
+  display:inline-flex;
   align-items:center;
   overflow:hidden;
   cursor:text;
@@ -223,21 +224,25 @@ a{ color:inherit; }
   cursor:default;
 }
 .settings-url-slug-input{
+  width:auto;
+  flex:1 1 16ch;
   min-width:0;
   min-height:42px;
   border:0;
   border-radius:0;
   background:transparent;
-  padding-left:0;
+  padding:0 12px 0 0;
 }
 .settings-url-slug-input::placeholder{
   color:rgba(233,238,248,0.36);
 }
 .settings-input-wrap{
-  display:grid;
-  grid-template-columns:max-content auto;
+  display:inline-grid;
+  grid-template-columns:minmax(0, max-content) auto;
   align-items:center;
   gap:10px;
+  width:max-content;
+  max-width:100%;
 }
 .url-status-icon{
   position:relative;
@@ -334,6 +339,10 @@ a{ color:inherit; }
 }
 .settings-url-input .settings-input:focus{
   outline:0;
+}
+.settings-field .settings-input-wrap .settings-url-input > .settings-url-slug-input{
+  border:0;
+  background:transparent;
 }
 .settings-actions{
   display:flex;
@@ -502,8 +511,10 @@ a{ color:inherit; }
   }
   .settings-input-wrap{
     grid-template-columns:minmax(0, 1fr) auto;
+    width:100%;
   }
   .settings-url-input{
+    min-width:0;
     width:100%;
   }
 }
