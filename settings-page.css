@@ -505,10 +505,12 @@ a{ color:inherit; }
   border:1px solid rgba(148,163,184,0.24);
   border-radius:6px;
   background:rgba(2,6,23,0.52);
+  padding-left:28px;
+  padding-right:32px;
 }
 .builder-table{
   width:100%;
-  min-width:860px;
+  min-width:760px;
   table-layout:fixed;
   border-collapse:collapse;
   border-spacing:0;
@@ -539,10 +541,10 @@ a{ color:inherit; }
 .builder-header-copy{
   width:24px;
   height:24px;
-  border:1px solid rgba(255,255,255,0.14);
+  border:1px solid transparent;
   border-radius:5px;
-  background:rgba(255,255,255,0.07);
-  color:rgba(233,238,248,0.82);
+  background:transparent;
+  color:rgba(125,211,252,0.78);
   display:grid;
   place-items:center;
   padding:0;
@@ -565,54 +567,67 @@ a{ color:inherit; }
   stroke-linejoin:round;
 }
 .builder-row-number{
-  width:48px;
+  position:relative;
+  width:36px;
   color:rgba(233,238,248,0.54);
   font-weight:850;
   text-align:center;
 }
 .builder-drag-handle{
-  width:100%;
-  min-height:38px;
-  border:0;
-  background:transparent;
-  color:rgba(233,238,248,0.62);
-  display:inline-flex;
+  position:absolute;
+  left:-29px;
+  top:-1px;
+  bottom:-1px;
+  width:29px;
+  border:1px solid rgba(148,163,184,0.20);
+  border-right:0;
+  border-radius:6px 0 0 6px;
+  background:rgba(15,23,42,0.74);
+  color:rgba(233,238,248,0.76);
+  display:flex;
   align-items:center;
   justify-content:center;
-  gap:4px;
-  padding:0 4px;
-  font:inherit;
-  font-size:13px;
-  font-weight:850;
+  padding:0;
   cursor:grab;
+  opacity:0;
+  transition:opacity .12s ease, background-color .12s ease, color .12s ease;
 }
 .builder-drag-handle:active{
   cursor:grabbing;
 }
+.builder-table tr:hover .builder-drag-handle,
+.builder-table tr:focus-within .builder-drag-handle,
+.builder-drag-handle:focus-visible,
+.builder-table tr.is-dragging .builder-drag-handle{
+  opacity:1;
+}
 .builder-drag-handle:hover,
 .builder-drag-handle:focus-visible{
   color:#fff;
-  background:rgba(125,211,252,0.08);
+  background:rgba(125,211,252,0.16);
   outline:none;
 }
 .builder-drag-handle svg{
-  width:12px;
-  height:12px;
+  width:15px;
+  height:15px;
   fill:none;
   stroke:currentColor;
-  stroke-width:3.2;
+  stroke-width:2.4;
   stroke-linecap:round;
   stroke-linejoin:round;
-  opacity:.82;
+}
+.builder-row-index{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
 }
 .builder-player-cell{
   width:430px;
 }
 .builder-discord-cell{
+  position:relative;
   width:270px;
-}
-.builder-row-actions{
-  width:58px;
 }
 .builder-table tr.is-dragging{
   opacity:.42;
@@ -764,12 +779,6 @@ a{ color:inherit; }
   outline:0;
   box-shadow:inset 0 0 0 2px rgba(99,102,241,0.48);
 }
-.builder-icon-actions{
-  display:flex;
-  justify-content:center;
-  gap:6px;
-  padding:4px 6px;
-}
 .builder-icon-button{
   width:28px;
   height:28px;
@@ -785,6 +794,31 @@ a{ color:inherit; }
   border-color:rgba(255,255,255,0.28);
   background:rgba(255,255,255,0.12);
 }
+.builder-row-remove{
+  position:absolute;
+  right:-32px;
+  top:50%;
+  transform:translateY(-50%);
+  width:32px;
+  height:calc(100% + 2px);
+  border-left:0;
+  border-radius:0 6px 6px 0;
+  background:rgba(15,23,42,0.74);
+  opacity:0;
+  transition:opacity .12s ease, background-color .12s ease, color .12s ease;
+}
+.builder-table tr:hover .builder-row-remove,
+.builder-table tr:focus-within .builder-row-remove,
+.builder-row-remove:hover,
+.builder-row-remove:focus-visible{
+  opacity:1;
+}
+.builder-row-remove:hover,
+.builder-row-remove:focus-visible{
+  color:#fca5a5;
+  border-color:rgba(248,113,113,0.35);
+  background:rgba(127,29,29,0.28);
+}
 .builder-icon-button svg{
   width:15px;
   height:15px;
@@ -796,20 +830,18 @@ a{ color:inherit; }
 }
 .builder-add-row-bar{
   width:100%;
-  min-height:34px;
-  border:1px dashed rgba(148,163,184,0.24);
-  border-radius:6px;
-  background:rgba(255,255,255,0.025);
+  height:30px;
+  min-height:30px;
+  border:1px solid rgba(148,163,184,0.20);
+  border-top:0;
+  border-radius:0 0 6px 6px;
+  background:rgba(255,255,255,0.018);
   color:rgba(233,238,248,0.62);
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:8px;
+  margin:0;
   font:inherit;
-  font-size:13px;
-  font-weight:850;
-  letter-spacing:.04em;
-  text-transform:uppercase;
   cursor:pointer;
 }
 .builder-add-row-bar:hover,
@@ -820,8 +852,8 @@ a{ color:inherit; }
   outline:none;
 }
 .builder-add-row-bar svg{
-  width:15px;
-  height:15px;
+  width:16px;
+  height:16px;
   fill:none;
   stroke:currentColor;
   stroke-width:2.4;

@@ -64,19 +64,17 @@
                     </button>
                   </span>
                 </th>
-                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody id="builderRows"></tbody>
           </table>
+          <button class="builder-add-row-bar" id="addRowBtn" type="button" aria-label="Add row" title="Add row">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M12 5v14"></path>
+              <path d="M5 12h14"></path>
+            </svg>
+          </button>
         </div>
-        <button class="builder-add-row-bar" id="addRowBtn" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M12 5v14"></path>
-            <path d="M5 12h14"></path>
-          </svg>
-          <span>Add row</span>
-        </button>
       </div>
 
       <p class="settings-status" id="builderStatus" aria-live="polite"></p>
@@ -467,16 +465,17 @@
         gripIcon.setAttribute("viewBox", "0 0 24 24");
         gripIcon.setAttribute("aria-hidden", "true");
         gripIcon.setAttribute("focusable", "false");
-        for(const data of ["M8 6h.01", "M8 12h.01", "M8 18h.01", "M16 6h.01", "M16 12h.01", "M16 18h.01"]){
+        for(const data of ["M5 7h14", "M5 12h14", "M5 17h14"]){
           const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
           path.setAttribute("d", data);
           gripIcon.appendChild(path);
         }
 
         const rowNumber = document.createElement("span");
+        rowNumber.className = "builder-row-index";
         rowNumber.textContent = String(index + 1);
-        dragHandle.append(gripIcon, rowNumber);
-        numberCell.appendChild(dragHandle);
+        dragHandle.appendChild(gripIcon);
+        numberCell.append(dragHandle, rowNumber);
 
         const playerCell = document.createElement("td");
         playerCell.className = "builder-player-cell";
@@ -519,21 +518,14 @@
         discordInput.placeholder = "Select a player";
         discordInput.value = row.discordId;
         discordInput.setAttribute("aria-label", `Discord ID for row ${index + 1}`);
-        discordCell.appendChild(discordInput);
-
-        const actionsCell = document.createElement("td");
-        actionsCell.className = "builder-row-actions";
-        const actions = document.createElement("div");
-        actions.className = "builder-icon-actions";
 
         const clearButton = createIconButton("Clear row", ["M18 6 6 18", "M6 6l12 12"]);
+        clearButton.classList.add("builder-row-remove");
         clearButton.dataset.action = "clear";
         clearButton.dataset.rowId = row.id;
+        discordCell.append(discordInput, clearButton);
 
-        actions.appendChild(clearButton);
-        actionsCell.appendChild(actions);
-
-        tr.append(numberCell, playerCell, discordCell, actionsCell);
+        tr.append(numberCell, playerCell, discordCell);
         rowsEl.appendChild(tr);
       });
 
@@ -569,7 +561,7 @@
     function clearRow(rowId){
       const index = rowIndexById(rowId);
       if(index < 0) return;
-      if(isRowBlank(rows[index]) && rows.length > 1){
+      if(isRowBlank(rows[index])){
         rows.splice(index, 1);
         renderRows();
         return;
