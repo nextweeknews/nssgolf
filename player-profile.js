@@ -1916,9 +1916,13 @@ async function loadWorldCupPlayerResults(member){
     const teamNames = findWorldCupTeamNamesForDiscordId(data, discordId);
     return teamNames.map((teamName) => {
       const teamData = worldCupMatchesForTeam(data, teamName);
+      const partner = (data.rosterTeamMap?.get(teamName)?.players || [])
+        .find(player => normalizeDiscordPlayerId(player?.discordId) !== discordId) || null;
       return {
         year,
         teamName,
+        partnerName: partner?.playerName || "",
+        partnerDiscordId: normalizeDiscordPlayerId(partner?.discordId),
         groupName: teamData.groupEntry?.group?.name || "",
         standing: teamData.groupEntry?.standing || null,
         groupMatches: teamData.groupMatches
@@ -2129,12 +2133,19 @@ function renderWorldCupResults(entries){
     const standingText = entry.standing
       ? `${entry.groupName || "Group"}: #${entry.standing.rank}, ${entry.standing.points || "-"} pts, ${entry.standing.record || "-"}`
       : entry.groupName || "";
+    const partnerName = String(entry.partnerName || "").trim();
+    const partnerChip = partnerName
+      ? entry.partnerDiscordId
+        ? `<a class="worldcup-partner-chip" href="/player.html?id=${encodeURIComponent(entry.partnerDiscordId)}">Partner: ${escapeHtml(partnerName)}</a>`
+        : `<span class="worldcup-partner-chip">Partner: ${escapeHtml(partnerName)}</span>`
+      : "";
     block.innerHTML = `
       <h3 class="tournament-title">
         <span>World Cup <span class="tournament-date">(${escapeHtml(entry.year)})</span></span>
       </h3>
       <div class="worldcup-team-row">
         <span class="worldcup-team-chip">${escapeHtml(worldCupTeamLabel(entry.teamName))}</span>
+        ${partnerChip}
         ${standingText ? `<span class="worldcup-standing-chip">${escapeHtml(standingText)}</span>` : ""}
       </div>
       <div class="worldcup-results-wrap">
@@ -2855,6 +2866,44 @@ function renderSuperLeagueSection(playerName){
   return section;
 }
 
+function renderWorldCupSection(member){
+  const discordId = normalizeDiscordPlayerId(member?.discord_user_id);
+  if(!discordId) return null;
+
+  const section = document.createElement("section");
+  section.className = "profile-section proleague-section worldcup-section";
+  section.hidden = true;
+
+  const details = document.createElement("details");
+  details.className = "proleague-details";
+
+  const summary = createProfileSummary("World Cup");
+
+  const content = document.createElement("div");
+  content.className = "proleague-content";
+  content.innerHTML = `<div class="proleague-loading">Loading World Cup data...</div>`;
+
+  details.append(summary, content);
+  section.appendChild(details);
+
+  loadWorldCupPlayerResults(member)
+    .then((entries) => {
+      if(!entries.length){
+        section.remove();
+        return;
+      }
+      content.innerHTML = "";
+      content.appendChild(renderWorldCupResults(entries));
+      section.hidden = false;
+    })
+    .catch((error) => {
+      console.error("Unable to load World Cup player history", error);
+      section.remove();
+    });
+
+  return section;
+}
+
 function renderTournamentsSection(member){
   const section = document.createElement("section");
   section.className = "profile-section proleague-section tournaments-section";
@@ -2876,11 +2925,10 @@ function renderTournamentsSection(member){
     if(!details.open || loaded) return;
     loaded = true;
     try{
-      const [noptationalResult, lightningCupResult, worldOpenResult, worldCupResult] = await Promise.allSettled([
+      const [noptationalResult, lightningCupResult, worldOpenResult] = await Promise.allSettled([
         loadNoptationalPlayer(member),
         loadLightningCupPlayerResults(member),
         loadWorldOpenPlayerResults(member),
-        loadWorldCupPlayerResults(member),
       ]);
       content.innerHTML = "";
 
@@ -2902,17 +2950,10 @@ function renderTournamentsSection(member){
         console.error("Unable to load World Open player history", worldOpenResult.reason);
       }
 
-      if(worldCupResult.status === "fulfilled" && worldCupResult.value.length){
-        content.appendChild(renderWorldCupResults(worldCupResult.value));
-      }else if(worldCupResult.status === "rejected"){
-        console.error("Unable to load World Cup player history", worldCupResult.reason);
-      }
-
       if(!content.children.length){
         const hasLoadError = noptationalResult.status === "rejected"
           || lightningCupResult.status === "rejected"
-          || worldOpenResult.status === "rejected"
-          || worldCupResult.status === "rejected";
+          || worldOpenResult.status === "rejected";
         content.innerHTML = hasLoadError
           ? `<div class="proleague-error">Unable to load tournament data.</div>`
           : `<p class="profile-muted proleague-empty">No tournaments found.</p>`;
@@ -3229,6 +3270,11 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
   const superLeagueSection = renderSuperLeagueSection(superLeaguePlayerName);
   if(superLeagueSection){
     card.appendChild(superLeagueSection);
+  }
+
+  const worldCupSection = renderWorldCupSection(member);
+  if(worldCupSection){
+    card.appendChild(worldCupSection);
   }
 
   card.appendChild(renderTournamentsSection(member));
