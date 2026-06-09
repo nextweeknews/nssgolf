@@ -1665,7 +1665,7 @@ function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
   const outcome = (playerIsTop && winnerIsTop) || (playerIsBottom && winnerIsBottom) ? "W" : "L";
 
   return {
-    opponent: `vs. ${lightningCupSeedPlayerText(opponentSlot)},`,
+    opponent: lightningCupSeedPlayerText(opponentSlot),
     result: `${outcome} ${playerSets}-${opponentSets}`,
     outcome: outcome === "W" ? "win" : "loss",
   };
@@ -1774,7 +1774,13 @@ function renderLightningCupResults(results){
 
     const opponent = document.createElement("span");
     opponent.className = "lightningcup-result-opponent";
-    opponent.textContent = result.result.opponent;
+    const opponentPrefix = document.createElement("span");
+    opponentPrefix.className = "lightningcup-result-vs";
+    opponentPrefix.textContent = "vs.";
+    const opponentName = document.createElement("span");
+    opponentName.className = "lightningcup-result-opponent-name";
+    opponentName.textContent = result.result.opponent;
+    opponent.append(opponentPrefix, opponentName);
 
     const score = document.createElement("span");
     score.className = `lightningcup-result-score is-${result.result.outcome}`;
