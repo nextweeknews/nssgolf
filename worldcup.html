@@ -301,8 +301,24 @@
     }
     .wc-bracket-match{
       display:grid;
+      position:relative;
       min-height:var(--wc-match-height);
       align-items:center;
+    }
+    .wc-match-label{
+      position:absolute;
+      left:0;
+      right:0;
+      top:-13px;
+      min-height:10px;
+      color:rgba(186,230,253,.96);
+      font-size:8px;
+      font-weight:950;
+      letter-spacing:.12em;
+      line-height:1;
+      text-align:center;
+      text-transform:uppercase;
+      pointer-events:none;
     }
     .wc-match-card{
       position:relative;
@@ -337,6 +353,14 @@
       position:relative;
       z-index:1;
     }
+    .wc-match-row:first-child{
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+    }
+    .wc-match-row:last-child{
+      border-bottom-left-radius:10px;
+      border-bottom-right-radius:10px;
+    }
     .wc-match-row:nth-child(2){ background:rgba(255,255,255,0.045); }
     .wc-match-row + .wc-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
     .wc-match-row.is-winner{
@@ -350,6 +374,16 @@
       border-left:1px solid rgba(96,165,250,.45);
       border-right:1px solid rgba(96,165,250,.45);
       pointer-events:none;
+    }
+    .wc-match-row.is-winner:first-child::after{
+      border-top:1px solid rgba(96,165,250,.45);
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+    }
+    .wc-match-row.is-winner:last-child::after{
+      border-bottom:1px solid rgba(96,165,250,.45);
+      border-bottom-left-radius:10px;
+      border-bottom-right-radius:10px;
     }
     .wc-match-row.is-bye{
       color:rgba(233,238,248,.72);
@@ -472,7 +506,12 @@
       overflow:hidden;
       background:rgba(255,255,255,.045);
     }
-    .group-game-label{
+    .group-game-column{
+      display:grid;
+      gap:7px;
+      align-content:start;
+    }
+    .group-round-label{
       margin:0;
       padding:6px 7px;
       color:rgba(156,163,199,.86);
@@ -482,6 +521,8 @@
       text-transform:uppercase;
       text-align:center;
       background:rgba(2,8,24,.35);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;
     }
     .group-game-row{
       display:grid;
@@ -816,13 +857,12 @@
         }));
     }
 
-    function spacingIndexForRound(groups, index, year){
+    function spacingIndexForRound(groups, index, year, countOverride = null){
       if(year === 2024 && index < 2) return 0;
       const firstCount = groups[0]?.matches?.length || 1;
-      const count = groups[index]?.matches?.length || 1;
+      const count = countOverride || groups[index]?.matches?.length || 1;
       const ratio = Math.max(1, firstCount / count);
-      const raw = Math.round(Math.log2(ratio));
-      return year === 2024 ? Math.max(0, raw - 1) : Math.max(0, raw);
+      return Math.max(0, Math.round(Math.log2(ratio)));
     }
 
     function renderBracketMatchRow(match, side){
@@ -839,6 +879,25 @@
       `;
     }
 
+    function medalMatchLabel(match){
+      const round = String(match?.round || "").trim();
+      if(round === "F" || /^final$/i.test(round)) return "Championship";
+      if(round === "3rd") return "3rd Place";
+      return "";
+    }
+
+    function renderBracketMatch(match, label = ""){
+      return `
+        <div class="wc-bracket-match ${label ? "has-label" : ""}">
+          ${label ? `<div class="wc-match-label">${escapeHtml(label)}</div>` : ""}
+          <div class="wc-match-card" title="${escapeHtml(`${worldCupRoundLabel(match.round)} ${match.id || ""}`.trim())}">
+            ${renderBracketMatchRow(match, "team1")}
+            ${renderBracketMatchRow(match, "team2")}
+          </div>
+        </div>
+      `;
+    }
+
     function renderBracket(data){
       const groups = groupBracketRounds(data.bracket, data.year);
       const matchHeight = 64;
@@ -848,21 +907,17 @@
         <div class="wc-bracket-scroll">
           <div class="wc-bracket-grid" data-year="${escapeHtml(data.year)}">
             ${groups.map((group, index) => {
-              const spacingIndex = spacingIndexForRound(groups, index, data.year);
-              const roundGap = Math.round((baseStep * (2 ** spacingIndex) - matchHeight) / 2);
+              const isMedalRound = group.key === "Medal";
+              const spacingIndex = spacingIndexForRound(groups, index, data.year, isMedalRound ? 1 : null);
+              const roundGap = isMedalRound
+                ? baseGap
+                : Math.round((baseStep * (2 ** spacingIndex) - matchHeight) / 2);
               const topPadding = spacingIndex ? Math.round((baseStep * ((2 ** spacingIndex) - 1)) / 2) : 0;
               return `
                 <div class="wc-round-column" style="--wc-round-gap:${roundGap}px;--wc-round-padding-top:${topPadding}px;">
                   <h3 class="wc-round-title">${escapeHtml(group.label)}</h3>
                   <div class="wc-round-stack">
-                    ${group.matches.map(match => `
-                      <div class="wc-bracket-match">
-                        <div class="wc-match-card" title="${escapeHtml(`${worldCupRoundLabel(match.round)} ${match.id || ""}`.trim())}">
-                          ${renderBracketMatchRow(match, "team1")}
-                          ${renderBracketMatchRow(match, "team2")}
-                        </div>
-                      </div>
-                    `).join("")}
+                    ${group.matches.map(match => renderBracketMatch(match, isMedalRound ? medalMatchLabel(match) : "")).join("")}
                   </div>
                 </div>
               `;
@@ -882,6 +937,21 @@
         <div class="group-game-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
           <span class="group-game-team">${escapeHtml(worldCupTeamLabel(team) || team || "TBD")}</span>
           <span>${escapeHtml(scoreText(score))}</span>
+        </div>
+      `;
+    }
+
+    function renderGroupRoundColumn(group, roundNumber){
+      const games = (group.games || []).filter(game => Number(game.block) === roundNumber);
+      return `
+        <div class="group-game-column">
+          <p class="group-round-label">Round ${roundNumber}</p>
+          ${games.map((game) => `
+            <div class="group-game">
+              ${renderGameRow(game, "team1")}
+              ${renderGameRow(game, "team2")}
+            </div>
+          `).join("")}
         </div>
       `;
     }
@@ -916,13 +986,7 @@
               </div>
               <div class="games-card">
                 <div class="games-grid">
-                  ${group.games.map((game, index) => `
-                    <div class="group-game">
-                      <p class="group-game-label">Game ${index + 1}</p>
-                      ${renderGameRow(game, "team1")}
-                      ${renderGameRow(game, "team2")}
-                    </div>
-                  `).join("")}
+                  ${[1, 2, 3].map(roundNumber => renderGroupRoundColumn(group, roundNumber)).join("")}
                 </div>
               </div>
             </section>
@@ -931,10 +995,100 @@
       `;
     }
 
+    function teamKey(value){
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function orderedMatchTeams(match){
+      return [match?.team1, match?.team2].map(team => String(team || "").trim()).filter(Boolean);
+    }
+
+    function getMatchWinnerLoser(match, fallbackToSheetOrder = false){
+      const teams = orderedMatchTeams(match);
+      if(teams.length < 2) return { winner:"", loser:"" };
+      const first = getWorldCupMatchOutcome(match, teams[0]);
+      const second = getWorldCupMatchOutcome(match, teams[1]);
+      if(first?.outcome === "win") return { winner:teams[0], loser:teams[1] };
+      if(second?.outcome === "win") return { winner:teams[1], loser:teams[0] };
+      if(fallbackToSheetOrder) return { winner:teams[0], loser:teams[1] };
+      return { winner:"", loser:"" };
+    }
+
+    function buildRosterOrderMap(data){
+      const order = new Map();
+      const setOrder = (team, rank, sourceIndex = 0) => {
+        const key = teamKey(team);
+        if(!key || /^bye$/i.test(team)) return;
+        const existing = order.get(key);
+        if(existing && existing.rank <= rank) return;
+        order.set(key, { rank, sourceIndex });
+      };
+
+      const bracketMatches = (data.bracket || []).slice().sort((left, right) => Number(left.id || 0) - Number(right.id || 0));
+      const finalMatch = bracketMatches.find(match => {
+        const round = String(match.round || "").trim();
+        return round === "F" || /^final$/i.test(round);
+      });
+      const thirdPlaceMatch = bracketMatches.find(match => String(match.round || "").trim() === "3rd");
+
+      if(finalMatch){
+        const { winner, loser } = getMatchWinnerLoser(finalMatch, true);
+        setOrder(winner, 0, Number(finalMatch.id || 0));
+        setOrder(loser, 1, Number(finalMatch.id || 0));
+      }
+      if(thirdPlaceMatch){
+        const { winner, loser } = getMatchWinnerLoser(thirdPlaceMatch, true);
+        setOrder(winner, 2, Number(thirdPlaceMatch.id || 0));
+        setOrder(loser, 3, Number(thirdPlaceMatch.id || 0));
+      }
+
+      const roundRank = { SF:4, QF:5, R16:6, R24:7 };
+      const bracketTeamKeys = new Set();
+      bracketMatches.forEach((match) => {
+        orderedMatchTeams(match).forEach((team) => {
+          if(!/^bye$/i.test(team)) bracketTeamKeys.add(teamKey(team));
+        });
+        const round = String(match.round || "").trim();
+        if(!(round in roundRank)) return;
+        const matchRank = roundRank[round];
+        const matchOrder = Number(match.id || 0);
+        orderedMatchTeams(match).forEach((team, teamIndex) => {
+          setOrder(team, matchRank, (matchOrder * 10) + teamIndex);
+        });
+      });
+
+      (data.groups || []).forEach((group, groupIndex) => {
+        (group.standings || []).forEach((standing) => {
+          const key = teamKey(standing.team);
+          if(!key || bracketTeamKeys.has(key)) return;
+          const rank = 100 + (groupIndex * 10) + Number(standing.rank || 0);
+          setOrder(standing.team, rank, groupIndex * 10 + Number(standing.rank || 0));
+        });
+      });
+
+      (data.rosters || []).forEach((team, index) => {
+        setOrder(team.name, 1000 + index, index);
+      });
+
+      return order;
+    }
+
+    function sortedRosters(data){
+      const order = buildRosterOrderMap(data);
+      return (data.rosters || []).slice().sort((left, right) => {
+        const leftOrder = order.get(teamKey(left.name)) || { rank:9999, sourceIndex:0 };
+        const rightOrder = order.get(teamKey(right.name)) || { rank:9999, sourceIndex:0 };
+        if(leftOrder.rank !== rightOrder.rank) return leftOrder.rank - rightOrder.rank;
+        if(leftOrder.sourceIndex !== rightOrder.sourceIndex) return leftOrder.sourceIndex - rightOrder.sourceIndex;
+        return String(left.name || "").localeCompare(String(right.name || ""), undefined, { sensitivity:"base" });
+      });
+    }
+
     function renderRosters(data){
+      const rosters = sortedRosters(data);
       panels.rosters.innerHTML = `
         <div class="rosters-grid">
-          ${data.rosters.map(team => `
+          ${rosters.map(team => `
             <section class="roster-team-card">
               <h2 class="roster-team-title">${escapeHtml(worldCupTeamLabel(team.name))}</h2>
               <div class="roster-player-list">
