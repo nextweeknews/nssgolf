@@ -37,10 +37,12 @@
         <label class="settings-field">
           <span class="settings-label">Custom Player URL</span>
           <span class="settings-input-wrap">
-            <input class="settings-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="your-name" maxlength="48" />
+            <span class="settings-url-input">
+              <span class="settings-url-prefix">https://nssgolf.com/</span>
+              <input class="settings-input settings-url-slug-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="your-name" maxlength="48" />
+            </span>
             <span class="url-status-icon" id="customUrlStatusIcon" hidden aria-live="polite"></span>
           </span>
-          <span class="settings-help" id="customUrlHelp">Choose a short URL. Admin approval is required before it goes live.</span>
         </label>
         <div class="settings-grid settings-grid-profile">
           <label class="settings-field">
@@ -90,7 +92,6 @@
       buildTimeZoneOptions,
       GLOBAL_RANKS,
       normalizePlayerUrlSlug,
-      playerUrlPathForSlug,
       playerUrlSlugError,
     } from "/settings-data.js";
 
@@ -102,7 +103,6 @@
     const statusEl = document.getElementById("settingsStatus");
     const customUrlSlug = document.getElementById("customUrlSlug");
     const customUrlStatusIcon = document.getElementById("customUrlStatusIcon");
-    const customUrlHelp = document.getElementById("customUrlHelp");
     const country1 = document.getElementById("country1");
     const country2 = document.getElementById("country2");
     const timeZone = document.getElementById("timeZone");
@@ -187,8 +187,9 @@
 
       if(cleanStatus === "pending"){
         customUrlStatusIcon.hidden = false;
-        customUrlStatusIcon.title = "Pending approval";
-        customUrlStatusIcon.setAttribute("aria-label", "Pending approval");
+        customUrlStatusIcon.dataset.tooltip = "Pending admin approval";
+        customUrlStatusIcon.setAttribute("aria-label", "Pending admin approval");
+        customUrlStatusIcon.tabIndex = 0;
         customUrlStatusIcon.innerHTML = `
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <circle cx="12" cy="12" r="10"></circle>
@@ -200,8 +201,9 @@
 
       if(cleanStatus === "approved"){
         customUrlStatusIcon.hidden = false;
-        customUrlStatusIcon.title = "Approved";
+        customUrlStatusIcon.dataset.tooltip = "Approved";
         customUrlStatusIcon.setAttribute("aria-label", "Approved");
+        customUrlStatusIcon.tabIndex = 0;
         customUrlStatusIcon.innerHTML = `
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M20 6 9 17l-5-5"></path>
@@ -211,25 +213,10 @@
       }
 
       customUrlStatusIcon.hidden = true;
-      customUrlStatusIcon.removeAttribute("title");
+      customUrlStatusIcon.removeAttribute("data-tooltip");
       customUrlStatusIcon.removeAttribute("aria-label");
+      customUrlStatusIcon.removeAttribute("tabindex");
       customUrlStatusIcon.replaceChildren();
-    }
-
-    function setCustomUrlHelp(slug, status = ""){
-      const cleanSlug = normalizePlayerUrlSlug(slug);
-      const path = playerUrlPathForSlug(cleanSlug);
-      if(!cleanSlug){
-        customUrlHelp.textContent = "Choose a short URL. Admin approval is required before it goes live.";
-        return;
-      }
-
-      const statusText = status === "approved"
-        ? "Approved and live."
-        : status === "pending"
-          ? "Pending admin approval."
-          : "Admin approval is required before it goes live.";
-      customUrlHelp.textContent = `${window.location.origin}${path} - ${statusText}`;
     }
 
     function setFormValues(settings = {}){
@@ -247,7 +234,6 @@
       customUrlSlug.value = slug;
       customUrlSlug.disabled = urlClaim?.status === "approved";
       setCustomUrlStatus(urlClaim?.status);
-      setCustomUrlHelp(slug, urlClaim?.status);
     }
 
     async function loadProfileForUser(user){
@@ -342,7 +328,6 @@
     customUrlSlug.addEventListener("blur", () => {
       const slug = normalizePlayerUrlSlug(customUrlSlug.value);
       customUrlSlug.value = slug;
-      setCustomUrlHelp(slug, currentCustomUrl?.slug === slug ? currentCustomUrl?.status : "");
     });
 
     customUrlSlug.addEventListener("input", () => {
@@ -352,7 +337,6 @@
       }else{
         setCustomUrlStatus(currentCustomUrl?.status);
       }
-      setCustomUrlHelp(slug, currentCustomUrl?.slug === slug ? currentCustomUrl?.status : "");
     });
 
     loginBtn.addEventListener("click", async () => {

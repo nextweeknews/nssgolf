@@ -9,11 +9,11 @@ import {
   SUPER_LEAGUE_SEASON,
 } from "/ranked-league-config.js";
 import {
-  commonTimeZoneNameFor,
   countryLabelFor,
   isReservedPlayerUrlSlug,
   normalizePlayerUrlSlug,
   playerUrlPathForSlug,
+  timeZoneOffsetLabel,
 } from "/settings-data.js";
 
 const RECORD_GROUPS = [
@@ -278,7 +278,7 @@ function playerSettingsLine(settings){
     .map(countryLabelFor)
     .filter(Boolean)
     .join(" / ");
-  const timeZone = commonTimeZoneNameFor(settings.time_zone);
+  const timeZone = settings.time_zone ? timeZoneOffsetLabel(settings.time_zone) : "";
   return [countries, timeZone].filter(Boolean).join(" · ");
 }
 
