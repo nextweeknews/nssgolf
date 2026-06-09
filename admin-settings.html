@@ -7,30 +7,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/settings-page.css" />
   <link rel="stylesheet" href="/site-topbar.css" />
+  <link rel="stylesheet" href="/settings-page.css?v=20260608-url-input-frame" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="/index.html">NSS Golf</a>
-      <select class="page-selector" aria-label="Navigate to page" onchange="if(this.value) window.location.href=this.value">
-        <option value="/index.html">Home</option>
-        <option value="/records.html">Records</option>
-        <option value="/player-settings.html">Player Settings</option>
-        <option value="/admin-settings.html" selected>Admin Settings</option>
-        <option value="/noptational.html">The Noptational</option>
-        <option value="/proleague.html">Shotgun Pro League</option>
-        <option value="/lightningcup/index.html">Lightning Cup</option>
-      </select>
+      <div class="settings-brand">
+        <a class="settings-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title" aria-label="Admin Settings">
+          <svg class="topbar-page-title-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.81 17 5 19 5a1 1 0 0 1 1 1v7Z"></path>
+          </svg>
+          <span>Admin Settings</span>
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="settings-main">
     <section class="settings-card" aria-labelledby="admin-title">
-      <p class="settings-kicker">Administrator</p>
       <h1 class="settings-title" id="admin-title">Admin Settings</h1>
-      <p class="settings-copy" id="adminCopy">Checking access...</p>
       <div class="settings-actions" id="adminLoginActions" hidden>
         <button class="settings-button" id="adminLoginBtn" type="button">Log In With Discord</button>
       </div>
@@ -54,7 +53,6 @@
     import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
-    const copy = document.getElementById("adminCopy");
     const statusEl = document.getElementById("adminStatus");
     const loginActions = document.getElementById("adminLoginActions");
     const loginBtn = document.getElementById("adminLoginBtn");
@@ -308,9 +306,8 @@
     async function initialize(){
       const { data: sessionData } = await supabase.auth.getSession();
       if(!sessionData?.session?.user){
-        copy.textContent = "Log in with Discord to access admin settings.";
         loginActions.hidden = false;
-        setStatus("");
+        setStatus("Log in with Discord to access admin settings.");
         return;
       }
 
@@ -323,13 +320,11 @@
       currentAdminUsername = normalizeText(profile?.username) || getMetadataName(currentUser) || discordId || "Admin";
 
       if(!isAdmin){
-        copy.textContent = "Admin access required.";
         adminUrlPanel.hidden = true;
         setStatus("Your Discord account does not have the administrator role.", "error");
         return;
       }
 
-      copy.textContent = "Review custom player URL claims.";
       adminUrlPanel.hidden = false;
       await renderUrlClaims();
       setStatus("");
@@ -346,7 +341,6 @@
 
     initialize().catch(error => {
       console.error(error);
-      copy.textContent = "Unable to check admin access.";
       setStatus(error?.message || "Unable to load admin settings.", "error");
     });
   </script>
