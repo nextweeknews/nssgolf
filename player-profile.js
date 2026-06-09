@@ -1644,7 +1644,7 @@ function lightningCupSeedPlayerText(slot){
   return [seed, name].filter(Boolean).join(" ");
 }
 
-function buildLightningCupResultLine(match){
+function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
   const winnerName = String(match?.winner || "").trim();
   if(!winnerName) return "";
 
@@ -1654,13 +1654,21 @@ function buildLightningCupResultLine(match){
   const winnerIsBottom = bottomName && normalizeLightningCupPlayerName(winnerName) === normalizeLightningCupPlayerName(bottomName);
   if(!winnerIsTop && !winnerIsBottom) return "";
 
-  const winnerSlot = winnerIsTop ? match.top : match.bottom;
-  const loserSlot = winnerIsTop ? match.bottom : match.top;
-  const setCounts = deriveLightningCupSetCounts(match);
-  const winnerSets = winnerIsTop ? setCounts.top : setCounts.bottom;
-  const loserSets = winnerIsTop ? setCounts.bottom : setCounts.top;
+  const playerIsTop = isLightningCupPlayerSlot(match.top, seedMaps, playerDiscordId);
+  const playerIsBottom = isLightningCupPlayerSlot(match.bottom, seedMaps, playerDiscordId);
+  if(!playerIsTop && !playerIsBottom) return "";
 
-  return `${lightningCupSeedPlayerText(winnerSlot)} def. ${lightningCupSeedPlayerText(loserSlot)} (${winnerSets}-${loserSets})`;
+  const opponentSlot = playerIsTop ? match.bottom : match.top;
+  const setCounts = deriveLightningCupSetCounts(match);
+  const playerSets = playerIsTop ? setCounts.top : setCounts.bottom;
+  const opponentSets = playerIsTop ? setCounts.bottom : setCounts.top;
+  const outcome = (playerIsTop && winnerIsTop) || (playerIsBottom && winnerIsBottom) ? "W" : "L";
+
+  return {
+    opponent: `vs. ${lightningCupSeedPlayerText(opponentSlot)},`,
+    result: `${outcome} ${playerSets}-${opponentSets}`,
+    outcome: outcome === "W" ? "win" : "loss",
+  };
 }
 
 function compareLightningCupMatches(left, right){
@@ -1696,9 +1704,9 @@ async function loadLightningCupPlayerResults(member){
     .map((match) => ({
       id: match.id,
       round: formatLightningCupRoundLabel(match.round),
-      line: buildLightningCupResultLine(match),
+      result: buildLightningCupResultLine(match, discordId, seedMaps),
     }))
-    .filter(result => result.line);
+    .filter(result => result.result);
 }
 
 function renderNoptationalPlayerTable(player){
@@ -1760,8 +1768,16 @@ function renderLightningCupResults(results){
 
     const line = document.createElement("span");
     line.className = "lightningcup-result-line";
-    line.textContent = result.line;
 
+    const opponent = document.createElement("span");
+    opponent.className = "lightningcup-result-opponent";
+    opponent.textContent = result.result.opponent;
+
+    const score = document.createElement("span");
+    score.className = `lightningcup-result-score is-${result.result.outcome}`;
+    score.textContent = result.result.result;
+
+    line.append(opponent, score);
     item.append(round, line);
     list.appendChild(item);
   });

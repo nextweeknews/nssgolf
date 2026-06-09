@@ -818,6 +818,22 @@
       line-height: 1.25;
       overflow-wrap: anywhere;
       text-align: left;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .lightningcup-result-score{
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+    .lightningcup-result-score.is-win{
+      color: rgba(134,239,172,0.98);
+      text-shadow: 0 0 10px rgba(34,197,94,0.24);
+    }
+    .lightningcup-result-score.is-loss{
+      color: rgba(252,165,165,0.98);
+      text-shadow: 0 0 10px rgba(239,68,68,0.24);
     }
     .superleague-history{
       width: 100%;
