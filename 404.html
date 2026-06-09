@@ -6,17 +6,7 @@
   <meta name="theme-color" content="#020B18" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
-  <title>NSS Golf</title>
-  <script>
-    (() => {
-      const playerId = String(window.location.pathname || "").replace(/^\/+|\/+$/g, "");
-      if(!/^\d+$/.test(playerId)) return;
-
-      const playerUrl = new URL("/player.html", window.location.origin);
-      playerUrl.searchParams.set("id", playerId);
-      window.location.replace(playerUrl.toString());
-    })();
-  </script>
+  <title>NSS Golf Player</title>
 
   <style>
     :root{
@@ -114,7 +104,7 @@
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .10em;
-      font-size: 12px;
+      font-size: 14px;
       cursor:pointer;
       text-decoration:none;
       display:inline-flex;
@@ -199,6 +189,31 @@
       letter-spacing: 0;
       text-transform:none;
       line-height:1.05;
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      flex-wrap:wrap;
+    }
+    .player-name-text{
+      min-width:0;
+      overflow-wrap:anywhere;
+    }
+    .player-verified-icon{
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      color: #2dd4bf;
+      filter: drop-shadow(0 0 8px rgba(45,212,191,0.45));
+    }
+    .player-verified-icon svg{
+      width:100%;
+      height:100%;
+      display:block;
+      fill:none;
+      stroke: currentColor;
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-linejoin:round;
     }
     .profile-details{
       margin: 22px 0 0;
@@ -317,11 +332,555 @@
       line-height:1;
       white-space:nowrap;
     }
+    .profile-record-key{
+      margin: 10px 0 0;
+      width: 100%;
+      color: rgba(233,238,248,.9);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .06em;
+      line-height: 1.2;
+      text-align:center;
+      text-transform: uppercase;
+    }
+    .profile-record-key-star{
+      color: #facc15;
+      text-shadow: 0 0 10px rgba(250,204,21,0.45);
+    }
     .profile-actions{
       margin-top: 18px;
       display:flex;
       gap:10px;
       flex-wrap:wrap;
+    }
+    .ranked-league-title{
+      margin-bottom: 10px;
+    }
+    .ranked-table-wrap{
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid rgba(148,163,184,0.28);
+      background: rgba(6,24,46,0.72);
+    }
+    .ranked-table{
+      width: 100%;
+      min-width: 0;
+      border-collapse: collapse;
+      table-layout: fixed;
+      color: rgba(233,238,248,0.92);
+      background: rgba(15,23,42,0.76);
+      font-size: 11px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+    .ranked-col-season{ width: 13%; }
+    .ranked-col-rank{ width: 13%; }
+    .ranked-col-elo{ width: 20%; }
+    .ranked-col-wins{ width: 16%; }
+    .ranked-col-matches{ width: 20%; }
+    .ranked-col-win-rate{ width: 18%; }
+    .ranked-table th,
+    .ranked-table td{
+      border: 1px solid rgba(148,163,184,0.20);
+      padding: 9px 6px;
+      white-space: nowrap;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ranked-table thead th{
+      background: rgba(15,23,42,0.92);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+    }
+    .ranked-table tbody th{
+      color: rgba(233,238,248,0.92);
+      font-weight: 900;
+    }
+    .ranked-table tbody td,
+    .ranked-table tbody th{
+      background: rgba(255,255,255,0.045);
+    }
+    .ranked-table tbody td,
+    .ranked-table tbody th{
+      font-size: 22px;
+    }
+    .ranked-table tbody tr:nth-child(even) td,
+    .ranked-table tbody tr:nth-child(even) th{
+      background: rgba(148,163,184,0.10);
+    }
+    .ranked-cell-elo{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      letter-spacing: .02em;
+      font-weight: 950;
+    }
+    .ranked-teamup-link{
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      color: rgba(233,238,248,.9);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .06em;
+      line-height: 1.2;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+    .ranked-teamup-link:hover{
+      color: #f8fbff;
+      text-decoration: none;
+    }
+    .proleague-section{
+      --gold: #facc15;
+      --silver: #e2e8f0;
+      --bronze: #fb923c;
+      --row-bg: rgba(255,255,255,0.045);
+      --row-bg-2: rgba(148,163,184,0.10);
+      --sep: rgba(255,255,255,0.24);
+      margin-top: 14px;
+      padding: 9px 0;
+    }
+    .proleague-section + .proleague-section{
+      margin-top: 0;
+    }
+    .proleague-details{
+      width: 100%;
+    }
+    .proleague-summary{
+      position: relative;
+      width: fit-content;
+      max-width: 100%;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      min-height: 22px;
+      border: 0;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      color: rgba(255,255,255,0.95);
+      user-select: none;
+    }
+    .proleague-summary::-webkit-details-marker{ display:none; }
+    .proleague-summary-title{
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .proleague-summary-icon{
+      width: 18px;
+      height: 18px;
+      color: rgba(233,238,248,0.72);
+      flex: 0 0 auto;
+      transition: transform .16s ease;
+    }
+    .proleague-summary-icon svg{
+      width: 100%;
+      height: 100%;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .proleague-details[open] .proleague-summary-icon{
+      transform: rotate(180deg);
+    }
+    .proleague-content{
+      margin-top: 12px;
+    }
+    .proleague-loading,
+    .proleague-error,
+    .proleague-empty{
+      margin: 0;
+      padding: 12px 2px 2px;
+      color: rgba(233,238,248,0.72);
+      font-size: 12px;
+      font-weight: 850;
+      text-align: center;
+    }
+    .proleague-error{
+      color: rgba(252,165,165,0.95);
+    }
+    .proleague-history .season-title{
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: rgba(255,255,255,.65);
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .proleague-history .season-entry{
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .proleague-history .season-entry + .season-entry{ margin-top: 10px; }
+    .proleague-history .season-entry-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .proleague-history .season-entry-name{
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,0.92);
+    }
+    .proleague-history .stage-block{ padding-top: 8px; }
+    .proleague-history .stage-block + .stage-block{
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.10);
+      padding-top: 12px;
+    }
+    .proleague-history .stage-header{
+      font-size: 10px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      color: rgba(255,255,255,0.70);
+      margin-bottom: 8px;
+    }
+    .proleague-history .btn-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      justify-content: flex-end;
+      -webkit-overflow-scrolling: touch;
+    }
+    .proleague-history .btn-row + .btn-row{ margin-top: 8px; }
+    .proleague-history .chip{
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.92);
+      border-radius: 12px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .10em;
+      line-height: 1;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .proleague-history .chip.rank{
+      background: rgba(255,255,255,0.04);
+      color: var(--title);
+      border-color: rgba(255,255,255,0.10);
+    }
+    .proleague-history .chip.rank.gold{
+      color: var(--gold);
+      border-color: rgba(250,204,21,0.65);
+    }
+    .proleague-history .chip.rank.silver{
+      color: var(--silver);
+      border-color: rgba(226,232,240,0.65);
+    }
+    .proleague-history .chip.rank.bronze{
+      color: var(--bronze);
+      border-color: rgba(251,146,60,0.6);
+    }
+    .proleague-history .chip.rank.blue{
+      color: rgba(186,230,253,0.95);
+      border-color: rgba(56,189,248,0.6);
+    }
+    .proleague-history .chip.team{
+      background: var(--team-bg, rgba(255,255,255,0.06));
+      color: var(--team-fg, rgba(255,255,255,0.92));
+      border-color: rgba(255,255,255,0.14);
+      justify-content: center;
+      text-align: center;
+    }
+    .proleague-history .chip.score{
+      background: #d9d9d9;
+      color: #000000;
+      border-color: rgba(0,0,0,0.08);
+      letter-spacing: .08em;
+    }
+    .proleague-history table.stage-rounds{
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0 6px;
+      table-layout: fixed;
+      margin-top: 10px;
+    }
+    .proleague-history .stage-rounds thead th{
+      background: rgba(15,23,42,0.92);
+      padding: 6px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .proleague-history .stage-rounds td{
+      padding: 8px 6px;
+      font-size: 10px;
+      color: rgba(233,238,248,0.92);
+      text-align: center;
+      font-weight: 950;
+      background: var(--row-bg);
+      border-top: 1px solid rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      font-variant-numeric: tabular-nums;
+    }
+    .proleague-history .stage-rounds td.counted{
+      color: rgba(190,242,100,0.98);
+      background: rgba(132,204,22,0.14);
+    }
+    .proleague-history .stage-rounds tr:nth-child(even) td{ background: var(--row-bg-2); }
+    .proleague-history .stage-rounds td.sep-right{ border-right: 2px solid var(--sep); }
+    .tournament-history{
+      width: 100%;
+      min-width: 0;
+    }
+    .tournament-title{
+      margin: 0 0 8px;
+      color: rgba(255,255,255,0.92);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .tournament-table-wrap{
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid rgba(148,163,184,0.28);
+      background: rgba(6,24,46,0.72);
+      -webkit-overflow-scrolling: touch;
+    }
+    .tournament-table{
+      width: 100%;
+      min-width: 640px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: rgba(15,23,42,0.86);
+      color: rgba(233,238,248,0.92);
+      font-size: 11px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+    .tournament-table th,
+    .tournament-table td{
+      border: 1px solid rgba(148,163,184,0.20);
+      padding: 8px 5px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .tournament-table thead th{
+      background: rgba(15,23,42,0.95);
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .tournament-table tbody td{
+      background: rgba(255,255,255,0.045);
+      font-size: 15px;
+      font-weight: 950;
+    }
+    .tournament-table tbody tr.is-cut td{
+      color: rgba(252,165,165,0.98);
+      background: rgba(127,29,29,0.22);
+    }
+    .tournament-table tbody tr.is-no-scores td{
+      color: rgba(233,238,248,0.70);
+    }
+    .superleague-history{
+      width: 100%;
+      min-width: 0;
+    }
+    .superleague-player-panel{
+      width: 100%;
+      border: 1px solid var(--border-lite);
+      border-radius: 14px;
+      background: rgba(15,23,42,0.82);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+    .superleague-player-head{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap: 8px;
+      flex-wrap: wrap;
+      text-align:center;
+    }
+    .superleague-player-name{
+      margin: 0;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.96);
+    }
+    .superleague-player-divider{
+      color: var(--muted);
+      font-weight: 900;
+    }
+    .superleague-player-division{
+      margin: 0;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .superleague-player-division.division-1{ color: #fcd34d; }
+    .superleague-player-division.division-2{ color: #e5e7eb; }
+    .superleague-player-division.division-3{ color: #fdba74; }
+    .superleague-player-meta{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .superleague-player-meta-cell{
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 8px 6px;
+      text-align:center;
+      min-width:0;
+    }
+    .superleague-player-meta-label{
+      margin:0;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .superleague-player-meta-value{
+      margin: 4px 0 0;
+      color: rgba(255,255,255,0.95);
+      font-size: 18px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+    }
+    .superleague-weekly-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table.superleague-weekly{
+      width:100%;
+      min-width: 660px;
+      border-collapse: separate;
+      border-spacing: 0 7px;
+      table-layout: fixed;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+    }
+    .superleague-weekly th,
+    .superleague-weekly td{
+      padding: 8px 5px;
+      color: rgba(255,255,255,0.94);
+      background: rgba(255,255,255,0.06);
+      border:0;
+      vertical-align: middle;
+      text-align:center;
+    }
+    .superleague-weekly th{
+      background: rgba(148,163,184,0.12);
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    .superleague-weekly thead th:first-child,
+    .superleague-weekly tbody td:first-child{ border-radius: 10px 0 0 10px; }
+    .superleague-weekly thead th:last-child,
+    .superleague-weekly tbody td:last-child{ border-radius: 0 10px 10px 0; }
+    .superleague-weekly tbody tr.weekly-section-row td{
+      border-radius: 10px;
+      background: rgba(148,163,184,0.18);
+      color: rgba(231,238,255,0.95);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align:left;
+      padding: 9px 10px;
+    }
+    .superleague-weekly .weekly-col-week{ width: 64px; }
+    .superleague-weekly .weekly-col-opponent{ width: 148px; text-align:left; }
+    .superleague-weekly .weekly-col-result{ width: 78px; }
+    .superleague-weekly .weekly-col-games{ width: 82px; }
+    .superleague-weekly .weekly-col-round{ width: 78px; }
+    .superleague-weekly .opponent-name{
+      color: rgba(255,255,255,0.94);
+      font-weight: 950;
+      text-transform: uppercase;
+      text-decoration:none;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .superleague-weekly a.opponent-name:hover{
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .superleague-weekly .opponent-name.qf-player{ color: #9ca3af; }
+    .superleague-weekly .round-pair{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .superleague-weekly .round-sep{
+      color: rgba(233,238,248,0.72);
+      font-weight: inherit;
+    }
+    .superleague-weekly .score-win{ color: #86efac; }
+    .superleague-weekly .score-loss{ color: #fca5a5; }
+    .superleague-weekly .score-dash,
+    .superleague-weekly .result-pending{
+      color: #fff;
+      font-weight: 900;
+    }
+    .superleague-weekly .result-win{
+      color: #86efac;
+      font-weight: 950;
+    }
+    .superleague-weekly .result-loss{
+      color: #fca5a5;
+      font-weight: 950;
     }
     .status{
       margin: 0 auto 18px;
@@ -350,6 +909,106 @@
       .profile-record-item{ min-height: 84px; padding: 16px 10px 18px; }
       .profile-record-name{ font-size: 22px; }
       .profile-record-group{ font-size: 10px; letter-spacing: .05em; }
+      .ranked-col-season{ width: 21%; }
+      .ranked-col-rank{ width: 12%; }
+      .ranked-col-elo{ width: 17%; }
+      .ranked-col-wins{ width: 13%; }
+      .ranked-col-matches{ width: 18%; }
+      .ranked-col-win-rate{ width: 17%; }
+      .ranked-table{ font-size: 10px; }
+      .ranked-table th,
+      .ranked-table td{ padding: 8px 4px; }
+      .ranked-table thead th{ font-size: 9px; letter-spacing: .04em; }
+      .ranked-table tbody td,
+      .ranked-table tbody th{ font-size: 10px; }
+      .proleague-section{
+        margin-top: 12px;
+        padding: 8px 0;
+      }
+      .proleague-section + .proleague-section{
+        margin-top: 0;
+      }
+      .proleague-summary{
+        min-height: 20px;
+      }
+      .proleague-summary-title{
+        font-size: 14px;
+      }
+      .proleague-history .btn-row{
+        justify-content: flex-start;
+      }
+      .proleague-history .chip{
+        font-size: 10px;
+        letter-spacing: .06em;
+      }
+      .proleague-history .stage-rounds thead th{
+        font-size: 8px;
+        letter-spacing: .04em;
+        padding: 5px 2px;
+      }
+      .proleague-history .stage-rounds td{
+        padding: 7px 3px;
+        font-size: 10px;
+      }
+      .tournament-table{
+        min-width: 540px;
+        font-size: 10px;
+      }
+      .tournament-table th,
+      .tournament-table td{
+        padding: 7px 3px;
+      }
+      .tournament-table thead th{
+        font-size: 8px;
+        letter-spacing: .04em;
+      }
+      .tournament-table tbody td{
+        font-size: 11px;
+      }
+      .superleague-player-panel{
+        padding: 10px;
+        border-radius: 12px;
+      }
+      .superleague-player-name,
+      .superleague-player-division{
+        font-size: 12px;
+      }
+      .superleague-player-meta{
+        gap: 5px;
+      }
+      .superleague-player-meta-cell{
+        padding: 7px 4px;
+        border-radius: 8px;
+      }
+      .superleague-player-meta-label{
+        font-size: 8px;
+        letter-spacing: .03em;
+      }
+      .superleague-player-meta-value{
+        font-size: 13px;
+      }
+      table.superleague-weekly{
+        min-width: 500px;
+        border-spacing: 0 5px;
+        font-size: 10px;
+      }
+      .superleague-weekly th,
+      .superleague-weekly td{
+        padding: 6px 3px;
+      }
+      .superleague-weekly th{
+        font-size: 8px;
+        letter-spacing: .03em;
+      }
+      .superleague-weekly .weekly-col-week{ width: 40px; }
+      .superleague-weekly .weekly-col-opponent{ width: 90px; }
+      .superleague-weekly .weekly-col-result{ width: 48px; }
+      .superleague-weekly .weekly-col-games{ width: 54px; }
+      .superleague-weekly .weekly-col-round{ width: 48px; }
+      .superleague-weekly tbody tr.weekly-section-row td{
+        font-size: 9px;
+        padding: 7px 8px;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -362,17 +1021,13 @@
         <a class="home-btn" href="/index.html" aria-label="Home">
           <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
         </a>
-        <div>
-          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
-            <option value="/index.html">Home</option>
-            <option value="/noptational.html">The Noptational</option>
-            <option value="/worldopen/index.html">World Open</option>
-            <option value="/proleague/index.html">Shotgun Pro League</option>
-            <option value="/superleague/index.html">Super League</option>
-            <option value="/lightningcup/index.html">Lightning Cup</option>
-            <option value="/beataidan/index.html">Beat Aidan</option>
-            <option value="/records.html" selected>Records</option>
-          </select>
+        <div class="player-page-nav">
+          <button class="player-page-back" id="playerBackButton" type="button" aria-label="Go back">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+          </button>
+          <span class="player-page-title">Player Page</span>
         </div>
       </div>
       <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
@@ -387,7 +1042,16 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260608-custom-urls"></script>
+  <script type="module" src="/player-profile.js?v=20260608-resolved-player-id"></script>
   <script type="module" src="/site-topbar.js"></script>
+  <script>
+    document.getElementById("playerBackButton")?.addEventListener("click", () => {
+      if(window.history.length > 1){
+        window.history.back();
+        return;
+      }
+      window.location.href = "/records.html";
+    });
+  </script>
 </body>
 </html>

@@ -138,6 +138,7 @@ let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
 let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
 let proLeagueStageDataBySeason = new Map();
+let activePlayerDiscordId = "";
 
 function cleanRoleName(name){
   const clean = String(name || "")
@@ -156,7 +157,19 @@ function getDiscordIdFromLocation(){
   const queryId = new URLSearchParams(window.location.search).get("id") || "";
   if(/^\d+$/.test(queryId)) return queryId;
 
+  if(activePlayerDiscordId) return activePlayerDiscordId;
+
   return "";
+}
+
+function setActivePlayerDiscordId(discordId){
+  activePlayerDiscordId = normalizeDiscordPlayerId(discordId);
+  if(rootEl){
+    rootEl.dataset.playerDiscordId = activePlayerDiscordId;
+  }
+  if(document.body){
+    document.body.dataset.playerDiscordId = activePlayerDiscordId;
+  }
 }
 
 function getSlugFromLocation(){
@@ -2509,9 +2522,11 @@ async function loadPlayerProfile(){
 
   const discordId = normalizeDiscordPlayerId(route.discordId);
   if(!discordId){
+    setActivePlayerDiscordId("");
     renderNotFound();
     return;
   }
+  setActivePlayerDiscordId(discordId);
 
   setStatus("Loading player...");
 
@@ -2541,6 +2556,10 @@ async function loadPlayerProfile(){
     renderNotFound();
     return;
   }
+  const resolvedMember = {
+    ...member,
+    discord_user_id: normalizeDiscordPlayerId(member.discord_user_id) || discordId,
+  };
 
   const heldRoleIds = new Set((linksRes.data || []).map(row => row.role_id).filter(Boolean));
   let rolesById = new Map();
@@ -2568,7 +2587,7 @@ async function loadPlayerProfile(){
     }
   }
 
-  renderProfile(member, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, heldRoleIds.has(VERIFIED_ROLE_ID));
+  renderProfile(resolvedMember, trackedRoles, rankedRows, proLeagueAliases, superLeaguePlayerName, playerSettings, heldRoleIds.has(VERIFIED_ROLE_ID));
 }
 
 loadPlayerProfile().catch(error => {
