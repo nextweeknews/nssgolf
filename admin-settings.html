@@ -34,9 +34,15 @@
       <div class="settings-actions" id="adminLoginActions" hidden>
         <button class="settings-button" id="adminLoginBtn" type="button">Log In With Discord</button>
       </div>
-      <div class="placeholder-panel" id="adminPlaceholder" hidden>
-        <h2>Coming soon</h2>
-        <p>Admin-only settings will live here once the admin tools are ready.</p>
+      <div class="admin-url-panel" id="adminUrlPanel" hidden>
+        <section class="admin-url-section" aria-labelledby="pendingUrlsTitle">
+          <h2 class="admin-url-title" id="pendingUrlsTitle">Pending URLs</h2>
+          <div class="admin-url-table-wrap" id="pendingUrlsWrap"></div>
+        </section>
+        <section class="admin-url-section" aria-labelledby="approvedUrlsTitle">
+          <h2 class="admin-url-title" id="approvedUrlsTitle">Approved URLs</h2>
+          <div class="admin-url-table-wrap" id="approvedUrlsWrap"></div>
+        </section>
       </div>
       <p class="settings-status" id="adminStatus" aria-live="polite"></p>
     </section>
@@ -45,14 +51,18 @@
   <script type="module" src="/site-topbar.js"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { ADMIN_ROLE_ID } from "/settings-data.js";
+    import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
     const copy = document.getElementById("adminCopy");
     const statusEl = document.getElementById("adminStatus");
     const loginActions = document.getElementById("adminLoginActions");
     const loginBtn = document.getElementById("adminLoginBtn");
-    const placeholder = document.getElementById("adminPlaceholder");
+    const adminUrlPanel = document.getElementById("adminUrlPanel");
+    const pendingUrlsWrap = document.getElementById("pendingUrlsWrap");
+    const approvedUrlsWrap = document.getElementById("approvedUrlsWrap");
+    let currentUser = null;
+    let currentAdminUsername = "";
 
     function normalizeText(value){
       return String(value || "").trim();
@@ -84,10 +94,22 @@
       statusEl.className = `settings-status ${tone}`.trim();
     }
 
+    function getMetadataName(user){
+      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+      return normalizeText(
+        metadata.full_name ||
+        metadata.name ||
+        metadata.global_name ||
+        metadata.preferred_username ||
+        metadata.user_name ||
+        metadata.username
+      );
+    }
+
     async function loadProfileForUser(user){
       const { data, error } = await supabase
         .from("profiles")
-        .select("discord_user_id")
+        .select("username,discord_user_id")
         .eq("user_id", user.id)
         .maybeSingle();
       if(error) throw error;
@@ -108,6 +130,181 @@
       return !!data;
     }
 
+    async function loadUrlClaims(){
+      const { data, error } = await supabase
+        .from("player_custom_urls")
+        .select("user_id,discord_user_id,slug,status,requested_at,approved_at,approved_by_username")
+        .in("status", ["pending", "approved"])
+        .order("status", { ascending: false })
+        .order("requested_at", { ascending: true });
+      if(error) throw error;
+      return data || [];
+    }
+
+    async function loadMembersForClaims(claims){
+      const ids = [...new Set((claims || []).map(claim => normalizeDiscordId(claim.discord_user_id)).filter(Boolean))];
+      if(!ids.length) return new Map();
+
+      const { data, error } = await supabase
+        .from("discord_guild_members")
+        .select("discord_user_id,username,display_name")
+        .in("discord_user_id", ids);
+      if(error) throw error;
+      return new Map((data || []).map(member => [normalizeDiscordId(member.discord_user_id), member]));
+    }
+
+    function formatDate(value){
+      if(!value) return "";
+      const date = new Date(value);
+      if(Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(date);
+    }
+
+    function playerNameForClaim(claim, membersById){
+      const member = membersById.get(normalizeDiscordId(claim.discord_user_id));
+      return normalizeText(member?.display_name) || normalizeText(member?.username) || normalizeDiscordId(claim.discord_user_id);
+    }
+
+    function createEmptyTableMessage(message){
+      const panel = document.createElement("div");
+      panel.className = "placeholder-panel";
+      const copyEl = document.createElement("p");
+      copyEl.textContent = message;
+      panel.appendChild(copyEl);
+      return panel;
+    }
+
+    function renderUrlTable(target, claims, membersById, status){
+      target.replaceChildren();
+      if(!claims.length){
+        target.appendChild(createEmptyTableMessage(status === "pending" ? "No pending URLs." : "No approved URLs."));
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "admin-url-table";
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      const headers = status === "approved"
+        ? ["URL", "Player", "Approved", "Approved By", "Actions"]
+        : ["URL", "Player", "Requested", "Actions"];
+      for(const header of headers){
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
+      }
+      thead.appendChild(headerRow);
+
+      const tbody = document.createElement("tbody");
+      for(const claim of claims){
+        const row = document.createElement("tr");
+
+        const urlCell = document.createElement("td");
+        if(status === "approved"){
+          const urlLink = document.createElement("a");
+          urlLink.className = "admin-url-slug";
+          urlLink.href = playerUrlPathForSlug(claim.slug);
+          urlLink.textContent = playerUrlPathForSlug(claim.slug);
+          urlCell.appendChild(urlLink);
+        }else{
+          const urlText = document.createElement("span");
+          urlText.className = "admin-url-slug";
+          urlText.textContent = playerUrlPathForSlug(claim.slug);
+          urlCell.appendChild(urlText);
+        }
+
+        const playerCell = document.createElement("td");
+        const playerLink = document.createElement("a");
+        playerLink.href = `/player.html?id=${encodeURIComponent(normalizeDiscordId(claim.discord_user_id))}`;
+        playerLink.textContent = playerNameForClaim(claim, membersById);
+        playerCell.appendChild(playerLink);
+
+        const dateCell = document.createElement("td");
+        dateCell.className = "admin-url-muted";
+        dateCell.textContent = formatDate(status === "approved" ? claim.approved_at : claim.requested_at) || "Unknown";
+
+        row.append(urlCell, playerCell, dateCell);
+
+        if(status === "approved"){
+          const approverCell = document.createElement("td");
+          approverCell.className = "admin-url-muted";
+          approverCell.textContent = normalizeText(claim.approved_by_username) || "Unknown";
+          row.appendChild(approverCell);
+        }
+
+        const actionsCell = document.createElement("td");
+        const actions = document.createElement("div");
+        actions.className = "admin-url-actions";
+        if(status === "pending"){
+          const approve = document.createElement("button");
+          approve.className = "settings-button small";
+          approve.type = "button";
+          approve.textContent = "Approve";
+          approve.addEventListener("click", () => approveUrlClaim(claim));
+          actions.appendChild(approve);
+        }
+
+        const revoke = document.createElement("button");
+        revoke.className = "settings-button small danger";
+        revoke.type = "button";
+        revoke.textContent = "Revoke";
+        revoke.addEventListener("click", () => revokeUrlClaim(claim));
+        actions.appendChild(revoke);
+        actionsCell.appendChild(actions);
+        row.appendChild(actionsCell);
+        tbody.appendChild(row);
+      }
+
+      table.append(thead, tbody);
+      target.appendChild(table);
+    }
+
+    async function renderUrlClaims(){
+      const claims = await loadUrlClaims();
+      const membersById = await loadMembersForClaims(claims);
+      renderUrlTable(pendingUrlsWrap, claims.filter(claim => claim.status === "pending"), membersById, "pending");
+      renderUrlTable(approvedUrlsWrap, claims.filter(claim => claim.status === "approved"), membersById, "approved");
+    }
+
+    async function approveUrlClaim(claim){
+      setStatus("Approving URL...");
+      const { error } = await supabase
+        .from("player_custom_urls")
+        .update({
+          status: "approved",
+          approved_at: new Date().toISOString(),
+          approved_by_user_id: currentUser.id,
+          approved_by_username: currentAdminUsername,
+        })
+        .eq("user_id", claim.user_id)
+        .eq("slug", claim.slug);
+      if(error){
+        setStatus(error.message || "Unable to approve URL.", "error");
+        return;
+      }
+      await renderUrlClaims();
+      setStatus("URL approved.", "success");
+    }
+
+    async function revokeUrlClaim(claim){
+      setStatus("Revoking URL...");
+      const { error } = await supabase
+        .from("player_custom_urls")
+        .delete()
+        .eq("user_id", claim.user_id)
+        .eq("slug", claim.slug);
+      if(error){
+        setStatus(error.message || "Unable to revoke URL.", "error");
+        return;
+      }
+      await renderUrlClaims();
+      setStatus("URL revoked.", "success");
+    }
+
     async function initialize(){
       const { data: sessionData } = await supabase.auth.getSession();
       if(!sessionData?.session?.user){
@@ -119,19 +316,22 @@
 
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if(userError) throw userError;
-      const profile = await loadProfileForUser(userData.user);
+      currentUser = userData.user;
+      const profile = await loadProfileForUser(currentUser);
       const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
       const isAdmin = await playerHasAdminRole(discordId);
+      currentAdminUsername = normalizeText(profile?.username) || getMetadataName(currentUser) || discordId || "Admin";
 
       if(!isAdmin){
         copy.textContent = "Admin access required.";
-        placeholder.hidden = true;
+        adminUrlPanel.hidden = true;
         setStatus("Your Discord account does not have the administrator role.", "error");
         return;
       }
 
-      copy.textContent = "Admin tools are not available yet.";
-      placeholder.hidden = false;
+      copy.textContent = "Review custom player URL claims.";
+      adminUrlPanel.hidden = false;
+      await renderUrlClaims();
       setStatus("");
     }
 

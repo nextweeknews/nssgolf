@@ -1,5 +1,5 @@
 import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-import { ADMIN_ROLE_ID } from "/settings-data.js";
+import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
 
 const supabase = createBrowserSupabaseClient();
 
@@ -227,6 +227,24 @@ async function playerHasAdminRole(discordId){
   }
 }
 
+async function getApprovedPlayerUrl(discordId){
+  const cleanDiscordId = normalizeDiscordId(discordId);
+  if(!cleanDiscordId) return "";
+
+  try{
+    const { data, error } = await supabase
+      .from("player_custom_urls")
+      .select("slug")
+      .eq("discord_user_id", cleanDiscordId)
+      .eq("status", "approved")
+      .maybeSingle();
+    if(error) return "";
+    return playerUrlPathForSlug(data?.slug);
+  }catch{
+    return "";
+  }
+}
+
 async function renderTopbarAuth(){
   const menu = ensureTopbarMenu();
   if(!menu) return;
@@ -274,8 +292,9 @@ async function renderTopbarAuth(){
   }
 
   const viewPlayer = menu.querySelector("#viewPlayerPageBtn");
+  const approvedPlayerUrl = await getApprovedPlayerUrl(discordId);
   viewPlayer.disabled = !discordId;
-  viewPlayer.dataset.playerUrl = discordId ? `/player.html?id=${encodeURIComponent(discordId)}` : "";
+  viewPlayer.dataset.playerUrl = approvedPlayerUrl || (discordId ? `/player.html?id=${encodeURIComponent(discordId)}` : "");
 
   const playerSettings = menu.querySelector("#playerSettingsBtn");
   playerSettings.disabled = !discordId;

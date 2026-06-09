@@ -1,5 +1,84 @@
 export const ADMIN_ROLE_ID = "1069007873985740890";
 
+export const RESERVED_PLAYER_URL_SLUGS = [
+  "404",
+  "admin",
+  "admin-settings",
+  "api",
+  "assets",
+  "auth",
+  "beataidan",
+  "bot",
+  "championship",
+  "css",
+  "discord",
+  "export",
+  "functions",
+  "home",
+  "index",
+  "js",
+  "lightningcup",
+  "logos",
+  "masters",
+  "match",
+  "node_modules",
+  "noptational",
+  "noptational-tabs",
+  "package",
+  "player",
+  "player-profile",
+  "player-settings",
+  "players",
+  "privacy",
+  "proleague",
+  "ranked-league-config",
+  "records",
+  "settings",
+  "settings-data",
+  "settings-page",
+  "site-topbar",
+  "superleague",
+  "terms",
+  "worldcup",
+  "worldopen",
+];
+
+export function normalizePlayerUrlSlug(value){
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .replace(/^\/+/, "")
+    .split(/[/?#]/)[0]
+    .replace(/\.html$/i, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function isReservedPlayerUrlSlug(slug){
+  return RESERVED_PLAYER_URL_SLUGS.includes(normalizePlayerUrlSlug(slug));
+}
+
+export function playerUrlSlugError(slug){
+  const cleanSlug = normalizePlayerUrlSlug(slug);
+  if(!cleanSlug) return "";
+  if(cleanSlug.length < 3) return "Custom URLs must be at least 3 characters.";
+  if(cleanSlug.length > 32) return "Custom URLs must be 32 characters or fewer.";
+  if(!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(cleanSlug)){
+    return "Use lowercase letters, numbers, and hyphens only.";
+  }
+  if(isReservedPlayerUrlSlug(cleanSlug)){
+    return "That URL is reserved for an existing site page.";
+  }
+  return "";
+}
+
+export function playerUrlPathForSlug(slug){
+  const cleanSlug = normalizePlayerUrlSlug(slug);
+  return cleanSlug ? `/${cleanSlug}` : "";
+}
+
 export const GLOBAL_RANKS = [
   "<A20", "A21", "A22", "A23", "A24", "A25", "A26", "A27", "A28", "A29",
   "S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9",

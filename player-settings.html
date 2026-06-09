@@ -34,6 +34,14 @@
       <p class="settings-copy">These optional details appear on your public player page. Global ranks are self-reported and unofficial.</p>
 
       <form class="settings-form" id="playerSettingsForm" hidden>
+        <label class="settings-field">
+          <span class="settings-label">Custom Player URL</span>
+          <span class="settings-input-wrap">
+            <input class="settings-input" id="customUrlSlug" name="custom_url_slug" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="your-name" maxlength="48" />
+            <span class="url-status-icon" id="customUrlStatusIcon" hidden aria-live="polite"></span>
+          </span>
+          <span class="settings-help" id="customUrlHelp">Choose a short URL. Admin approval is required before it goes live.</span>
+        </label>
         <div class="settings-grid settings-grid-profile">
           <label class="settings-field">
             <span class="settings-label">Primary Country</span>
@@ -77,7 +85,14 @@
   <script type="module" src="/site-topbar.js"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { buildCountryOptions, buildTimeZoneOptions, GLOBAL_RANKS } from "/settings-data.js";
+    import {
+      buildCountryOptions,
+      buildTimeZoneOptions,
+      GLOBAL_RANKS,
+      normalizePlayerUrlSlug,
+      playerUrlPathForSlug,
+      playerUrlSlugError,
+    } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
     const form = document.getElementById("playerSettingsForm");
@@ -85,6 +100,9 @@
     const loginBtn = document.getElementById("loginBtn");
     const saveBtn = document.getElementById("saveSettingsBtn");
     const statusEl = document.getElementById("settingsStatus");
+    const customUrlSlug = document.getElementById("customUrlSlug");
+    const customUrlStatusIcon = document.getElementById("customUrlStatusIcon");
+    const customUrlHelp = document.getElementById("customUrlHelp");
     const country1 = document.getElementById("country1");
     const country2 = document.getElementById("country2");
     const timeZone = document.getElementById("timeZone");
@@ -93,6 +111,7 @@
     const maxRankCs = document.getElementById("maxRankCs");
     let currentUser = null;
     let currentDiscordId = "";
+    let currentCustomUrl = null;
 
     function normalizeText(value){
       return String(value || "").trim();
@@ -162,6 +181,57 @@
       return normalizeText(select.value) || null;
     }
 
+    function setCustomUrlStatus(status){
+      const cleanStatus = normalizeText(status).toLowerCase();
+      customUrlStatusIcon.className = `url-status-icon ${cleanStatus}`.trim();
+
+      if(cleanStatus === "pending"){
+        customUrlStatusIcon.hidden = false;
+        customUrlStatusIcon.title = "Pending approval";
+        customUrlStatusIcon.setAttribute("aria-label", "Pending approval");
+        customUrlStatusIcon.innerHTML = `
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+        `;
+        return;
+      }
+
+      if(cleanStatus === "approved"){
+        customUrlStatusIcon.hidden = false;
+        customUrlStatusIcon.title = "Approved";
+        customUrlStatusIcon.setAttribute("aria-label", "Approved");
+        customUrlStatusIcon.innerHTML = `
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20 6 9 17l-5-5"></path>
+          </svg>
+        `;
+        return;
+      }
+
+      customUrlStatusIcon.hidden = true;
+      customUrlStatusIcon.removeAttribute("title");
+      customUrlStatusIcon.removeAttribute("aria-label");
+      customUrlStatusIcon.replaceChildren();
+    }
+
+    function setCustomUrlHelp(slug, status = ""){
+      const cleanSlug = normalizePlayerUrlSlug(slug);
+      const path = playerUrlPathForSlug(cleanSlug);
+      if(!cleanSlug){
+        customUrlHelp.textContent = "Choose a short URL. Admin approval is required before it goes live.";
+        return;
+      }
+
+      const statusText = status === "approved"
+        ? "Approved and live."
+        : status === "pending"
+          ? "Pending admin approval."
+          : "Admin approval is required before it goes live.";
+      customUrlHelp.textContent = `${window.location.origin}${path} - ${statusText}`;
+    }
+
     function setFormValues(settings = {}){
       setSelectValue(country1, settings.country_1);
       setSelectValue(country2, settings.country_2);
@@ -169,6 +239,15 @@
       setSelectValue(currentRank, settings.current_global_rank);
       setSelectValue(maxRankNoCs, settings.max_global_rank_no_cs);
       setSelectValue(maxRankCs, settings.max_global_rank_cs);
+    }
+
+    function setCustomUrlValue(urlClaim = null){
+      currentCustomUrl = urlClaim;
+      const slug = normalizePlayerUrlSlug(urlClaim?.slug);
+      customUrlSlug.value = slug;
+      customUrlSlug.disabled = urlClaim?.status === "approved";
+      setCustomUrlStatus(urlClaim?.status);
+      setCustomUrlHelp(slug, urlClaim?.status);
     }
 
     async function loadProfileForUser(user){
@@ -189,6 +268,35 @@
         .maybeSingle();
       if(error) throw error;
       return data || {};
+    }
+
+    async function loadCustomUrl(userId){
+      const { data, error } = await supabase
+        .from("player_custom_urls")
+        .select("user_id,slug,status")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function validateCustomUrlAvailability(slug){
+      const cleanSlug = normalizePlayerUrlSlug(slug);
+      const localError = playerUrlSlugError(cleanSlug);
+      if(localError) return localError;
+      if(!cleanSlug) return "";
+
+      const { data, error } = await supabase
+        .from("player_custom_urls")
+        .select("user_id,slug,status")
+        .eq("slug", cleanSlug)
+        .maybeSingle();
+
+      if(error) throw error;
+      if(data?.user_id && data.user_id !== currentUser.id){
+        return "That custom URL is already claimed.";
+      }
+      return "";
     }
 
     async function initialize(){
@@ -220,12 +328,32 @@
         return;
       }
 
-      const settings = await loadSettings(currentUser.id);
+      const [settings, customUrl] = await Promise.all([
+        loadSettings(currentUser.id),
+        loadCustomUrl(currentUser.id),
+      ]);
       setFormValues(settings);
+      setCustomUrlValue(customUrl);
       loginActions.hidden = true;
       form.hidden = false;
       setStatus("");
     }
+
+    customUrlSlug.addEventListener("blur", () => {
+      const slug = normalizePlayerUrlSlug(customUrlSlug.value);
+      customUrlSlug.value = slug;
+      setCustomUrlHelp(slug, currentCustomUrl?.slug === slug ? currentCustomUrl?.status : "");
+    });
+
+    customUrlSlug.addEventListener("input", () => {
+      const slug = normalizePlayerUrlSlug(customUrlSlug.value);
+      if(currentCustomUrl?.slug !== slug){
+        setCustomUrlStatus("");
+      }else{
+        setCustomUrlStatus(currentCustomUrl?.status);
+      }
+      setCustomUrlHelp(slug, currentCustomUrl?.slug === slug ? currentCustomUrl?.status : "");
+    });
 
     loginBtn.addEventListener("click", async () => {
       setStatus("Opening Discord login...");
@@ -249,6 +377,14 @@
 
       saveBtn.disabled = true;
       setStatus("Saving settings...");
+      const cleanCustomUrlSlug = normalizePlayerUrlSlug(customUrlSlug.value);
+      const customUrlError = customUrlSlug.disabled ? "" : await validateCustomUrlAvailability(cleanCustomUrlSlug);
+      if(customUrlError){
+        saveBtn.disabled = false;
+        setStatus(customUrlError, "error");
+        return;
+      }
+
       const payload = {
         user_id: currentUser.id,
         discord_user_id: currentDiscordId,
@@ -264,11 +400,46 @@
         .from("player_settings")
         .upsert(payload, { onConflict: "user_id" });
 
-      saveBtn.disabled = false;
       if(error){
+        saveBtn.disabled = false;
         setStatus(error.message || "Unable to save settings.", "error");
         return;
       }
+
+      if(!customUrlSlug.disabled){
+        if(cleanCustomUrlSlug){
+          const { error: urlError } = await supabase
+            .from("player_custom_urls")
+            .upsert({
+              user_id: currentUser.id,
+              discord_user_id: currentDiscordId,
+              slug: cleanCustomUrlSlug,
+              status: "pending",
+              approved_at: null,
+              approved_by_user_id: null,
+              approved_by_username: null,
+            }, { onConflict: "user_id" });
+
+          if(urlError){
+            setStatus(urlError.code === "23505" ? "That custom URL is already claimed." : (urlError.message || "Unable to save custom URL."), "error");
+            return;
+          }
+
+          setCustomUrlValue({ user_id: currentUser.id, slug: cleanCustomUrlSlug, status: "pending" });
+        }else if(currentCustomUrl?.status === "pending"){
+          const { error: deleteError } = await supabase
+            .from("player_custom_urls")
+            .delete()
+            .eq("user_id", currentUser.id);
+
+          if(deleteError){
+            setStatus(deleteError.message || "Unable to remove custom URL request.", "error");
+            return;
+          }
+          setCustomUrlValue(null);
+        }
+      }
+
       setStatus("Settings saved.", "success");
     });
 

@@ -8,7 +8,13 @@ import {
   SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
   SUPER_LEAGUE_SEASON,
 } from "/ranked-league-config.js";
-import { commonTimeZoneNameFor, countryLabelFor } from "/settings-data.js";
+import {
+  commonTimeZoneNameFor,
+  countryLabelFor,
+  isReservedPlayerUrlSlug,
+  normalizePlayerUrlSlug,
+  playerUrlPathForSlug,
+} from "/settings-data.js";
 
 const RECORD_GROUPS = [
   {
@@ -151,6 +157,80 @@ function getDiscordIdFromLocation(){
   if(/^\d+$/.test(queryId)) return queryId;
 
   return "";
+}
+
+function getSlugFromLocation(){
+  const pathSegment = String(window.location.pathname || "")
+    .split("/")
+    .filter(Boolean)[0] || "";
+  if(!pathSegment || pathSegment.includes(".")) return "";
+  if(/^\d+$/.test(pathSegment)) return "";
+
+  const slug = normalizePlayerUrlSlug(pathSegment);
+  if(!slug || slug !== pathSegment.toLowerCase()) return "";
+  if(isReservedPlayerUrlSlug(slug)) return "";
+  return slug;
+}
+
+async function loadApprovedCustomUrlByDiscordId(discordId){
+  const cleanDiscordId = normalizeDiscordPlayerId(discordId);
+  if(!cleanDiscordId) return null;
+
+  try{
+    const { data, error } = await supabase
+      .from("player_custom_urls")
+      .select("slug,discord_user_id,status")
+      .eq("discord_user_id", cleanDiscordId)
+      .eq("status", "approved")
+      .maybeSingle();
+    if(error) return null;
+    return data || null;
+  }catch{
+    return null;
+  }
+}
+
+async function loadApprovedCustomUrlBySlug(slug){
+  const cleanSlug = normalizePlayerUrlSlug(slug);
+  if(!cleanSlug) return null;
+
+  try{
+    const { data, error } = await supabase
+      .from("player_custom_urls")
+      .select("slug,discord_user_id,status")
+      .eq("slug", cleanSlug)
+      .eq("status", "approved")
+      .maybeSingle();
+    if(error) return null;
+    return data || null;
+  }catch{
+    return null;
+  }
+}
+
+async function resolvePlayerRoute(){
+  const slug = getSlugFromLocation();
+  if(slug){
+    const claim = await loadApprovedCustomUrlBySlug(slug);
+    return {
+      discordId: normalizeDiscordPlayerId(claim?.discord_user_id),
+      slug,
+      shouldRedirect: false,
+    };
+  }
+
+  const discordId = getDiscordIdFromLocation();
+  if(!discordId) return { discordId: "", slug: "", shouldRedirect: false };
+
+  const claim = await loadApprovedCustomUrlByDiscordId(discordId);
+  const path = playerUrlPathForSlug(claim?.slug);
+  const isQueryPlayerPage = /\/player\.html$/i.test(String(window.location.pathname || ""));
+  if(path && isQueryPlayerPage){
+    window.location.replace(path);
+    return { discordId: "", slug: claim.slug, shouldRedirect: true };
+  }
+
+  return { discordId, slug: claim?.slug || "", shouldRedirect: false };
 }
 
 function normalizeDiscordPlayerId(value){
@@ -2422,7 +2502,12 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
 }
 
 async function loadPlayerProfile(){
-  const discordId = getDiscordIdFromLocation();
+  const route = await resolvePlayerRoute();
+  if(route.shouldRedirect){
+    return;
+  }
+
+  const discordId = normalizeDiscordPlayerId(route.discordId);
   if(!discordId){
     renderNotFound();
     return;
