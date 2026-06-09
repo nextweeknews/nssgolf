@@ -5,7 +5,6 @@ import {
   RANKED_LEAGUE_WORKER_URL,
   SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
   SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
-  SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
   SUPER_LEAGUE_SEASON,
 } from "/ranked-league-config.js";
 import {
@@ -67,7 +66,6 @@ const SUPERLEAGUE_DISCORD_IDS_SHEET = "Discord IDs";
 const NOPTATIONAL_SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
 const NOPTATIONAL_SHEET_NAME = "Round Scores (2026)";
 const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
-const PROLEAGUE_MAX_SEASON_TO_CHECK = SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK;
 const PROLEAGUE_MANUAL_INITIAL_PERIOD = {
   enabled: true,
   season: SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
@@ -75,8 +73,6 @@ const PROLEAGUE_MANUAL_INITIAL_PERIOD = {
 };
 const PROLEAGUE_PLAYER_STANDINGS_A1 = "AE4:AH101";
 const PROLEAGUE_LOOKUP_RANGE_A1 = "A3:S250";
-const PROLEAGUE_DETECT_R1 = "L5:S63";
-const PROLEAGUE_DETECT_R2 = "L66:S101";
 const PROLEAGUE_CH_ROSTER = "B3:H23";
 const PROLEAGUE_CH_SEMIS_BLOCK = "O3:P9";
 const PROLEAGUE_CH_FINALS_TOP = "R4:S4";
@@ -136,7 +132,6 @@ const NOPTATIONAL_SCORE_COLUMNS = [
 const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
-let proLeagueDetectionPromise = null;
 let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
 let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
@@ -1932,56 +1927,41 @@ async function getProLeagueChampionshipData(season){
   return data;
 }
 
-function proLeagueAnyNonBlank(values){
-  return (values || []).some(row => (row || []).some(cell => String(cell ?? "").trim() !== ""));
+function configuredProLeagueStageLimit(stage){
+  const cleanStage = String(stage ?? "").trim().toLowerCase();
+  if(cleanStage === "championship") return 3;
+  const numericStage = Number(stage);
+  if(!Number.isFinite(numericStage)) return 1;
+  return Math.max(1, Math.min(3, numericStage));
 }
 
-async function hasProLeagueRoundsDataForStage(season, stage){
-  const sheet = proLeagueSheetNameForPeriod(season, stage);
-  const [r1, r2] = await Promise.all([
-    fetchProLeagueRange(`'${sheet}'!${PROLEAGUE_DETECT_R1}`).catch(() => []),
-    fetchProLeagueRange(`'${sheet}'!${PROLEAGUE_DETECT_R2}`).catch(() => []),
-  ]);
-  return proLeagueAnyNonBlank(r1) || proLeagueAnyNonBlank(r2);
-}
+function initializeProLeaguePeriodsFromConfig(){
+  proLeagueStageDataBySeason = new Map();
 
-function nextProLeagueStagePeriod(season, stage){
-  const seasonNumber = Number(season);
-  const stageNumber = Number(stage);
-  if(stageNumber < 3) return { season: seasonNumber, stage: stageNumber + 1 };
-  return { season: seasonNumber + 1, stage: 1 };
-}
+  const configuredSeason = Number(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON);
+  const configuredStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 
-async function ensureProLeagueDetection(){
-  if(proLeagueDetectionPromise) return proLeagueDetectionPromise;
-  proLeagueDetectionPromise = (async () => {
-    proLeagueStageDataBySeason = new Map();
-    let currentSeason = 5;
-    let currentStage = 1;
-    let season = 6;
-    let stage = 1;
+  if(Number.isFinite(configuredSeason) && configuredSeason >= 6){
+    proLeagueCurrentSeason = configuredSeason;
+    proLeagueCurrentStage = configuredStage;
+  }else if(Number.isFinite(configuredSeason) && configuredSeason >= 1){
+    proLeagueCurrentSeason = configuredSeason;
+    proLeagueCurrentStage = 1;
+  }else{
+    proLeagueCurrentSeason = 5;
+    proLeagueCurrentStage = 1;
+  }
 
-    while(season <= PROLEAGUE_MAX_SEASON_TO_CHECK){
-      const ok = await hasProLeagueRoundsDataForStage(season, stage).catch(() => false);
-      if(!ok) break;
-      proLeagueStageDataBySeason.set(season, Math.max(proLeagueStageDataBySeason.get(season) || 0, stage));
-      currentSeason = season;
-      currentStage = stage;
-      const next = nextProLeagueStagePeriod(season, stage);
-      season = next.season;
-      stage = next.stage;
-    }
+  const manualSeason = PROLEAGUE_MANUAL_INITIAL_PERIOD?.enabled ? Number(PROLEAGUE_MANUAL_INITIAL_PERIOD.season) : NaN;
+  const maxSeason = Math.max(proLeagueCurrentSeason, 5, Number.isFinite(manualSeason) ? manualSeason : 0);
+  proLeagueAvailableSeasons = Array.from({ length: maxSeason }, (_, index) => index + 1);
 
-    proLeagueCurrentSeason = currentSeason >= 6 ? currentSeason : 5;
-    proLeagueCurrentStage = currentSeason >= 6 ? currentStage : 1;
-    const manualSeason = PROLEAGUE_MANUAL_INITIAL_PERIOD?.enabled ? Number(PROLEAGUE_MANUAL_INITIAL_PERIOD.season) : NaN;
-    const maxSeason = Math.max(proLeagueCurrentSeason, 5, Number.isFinite(manualSeason) ? manualSeason : 0);
-    proLeagueAvailableSeasons = Array.from({ length: maxSeason }, (_, index) => index + 1);
-    for(let i = 6; i <= maxSeason; i += 1){
-      if(!proLeagueStageDataBySeason.has(i)) proLeagueStageDataBySeason.set(i, 3);
-    }
-  })();
-  return proLeagueDetectionPromise;
+  for(let season = 6; season <= maxSeason; season += 1){
+    const stageLimit = season === proLeagueCurrentSeason
+      ? configuredProLeagueStageLimit(proLeagueCurrentStage)
+      : 3;
+    proLeagueStageDataBySeason.set(season, stageLimit);
+  }
 }
 
 function findProLeagueMapValueByAlias(map, aliasKeys){
@@ -2018,7 +1998,7 @@ async function loadProLeagueSummariesForAliases(aliasNames){
   if(!aliases.length) return [];
   const aliasKeys = new Set(aliases.map(proLeagueAliasKey).filter(Boolean));
 
-  await ensureProLeagueDetection();
+  initializeProLeaguePeriodsFromConfig();
 
   const periods = [];
   const maxSeason = Math.max(...proLeagueAvailableSeasons);
@@ -2028,7 +2008,7 @@ async function loadProLeagueSummariesForAliases(aliasNames){
       continue;
     }
     const maxStage = season === proLeagueCurrentSeason
-      ? Number(proLeagueCurrentStage || 1)
+      ? configuredProLeagueStageLimit(proLeagueCurrentStage)
       : Number(proLeagueStageDataBySeason.get(season) || 3);
     for(let stage = 1; stage <= maxStage; stage += 1){
       periods.push({ season, stage });
