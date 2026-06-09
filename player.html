@@ -762,6 +762,9 @@
     .lightningcup-history .tournament-title{
       padding-top: 6px;
     }
+    .worldopen-history .tournament-title{
+      padding-top: 6px;
+    }
     .tournament-table-wrap{
       width: 100%;
       overflow-x: auto;
@@ -916,6 +919,127 @@
     .lightningcup-result-score.is-loss:hover{
       background: rgba(239,68,68,0.18);
       border-color: rgba(239,68,68,0.42);
+    }
+    .worldopen-results-wrap{
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid rgba(125,211,252,0.22);
+      border-radius: 12px;
+      background: rgba(6,24,46,0.68);
+      -webkit-overflow-scrolling: touch;
+    }
+    .worldopen-results-table{
+      width: 100%;
+      min-width: 560px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      color: rgba(233,238,248,0.94);
+      font-size: 12px;
+      line-height: 1.12;
+      font-variant-numeric: tabular-nums;
+    }
+    .worldopen-results-table th,
+    .worldopen-results-table td{
+      border-bottom: 1px solid rgba(148,163,184,0.16);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    .worldopen-results-table th{
+      background: rgba(15,23,42,0.95);
+      color: rgba(156,163,199,0.86);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+    .worldopen-results-table th:nth-child(1),
+    .worldopen-results-table td:nth-child(1){
+      width: 128px;
+    }
+    .worldopen-results-table th:nth-child(3),
+    .worldopen-results-table td:nth-child(3){
+      width: 90px;
+      text-align: center;
+    }
+    .worldopen-results-table th:nth-child(4),
+    .worldopen-results-table td:nth-child(4){
+      width: 96px;
+      text-align: center;
+    }
+    .worldopen-results-table tbody tr:last-child td{
+      border-bottom: 0;
+    }
+    .worldopen-results-table tbody tr{
+      background: rgba(255,255,255,0.045);
+    }
+    .worldopen-results-table tbody tr:nth-child(even){
+      background: rgba(255,255,255,0.032);
+    }
+    .worldopen-round-cell{
+      color: rgba(186,230,253,0.96);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .worldopen-opponent-cell{
+      min-width: 0;
+    }
+    .worldopen-opponent{
+      display: inline-block;
+      max-width: 100%;
+      color: rgba(233,238,248,0.96);
+      font-size: 13px;
+      font-weight: 900;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      vertical-align: bottom;
+    }
+    a.worldopen-opponent:hover{
+      color: rgba(255,255,255,0.98);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+    }
+    .worldopen-score-cell{
+      color: rgba(233,238,248,0.92);
+      font-size: 13px;
+      font-weight: 950;
+    }
+    .worldopen-result-pill{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      padding: 5px 7px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .worldopen-result-pill.is-win{
+      color: rgba(134,239,172,0.98);
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.28);
+    }
+    .worldopen-result-pill.is-loss{
+      color: rgba(252,165,165,0.98);
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.28);
+    }
+    .worldopen-result-pill.is-tie,
+    .worldopen-result-pill.is-pending{
+      color: rgba(229,231,235,0.88);
+      background: rgba(148,163,184,0.12);
+      border: 1px solid rgba(148,163,184,0.24);
+    }
+    .worldopen-result-pill.is-bye{
+      color: rgba(186,230,253,0.98);
+      background: rgba(14,165,233,0.12);
+      border: 1px solid rgba(14,165,233,0.26);
     }
     .superleague-history{
       width: 100%;
@@ -1266,7 +1390,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260609-lightningcup-results"></script>
+  <script type="module" src="/player-profile.js?v=20260609-worldopen-results"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {

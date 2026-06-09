@@ -56,7 +56,7 @@
             </colgroup>
             <thead>
               <tr>
-                <th scope="col">Row</th>
+                <th scope="col" aria-label="Row">#</th>
                 <th scope="col">Player</th>
                 <th scope="col">
                   <span class="builder-column-header">
@@ -106,6 +106,14 @@
     let memberSearchPromise = null;
     let rows = [createEmptyRow()];
     let draggedRowId = "";
+    const SELECTABLE_COLUMNS = ["player", "discord"];
+    let selectionAnchor = null;
+    let selectionFocus = null;
+    let activeCell = null;
+    let editingCell = null;
+    let isSelectingCells = false;
+    let selectionDragMode = "";
+    let lastTap = { rowId: "", column: "", at: 0 };
 
     function normalizeText(value){
       return String(value || "").trim();
@@ -303,6 +311,160 @@
         .filter(Boolean);
     }
 
+    function columnIndex(column){
+      return SELECTABLE_COLUMNS.indexOf(column);
+    }
+
+    function isValidCell(cell){
+      return !!cell && rowIndexById(cell.rowId) >= 0 && columnIndex(cell.column) >= 0;
+    }
+
+    function cellsMatch(left, right){
+      return !!left && !!right && left.rowId === right.rowId && left.column === right.column;
+    }
+
+    function isEditingCell(rowId, column){
+      return cellsMatch(editingCell, { rowId, column });
+    }
+
+    function selectedBounds(){
+      if(!isValidCell(selectionAnchor) || !isValidCell(selectionFocus)) return null;
+      const anchorRow = rowIndexById(selectionAnchor.rowId);
+      const focusRow = rowIndexById(selectionFocus.rowId);
+      const anchorCol = columnIndex(selectionAnchor.column);
+      const focusCol = columnIndex(selectionFocus.column);
+      return {
+        rowStart: Math.min(anchorRow, focusRow),
+        rowEnd: Math.max(anchorRow, focusRow),
+        colStart: Math.min(anchorCol, focusCol),
+        colEnd: Math.max(anchorCol, focusCol),
+      };
+    }
+
+    function isCellInSelection(rowId, column){
+      const bounds = selectedBounds();
+      if(!bounds) return false;
+      const row = rowIndexById(rowId);
+      const col = columnIndex(column);
+      return row >= bounds.rowStart && row <= bounds.rowEnd && col >= bounds.colStart && col <= bounds.colEnd;
+    }
+
+    function cellValue(row, column){
+      if(column === "player") return row.searchValue || row.playerName || "";
+      if(column === "discord") return normalizeDiscordId(row.discordId);
+      return "";
+    }
+
+    function selectedCellsText(){
+      const bounds = selectedBounds();
+      if(!bounds) return "";
+      const copiedRows = [];
+      for(let rowIndex = bounds.rowStart; rowIndex <= bounds.rowEnd; rowIndex += 1){
+        const row = rows[rowIndex];
+        const copiedCells = [];
+        for(let colIndex = bounds.colStart; colIndex <= bounds.colEnd; colIndex += 1){
+          copiedCells.push(cellValue(row, SELECTABLE_COLUMNS[colIndex]));
+        }
+        copiedRows.push(copiedCells.join("\t"));
+      }
+      return copiedRows.join("\n");
+    }
+
+    function applySelectionClasses(){
+      rowsEl.querySelectorAll(".builder-cell").forEach((cell) => {
+        const selected = isCellInSelection(cell.dataset.rowId, cell.dataset.cellColumn);
+        const active = cellsMatch(activeCell, {
+          rowId: cell.dataset.rowId,
+          column: cell.dataset.cellColumn,
+        });
+        cell.classList.toggle("is-cell-selected", selected);
+        cell.classList.toggle("is-cell-active", active);
+        cell.classList.toggle("is-cell-editing", isEditingCell(cell.dataset.rowId, cell.dataset.cellColumn));
+        cell.setAttribute("aria-selected", selected ? "true" : "false");
+      });
+
+      rowsEl.querySelectorAll(".builder-row-number[data-row-id]").forEach((cell) => {
+        const rowId = cell.dataset.rowId;
+        cell.classList.toggle(
+          "is-row-range-selected",
+          SELECTABLE_COLUMNS.every(column => isCellInSelection(rowId, column))
+        );
+      });
+    }
+
+    function setCellSelection(anchor, focus = anchor){
+      if(!isValidCell(anchor) || !isValidCell(focus)) return;
+      selectionAnchor = { ...anchor };
+      selectionFocus = { ...focus };
+      activeCell = { ...focus };
+      editingCell = null;
+      hideAllSearchResults();
+      applySelectionClasses();
+    }
+
+    function selectCell(rowId, column, extend = false){
+      const focus = { rowId, column };
+      const anchor = extend && isValidCell(selectionAnchor) ? selectionAnchor : focus;
+      setCellSelection(anchor, focus);
+    }
+
+    function selectRowCells(rowId, extend = false){
+      const anchor = extend && isValidCell(selectionAnchor)
+        ? selectionAnchor
+        : { rowId, column: "player" };
+      setCellSelection(anchor, { rowId, column: "discord" });
+    }
+
+    function cellFromTarget(target){
+      const cell = target.closest?.(".builder-cell[data-row-id][data-cell-column]");
+      if(!cell) return null;
+      return {
+        rowId: cell.dataset.rowId,
+        column: cell.dataset.cellColumn,
+      };
+    }
+
+    function startEditingCell(rowId, column, initialValue = null){
+      if(column !== "player") return;
+      const row = rows.find(item => item.id === rowId);
+      if(!row) return;
+
+      selectionAnchor = { rowId, column };
+      selectionFocus = { rowId, column };
+      activeCell = { rowId, column };
+      editingCell = { rowId, column };
+
+      if(typeof initialValue === "string"){
+        row.searchValue = initialValue;
+        row.playerName = "";
+        row.discordId = "";
+        row.selectedPlayerId = "";
+        if(rowIndexById(row.id) === rows.length - 1 && !isRowBlank(row)){
+          ensureTrailingBlankRow(row.id);
+        }else{
+          renderRows(row.id);
+        }
+      }else{
+        renderRows(row.id);
+      }
+
+      requestAnimationFrame(() => {
+        const input = document.getElementById(`player-${rowId}`);
+        if(!input) return;
+        input.focus();
+        const cursorIndex = input.value.length;
+        input.setSelectionRange(cursorIndex, cursorIndex);
+        void loadMemberSearchRows();
+        void updatePlayerSearch(row);
+      });
+    }
+
+    function stopEditingCell(){
+      if(!editingCell) return;
+      editingCell = null;
+      renderRows();
+    }
+
     function hideAllSearchResults(exceptRowId = ""){
       rowsEl.querySelectorAll(".builder-search-results").forEach((results) => {
         if(results.dataset.rowId === exceptRowId) return;
@@ -458,6 +620,7 @@
 
         const numberCell = document.createElement("td");
         numberCell.className = "builder-row-number";
+        numberCell.dataset.rowId = row.id;
         const dragHandle = document.createElement("button");
         dragHandle.className = "builder-drag-handle";
         dragHandle.type = "button";
@@ -483,18 +646,23 @@
         numberCell.append(dragHandle, rowNumber);
 
         const playerCell = document.createElement("td");
-        playerCell.className = "builder-player-cell";
+        playerCell.className = "builder-player-cell builder-cell";
+        playerCell.dataset.rowId = row.id;
+        playerCell.dataset.cellColumn = "player";
 
         const searchWrap = document.createElement("div");
         searchWrap.className = "builder-search";
 
         const playerInput = document.createElement("input");
+        const playerIsEditing = isEditingCell(row.id, "player");
         playerInput.className = "builder-search-input";
         playerInput.id = `player-${row.id}`;
         playerInput.dataset.rowId = row.id;
         playerInput.type = "search";
         playerInput.autocomplete = "off";
         playerInput.spellcheck = false;
+        playerInput.readOnly = !playerIsEditing;
+        playerInput.tabIndex = playerIsEditing ? 0 : -1;
         playerInput.placeholder = "Search players";
         playerInput.value = row.searchValue || row.playerName;
         playerInput.setAttribute("aria-label", `Search players for row ${index + 1}`);
@@ -511,7 +679,9 @@
         playerCell.appendChild(searchWrap);
 
         const discordCell = document.createElement("td");
-        discordCell.className = "builder-discord-cell";
+        discordCell.className = "builder-discord-cell builder-cell";
+        discordCell.dataset.rowId = row.id;
+        discordCell.dataset.cellColumn = "discord";
         const discordInput = document.createElement("input");
         discordInput.className = "builder-discord-input";
         discordInput.id = `discord-${row.id}`;
@@ -520,6 +690,7 @@
         discordInput.autocomplete = "off";
         discordInput.spellcheck = false;
         discordInput.readOnly = true;
+        discordInput.tabIndex = -1;
         discordInput.placeholder = "Select a player";
         discordInput.value = row.discordId;
         discordInput.setAttribute("aria-label", `Discord ID for row ${index + 1}`);
@@ -534,7 +705,9 @@
         rowsEl.appendChild(tr);
       });
 
-      if(focusRowId){
+      applySelectionClasses();
+
+      if(focusRowId && isEditingCell(focusRowId, "player")){
         requestAnimationFrame(() => {
           document.getElementById(`player-${focusRowId}`)?.focus();
         });
@@ -549,11 +722,12 @@
       const nextRow = rows[index + 1];
       if(nextRow && isRowBlank(nextRow)){
         renderRows(nextRow.id);
-        return;
+        return nextRow.id;
       }
       const newRow = createEmptyRow();
       rows.splice(index + 1, 0, newRow);
       renderRows(newRow.id);
+      return newRow.id;
     }
 
     function ensureTrailingBlankRow(currentRowId = ""){
@@ -607,13 +781,16 @@
       rows[index].playerName = displayNameForMember(member);
       rows[index].searchValue = displayNameForMember(member);
       rows[index].discordId = member.discord_user_id;
-      ensureBlankRowAfter(index);
+      editingCell = null;
+      const nextRowId = ensureBlankRowAfter(index);
+      selectCell(nextRowId, "player");
       setStatus("");
     }
 
     rowsEl.addEventListener("focusin", (event) => {
       const input = event.target.closest(".builder-search-input[data-row-id]");
       if(!input) return;
+      if(input.readOnly) return;
       const row = rows.find(item => item.id === input.dataset.rowId);
       if(!row) return;
       void loadMemberSearchRows();
@@ -623,6 +800,7 @@
     rowsEl.addEventListener("input", (event) => {
       const playerInput = event.target.closest(".builder-search-input[data-row-id]");
       if(playerInput){
+        if(playerInput.readOnly) return;
         const row = rows.find(item => item.id === playerInput.dataset.rowId);
         if(!row) return;
         row.searchValue = playerInput.value;
@@ -635,6 +813,56 @@
         void updatePlayerSearch(row);
         return;
       }
+    });
+
+    rowsEl.addEventListener("pointerdown", (event) => {
+      if(event.target.closest(".builder-search-results, .builder-icon-button, .builder-drag-handle")) return;
+      const rowNumber = event.target.closest(".builder-row-number[data-row-id]");
+      const cell = cellFromTarget(event.target);
+      if(!rowNumber && !cell) return;
+      if(cell && isEditingCell(cell.rowId, cell.column)) return;
+
+      event.preventDefault();
+      const rowId = cell?.rowId || rowNumber.dataset.rowId;
+      const column = cell?.column || "row";
+      const now = Date.now();
+      const isDoubleTap = lastTap.rowId === rowId && lastTap.column === column && now - lastTap.at < 360;
+      lastTap = { rowId, column, at: now };
+
+      if(cell && isDoubleTap && !event.shiftKey){
+        startEditingCell(cell.rowId, cell.column);
+        return;
+      }
+
+      if(cell){
+        selectCell(cell.rowId, cell.column, event.shiftKey);
+        selectionDragMode = "cell";
+      }else{
+        selectRowCells(rowNumber.dataset.rowId, event.shiftKey);
+        selectionDragMode = "row";
+      }
+
+      isSelectingCells = true;
+    });
+
+    rowsEl.addEventListener("pointerover", (event) => {
+      if(!isSelectingCells) return;
+      if(selectionDragMode === "cell"){
+        const cell = cellFromTarget(event.target);
+        if(cell) selectCell(cell.rowId, cell.column, true);
+        return;
+      }
+
+      const rowNumber = event.target.closest(".builder-row-number[data-row-id]");
+      const row = rowNumber || event.target.closest("tr[data-row-id]");
+      if(row?.dataset?.rowId) selectRowCells(row.dataset.rowId, true);
+    });
+
+    rowsEl.addEventListener("dblclick", (event) => {
+      const cell = cellFromTarget(event.target);
+      if(!cell || event.target.closest(".builder-search-results, .builder-icon-button, .builder-drag-handle")) return;
+      event.preventDefault();
+      startEditingCell(cell.rowId, cell.column);
     });
 
     rowsEl.addEventListener("click", (event) => {
@@ -696,12 +924,72 @@
       hideAllSearchResults();
     });
 
+    document.addEventListener("pointerup", () => {
+      isSelectingCells = false;
+      selectionDragMode = "";
+    });
+
+    document.addEventListener("copy", (event) => {
+      const target = event.target;
+      if(target?.matches?.(".builder-search-input:not([readonly])")) return;
+      if(!selectedBounds()) return;
+      const text = selectedCellsText();
+      event.preventDefault();
+      event.clipboardData?.setData("text/plain", text);
+      setStatus("Selected cells copied.", "success");
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const target = event.target;
+      if(target?.matches?.(".builder-search-input:not([readonly])")){
+        if(event.key === "Escape"){
+          event.preventDefault();
+          stopEditingCell();
+        }
+        return;
+      }
+
+      if(!isValidCell(activeCell)) return;
+      const isShortcut = event.metaKey || event.ctrlKey;
+      if(isShortcut || event.altKey) return;
+
+      const currentRow = rowIndexById(activeCell.rowId);
+      const currentCol = columnIndex(activeCell.column);
+      let nextRow = currentRow;
+      let nextCol = currentCol;
+
+      if(event.key === "ArrowUp") nextRow -= 1;
+      else if(event.key === "ArrowDown") nextRow += 1;
+      else if(event.key === "ArrowLeft") nextCol -= 1;
+      else if(event.key === "ArrowRight") nextCol += 1;
+      else if(event.key === "Enter" || event.key === "F2"){
+        event.preventDefault();
+        startEditingCell(activeCell.rowId, activeCell.column);
+        return;
+      }else if(event.key.length === 1){
+        event.preventDefault();
+        startEditingCell(activeCell.rowId, activeCell.column, event.key);
+        return;
+      }else{
+        return;
+      }
+
+      event.preventDefault();
+      nextRow = Math.max(0, Math.min(nextRow, rows.length - 1));
+      nextCol = Math.max(0, Math.min(nextCol, SELECTABLE_COLUMNS.length - 1));
+      selectCell(rows[nextRow].id, SELECTABLE_COLUMNS[nextCol], event.shiftKey);
+    });
+
     window.addEventListener("resize", positionOpenSearchResults);
     window.addEventListener("scroll", positionOpenSearchResults, true);
 
     addRowBtn.addEventListener("click", () => {
       const newRow = createEmptyRow();
       rows.push(newRow);
+      selectionAnchor = { rowId: newRow.id, column: "player" };
+      selectionFocus = { rowId: newRow.id, column: "player" };
+      activeCell = { rowId: newRow.id, column: "player" };
+      editingCell = null;
       renderRows(newRow.id);
     });
 

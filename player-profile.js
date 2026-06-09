@@ -77,6 +77,10 @@ const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
 const LIGHTNING_CUP_SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
 const LIGHTNING_CUP_BRACKET_RANGE = "Bracket!A:T";
 const LIGHTNING_CUP_SEEDS_RANGE = "Seeds!C:E";
+const WORLD_OPEN_SHEET_ID = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
+const WORLD_OPEN_SHEET_NAME = "2026 Results";
+const WORLD_OPEN_DISCORD_IDS_SHEET = "Discord IDs";
+const WORLD_OPEN_DISCORD_IDS_RANGE = `'${WORLD_OPEN_DISCORD_IDS_SHEET}'!A:B`;
 const PROLEAGUE_MANUAL_INITIAL_PERIOD = {
   enabled: true,
   season: SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
@@ -141,9 +145,19 @@ const NOPTATIONAL_SCORE_COLUMNS = [
   { course: "eighteen", title: "18 Holes R2", column: 9 },
 ];
 const LIGHTNING_CUP_ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final", "final"];
+const WORLD_OPEN_ROUNDS = [
+  { key: "r1", title: "First Round", matchups: "C2:F33", matchSize: 32, showFlag: "F1:F1" },
+  { key: "r2", title: "Second Round", matchups: "J2:M17", matchSize: 16, showFlag: "M1:M1" },
+  { key: "r3", title: "Round of 32", matchups: "Q2:T17", matchSize: 16 },
+  { key: "r4", title: "Round of 16", matchups: "X2:AA9", matchSize: 8 },
+  { key: "r5", title: "Quarterfinals", matchups: "AE2:AH5", matchSize: 4 },
+  { key: "r6", title: "Semi-finals", matchups: "AL2:AO3", matchSize: 2 },
+  { key: "r7", title: "Finals", matchups: "AS2:AV2", matchSize: 1 },
+];
 const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
+let worldOpenDiscordMapsPromise = null;
 let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
 let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
@@ -1712,6 +1726,147 @@ async function loadLightningCupPlayerResults(member){
     .filter(result => result.result);
 }
 
+function normalizeWorldOpenName(value){
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function isWorldOpenByeName(value){
+  return /^bye$/i.test(String(value ?? "").trim());
+}
+
+function allowWorldOpenMatchupsFromFlag(flagText){
+  return String(flagText ?? "").trim().toLowerCase() === "yes";
+}
+
+function parseWorldOpenScore(value){
+  const text = String(value ?? "").trim();
+  if(!text) return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
+}
+
+function formatWorldOpenScore(playerScore, opponentScore){
+  if(playerScore === null || opponentScore === null) return "-";
+  return `${playerScore}-${opponentScore}`;
+}
+
+function extractWorldOpenMatchups(values, expectedCount){
+  const rows = Array.isArray(values) ? values : [];
+  return Array.from({ length: expectedCount }, (_, index) => {
+    const row = Array.isArray(rows[index]) ? rows[index] : [];
+    return {
+      index,
+      p1: String(row[0] ?? "").trim(),
+      s1: String(row[1] ?? "").trim(),
+      p2: String(row[2] ?? "").trim(),
+      s2: String(row[3] ?? "").trim(),
+    };
+  });
+}
+
+async function fetchWorldOpenRange(a1){
+  return fetchSheetRange(WORLD_OPEN_SHEET_ID, `'${WORLD_OPEN_SHEET_NAME}'!${a1}`);
+}
+
+async function loadWorldOpenDiscordMaps(){
+  if(worldOpenDiscordMapsPromise) return worldOpenDiscordMapsPromise;
+
+  worldOpenDiscordMapsPromise = fetchSheetRange(WORLD_OPEN_SHEET_ID, WORLD_OPEN_DISCORD_IDS_RANGE)
+    .then((rows) => {
+      const nameByDiscordId = new Map();
+      const discordIdByName = new Map();
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const playerName = String(row?.[0] ?? "").trim();
+        const discordId = normalizeDiscordPlayerId(row?.[1]);
+        if(!playerName || !discordId) return;
+        nameByDiscordId.set(discordId, playerName);
+        discordIdByName.set(normalizeWorldOpenName(playerName), discordId);
+      });
+      return { nameByDiscordId, discordIdByName };
+    });
+
+  return worldOpenDiscordMapsPromise;
+}
+
+async function loadWorldOpenRoundMatchups(round){
+  const [matchups, flagRows] = await Promise.all([
+    fetchWorldOpenRange(round.matchups),
+    round.showFlag ? fetchWorldOpenRange(round.showFlag) : Promise.resolve([["yes"]]),
+  ]);
+  const allowMatchups = round.showFlag
+    ? allowWorldOpenMatchupsFromFlag(flagRows?.[0]?.[0])
+    : true;
+  if(!allowMatchups) return [];
+  return extractWorldOpenMatchups(matchups, round.matchSize);
+}
+
+function buildWorldOpenPlayerResult(round, matchup, playerName, discordIdByName){
+  const playerKey = normalizeWorldOpenName(playerName);
+  const p1Key = normalizeWorldOpenName(matchup?.p1);
+  const p2Key = normalizeWorldOpenName(matchup?.p2);
+  const playerIsP1 = playerKey && p1Key === playerKey;
+  const playerIsP2 = playerKey && p2Key === playerKey;
+  if(!playerIsP1 && !playerIsP2) return null;
+
+  const opponentName = playerIsP1 ? matchup.p2 : matchup.p1;
+  const opponentDiscordId = discordIdByName.get(normalizeWorldOpenName(opponentName)) || "";
+  const playerScore = parseWorldOpenScore(playerIsP1 ? matchup.s1 : matchup.s2);
+  const opponentScore = parseWorldOpenScore(playerIsP1 ? matchup.s2 : matchup.s1);
+
+  let outcome = "pending";
+  let resultLabel = "Pending";
+  if(isWorldOpenByeName(opponentName)){
+    outcome = "bye";
+    resultLabel = "BYE";
+  }else if(playerScore !== null && opponentScore !== null){
+    if(playerScore > opponentScore){
+      outcome = "win";
+      resultLabel = "Win";
+    }else if(playerScore < opponentScore){
+      outcome = "loss";
+      resultLabel = "Loss";
+    }else{
+      outcome = "tie";
+      resultLabel = "Tie";
+    }
+  }
+
+  return {
+    round: round.title,
+    roundKey: round.key,
+    matchIndex: Number(matchup?.index || 0),
+    opponent: String(opponentName || "TBD").trim() || "TBD",
+    opponentDiscordId,
+    score: formatWorldOpenScore(playerScore, opponentScore),
+    outcome,
+    resultLabel,
+  };
+}
+
+async function loadWorldOpenPlayerResults(member){
+  const discordId = normalizeDiscordPlayerId(member?.discord_user_id);
+  if(!discordId) return [];
+
+  const maps = await loadWorldOpenDiscordMaps();
+  const worldOpenPlayerName = maps.nameByDiscordId.get(discordId);
+  if(!worldOpenPlayerName) return [];
+
+  const roundResults = await Promise.all(WORLD_OPEN_ROUNDS.map(async (round, roundIndex) => {
+    const matchups = await loadWorldOpenRoundMatchups(round);
+    return matchups
+      .map(matchup => buildWorldOpenPlayerResult(round, matchup, worldOpenPlayerName, maps.discordIdByName))
+      .filter(Boolean)
+      .map(result => ({ ...result, roundIndex }));
+  }));
+
+  return roundResults
+    .flat()
+    .sort((left, right) => {
+      if(left.roundIndex !== right.roundIndex) return left.roundIndex - right.roundIndex;
+      return left.matchIndex - right.matchIndex;
+    });
+}
+
 function renderNoptationalPlayerTable(player){
   const state = player.cutCourse ? "cut" : player.countedCount ? "active" : "no-scores";
   const rankText = state === "cut" ? "Cut" : state === "no-scores" ? "-" : String(player.rank ?? "-");
@@ -1802,6 +1957,78 @@ function renderLightningCupResults(results){
   });
 
   container.append(title, table);
+  return container;
+}
+
+function renderWorldOpenResults(results){
+  const container = document.createElement("div");
+  container.className = "tournament-history worldopen-history";
+
+  const title = document.createElement("h3");
+  title.className = "tournament-title";
+  const titleText = document.createElement("span");
+  titleText.append(document.createTextNode("World Open "));
+  const titleDate = document.createElement("span");
+  titleDate.className = "tournament-date";
+  titleDate.textContent = "(JAN 2026)";
+  titleText.appendChild(titleDate);
+  title.appendChild(titleText);
+
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "worldopen-results-wrap";
+
+  const table = document.createElement("table");
+  table.className = "worldopen-results-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Round", "Opponent", "Score", "Result"].forEach((label) => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
+  results.forEach((result) => {
+    const row = document.createElement("tr");
+    row.className = `is-${result.outcome}`;
+
+    const roundCell = document.createElement("td");
+    roundCell.className = "worldopen-round-cell";
+    roundCell.textContent = result.round;
+
+    const opponentCell = document.createElement("td");
+    opponentCell.className = "worldopen-opponent-cell";
+    const opponent = result.opponentDiscordId
+      ? document.createElement("a")
+      : document.createElement("span");
+    opponent.className = "worldopen-opponent";
+    if(result.opponentDiscordId){
+      opponent.href = `/player.html?id=${encodeURIComponent(result.opponentDiscordId)}`;
+      opponent.setAttribute("aria-label", `View ${result.opponent}'s player page`);
+    }
+    opponent.textContent = result.opponent;
+    opponentCell.appendChild(opponent);
+
+    const scoreCell = document.createElement("td");
+    scoreCell.className = "worldopen-score-cell";
+    scoreCell.textContent = result.score;
+
+    const resultCell = document.createElement("td");
+    resultCell.className = "worldopen-result-cell";
+    const resultPill = document.createElement("span");
+    resultPill.className = `worldopen-result-pill is-${result.outcome}`;
+    resultPill.textContent = result.resultLabel;
+    resultCell.appendChild(resultPill);
+
+    row.append(roundCell, opponentCell, scoreCell, resultCell);
+    tbody.appendChild(row);
+  });
+
+  table.append(thead, tbody);
+  tableWrap.appendChild(table);
+  container.append(title, tableWrap);
   return container;
 }
 
@@ -2521,9 +2748,10 @@ function renderTournamentsSection(member){
     if(!details.open || loaded) return;
     loaded = true;
     try{
-      const [noptationalResult, lightningCupResult] = await Promise.allSettled([
+      const [noptationalResult, lightningCupResult, worldOpenResult] = await Promise.allSettled([
         loadNoptationalPlayer(member),
         loadLightningCupPlayerResults(member),
+        loadWorldOpenPlayerResults(member),
       ]);
       content.innerHTML = "";
 
@@ -2539,8 +2767,16 @@ function renderTournamentsSection(member){
         console.error("Unable to load Lightning Cup player history", lightningCupResult.reason);
       }
 
+      if(worldOpenResult.status === "fulfilled" && worldOpenResult.value.length){
+        content.appendChild(renderWorldOpenResults(worldOpenResult.value));
+      }else if(worldOpenResult.status === "rejected"){
+        console.error("Unable to load World Open player history", worldOpenResult.reason);
+      }
+
       if(!content.children.length){
-        const hasLoadError = noptationalResult.status === "rejected" || lightningCupResult.status === "rejected";
+        const hasLoadError = noptationalResult.status === "rejected"
+          || lightningCupResult.status === "rejected"
+          || worldOpenResult.status === "rejected";
         content.innerHTML = hasLoadError
           ? `<div class="proleague-error">Unable to load tournament data.</div>`
           : `<p class="profile-muted proleague-empty">No tournaments found.</p>`;
