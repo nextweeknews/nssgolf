@@ -61,11 +61,6 @@
             <tbody id="builderRows"></tbody>
           </table>
         </div>
-
-        <div class="builder-export">
-          <label class="builder-export-label" for="csvOutput">CSV</label>
-          <textarea class="builder-export-textarea" id="csvOutput" readonly spellcheck="false"></textarea>
-        </div>
       </div>
 
       <p class="settings-status" id="builderStatus" aria-live="polite"></p>
@@ -85,7 +80,6 @@
     const rowsEl = document.getElementById("builderRows");
     const addRowBtn = document.getElementById("addRowBtn");
     const copyCsvBtn = document.getElementById("copyCsvBtn");
-    const csvOutput = document.getElementById("csvOutput");
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
     let memberSearchRows = [];
@@ -134,14 +128,23 @@
     function createEmptyRow(){
       return {
         id: createRowId(),
+        selectedPlayerId: "",
         playerName: "",
         searchValue: "",
         discordId: "",
       };
     }
 
+    function isRowSelected(row){
+      return !!normalizeDiscordId(row?.selectedPlayerId) && !!normalizeDiscordId(row?.discordId);
+    }
+
     function isRowBlank(row){
-      return !normalizeText(row?.playerName || row?.searchValue) && !normalizeDiscordId(row?.discordId);
+      return !normalizeText(row?.playerName || row?.searchValue) && !normalizeDiscordId(row?.discordId) && !normalizeDiscordId(row?.selectedPlayerId);
+    }
+
+    function isRowDraft(row){
+      return !isRowSelected(row) && !isRowBlank(row);
     }
 
     function avatarUrlForMember(member){
@@ -245,20 +248,25 @@
     function exportRows(){
       let lastContentIndex = -1;
       rows.forEach((row, index) => {
-        if(!isRowBlank(row)) lastContentIndex = index;
+        if(isRowSelected(row)) lastContentIndex = index;
       });
 
       const exportedRows = lastContentIndex >= 0 ? rows.slice(0, lastContentIndex + 1) : [];
       return [
         ["Player", "Discord ID"],
-        ...exportedRows.map(row => [normalizeText(row.playerName || row.searchValue), normalizeDiscordId(row.discordId)]),
+        ...exportedRows.map((row) => {
+          if(!isRowSelected(row)) return ["", ""];
+          return [normalizeText(row.playerName), normalizeDiscordId(row.discordId)];
+        }),
       ]
         .map(row => row.map(csvEscape).join(","))
         .join("\n");
     }
 
-    function updateCsvOutput(){
-      csvOutput.value = exportRows();
+    function draftRowNumbers(){
+      return rows
+        .map((row, index) => isRowDraft(row) ? index + 1 : null)
+        .filter(Boolean);
     }
 
     function hideAllSearchResults(exceptRowId = ""){
@@ -381,6 +389,7 @@
       rows.forEach((row, index) => {
         const tr = document.createElement("tr");
         tr.dataset.rowId = row.id;
+        if(isRowSelected(row)) tr.classList.add("is-selected");
 
         const numberCell = document.createElement("td");
         numberCell.className = "builder-row-number";
@@ -423,7 +432,8 @@
         discordInput.inputMode = "numeric";
         discordInput.autocomplete = "off";
         discordInput.spellcheck = false;
-        discordInput.placeholder = "Discord ID";
+        discordInput.readOnly = true;
+        discordInput.placeholder = "Select a player";
         discordInput.value = row.discordId;
         discordInput.setAttribute("aria-label", `Discord ID for row ${index + 1}`);
         discordCell.appendChild(discordInput);
@@ -448,8 +458,6 @@
         rowsEl.appendChild(tr);
       });
 
-      updateCsvOutput();
-
       if(focusRowId){
         requestAnimationFrame(() => {
           document.getElementById(`player-${focusRowId}`)?.focus();
@@ -471,10 +479,20 @@
 
     function ensureBlankRowAfter(index){
       const nextRow = rows[index + 1];
-      if(nextRow && isRowBlank(nextRow)) return;
+      if(nextRow && isRowBlank(nextRow)){
+        renderRows(nextRow.id);
+        return;
+      }
       const newRow = createEmptyRow();
       rows.splice(index + 1, 0, newRow);
       renderRows(newRow.id);
+    }
+
+    function ensureTrailingBlankRow(currentRowId = ""){
+      const lastRow = rows[rows.length - 1];
+      if(!lastRow || isRowBlank(lastRow)) return;
+      rows.push(createEmptyRow());
+      renderRows(currentRowId);
     }
 
     function clearRow(rowId){
@@ -489,6 +507,7 @@
       if(index < 0) return;
       const member = memberSearchRows.find(row => row.discord_user_id === playerId);
       if(!member) return;
+      rows[index].selectedPlayerId = member.discord_user_id;
       rows[index].playerName = displayNameForMember(member);
       rows[index].searchValue = displayNameForMember(member);
       rows[index].discordId = member.discord_user_id;
@@ -511,19 +530,14 @@
         const row = rows.find(item => item.id === playerInput.dataset.rowId);
         if(!row) return;
         row.searchValue = playerInput.value;
-        row.playerName = playerInput.value;
+        row.playerName = "";
+        row.discordId = "";
+        row.selectedPlayerId = "";
+        if(rowIndexById(row.id) === rows.length - 1 && !isRowBlank(row)){
+          ensureTrailingBlankRow(row.id);
+        }
         void updatePlayerSearch(row);
-        updateCsvOutput();
         return;
-      }
-
-      const discordInput = event.target.closest(".builder-discord-input[data-row-id]");
-      if(discordInput){
-        const row = rows.find(item => item.id === discordInput.dataset.rowId);
-        if(!row) return;
-        row.discordId = normalizeDiscordId(discordInput.value);
-        if(discordInput.value !== row.discordId) discordInput.value = row.discordId;
-        updateCsvOutput();
       }
     });
 
@@ -552,14 +566,18 @@
     });
 
     copyCsvBtn.addEventListener("click", async () => {
-      updateCsvOutput();
+      const draftRows = draftRowNumbers();
+      if(draftRows.length){
+        setStatus(`Select a player from the dropdown for row${draftRows.length === 1 ? "" : "s"} ${draftRows.join(", ")} before copying.`, "error");
+        return;
+      }
+
+      const csv = exportRows();
       try{
-        await navigator.clipboard.writeText(csvOutput.value);
+        await navigator.clipboard.writeText(csv);
         setStatus("CSV copied.", "success");
       }catch{
-        csvOutput.focus();
-        csvOutput.select();
-        setStatus("CSV selected for copying.", "success");
+        setStatus("Unable to copy CSV from this browser.", "error");
       }
     });
 
