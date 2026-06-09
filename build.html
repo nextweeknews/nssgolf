@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Build Player List | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site-topbar.css" />
+  <link rel="stylesheet" href="/settings-page.css?v=20260609-build" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="settings-brand">
+        <a class="settings-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title" aria-label="Build Player List">
+          <svg class="topbar-page-title-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M8 6h13"></path>
+            <path d="M8 12h13"></path>
+            <path d="M8 18h13"></path>
+            <path d="M3 6h.01"></path>
+            <path d="M3 12h.01"></path>
+            <path d="M3 18h.01"></path>
+          </svg>
+          <span>Build Player List</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    <section class="settings-card" aria-labelledby="builderTitle">
+      <h1 class="settings-title" id="builderTitle">Build Player List</h1>
+      <div class="settings-actions" id="builderLoginActions" hidden>
+        <button class="settings-button" id="builderLoginBtn" type="button">Log In With Discord</button>
+      </div>
+
+      <div class="builder-panel" id="builderPanel" hidden>
+        <div class="builder-toolbar">
+          <a class="settings-button secondary" href="/admin-settings.html">Admin Actions</a>
+          <div class="builder-actions">
+            <button class="settings-button secondary" id="addRowBtn" type="button">Add Row</button>
+            <button class="settings-button" id="copyCsvBtn" type="button">Copy CSV</button>
+          </div>
+        </div>
+
+        <div class="builder-table-wrap">
+          <table class="builder-table">
+            <thead>
+              <tr>
+                <th scope="col">Row</th>
+                <th scope="col">Player</th>
+                <th scope="col">Discord ID</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="builderRows"></tbody>
+          </table>
+        </div>
+
+        <div class="builder-export">
+          <label class="builder-export-label" for="csvOutput">CSV</label>
+          <textarea class="builder-export-textarea" id="csvOutput" readonly spellcheck="false"></textarea>
+        </div>
+      </div>
+
+      <p class="settings-status" id="builderStatus" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js"></script>
+  <script type="module">
+    import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { ADMIN_ROLE_ID } from "/settings-data.js";
+
+    const supabase = createBrowserSupabaseClient();
+    const statusEl = document.getElementById("builderStatus");
+    const loginActions = document.getElementById("builderLoginActions");
+    const loginBtn = document.getElementById("builderLoginBtn");
+    const builderPanel = document.getElementById("builderPanel");
+    const rowsEl = document.getElementById("builderRows");
+    const addRowBtn = document.getElementById("addRowBtn");
+    const copyCsvBtn = document.getElementById("copyCsvBtn");
+    const csvOutput = document.getElementById("csvOutput");
+    const PLAYER_SEARCH_LIMIT = 8;
+    const MEMBER_PAGE_SIZE = 1000;
+    let memberSearchRows = [];
+    let memberSearchPromise = null;
+    let rows = [createEmptyRow()];
+
+    function normalizeText(value){
+      return String(value || "").trim();
+    }
+
+    function normalizeSearchKey(value){
+      return normalizeText(value).toLowerCase();
+    }
+
+    function normalizeDiscordId(value){
+      return normalizeText(value).replace(/[^\d]/g, "");
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find(identity => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    function setStatus(message, tone = ""){
+      statusEl.textContent = message || "";
+      statusEl.className = `settings-status ${tone}`.trim();
+    }
+
+    function createRowId(){
+      if(globalThis.crypto?.randomUUID) return crypto.randomUUID();
+      return `row-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
+
+    function createEmptyRow(){
+      return {
+        id: createRowId(),
+        playerName: "",
+        searchValue: "",
+        discordId: "",
+      };
+    }
+
+    function isRowBlank(row){
+      return !normalizeText(row?.playerName || row?.searchValue) && !normalizeDiscordId(row?.discordId);
+    }
+
+    function avatarUrlForMember(member){
+      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
+    }
+
+    function displayNameForMember(member){
+      return normalizeText(member?.display_name) || normalizeText(member?.username) || normalizeDiscordId(member?.discord_user_id);
+    }
+
+    async function loadProfileForUser(user){
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("username,discord_user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function playerHasAdminRole(discordId){
+      const cleanDiscordId = normalizeDiscordId(discordId);
+      if(!cleanDiscordId) return false;
+
+      const { data, error } = await supabase
+        .from("discord_member_roles")
+        .select("role_id")
+        .eq("discord_user_id", cleanDiscordId)
+        .eq("role_id", ADMIN_ROLE_ID)
+        .maybeSingle();
+      if(error) throw error;
+      return !!data;
+    }
+
+    async function loadMemberSearchRows(){
+      if(memberSearchRows.length) return memberSearchRows;
+      if(memberSearchPromise) return memberSearchPromise;
+
+      memberSearchPromise = (async () => {
+        const loadedRows = [];
+        for(let from = 0;; from += MEMBER_PAGE_SIZE){
+          const to = from + MEMBER_PAGE_SIZE - 1;
+          const { data, error } = await supabase
+            .from("discord_guild_members")
+            .select("discord_user_id,username,display_name,server_avatar_url,avatar_url")
+            .eq("is_current_member", true)
+            .range(from, to);
+
+          if(error) throw error;
+          loadedRows.push(...(data || []));
+          if(!data || data.length < MEMBER_PAGE_SIZE) break;
+        }
+
+        memberSearchRows = loadedRows
+          .filter(member => normalizeDiscordId(member?.discord_user_id))
+          .map((member) => ({
+            ...member,
+            discord_user_id: normalizeDiscordId(member.discord_user_id),
+            displaySearch: normalizeSearchKey(member.display_name),
+            usernameSearch: normalizeSearchKey(member.username),
+          }));
+        return memberSearchRows;
+      })().finally(() => {
+        memberSearchPromise = null;
+      });
+
+      return memberSearchPromise;
+    }
+
+    function scoreMemberSearchResult(member, query){
+      const display = member.displaySearch;
+      const username = member.usernameSearch;
+      if(!query) return 0;
+      if(display === query) return 120;
+      if(username === query) return 110;
+      if(display.startsWith(query)) return 95;
+      if(username.startsWith(query)) return 85;
+      if(display.includes(query)) return 65;
+      if(username.includes(query)) return 55;
+      return 0;
+    }
+
+    function searchResultsFor(query){
+      return memberSearchRows
+        .map(member => ({ member, score: scoreMemberSearchResult(member, query) }))
+        .filter(result => result.score > 0)
+        .sort((left, right) => {
+          if(right.score !== left.score) return right.score - left.score;
+          return displayNameForMember(left.member).localeCompare(displayNameForMember(right.member));
+        })
+        .slice(0, PLAYER_SEARCH_LIMIT)
+        .map(result => result.member);
+    }
+
+    function csvEscape(value){
+      const text = String(value || "");
+      if(/[",\r\n]/.test(text)) return `"${text.replace(/"/g, "\"\"")}"`;
+      return text;
+    }
+
+    function exportRows(){
+      let lastContentIndex = -1;
+      rows.forEach((row, index) => {
+        if(!isRowBlank(row)) lastContentIndex = index;
+      });
+
+      const exportedRows = lastContentIndex >= 0 ? rows.slice(0, lastContentIndex + 1) : [];
+      return [
+        ["Player", "Discord ID"],
+        ...exportedRows.map(row => [normalizeText(row.playerName || row.searchValue), normalizeDiscordId(row.discordId)]),
+      ]
+        .map(row => row.map(csvEscape).join(","))
+        .join("\n");
+    }
+
+    function updateCsvOutput(){
+      csvOutput.value = exportRows();
+    }
+
+    function hideAllSearchResults(exceptRowId = ""){
+      rowsEl.querySelectorAll(".builder-search-results").forEach((results) => {
+        if(results.dataset.rowId === exceptRowId) return;
+        results.hidden = true;
+      });
+      rowsEl.querySelectorAll(".builder-search-input").forEach((input) => {
+        if(input.dataset.rowId === exceptRowId) return;
+        input.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    function renderSearchResults(row, results, query){
+      const resultsEl = document.getElementById(`results-${row.id}`);
+      const input = document.getElementById(`player-${row.id}`);
+      if(!resultsEl || !input) return;
+      resultsEl.replaceChildren();
+
+      if(!query){
+        resultsEl.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+        return;
+      }
+
+      if(!results.length){
+        const empty = document.createElement("p");
+        empty.className = "builder-search-empty";
+        empty.textContent = "No players found.";
+        resultsEl.appendChild(empty);
+        resultsEl.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        return;
+      }
+
+      for(const member of results){
+        const button = document.createElement("button");
+        button.className = "builder-search-result";
+        button.type = "button";
+        button.dataset.playerId = member.discord_user_id;
+        button.dataset.rowId = row.id;
+
+        const avatar = document.createElement("img");
+        avatar.className = "builder-search-avatar";
+        avatar.src = avatarUrlForMember(member);
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.decoding = "async";
+        avatar.referrerPolicy = "no-referrer";
+
+        const copy = document.createElement("span");
+        copy.className = "builder-search-copy";
+
+        const displayName = document.createElement("span");
+        displayName.className = "builder-search-display";
+        displayName.textContent = displayNameForMember(member);
+
+        const username = document.createElement("span");
+        username.className = "builder-search-username";
+        username.textContent = normalizeText(member.username) || member.discord_user_id;
+
+        copy.append(displayName, username);
+        button.append(avatar, copy);
+        resultsEl.appendChild(button);
+      }
+
+      resultsEl.hidden = false;
+      input.setAttribute("aria-expanded", "true");
+    }
+
+    async function updatePlayerSearch(row){
+      const query = normalizeSearchKey(row.searchValue);
+      hideAllSearchResults(row.id);
+      if(!query){
+        renderSearchResults(row, [], query);
+        return;
+      }
+
+      try{
+        await loadMemberSearchRows();
+        renderSearchResults(row, searchResultsFor(query), query);
+      }catch(error){
+        console.error(error);
+        const resultsEl = document.getElementById(`results-${row.id}`);
+        const input = document.getElementById(`player-${row.id}`);
+        if(!resultsEl || !input) return;
+        resultsEl.replaceChildren();
+        const empty = document.createElement("p");
+        empty.className = "builder-search-empty";
+        empty.textContent = "Could not load players.";
+        resultsEl.appendChild(empty);
+        resultsEl.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+      }
+    }
+
+    function createIconButton(label, pathData){
+      const button = document.createElement("button");
+      button.className = "builder-icon-button";
+      button.type = "button";
+      button.setAttribute("aria-label", label);
+      button.title = label;
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+      for(const data of pathData){
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", data);
+        svg.appendChild(path);
+      }
+      button.appendChild(svg);
+      return button;
+    }
+
+    function renderRows(focusRowId = ""){
+      rowsEl.replaceChildren();
+
+      rows.forEach((row, index) => {
+        const tr = document.createElement("tr");
+        tr.dataset.rowId = row.id;
+
+        const numberCell = document.createElement("td");
+        numberCell.className = "builder-row-number";
+        numberCell.textContent = String(index + 1);
+
+        const playerCell = document.createElement("td");
+        playerCell.className = "builder-player-cell";
+
+        const searchWrap = document.createElement("div");
+        searchWrap.className = "builder-search";
+
+        const playerInput = document.createElement("input");
+        playerInput.className = "builder-search-input";
+        playerInput.id = `player-${row.id}`;
+        playerInput.dataset.rowId = row.id;
+        playerInput.type = "search";
+        playerInput.autocomplete = "off";
+        playerInput.spellcheck = false;
+        playerInput.placeholder = "Search players";
+        playerInput.value = row.searchValue || row.playerName;
+        playerInput.setAttribute("aria-label", `Search players for row ${index + 1}`);
+        playerInput.setAttribute("aria-controls", `results-${row.id}`);
+        playerInput.setAttribute("aria-expanded", "false");
+
+        const results = document.createElement("div");
+        results.className = "builder-search-results";
+        results.id = `results-${row.id}`;
+        results.dataset.rowId = row.id;
+        results.hidden = true;
+
+        searchWrap.append(playerInput, results);
+        playerCell.appendChild(searchWrap);
+
+        const discordCell = document.createElement("td");
+        discordCell.className = "builder-discord-cell";
+        const discordInput = document.createElement("input");
+        discordInput.className = "builder-discord-input";
+        discordInput.id = `discord-${row.id}`;
+        discordInput.dataset.rowId = row.id;
+        discordInput.inputMode = "numeric";
+        discordInput.autocomplete = "off";
+        discordInput.spellcheck = false;
+        discordInput.placeholder = "Discord ID";
+        discordInput.value = row.discordId;
+        discordInput.setAttribute("aria-label", `Discord ID for row ${index + 1}`);
+        discordCell.appendChild(discordInput);
+
+        const actionsCell = document.createElement("td");
+        actionsCell.className = "builder-row-actions";
+        const actions = document.createElement("div");
+        actions.className = "builder-icon-actions";
+
+        const insertButton = createIconButton("Insert row beneath", ["M12 5v14", "M5 12h14"]);
+        insertButton.dataset.action = "insert";
+        insertButton.dataset.rowId = row.id;
+
+        const clearButton = createIconButton("Clear row", ["M18 6 6 18", "M6 6l12 12"]);
+        clearButton.dataset.action = "clear";
+        clearButton.dataset.rowId = row.id;
+
+        actions.append(insertButton, clearButton);
+        actionsCell.appendChild(actions);
+
+        tr.append(numberCell, playerCell, discordCell, actionsCell);
+        rowsEl.appendChild(tr);
+      });
+
+      updateCsvOutput();
+
+      if(focusRowId){
+        requestAnimationFrame(() => {
+          document.getElementById(`player-${focusRowId}`)?.focus();
+        });
+      }
+    }
+
+    function rowIndexById(rowId){
+      return rows.findIndex(row => row.id === rowId);
+    }
+
+    function insertRowAfter(rowId){
+      const index = rowIndexById(rowId);
+      if(index < 0) return;
+      const newRow = createEmptyRow();
+      rows.splice(index + 1, 0, newRow);
+      renderRows(newRow.id);
+    }
+
+    function ensureBlankRowAfter(index){
+      const nextRow = rows[index + 1];
+      if(nextRow && isRowBlank(nextRow)) return;
+      const newRow = createEmptyRow();
+      rows.splice(index + 1, 0, newRow);
+      renderRows(newRow.id);
+    }
+
+    function clearRow(rowId){
+      const index = rowIndexById(rowId);
+      if(index < 0) return;
+      rows[index] = createEmptyRow();
+      renderRows(rows[index].id);
+    }
+
+    function selectPlayer(rowId, playerId){
+      const index = rowIndexById(rowId);
+      if(index < 0) return;
+      const member = memberSearchRows.find(row => row.discord_user_id === playerId);
+      if(!member) return;
+      rows[index].playerName = displayNameForMember(member);
+      rows[index].searchValue = displayNameForMember(member);
+      rows[index].discordId = member.discord_user_id;
+      ensureBlankRowAfter(index);
+      setStatus("");
+    }
+
+    rowsEl.addEventListener("focusin", (event) => {
+      const input = event.target.closest(".builder-search-input[data-row-id]");
+      if(!input) return;
+      const row = rows.find(item => item.id === input.dataset.rowId);
+      if(!row) return;
+      void loadMemberSearchRows();
+      void updatePlayerSearch(row);
+    });
+
+    rowsEl.addEventListener("input", (event) => {
+      const playerInput = event.target.closest(".builder-search-input[data-row-id]");
+      if(playerInput){
+        const row = rows.find(item => item.id === playerInput.dataset.rowId);
+        if(!row) return;
+        row.searchValue = playerInput.value;
+        row.playerName = playerInput.value;
+        void updatePlayerSearch(row);
+        updateCsvOutput();
+        return;
+      }
+
+      const discordInput = event.target.closest(".builder-discord-input[data-row-id]");
+      if(discordInput){
+        const row = rows.find(item => item.id === discordInput.dataset.rowId);
+        if(!row) return;
+        row.discordId = normalizeDiscordId(discordInput.value);
+        if(discordInput.value !== row.discordId) discordInput.value = row.discordId;
+        updateCsvOutput();
+      }
+    });
+
+    rowsEl.addEventListener("click", (event) => {
+      const result = event.target.closest(".builder-search-result[data-player-id][data-row-id]");
+      if(result){
+        selectPlayer(result.dataset.rowId, result.dataset.playerId);
+        return;
+      }
+
+      const actionButton = event.target.closest(".builder-icon-button[data-action][data-row-id]");
+      if(!actionButton) return;
+      if(actionButton.dataset.action === "insert") insertRowAfter(actionButton.dataset.rowId);
+      if(actionButton.dataset.action === "clear") clearRow(actionButton.dataset.rowId);
+    });
+
+    document.addEventListener("click", (event) => {
+      if(rowsEl.contains(event.target)) return;
+      hideAllSearchResults();
+    });
+
+    addRowBtn.addEventListener("click", () => {
+      const newRow = createEmptyRow();
+      rows.push(newRow);
+      renderRows(newRow.id);
+    });
+
+    copyCsvBtn.addEventListener("click", async () => {
+      updateCsvOutput();
+      try{
+        await navigator.clipboard.writeText(csvOutput.value);
+        setStatus("CSV copied.", "success");
+      }catch{
+        csvOutput.focus();
+        csvOutput.select();
+        setStatus("CSV selected for copying.", "success");
+      }
+    });
+
+    loginBtn.addEventListener("click", async () => {
+      setStatus("Opening Discord login...");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: { redirectTo: buildAuthRedirectTo("/build.html") },
+      });
+      if(error) setStatus(error.message || "Unable to start Discord login.", "error");
+    });
+
+    async function initialize(){
+      const { data: sessionData } = await supabase.auth.getSession();
+      if(!sessionData?.session?.user){
+        loginActions.hidden = false;
+        setStatus("Log in with Discord to build player lists.");
+        return;
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if(userError) throw userError;
+      const profile = await loadProfileForUser(userData.user);
+      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
+      const isAdmin = await playerHasAdminRole(discordId);
+
+      if(!isAdmin){
+        builderPanel.hidden = true;
+        setStatus("Your Discord account does not have the administrator role.", "error");
+        return;
+      }
+
+      builderPanel.hidden = false;
+      renderRows();
+      setStatus("");
+    }
+
+    initialize().catch(error => {
+      console.error(error);
+      setStatus(error?.message || "Unable to load player list builder.", "error");
+    });
+  </script>
+</body>
+</html>

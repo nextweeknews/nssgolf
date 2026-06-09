@@ -74,26 +74,67 @@
       align-items:center;
     }
 
-    .view-btn{
-      border: 1px solid var(--btn-border);
-      background: var(--btn-bg);
-      color: rgba(255,255,255,.92);
-      border-radius: 999px;
-      padding: 9px 14px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      font-weight: 850;
-      cursor: pointer;
+    .superleague-tabs-root{ width:100%; }
+    .superleague-tabs-list{
+      width:100%;
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap:0;
+      padding:0;
+      border:0;
+      border-bottom:1px solid rgba(148,163,184,.24);
+      border-radius:0;
+      background: transparent;
     }
-    .view-btn:hover{
-      background: var(--btn-bg-hover);
-      border-color: var(--btn-border-hover);
+    .superleague-tabs-trigger{
+      position:relative;
+      min-height:35px;
+      border:0;
+      border-radius:0;
+      background: transparent;
+      color: rgba(233,238,248,.86);
+      padding:6px 8px 7px;
+      text-align:center;
+      line-height:1.2;
+      font: inherit;
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      appearance:none;
+      cursor:pointer;
+      transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
-    .view-btn.is-active{
-      background: rgba(255,255,255,0.18);
-      border-color: rgba(255,255,255,0.45);
-      color: #fff;
+    .superleague-tabs-trigger-label{
+      display:block;
+      width:100%;
+      text-align:center;
+    }
+    .superleague-tabs-trigger::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:2px;
+      border-radius:0;
+      background: transparent;
+      transition: background-color 140ms ease;
+    }
+    .superleague-tabs-trigger:hover{
+      background: rgba(var(--superleague-tabs-accent-rgb), .10);
+      color: rgba(255,255,255,.95);
+    }
+    .superleague-tabs-trigger[data-state="active"]{
+      background: rgba(var(--superleague-tabs-accent-rgb), .12);
+      color:#fff7ff;
+    }
+    .superleague-tabs-trigger[data-state="active"]::after{
+      background: rgba(var(--superleague-tabs-accent-rgb), .84);
+    }
+    .superleague-tabs-trigger:focus-visible{
+      outline:none;
+      box-shadow: inset 0 0 0 1px rgba(var(--superleague-tabs-accent-rgb), .46);
     }
     .home-badge,
     .home-btn{
@@ -150,11 +191,11 @@
     }
 
     .main-view-switch{
+      --superleague-tabs-accent-rgb: 209,118,255;
+      width:min(920px, 100%);
       display:flex;
       justify-content:center;
       align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
     }
 
     .card{
@@ -1423,7 +1464,7 @@
       .brand > div{ min-width: 0; }
       .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
       .topbar-actions{ gap:6px; }
-      .view-btn{ font-size: 11px; padding: 8px 10px; }
+      .superleague-tabs-trigger{ font-size: 11px; padding: 8px 10px; }
       .headline{ font-size: 18px; }
       .card{ padding: 12px 14px 20px; border-radius: 18px; }
       .division-card{ padding: 10px; }
@@ -1574,13 +1615,9 @@
       .main-view-switch{
         margin-bottom: 2px;
         width: 100%;
-        gap: 4px;
-        flex-wrap: nowrap;
       }
 
-      .main-view-switch .view-btn{
-        flex: 1 1 0;
-        min-width: 0;
+      .superleague-tabs-trigger{
         padding: 8px 6px;
         font-size: 9px;
         letter-spacing: .04em;
@@ -1624,15 +1661,10 @@
   </div>
 
   <div class="container">
-    <div class="main-view-switch" role="tablist" aria-label="Super League page selector">
-      <button class="view-btn is-active" id="seasonViewBtn" type="button">League</button>
-      <button class="view-btn" id="qualifiersViewBtn" type="button">Qualifiers</button>
-      <button class="view-btn" id="playoffsViewBtn" type="button">Playoffs</button>
-      <button class="view-btn" id="formatViewBtn" type="button">Format</button>
-    </div>
+    <div class="main-view-switch" id="superleagueTabs"></div>
 
     <div class="card">
-      <section id="seasonPage">
+      <section id="seasonPage" role="tabpanel" aria-labelledby="seasonViewTab">
         <div class="season-head">
           <h1 class="headline" data-superleague-season-title="Standings">Standings</h1>
         </div>
@@ -1660,7 +1692,7 @@
         </section>
       </section>
 
-      <section id="qualifiersPage" hidden>
+      <section id="qualifiersPage" role="tabpanel" aria-labelledby="qualifiersViewTab" hidden>
         <div class="season-head">
           <h1 class="headline" data-superleague-season-title="Qualifiers">Qualifiers</h1>
         </div>
@@ -1716,7 +1748,7 @@
         </div>
       </section>
 
-      <section id="playoffsPage" hidden>
+      <section id="playoffsPage" role="tabpanel" aria-labelledby="playoffsViewTab" hidden>
         <div class="season-head">
           <h1 class="headline" data-superleague-season-title="Playoffs">Playoffs</h1>
         </div>
@@ -1742,7 +1774,7 @@
         </div>
       </section>
 
-      <section id="formatPage" hidden>
+      <section id="formatPage" role="tabpanel" aria-labelledby="formatViewTab" hidden>
         <div class="season-head">
           <h1 class="headline">Super League Format</h1>
         </div>
@@ -1872,6 +1904,7 @@
 
   <script type="module">
     import { SUPER_LEAGUE_SEASON } from "/ranked-league-config.js";
+    import { mountSuperLeagueTabs } from "/superleague-tabs.bundle.js";
 
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
@@ -1925,15 +1958,22 @@
     }
 
     function setupViewNav(){
-      const seasonBtn = document.getElementById("seasonViewBtn");
-      const qualifiersBtn = document.getElementById("qualifiersViewBtn");
-      const playoffsBtn = document.getElementById("playoffsViewBtn");
-      const formatBtn = document.getElementById("formatViewBtn");
+      const tabsEl = document.getElementById("superleagueTabs");
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
       const playoffsPage = document.getElementById("playoffsPage");
       const formatPage = document.getElementById("formatPage");
       const validPages = new Set(["season", "qualifiers", "playoffs", "format"]);
+      const tabs = [
+        { value: "season", label: "League", id: "seasonViewTab", controls: "seasonPage" },
+        { value: "qualifiers", label: "Qualifiers", id: "qualifiersViewTab", controls: "qualifiersPage" },
+        { value: "playoffs", label: "Playoffs", id: "playoffsViewTab", controls: "playoffsPage" },
+        { value: "format", label: "Format", id: "formatViewTab", controls: "formatPage" },
+      ];
+      const tabControl = mountSuperLeagueTabs(tabsEl, {
+        tabs,
+        onTabChange: (page) => setPage(page),
+      });
 
       const setPage = (page, options = {}) => {
         const nextPage = validPages.has(page) ? page : "season";
@@ -1945,10 +1985,7 @@
         qualifiersPage.hidden = !showQualifiers;
         playoffsPage.hidden = !showPlayoffs;
         formatPage.hidden = !showFormat;
-        seasonBtn.classList.toggle("is-active", showSeason);
-        qualifiersBtn.classList.toggle("is-active", showQualifiers);
-        playoffsBtn.classList.toggle("is-active", showPlayoffs);
-        formatBtn.classList.toggle("is-active", showFormat);
+        tabControl?.render(nextPage);
 
         const url = new URL(window.location.href);
         url.searchParams.set("page", nextPage);
@@ -1971,11 +2008,6 @@
 
       const initialPage = new URLSearchParams(window.location.search).get("page");
       setPage(initialPage, { scroll: false });
-
-      seasonBtn.addEventListener("click", () => setPage("season"));
-      qualifiersBtn.addEventListener("click", () => setPage("qualifiers"));
-      playoffsBtn.addEventListener("click", () => setPage("playoffs"));
-      formatBtn.addEventListener("click", () => setPage("format"));
     }
 
     function normalizeValues(resp){

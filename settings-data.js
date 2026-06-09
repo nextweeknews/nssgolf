@@ -9,6 +9,7 @@ export const RESERVED_PLAYER_URL_SLUGS = [
   "auth",
   "beataidan",
   "bot",
+  "build",
   "championship",
   "css",
   "discord",

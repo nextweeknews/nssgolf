@@ -7,6 +7,7 @@
     "build:home-tabs": "esbuild home-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=home-tabs.bundle.js",
     "build:lightningcup-radix": "esbuild lightningcup/radix-controls.jsx --bundle --format=esm --target=es2020 --minify --outfile=lightningcup/radix-controls.bundle.js",
     "build:noptational-tabs": "esbuild noptational-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=noptational-tabs.bundle.js",
+    "build:superleague-tabs": "esbuild superleague-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=superleague-tabs.bundle.js",
     "check:player-shell": "node scripts/sync-player-shell.js",
     "discord:scan-members": "node bot/scan-members.js",
     "proleague:aliases:suggest": "node bot/proleague-player-aliases.js suggest",
