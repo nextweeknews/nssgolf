@@ -2638,6 +2638,54 @@ function createVerifiedIcon(){
   return icon;
 }
 
+function fitPlayerNameTitle(title){
+  const text = title?.querySelector?.(".player-name-text");
+  if(!title || !text) return;
+
+  const fit = () => {
+    title.style.removeProperty("--player-name-fit-size");
+    text.style.removeProperty("max-width");
+
+    const titleRect = title.getBoundingClientRect();
+    if(!titleRect.width) return;
+
+    const styles = getComputedStyle(title);
+    const defaultSize = parseFloat(styles.getPropertyValue("--player-name-max-size")) || parseFloat(styles.fontSize) || 30;
+    const minimumSize = parseFloat(styles.getPropertyValue("--player-name-min-size")) || 14;
+    const gap = parseFloat(styles.columnGap || styles.gap) || 0;
+    const icon = title.querySelector(".player-verified-icon");
+    const iconWidth = icon ? icon.getBoundingClientRect().width + gap : 0;
+    const availableWidth = Math.max(0, titleRect.width - iconWidth);
+
+    text.style.maxWidth = `${availableWidth}px`;
+    title.style.setProperty("--player-name-fit-size", `${defaultSize}px`);
+
+    const naturalWidth = text.scrollWidth;
+    if(naturalWidth <= availableWidth || !availableWidth) return;
+
+    const fittedSize = Math.max(minimumSize, Math.floor((defaultSize * availableWidth) / naturalWidth));
+    title.style.setProperty("--player-name-fit-size", `${fittedSize}px`);
+  };
+
+  const queueFit = () => {
+    if(typeof window.requestAnimationFrame === "function"){
+      window.requestAnimationFrame(fit);
+    }else{
+      window.setTimeout(fit, 0);
+    }
+  };
+
+  queueFit();
+  document.fonts?.ready?.then(queueFit).catch(() => {});
+  if("ResizeObserver" in window){
+    const observer = new ResizeObserver(queueFit);
+    observer.observe(title);
+    if(title.parentElement) observer.observe(title.parentElement);
+  }else{
+    window.addEventListener("resize", fit, { passive: true });
+  }
+}
+
 function createHiddenRankIndicator(){
   const icon = document.createElement("span");
   icon.className = "profile-hidden-rank-indicator";
@@ -2814,6 +2862,7 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
   card.appendChild(renderTournamentsSection(member));
 
   rootEl.appendChild(card);
+  fitPlayerNameTitle(name);
   setStatus("");
 }
 

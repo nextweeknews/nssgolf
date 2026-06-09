@@ -160,6 +160,7 @@
     }
     .profile-heading{
       min-width:0;
+      flex: 1 1 auto;
       display:flex;
       flex-direction:column;
       justify-content:center;
@@ -182,9 +183,11 @@
       line-height:1.25;
     }
     .player-name-title{
+      --player-name-max-size: 30px;
+      --player-name-min-size: 14px;
       margin:0;
       color: rgba(255,255,255,0.94);
-      font-size: 30px;
+      font-size: var(--player-name-fit-size, var(--player-name-max-size));
       font-weight: 820;
       letter-spacing: 0;
       text-transform:none;
@@ -192,11 +195,18 @@
       display:flex;
       align-items:center;
       gap: 8px;
-      flex-wrap:wrap;
+      flex-wrap:nowrap;
+      min-width:0;
+      max-width:100%;
+      overflow:hidden;
     }
     .player-name-text{
       min-width:0;
-      overflow-wrap:anywhere;
+      flex: 0 1 auto;
+      overflow:hidden;
+      overflow-wrap:normal;
+      text-overflow:ellipsis;
+      white-space:nowrap;
     }
     .player-verified-icon{
       width: 18px;
@@ -1088,7 +1098,7 @@
       .profile-card{ padding: 18px 14px; border-radius: 18px; }
       .profile-header{ align-items:center; gap: 14px; }
       .profile-avatar{ width: 72px; height: 72px; }
-      .player-name-title{ font-size: 24px; }
+      .player-name-title{ --player-name-max-size: 24px; --player-name-min-size: 12px; }
       .profile-record-item{ min-height: 84px; padding: 16px 10px 18px; }
       .profile-record-name{ font-size: 22px; }
       .profile-record-group{ font-size: 10px; letter-spacing: .05em; }
