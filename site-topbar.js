@@ -224,7 +224,7 @@ function ensureTopbarSignInButton(){
   icon.decoding = "async";
 
   const label = document.createElement("span");
-  label.textContent = "Sign in with Discord";
+  label.textContent = "Sign in";
 
   button.append(icon, label);
   topbarInner.appendChild(button);
