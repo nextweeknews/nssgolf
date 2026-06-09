@@ -1775,24 +1775,26 @@ function renderLightningCupResults(results){
     round.className = "lightningcup-result-round";
     round.textContent = result.round;
 
-    const opponent = document.createElement("span");
+    const opponent = result.result.opponentDiscordId
+      ? document.createElement("a")
+      : document.createElement("span");
     opponent.className = "lightningcup-result-opponent";
+    if(result.result.opponentDiscordId){
+      opponent.href = `/player.html?id=${encodeURIComponent(result.result.opponentDiscordId)}`;
+      opponent.setAttribute("aria-label", `View ${result.result.opponent}'s player page`);
+    }
     const opponentPrefix = document.createElement("span");
     opponentPrefix.className = "lightningcup-result-vs";
     opponentPrefix.textContent = "vs.";
-    const opponentName = result.result.opponentDiscordId
-      ? document.createElement("a")
-      : document.createElement("span");
+    const opponentName = document.createElement("span");
     opponentName.className = "lightningcup-result-opponent-name";
     opponentName.textContent = result.result.opponent;
-    if(result.result.opponentDiscordId){
-      opponentName.href = `/player.html?id=${encodeURIComponent(result.result.opponentDiscordId)}`;
-    }
     opponent.append(opponentPrefix, opponentName);
 
     const score = document.createElement("a");
     score.className = `lightningcup-result-score is-${result.result.outcome}`;
     score.href = result.matchUrl || "/lightningcup/match/";
+    score.setAttribute("aria-label", `View Lightning Cup ${result.round} match`);
     score.textContent = result.result.result;
 
     row.append(round, opponent, score);
