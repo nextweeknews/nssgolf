@@ -32,7 +32,7 @@ import {
   getWorldCupMatchOutcome,
   parseWorldCupSheet,
   worldCupMatchesForTeam,
-  worldCupFlagCodeForTeam,
+  worldCupFlagForTeam,
   worldCupTeamLabel,
 } from "/worldcup-data.js";
 
@@ -773,11 +773,11 @@ function escapeHtml(value){
 function renderWorldCupTeamLabel(teamName, fallback = "TBD"){
   const rawName = String(teamName ?? "").trim();
   const label = worldCupTeamLabel(rawName) || rawName || fallback;
-  const flagCode = rawName ? worldCupFlagCodeForTeam(rawName) : "";
-  const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "wc-flag-xx";
+  const flagCode = rawName ? worldCupFlagForTeam(rawName) : "";
+  const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "";
   return `
     <span class="wc-team-label">
-      ${flagCode ? `<span class="wc-flag-icon ${safeFlagClass}" aria-hidden="true"></span>` : ""}
+      ${safeFlagClass ? `<span class="wc-flag-icon ${safeFlagClass}" aria-hidden="true"></span>` : ""}
       <span class="wc-team-label-text">${escapeHtml(label)}</span>
     </span>
   `;
