@@ -9,14 +9,15 @@ import {
 } from "/ranked-league-config.js";
 import {
   ADMIN_ROLE_ID,
-  countryLabelFor,
+  countryFlagCodeFor,
+  countryNameFor,
   GLOBAL_RANK_FIELD_KEYS,
   GLOBAL_RANK_FIELD_LABELS,
   isReservedPlayerUrlSlug,
   normalizePlayerUrlSlug,
   playerUrlPathForSlug,
   timeZoneOffsetLabel,
-} from "/settings-data.js";
+} from "/settings-data.js?v=20260609-flags3";
 import {
   buildActualMatchesFromSheet as buildLightningCupActualMatchesFromSheet,
   buildBracketContext as buildLightningCupBracketContext,
@@ -34,7 +35,7 @@ import {
   worldCupMatchesForTeam,
   worldCupFlagForTeam,
   worldCupTeamLabel,
-} from "/worldcup-data.js";
+} from "/worldcup-data.js?v=20260609-flags3";
 
 const RECORD_GROUPS = [
   {
@@ -372,14 +373,33 @@ function hasAnyPlayerSetting(settings){
   ].some(normalizeSettingText);
 }
 
-function playerSettingsLine(settings){
+function renderFlagIcon(flagCode){
+  const cleanCode = String(flagCode || "").trim().toLowerCase();
+  if(!/^[a-z0-9-]+$/.test(cleanCode)) return "";
+  return `<span class="wc-flag-icon wc-flag-${escapeHtml(cleanCode)}" style="--wc-flag-image:url('/assets/flag-icons/4x3/${escapeHtml(cleanCode)}.svg')" aria-hidden="true"></span>`;
+}
+
+function renderCountrySettingLabel(code){
+  const cleanCode = String(code || "").trim().toUpperCase();
+  if(!cleanCode) return "";
+  const flagCode = countryFlagCodeFor(cleanCode);
+  const name = countryNameFor(cleanCode);
+  return `
+    <span class="player-settings-country wc-team-label">
+      ${renderFlagIcon(flagCode)}
+      <span class="wc-team-label-text">${escapeHtml(name)}</span>
+    </span>
+  `;
+}
+
+function playerSettingsLineHtml(settings){
   if(!hasAnyPlayerSetting(settings)) return "";
   const countries = [settings.country_1, settings.country_2]
-    .map(countryLabelFor)
+    .map(renderCountrySettingLabel)
     .filter(Boolean)
     .join(" / ");
   const timeZone = settings.time_zone ? timeZoneOffsetLabel(settings.time_zone) : "";
-  return [countries, timeZone].filter(Boolean).join(" · ");
+  return [countries, escapeHtml(timeZone)].filter(Boolean).join(" · ");
 }
 
 function moderationKey(discordId, rankKey){
@@ -772,12 +792,13 @@ function escapeHtml(value){
 
 function renderWorldCupTeamLabel(teamName, fallback = "TBD"){
   const rawName = String(teamName ?? "").trim();
-  const label = worldCupTeamLabel(rawName) || rawName || fallback;
+  let label = worldCupTeamLabel(rawName) || rawName || fallback;
+  if(rawName && label !== rawName && label.endsWith(rawName)) label = rawName;
   const flagCode = rawName ? worldCupFlagForTeam(rawName) : "";
   const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "";
   return `
     <span class="wc-team-label">
-      ${safeFlagClass ? `<span class="wc-flag-icon ${safeFlagClass}" aria-hidden="true"></span>` : ""}
+      ${safeFlagClass ? renderFlagIcon(flagCode) : ""}
       <span class="wc-team-label-text">${escapeHtml(label)}</span>
     </span>
   `;
@@ -3167,10 +3188,10 @@ function renderProfile(member, trackedRoles, rankedRows = [], proLeagueAliases =
   memberSince.className = "profile-muted";
   memberSince.textContent = sinceDate ? `Joined ${sinceDate}` : "Joined date unavailable";
 
-  const settingsText = playerSettingsLine(playerSettings);
+  const settingsText = playerSettingsLineHtml(playerSettings);
   const settingsLine = document.createElement("p");
   settingsLine.className = "profile-muted player-settings-line";
-  settingsLine.textContent = settingsText;
+  settingsLine.innerHTML = settingsText;
   settingsLine.hidden = !settingsText;
 
   headingWrap.append(name, memberSince);

@@ -139,12 +139,15 @@ export function flagForCountry(code){
     .join("");
 }
 
+export function countryFlagCodeFor(code){
+  const cleanCode = String(code || "").trim().toLowerCase();
+  return /^[a-z]{2}$/.test(cleanCode) ? cleanCode : "";
+}
+
 export function countryLabelFor(code){
   const cleanCode = String(code || "").trim().toUpperCase();
   if(!cleanCode) return "";
-  const flag = flagForCountry(cleanCode);
-  const name = countryNameFor(cleanCode);
-  return `${flag ? `${flag} ` : ""}${name}`;
+  return countryNameFor(cleanCode);
 }
 
 export function buildCountryOptions(){

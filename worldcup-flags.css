@@ -10,7 +10,8 @@
 .wc-team-name .wc-team-label,
 .group-game-team .wc-team-label,
 .worldcup-opponent-cell .wc-team-label,
-.worldcup-team-chip .wc-team-label{
+.worldcup-team-chip .wc-team-label,
+.player-settings-country .wc-team-label{
   width:100%;
 }
 
@@ -27,11 +28,16 @@
   width:1.25em;
   aspect-ratio:4 / 3;
   border-radius:2px;
+  background-image:var(--wc-flag-image, none);
   background-color:rgba(255,255,255,.10);
   background-position:50%;
   background-repeat:no-repeat;
   background-size:contain;
   box-shadow:0 0 0 1px rgba(255,255,255,.18);
+}
+
+.wc-flag-icon[style*="--wc-flag-image"]{
+  background-image:var(--wc-flag-image);
 }
 
 .wc-flag-au{ background-image:url("/assets/flag-icons/4x3/au.svg"); }

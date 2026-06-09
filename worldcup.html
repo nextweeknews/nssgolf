@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#020B18" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
-  <link rel="stylesheet" href="/worldcup-flags.css" />
+  <link rel="stylesheet" href="/worldcup-flags.css?v=20260609-flags3" />
   <title>World Cup</title>
 
   <style>
@@ -313,12 +313,12 @@
       position:absolute;
       left:0;
       right:0;
-      bottom:calc(100% - 1px);
+      bottom:calc(100% - 10px);
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height:24px;
-      padding:4px 10px 5px;
+      min-height:34px;
+      padding:4px 10px 14px;
       border:1px solid rgba(96,165,250,.38);
       border-bottom:0;
       border-top-left-radius:10px;
@@ -333,6 +333,7 @@
       text-align:center;
       text-transform:uppercase;
       pointer-events:none;
+      z-index:0;
     }
     .wc-match-card{
       position:relative;
@@ -353,7 +354,7 @@
       border:1px solid rgba(255,255,255,0.08);
       border-radius:inherit;
       pointer-events:none;
-      z-index:3;
+      z-index:4;
     }
     .wc-match-row{
       width:100%;
@@ -368,7 +369,7 @@
       border:0;
       font-size:11px;
       position:relative;
-      z-index:1;
+      z-index:2;
     }
     .wc-match-row:first-child{
       border-top-left-radius:10px;
@@ -398,22 +399,19 @@
       content:"";
       position:absolute;
       inset:0;
-      border-left:1px solid rgba(96,165,250,.45);
-      border-right:1px solid rgba(96,165,250,.45);
+      border:1px solid rgba(96,165,250,.62);
       pointer-events:none;
+      z-index:5;
     }
     .wc-match-row.is-winner:first-child::after{
-      border-top:1px solid rgba(96,165,250,.45);
       border-top-left-radius:10px;
       border-top-right-radius:10px;
     }
     .wc-match-card.has-label .wc-match-label + .wc-match-row.is-winner::after{
-      border-top:1px solid rgba(96,165,250,.45);
       border-top-left-radius:10px;
       border-top-right-radius:10px;
     }
     .wc-match-row.is-winner:last-child::after{
-      border-bottom:1px solid rgba(96,165,250,.45);
       border-bottom-left-radius:10px;
       border-bottom-right-radius:10px;
     }
@@ -584,15 +582,70 @@
       white-space:nowrap;
     }
 
-    .rosters-grid{
+    .rosters-layout{
+      display:grid;
+      gap:18px;
+    }
+    .roster-advancement-section{
+      display:grid;
+      gap:12px;
+    }
+    .roster-advancement-section + .roster-advancement-section{
+      padding-top:18px;
+      border-top:1px solid rgba(148,163,184,.24);
+    }
+    .roster-section-title{
+      margin:0;
+      color:rgba(186,230,253,.94);
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .roster-card-grid{
       display:grid;
       grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
       gap:12px;
+    }
+    .roster-podium{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      grid-template-areas:"second first third";
+      gap:12px;
+      align-items:end;
+    }
+    .roster-podium .podium-placement-1{ grid-area:first; }
+    .roster-podium .podium-placement-2{ grid-area:second; }
+    .roster-podium .podium-placement-3{ grid-area:third; }
+    .roster-fourth-row{
+      display:grid;
+      grid-template-columns:minmax(250px, 390px);
+      justify-content:center;
+      margin-top:2px;
     }
     .roster-team-card{
       padding:12px;
       display:grid;
       gap:10px;
+    }
+    .roster-team-card.is-podium{
+      background:linear-gradient(180deg, rgba(37,99,235,.18), rgba(15,23,42,.58));
+      border-color:rgba(96,165,250,.36);
+    }
+    .roster-place-badge{
+      justify-self:start;
+      display:inline-flex;
+      align-items:center;
+      min-height:22px;
+      padding:4px 7px;
+      border-radius:999px;
+      border:1px solid rgba(96,165,250,.34);
+      background:rgba(37,99,235,.13);
+      color:rgba(219,234,254,.96);
+      font-size:9px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
     }
     .roster-player-list{
       display:grid;
@@ -678,6 +731,14 @@
       .games-grid{
         grid-template-columns:repeat(2, minmax(0,1fr));
       }
+      .roster-podium{
+        grid-template-columns:1fr;
+        grid-template-areas:"first" "second" "third";
+        align-items:stretch;
+      }
+      .roster-fourth-row{
+        grid-template-columns:1fr;
+      }
     }
     @media (max-width:560px){
       .card-head{
@@ -744,7 +805,7 @@
   <script type="module" src="/site-topbar.js"></script>
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { mountWorldCupTabs } from "/worldcup-tabs.bundle.js";
+    import { mountWorldCupTabs } from "/worldcup-tabs.bundle.js?v=20260609-rosters3";
     import {
       WORLD_CUP_YEARS,
       fetchWorldCupValues,
@@ -756,13 +817,13 @@
       worldCupRoundLabel,
       worldCupFlagForTeam,
       worldCupTeamLabel,
-    } from "/worldcup-data.js";
+    } from "/worldcup-data.js?v=20260609-flags3";
 
     const supabase = createBrowserSupabaseClient();
     const tabs = [
+      { value:"rosters", label:"Teams", id:"worldcup-tab-rosters", controls:"rostersPanel" },
       { value:"bracket", label:"Bracket Stage", id:"worldcup-tab-bracket", controls:"bracketPanel" },
       { value:"group", label:"Group Stage", id:"worldcup-tab-group", controls:"groupPanel" },
-      { value:"rosters", label:"Rosters", id:"worldcup-tab-rosters", controls:"rostersPanel" },
     ];
     const panels = {
       bracket: document.getElementById("bracketPanel"),
@@ -792,8 +853,8 @@
 
     function getInitialTab(){
       const params = new URLSearchParams(window.location.search);
-      const requested = String(params.get("tab") || "bracket").trim().toLowerCase();
-      return tabs.some(tab => tab.value === requested) ? requested : "bracket";
+      const requested = String(params.get("tab") || "rosters").trim().toLowerCase();
+      return tabs.some(tab => tab.value === requested) ? requested : "rosters";
     }
 
     function updateUrl(){
@@ -824,12 +885,13 @@
 
     function renderWorldCupTeamLabel(teamName, fallback = "TBD"){
       const rawName = String(teamName ?? "").trim();
-      const label = worldCupTeamLabel(rawName) || rawName || fallback;
+      let label = worldCupTeamLabel(rawName) || rawName || fallback;
+      if(rawName && label !== rawName && label.endsWith(rawName)) label = rawName;
       const flagCode = rawName ? worldCupFlagForTeam(rawName) : "";
       const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "";
       return `
         <span class="wc-team-label">
-          ${safeFlagClass ? `<span class="wc-flag-icon ${safeFlagClass}" aria-hidden="true"></span>` : ""}
+          ${safeFlagClass ? `<span class="wc-flag-icon ${safeFlagClass}" style="--wc-flag-image:url('/assets/flag-icons/4x3/${escapeHtml(flagCode.toLowerCase())}.svg')" aria-hidden="true"></span>` : ""}
           <span class="wc-team-label-text">${escapeHtml(label)}</span>
         </span>
       `;
@@ -1060,14 +1122,33 @@
       return { winner:"", loser:"" };
     }
 
-    function buildRosterOrderMap(data){
+    function ordinal(value){
+      const number = Number(value);
+      if(!Number.isInteger(number) || number <= 0) return "";
+      const suffix = [11, 12, 13].includes(number % 100) ? "th" : ({ 1:"st", 2:"nd", 3:"rd" }[number % 10] || "th");
+      return `${number}${suffix}`;
+    }
+
+    function numericText(value, fallback = 0){
+      const match = String(value ?? "").match(/-?\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : fallback;
+    }
+
+    function buildRosterPlacementMap(data){
       const order = new Map();
-      const setOrder = (team, rank, sourceIndex = 0) => {
+      const setOrder = (team, placement) => {
         const key = teamKey(team);
         if(!key || /^bye$/i.test(team)) return;
         const existing = order.get(key);
-        if(existing && existing.rank <= rank) return;
-        order.set(key, { rank, sourceIndex });
+        const next = {
+          rank: placement.rank ?? 9999,
+          sourceIndex: placement.sourceIndex ?? 0,
+          sectionKey: placement.sectionKey || "other",
+          sectionLabel: placement.sectionLabel || "Other Teams",
+          badge: placement.badge || "",
+        };
+        if(existing && existing.rank <= next.rank) return;
+        order.set(key, next);
       };
 
       const bracketMatches = (data.bracket || []).slice().sort((left, right) => Number(left.id || 0) - Number(right.id || 0));
@@ -1079,27 +1160,32 @@
 
       if(finalMatch){
         const { winner, loser } = getMatchWinnerLoser(finalMatch, true);
-        setOrder(winner, 0, Number(finalMatch.id || 0));
-        setOrder(loser, 1, Number(finalMatch.id || 0));
+        setOrder(winner, { rank:0, sourceIndex:0, sectionKey:"podium", sectionLabel:"Podium", badge:"1st" });
+        setOrder(loser, { rank:1, sourceIndex:0, sectionKey:"podium", sectionLabel:"Podium", badge:"2nd" });
       }
       if(thirdPlaceMatch){
         const { winner, loser } = getMatchWinnerLoser(thirdPlaceMatch, true);
-        setOrder(winner, 2, Number(thirdPlaceMatch.id || 0));
-        setOrder(loser, 3, Number(thirdPlaceMatch.id || 0));
+        setOrder(winner, { rank:2, sourceIndex:0, sectionKey:"podium", sectionLabel:"Podium", badge:"3rd" });
+        setOrder(loser, { rank:3, sourceIndex:0, sectionKey:"fourth", sectionLabel:"4th Place", badge:"4th" });
       }
 
-      const roundRank = { SF:4, QF:5, R16:6, R24:7 };
+      const roundPlacement = {
+        SF:{ rank:4, sectionKey:"semifinalists", sectionLabel:"Semifinalists" },
+        QF:{ rank:5, sectionKey:"quarterfinalists", sectionLabel:"Quarterfinalists" },
+        R16:{ rank:6, sectionKey:"round-of-16", sectionLabel:"Round of 16" },
+        R24:{ rank:7, sectionKey:"round-of-24", sectionLabel:"Round of 24" },
+      };
       const bracketTeamKeys = new Set();
       bracketMatches.forEach((match) => {
         orderedMatchTeams(match).forEach((team) => {
           if(!/^bye$/i.test(team)) bracketTeamKeys.add(teamKey(team));
         });
         const round = String(match.round || "").trim();
-        if(!(round in roundRank)) return;
-        const matchRank = roundRank[round];
+        const placement = roundPlacement[round];
+        if(!placement) return;
         const matchOrder = Number(match.id || 0);
         orderedMatchTeams(match).forEach((team, teamIndex) => {
-          setOrder(team, matchRank, (matchOrder * 10) + teamIndex);
+          setOrder(team, { ...placement, sourceIndex:(matchOrder * 10) + teamIndex });
         });
       });
 
@@ -1107,52 +1193,113 @@
         (group.standings || []).forEach((standing) => {
           const key = teamKey(standing.team);
           if(!key || bracketTeamKeys.has(key)) return;
-          const rank = 100 + (groupIndex * 10) + Number(standing.rank || 0);
-          setOrder(standing.team, rank, groupIndex * 10 + Number(standing.rank || 0));
+          const standingRank = Number(standing.rank || 99);
+          const points = numericText(standing.points, 0);
+          const differential = numericText(standing.differential, 0);
+          setOrder(standing.team, {
+            rank:100 + standingRank,
+            sourceIndex:(-points * 1000) + (-differential * 10) + groupIndex,
+            sectionKey:`group-rank-${standingRank}`,
+            sectionLabel:`Group Stage - ${ordinal(standingRank)} in Group`,
+            badge:`${group.name} #${standingRank}`,
+          });
         });
       });
 
       (data.rosters || []).forEach((team, index) => {
-        setOrder(team.name, 1000 + index, index);
+        setOrder(team.name, {
+          rank:1000 + index,
+          sourceIndex:index,
+          sectionKey:"group-stage",
+          sectionLabel:"Group Stage",
+        });
       });
 
       return order;
     }
 
-    function sortedRosters(data){
-      const order = buildRosterOrderMap(data);
-      return (data.rosters || []).slice().sort((left, right) => {
-        const leftOrder = order.get(teamKey(left.name)) || { rank:9999, sourceIndex:0 };
-        const rightOrder = order.get(teamKey(right.name)) || { rank:9999, sourceIndex:0 };
+    function rosterEntries(data){
+      const placements = buildRosterPlacementMap(data);
+      return (data.rosters || []).slice().map(team => ({
+        ...team,
+        placement: placements.get(teamKey(team.name)) || {
+          rank:9999,
+          sourceIndex:0,
+          sectionKey:"group-stage",
+          sectionLabel:"Group Stage",
+          badge:"",
+        },
+      })).sort((left, right) => {
+        const leftOrder = left.placement;
+        const rightOrder = right.placement;
         if(leftOrder.rank !== rightOrder.rank) return leftOrder.rank - rightOrder.rank;
         if(leftOrder.sourceIndex !== rightOrder.sourceIndex) return leftOrder.sourceIndex - rightOrder.sourceIndex;
         return String(left.name || "").localeCompare(String(right.name || ""), undefined, { sensitivity:"base" });
       });
     }
 
+    function renderRosterCard(team, className = ""){
+      return `
+        <section class="roster-team-card ${className}">
+          ${team.placement.badge ? `<span class="roster-place-badge">${escapeHtml(team.placement.badge)}</span>` : ""}
+          <h2 class="roster-team-title">${renderWorldCupTeamLabel(team.name, "-")}</h2>
+          <div class="roster-player-list">
+            ${team.players.map(player => {
+              const member = player.discordId ? memberCache.get(player.discordId) : null;
+              const tag = member?.discord_user_id ? "a" : "div";
+              const href = member?.discord_user_id ? ` href="/player.html?id=${encodeURIComponent(member.discord_user_id)}"` : "";
+              const username = member?.username ? `@${member.username}` : player.discordId || "Discord ID unavailable";
+              return `
+                <${tag} class="roster-player"${href}>
+                  <img class="roster-avatar" src="${escapeHtml(avatarUrlFor(member))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                  <span class="roster-copy">
+                    <span class="roster-name">${escapeHtml(memberDisplayName(member, player.playerName))}</span>
+                    <span class="roster-user">${escapeHtml(username)}</span>
+                  </span>
+                </${tag}>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function groupRosterSections(entries){
+      const sections = [];
+      entries.forEach((entry) => {
+        let section = sections.find(item => item.key === entry.placement.sectionKey);
+        if(!section){
+          section = {
+            key:entry.placement.sectionKey,
+            label:entry.placement.sectionLabel,
+            entries:[],
+          };
+          sections.push(section);
+        }
+        section.entries.push(entry);
+      });
+      return sections;
+    }
+
     function renderRosters(data){
-      const rosters = sortedRosters(data);
+      const entries = rosterEntries(data);
+      const podium = entries.filter(entry => entry.placement.rank <= 2);
+      const fourth = entries.find(entry => entry.placement.rank === 3);
+      const remainingSections = groupRosterSections(entries.filter(entry => entry.placement.rank > 3));
       panels.rosters.innerHTML = `
-        <div class="rosters-grid">
-          ${rosters.map(team => `
-            <section class="roster-team-card">
-              <h2 class="roster-team-title">${renderWorldCupTeamLabel(team.name, "-")}</h2>
-              <div class="roster-player-list">
-                ${team.players.map(player => {
-                  const member = player.discordId ? memberCache.get(player.discordId) : null;
-                  const tag = member?.discord_user_id ? "a" : "div";
-                  const href = member?.discord_user_id ? ` href="/player.html?id=${encodeURIComponent(member.discord_user_id)}"` : "";
-                  const username = member?.username ? `@${member.username}` : player.discordId || "Discord ID unavailable";
-                  return `
-                    <${tag} class="roster-player"${href}>
-                      <img class="roster-avatar" src="${escapeHtml(avatarUrlFor(member))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
-                      <span class="roster-copy">
-                        <span class="roster-name">${escapeHtml(memberDisplayName(member, player.playerName))}</span>
-                        <span class="roster-user">${escapeHtml(username)}</span>
-                      </span>
-                    </${tag}>
-                  `;
-                }).join("")}
+        <div class="rosters-layout">
+          <section class="roster-advancement-section">
+            <h2 class="roster-section-title">Podium</h2>
+            <div class="roster-podium">
+              ${podium.map(team => renderRosterCard(team, `is-podium podium-placement-${team.placement.rank + 1}`)).join("")}
+            </div>
+            ${fourth ? `<div class="roster-fourth-row">${renderRosterCard(fourth, "is-podium")}</div>` : ""}
+          </section>
+          ${remainingSections.map(section => `
+            <section class="roster-advancement-section">
+              <h2 class="roster-section-title">${escapeHtml(section.label)}</h2>
+              <div class="roster-card-grid">
+                ${section.entries.map(team => renderRosterCard(team)).join("")}
               </div>
             </section>
           `).join("")}
