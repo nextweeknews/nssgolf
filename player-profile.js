@@ -1721,7 +1721,7 @@ function renderNoptationalPlayerTable(player){
   const table = document.createElement("div");
   table.className = "tournament-history";
   table.innerHTML = `
-    <h3 class="tournament-title"><span>Noptational</span><span class="tournament-date">JUN 2026</span></h3>
+    <h3 class="tournament-title"><span>Noptational <span class="tournament-date">(JUN 2026)</span></span></h3>
     <div class="tournament-table-wrap">
       <table class="tournament-table noptational-player-table">
         <thead>
@@ -1754,18 +1754,19 @@ function renderLightningCupResults(results){
   const title = document.createElement("h3");
   title.className = "tournament-title";
   const titleText = document.createElement("span");
-  titleText.textContent = "Lightning Cup";
+  titleText.append(document.createTextNode("Lightning Cup "));
   const titleDate = document.createElement("span");
   titleDate.className = "tournament-date";
-  titleDate.textContent = "APR 2026";
-  title.append(titleText, titleDate);
+  titleDate.textContent = "(APR 2026)";
+  titleText.appendChild(titleDate);
+  title.appendChild(titleText);
 
-  const list = document.createElement("ul");
-  list.className = "lightningcup-results-list";
+  const table = document.createElement("div");
+  table.className = "lightningcup-results-table";
 
   results.forEach((result) => {
-    const item = document.createElement("li");
-    item.className = "lightningcup-result-item";
+    const row = document.createElement("div");
+    row.className = "lightningcup-result-row";
 
     const round = document.createElement("span");
     round.className = "lightningcup-result-round";
@@ -1779,11 +1780,11 @@ function renderLightningCupResults(results){
     score.className = `lightningcup-result-score is-${result.result.outcome}`;
     score.textContent = result.result.result;
 
-    item.append(round, opponent, score);
-    list.appendChild(item);
+    row.append(round, opponent, score);
+    table.appendChild(row);
   });
 
-  container.append(title, list);
+  container.append(title, table);
   return container;
 }
 

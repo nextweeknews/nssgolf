@@ -740,14 +740,10 @@
       font-weight: 950;
       letter-spacing: .14em;
       text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
+      line-height: 1.2;
     }
     .tournament-date{
-      color: rgba(233,238,248,0.56);
+      color: rgba(156,163,199,0.62);
       font-size: 10px;
       letter-spacing: .12em;
     }
@@ -796,14 +792,11 @@
     .tournament-table tbody tr.is-no-scores td{
       color: rgba(233,238,248,0.70);
     }
-    .lightningcup-results-list{
-      list-style: none;
-      margin: 0;
-      padding: 0;
+    .lightningcup-results-table{
       display: grid;
       gap: 8px;
     }
-    .lightningcup-result-item{
+    .lightningcup-result-row{
       display: grid;
       grid-template-columns: 104px minmax(0, 1fr) max-content;
       align-items: center;
@@ -1090,7 +1083,7 @@
       .tournament-table tbody td{
         font-size: 11px;
       }
-      .lightningcup-result-item{
+      .lightningcup-result-row{
         grid-template-columns: 1fr max-content;
         gap: 5px;
         padding: 10px;
