@@ -25,6 +25,15 @@ import {
   formatRoundLabel as formatLightningCupRoundLabel,
   parseSeedsNameDiscordMap as parseLightningCupSeedsNameDiscordMap,
 } from "/lightningcup/match-feature.js";
+import {
+  WORLD_CUP_YEARS,
+  fetchWorldCupValues,
+  findWorldCupTeamNamesForDiscordId,
+  getWorldCupMatchOutcome,
+  parseWorldCupSheet,
+  worldCupMatchesForTeam,
+  worldCupTeamLabel,
+} from "/worldcup-data.js";
 
 const RECORD_GROUPS = [
   {
@@ -158,6 +167,7 @@ const proLeaguePeriodCache = new Map();
 const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
 let worldOpenDiscordMapsPromise = null;
+const worldCupDataPromises = new Map();
 let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
 let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
@@ -1867,6 +1877,64 @@ async function loadWorldOpenPlayerResults(member){
     });
 }
 
+async function loadWorldCupData(year){
+  const normalizedYear = Number(year);
+  if(worldCupDataPromises.has(normalizedYear)) return worldCupDataPromises.get(normalizedYear);
+  const promise = fetchWorldCupValues(normalizedYear).then(values => parseWorldCupSheet(values, { year: normalizedYear }));
+  worldCupDataPromises.set(normalizedYear, promise);
+  return promise;
+}
+
+function buildWorldCupPerspectiveResult(match, teamName, stageLabel){
+  const perspective = getWorldCupMatchOutcome(match, teamName);
+  if(!perspective) return null;
+  const resultLabel = perspective.outcome === "win"
+    ? "Win"
+    : perspective.outcome === "loss"
+      ? "Loss"
+      : perspective.outcome === "bye"
+        ? "Bye"
+        : perspective.outcome === "tie"
+          ? "Tie"
+          : "Pending";
+  return {
+    stage: stageLabel,
+    round: match.round || "",
+    opponent: perspective.opponent || "TBD",
+    score: perspective.score || "-",
+    outcome: perspective.outcome,
+    resultLabel,
+  };
+}
+
+async function loadWorldCupPlayerResults(member){
+  const discordId = normalizeDiscordPlayerId(member?.discord_user_id);
+  if(!discordId) return [];
+
+  const loadedYears = await Promise.allSettled(WORLD_CUP_YEARS.map(async (year) => {
+    const data = await loadWorldCupData(year);
+    const teamNames = findWorldCupTeamNamesForDiscordId(data, discordId);
+    return teamNames.map((teamName) => {
+      const teamData = worldCupMatchesForTeam(data, teamName);
+      return {
+        year,
+        teamName,
+        groupName: teamData.groupEntry?.group?.name || "",
+        standing: teamData.groupEntry?.standing || null,
+        groupMatches: teamData.groupMatches
+          .map(match => buildWorldCupPerspectiveResult(match, teamName, "Group Stage"))
+          .filter(Boolean),
+        bracketMatches: teamData.bracketMatches
+          .map(match => buildWorldCupPerspectiveResult(match, teamName, "Bracket Stage"))
+          .filter(Boolean),
+      };
+    });
+  }));
+
+  return loadedYears.flatMap((result) => result.status === "fulfilled" ? result.value : [])
+    .sort((left, right) => Number(right.year) - Number(left.year));
+}
+
 function renderNoptationalPlayerTable(player){
   const state = player.cutCourse ? "cut" : player.countedCount ? "active" : "no-scores";
   const rankText = state === "cut" ? "Cut" : state === "no-scores" ? "-" : String(player.rank ?? "-");
@@ -2029,6 +2097,66 @@ function renderWorldOpenResults(results){
   table.append(thead, tbody);
   tableWrap.appendChild(table);
   container.append(title, tableWrap);
+  return container;
+}
+
+function renderWorldCupRows(matches){
+  if(!matches.length){
+    return `
+      <tr class="is-pending">
+        <td colspan="4" class="worldcup-empty-cell">No matches found.</td>
+      </tr>
+    `;
+  }
+
+  return matches.map((result) => `
+    <tr class="is-${escapeHtml(result.outcome)}">
+      <td class="worldcup-round-cell">${escapeHtml(result.round || result.stage || "-")}</td>
+      <td class="worldcup-opponent-cell">${escapeHtml(worldCupTeamLabel(result.opponent) || result.opponent || "TBD")}</td>
+      <td class="worldcup-score-cell">${escapeHtml(result.score || "-")}</td>
+      <td class="worldcup-result-cell"><span class="worldcup-result-pill is-${escapeHtml(result.outcome)}">${escapeHtml(result.resultLabel)}</span></td>
+    </tr>
+  `).join("");
+}
+
+function renderWorldCupResults(entries){
+  const container = document.createElement("div");
+  container.className = "tournament-history worldcup-history";
+
+  entries.forEach((entry) => {
+    const block = document.createElement("section");
+    block.className = "worldcup-entry";
+    const standingText = entry.standing
+      ? `${entry.groupName || "Group"}: #${entry.standing.rank}, ${entry.standing.points || "-"} pts, ${entry.standing.record || "-"}`
+      : entry.groupName || "";
+    block.innerHTML = `
+      <h3 class="tournament-title">
+        <span>World Cup <span class="tournament-date">(${escapeHtml(entry.year)})</span></span>
+      </h3>
+      <div class="worldcup-team-row">
+        <span class="worldcup-team-chip">${escapeHtml(worldCupTeamLabel(entry.teamName))}</span>
+        ${standingText ? `<span class="worldcup-standing-chip">${escapeHtml(standingText)}</span>` : ""}
+      </div>
+      <div class="worldcup-results-wrap">
+        <div class="worldcup-stage-label">Group Stage</div>
+        <table class="worldcup-results-table">
+          <thead>
+            <tr><th>Round</th><th>Opponent</th><th>Score</th><th>Result</th></tr>
+          </thead>
+          <tbody>${renderWorldCupRows(entry.groupMatches || [])}</tbody>
+        </table>
+        <div class="worldcup-stage-label">Bracket Stage</div>
+        <table class="worldcup-results-table">
+          <thead>
+            <tr><th>Round</th><th>Opponent</th><th>Score</th><th>Result</th></tr>
+          </thead>
+          <tbody>${renderWorldCupRows(entry.bracketMatches || [])}</tbody>
+        </table>
+      </div>
+    `;
+    container.appendChild(block);
+  });
+
   return container;
 }
 
@@ -2748,10 +2876,11 @@ function renderTournamentsSection(member){
     if(!details.open || loaded) return;
     loaded = true;
     try{
-      const [noptationalResult, lightningCupResult, worldOpenResult] = await Promise.allSettled([
+      const [noptationalResult, lightningCupResult, worldOpenResult, worldCupResult] = await Promise.allSettled([
         loadNoptationalPlayer(member),
         loadLightningCupPlayerResults(member),
         loadWorldOpenPlayerResults(member),
+        loadWorldCupPlayerResults(member),
       ]);
       content.innerHTML = "";
 
@@ -2773,10 +2902,17 @@ function renderTournamentsSection(member){
         console.error("Unable to load World Open player history", worldOpenResult.reason);
       }
 
+      if(worldCupResult.status === "fulfilled" && worldCupResult.value.length){
+        content.appendChild(renderWorldCupResults(worldCupResult.value));
+      }else if(worldCupResult.status === "rejected"){
+        console.error("Unable to load World Cup player history", worldCupResult.reason);
+      }
+
       if(!content.children.length){
         const hasLoadError = noptationalResult.status === "rejected"
           || lightningCupResult.status === "rejected"
-          || worldOpenResult.status === "rejected";
+          || worldOpenResult.status === "rejected"
+          || worldCupResult.status === "rejected";
         content.innerHTML = hasLoadError
           ? `<div class="proleague-error">Unable to load tournament data.</div>`
           : `<p class="profile-muted proleague-empty">No tournaments found.</p>`;

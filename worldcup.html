@@ -13,16 +13,25 @@
       --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
+      --header-bg: rgba(148,163,184,0.12);
+      --row-bg: rgba(255,255,255,0.06);
+      --row-bg-2: rgba(255,255,255,0.045);
       --text: #e9eef8;
       --title: #c7d7ff;
       --muted: #9ca3c7;
+      --border-lite: rgba(148,163,184,0.20);
       --btn-bg: rgba(255,255,255,0.06);
       --btn-bg-hover: rgba(255,255,255,0.10);
       --btn-border: rgba(255,255,255,0.15);
       --btn-border-hover: rgba(255,255,255,0.28);
+      --worldcup-accent-rgb: 37,99,235;
+      --worldcup-accent: #60a5fa;
+      --wc-round-column-width: 252px;
+      --wc-match-height: 64px;
     }
 
     *{ box-sizing:border-box; }
+    [hidden]{ display:none !important; }
     html{ background-color:var(--bg3); }
     body{
       margin:0;
@@ -41,7 +50,7 @@
       backdrop-filter:blur(10px);
     }
     .topbar-inner{
-      max-width:1100px;
+      max-width:1260px;
       margin:0 auto;
       padding:14px 18px;
       display:flex;
@@ -86,20 +95,24 @@
       color:rgba(255,255,255,.65);
       font-weight:900;
     }
-    .page-nav-select{
+    .page-nav-select,
+    .year-select{
       background:rgba(2,6,23,.85);
       color:inherit;
-      border:1px solid rgba(125,211,252,.35);
+      border:1px solid rgba(96,165,250,.45);
       border-radius:10px;
       padding:6px 32px 6px 10px;
       font:inherit;
       letter-spacing:inherit;
       text-transform:uppercase;
-      max-width:min(56vw, 420px);
       cursor:pointer;
     }
-    .page-nav-select:focus-visible{
-      outline:2px solid rgba(125,211,252,.6);
+    .page-nav-select{
+      max-width:min(56vw, 420px);
+    }
+    .page-nav-select:focus-visible,
+    .year-select:focus-visible{
+      outline:2px solid rgba(96,165,250,.62);
       outline-offset:2px;
     }
     .btn{
@@ -132,45 +145,481 @@
       display:block;
     }
     .container{
-      max-width:1100px;
+      max-width:1260px;
       margin:0 auto;
-      padding:28px 18px 56px;
+      padding:22px 18px 52px;
       display:grid;
-      place-items:center;
+      gap:14px;
     }
     .card{
-      width:min(820px, 100%);
+      width:100%;
       background:var(--card-bg);
       border-radius:20px;
-      padding:22px 20px;
+      padding:16px;
       box-shadow:var(--card-shadow);
       border:1px solid rgba(255,255,255,0.10);
+      display:grid;
+      gap:14px;
+    }
+    .card-head{
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:22px;
+      flex-wrap:wrap;
       text-align:center;
     }
     .headline{
       margin:0;
       color:var(--title);
-      font-size:24px;
+      font-size:26px;
       font-weight:950;
       letter-spacing:.035em;
       text-transform:uppercase;
     }
-    .placeholder{
-      margin:12px 0 0;
-      color:rgba(233,238,248,0.82);
-      font-size:15px;
-      font-weight:800;
-      line-height:1.45;
+    .year-select{
+      min-height:34px;
+      font-size:11px;
+      font-weight:950;
+      letter-spacing:.10em;
     }
-    @media (max-width:760px){
+    .worldcup-tabs-root{ width:100%; }
+    .worldcup-tabs-list{
+      width:100%;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:0;
+      padding:0;
+      border:0;
+      border-bottom:1px solid rgba(148,163,184,.24);
+      background:transparent;
+    }
+    .worldcup-tabs-trigger{
+      position:relative;
+      min-height:38px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color:rgba(233,238,248,.86);
+      padding:7px 10px;
+      text-align:center;
+      line-height:1.2;
+      font:inherit;
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      appearance:none;
+      cursor:pointer;
+      transition:background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+    .worldcup-tabs-trigger-label{
+      display:block;
+      width:100%;
+      text-align:center;
+    }
+    .worldcup-tabs-trigger::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:2px;
+      background:transparent;
+      transition:background-color 140ms ease;
+    }
+    .worldcup-tabs-trigger:hover{
+      background:rgba(var(--worldcup-accent-rgb), .10);
+      color:rgba(255,255,255,.95);
+    }
+    .worldcup-tabs-trigger[data-state="active"]{
+      background:rgba(var(--worldcup-accent-rgb), .12);
+      color:#f8fbff;
+    }
+    .worldcup-tabs-trigger[data-state="active"]::after{
+      background:rgba(96,165,250,.90);
+    }
+    .worldcup-tabs-trigger:focus-visible{
+      outline:none;
+      box-shadow:inset 0 0 0 1px rgba(var(--worldcup-accent-rgb), .46);
+    }
+    .tab-panel{ min-width:0; }
+    .status{
+      margin:0;
+      padding:18px 4px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:800;
+      text-align:center;
+    }
+    .status.error{ color:rgba(252,165,165,.96); }
+
+    .wc-bracket-scroll{
+      width:100%;
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding-bottom:4px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .wc-bracket-grid{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:var(--wc-round-column-width);
+      gap:18px;
+      align-items:start;
+      width:max-content;
+      min-width:100%;
+      justify-content:center;
+      padding:2px;
+    }
+    .wc-round-column{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width:0;
+    }
+    .wc-round-title{
+      margin:0;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      text-align:center;
+    }
+    .wc-round-stack{
+      display:flex;
+      flex-direction:column;
+      gap:var(--wc-round-gap, 8px);
+    }
+    .wc-round-stack .wc-bracket-match:first-child{
+      padding-top:var(--wc-round-padding-top, 0px);
+    }
+    .wc-round-stack .wc-bracket-match + .wc-bracket-match{
+      padding-top:var(--wc-round-gap, 8px);
+    }
+    .wc-bracket-match{
+      display:grid;
+      min-height:var(--wc-match-height);
+      align-items:center;
+    }
+    .wc-match-card{
+      position:relative;
+      width:100%;
+      min-width:0;
+      border-radius:10px;
+      overflow:hidden;
+      background:rgba(255,255,255,0.05);
+      isolation:isolate;
+    }
+    .wc-match-card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:inherit;
+      pointer-events:none;
+      z-index:3;
+    }
+    .wc-match-row{
+      width:100%;
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 34px;
+      align-items:center;
+      gap:8px;
+      min-height:30px;
+      background:rgba(255,255,255,0.06);
+      color:var(--muted);
+      padding:4px 6px 4px 8px;
+      border:0;
+      font-size:11px;
+      position:relative;
+      z-index:1;
+    }
+    .wc-match-row:nth-child(2){ background:rgba(255,255,255,0.045); }
+    .wc-match-row + .wc-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
+    .wc-match-row.is-winner{
+      background:rgba(var(--worldcup-accent-rgb), .13);
+      color:#fff;
+    }
+    .wc-match-row.is-winner::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-left:1px solid rgba(96,165,250,.45);
+      border-right:1px solid rgba(96,165,250,.45);
+      pointer-events:none;
+    }
+    .wc-match-row.is-bye{
+      color:rgba(233,238,248,.72);
+      background:rgba(148,163,184,.08);
+    }
+    .wc-team-name{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-weight:950;
+      letter-spacing:.02em;
+      text-transform:uppercase;
+      color:inherit;
+    }
+    .wc-score{
+      justify-self:end;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:28px;
+      min-height:20px;
+      border-radius:7px;
+      border:1px solid rgba(255,255,255,.62);
+      background:#fff;
+      color:#020617;
+      font-weight:950;
+      font-variant-numeric:tabular-nums;
+      line-height:1;
+      padding:0 5px;
+    }
+    .wc-score.is-empty{
+      background:transparent;
+      color:rgba(233,238,248,.70);
+      border-color:rgba(148,163,184,.30);
+    }
+
+    .group-stage-list{
+      display:grid;
+      gap:0;
+    }
+    .group-stage-block{
+      display:grid;
+      grid-template-columns:minmax(270px, 360px) minmax(0, 1fr);
+      gap:16px;
+      align-items:center;
+      padding:16px 0;
+      border-top:1px solid rgba(148,163,184,.18);
+    }
+    .group-stage-block:first-child{
+      border-top:0;
+      padding-top:4px;
+    }
+    .group-card,
+    .games-card,
+    .roster-team-card{
+      min-width:0;
+      border:1px solid var(--border-lite);
+      border-radius:14px;
+      background:rgba(15,23,42,0.58);
+    }
+    .group-card{
+      padding:12px;
+    }
+    .group-title,
+    .roster-team-title{
+      margin:0 0 10px;
+      color:#fff;
+      font-size:14px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+    }
+    .standings-table{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      color:rgba(233,238,248,.94);
+      font-size:14px;
+      font-variant-numeric:tabular-nums;
+    }
+    .standings-table th,
+    .standings-table td{
+      padding:8px 6px;
+      border-bottom:1px solid rgba(148,163,184,.18);
+      text-align:center;
+      white-space:nowrap;
+    }
+    .standings-table th{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:950;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      background:var(--header-bg);
+    }
+    .standings-table th:first-child,
+    .standings-table td:first-child{
+      text-align:left;
+      width:48%;
+    }
+    .standings-table tbody tr:last-child td{ border-bottom:0; }
+    .standings-table td{
+      background:var(--row-bg);
+      font-weight:900;
+    }
+    .standings-table tbody tr:nth-child(even) td{ background:var(--row-bg-2); }
+    .games-card{
+      padding:12px;
+      align-self:center;
+    }
+    .games-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:9px;
+    }
+    .group-game{
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;
+      overflow:hidden;
+      background:rgba(255,255,255,.045);
+    }
+    .group-game-label{
+      margin:0;
+      padding:6px 7px;
+      color:rgba(156,163,199,.86);
+      font-size:9px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      text-align:center;
+      background:rgba(2,8,24,.35);
+    }
+    .group-game-row{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) 30px;
+      gap:8px;
+      align-items:center;
+      min-height:28px;
+      padding:4px 7px;
+      color:rgba(233,238,248,.88);
+      font-size:11px;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+    .group-game-row + .group-game-row{ border-top:1px solid rgba(148,163,184,.24); }
+    .group-game-row.is-winner{
+      color:#fff;
+      background:rgba(var(--worldcup-accent-rgb), .13);
+    }
+    .group-game-row.is-bye{
+      color:rgba(233,238,248,.72);
+      background:rgba(148,163,184,.08);
+    }
+    .group-game-team{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .rosters-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
+      gap:12px;
+    }
+    .roster-team-card{
+      padding:12px;
+      display:grid;
+      gap:10px;
+    }
+    .roster-player-list{
+      display:grid;
+      gap:8px;
+    }
+    .roster-player{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px;
+      border-radius:10px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.07);
+      color:rgba(233,238,248,.94);
+      text-decoration:none;
+    }
+    a.roster-player:hover{
+      background:rgba(255,255,255,.09);
+      border-color:rgba(96,165,250,.34);
+    }
+    .roster-avatar{
+      width:36px;
+      height:36px;
+      border-radius:999px;
+      object-fit:cover;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.16);
+      flex:0 0 auto;
+    }
+    .roster-copy{
+      min-width:0;
+      display:grid;
+      gap:3px;
+    }
+    .roster-name{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:13px;
+      font-weight:950;
+      color:#fff;
+    }
+    .roster-user{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      color:rgba(156,163,199,.82);
+      font-size:11px;
+      font-weight:800;
+    }
+
+    @media (max-width:900px){
       .container{ padding:20px 12px 44px; }
       .topbar-inner{ padding:12px; flex-wrap:nowrap; }
       .brand{ flex:1; min-width:0; }
       .brand > div{ min-width:0; }
       .page-nav-select{ width:min(100%, 420px); max-width:100%; }
       .discord-button{ padding:8px 10px; font-size:10px; letter-spacing:.06em; }
-      .card{ padding:18px 14px; border-radius:18px; }
-      .headline{ font-size:20px; }
+      .card{ padding:14px 12px; border-radius:18px; }
+      .headline{ font-size:22px; }
+      .card-head{ gap:12px; }
+      .worldcup-tabs-trigger{ font-size:10px; padding-inline:5px; }
+      .wc-bracket-scroll{
+        position:sticky;
+        top:65px;
+        z-index:1;
+        background:rgba(15,23,42,.98);
+        border-radius:12px;
+        border:1px solid rgba(148,163,184,.16);
+        padding:8px;
+      }
+      .wc-bracket-grid{
+        justify-content:start;
+        grid-auto-columns:min(238px, calc(100vw - 54px));
+      }
+      .group-stage-block{
+        grid-template-columns:1fr;
+        gap:10px;
+      }
+      .games-grid{
+        grid-template-columns:repeat(2, minmax(0,1fr));
+      }
+    }
+    @media (max-width:560px){
+      .card-head{
+        justify-content:flex-start;
+        text-align:left;
+      }
+      .year-select{
+        width:100%;
+      }
+      .games-grid{
+        grid-template-columns:1fr;
+      }
+      .standings-table{
+        font-size:12px;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -208,11 +657,344 @@
 
   <main class="container">
     <section class="card" aria-labelledby="worldcup-title">
-      <h1 class="headline" id="worldcup-title">World Cup</h1>
-      <p class="placeholder">Coming soon</p>
+      <div class="card-head">
+        <h1 class="headline" id="worldcup-title">World Cup</h1>
+        <select id="yearSelect" class="year-select" aria-label="Select World Cup year"></select>
+      </div>
+      <div id="worldcupTabsRoot"></div>
+      <div id="bracketPanel" class="tab-panel" role="tabpanel" aria-labelledby="worldcup-tab-bracket"></div>
+      <div id="groupPanel" class="tab-panel" role="tabpanel" aria-labelledby="worldcup-tab-group" hidden></div>
+      <div id="rostersPanel" class="tab-panel" role="tabpanel" aria-labelledby="worldcup-tab-rosters" hidden></div>
     </section>
   </main>
 
   <script type="module" src="/site-topbar.js"></script>
+  <script type="module">
+    import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { mountWorldCupTabs } from "/worldcup-tabs.bundle.js";
+    import {
+      WORLD_CUP_YEARS,
+      fetchWorldCupValues,
+      findWorldCupTeamNamesForDiscordId,
+      getWorldCupMatchOutcome,
+      normalizeWorldCupDiscordId,
+      parseWorldCupSheet,
+      worldCupMatchesForTeam,
+      worldCupRoundLabel,
+      worldCupTeamLabel,
+    } from "/worldcup-data.js";
+
+    const supabase = createBrowserSupabaseClient();
+    const tabs = [
+      { value:"bracket", label:"Bracket Stage", id:"worldcup-tab-bracket", controls:"bracketPanel" },
+      { value:"group", label:"Group Stage", id:"worldcup-tab-group", controls:"groupPanel" },
+      { value:"rosters", label:"Rosters", id:"worldcup-tab-rosters", controls:"rostersPanel" },
+    ];
+    const panels = {
+      bracket: document.getElementById("bracketPanel"),
+      group: document.getElementById("groupPanel"),
+      rosters: document.getElementById("rostersPanel"),
+    };
+    const yearSelect = document.getElementById("yearSelect");
+    const memberCache = new Map();
+    const dataCache = new Map();
+
+    let activeYear = getInitialYear();
+    let activeTab = getInitialTab();
+    let activeData = null;
+
+    const tabRoot = mountWorldCupTabs(document.getElementById("worldcupTabsRoot"), {
+      tabs,
+      onTabChange(value){
+        setActiveTab(value);
+      },
+    });
+
+    function getInitialYear(){
+      const params = new URLSearchParams(window.location.search);
+      const requested = Number(params.get("year"));
+      return WORLD_CUP_YEARS.includes(requested) ? requested : WORLD_CUP_YEARS[0];
+    }
+
+    function getInitialTab(){
+      const params = new URLSearchParams(window.location.search);
+      const requested = String(params.get("tab") || "bracket").trim().toLowerCase();
+      return tabs.some(tab => tab.value === requested) ? requested : "bracket";
+    }
+
+    function updateUrl(){
+      const url = new URL(window.location.href);
+      url.searchParams.set("year", String(activeYear));
+      url.searchParams.set("tab", activeTab);
+      window.history.replaceState(null, "", url.toString());
+    }
+
+    function setActiveTab(value){
+      if(!tabs.some(tab => tab.value === value)) return;
+      activeTab = value;
+      Object.entries(panels).forEach(([key, panel]) => {
+        panel.hidden = key !== activeTab;
+      });
+      tabRoot.render(activeTab);
+      updateUrl();
+    }
+
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function scoreText(value){
+      const text = String(value ?? "").trim();
+      return text || "-";
+    }
+
+    function showStatus(message, isError = false){
+      Object.values(panels).forEach((panel) => {
+        panel.innerHTML = `<p class="status ${isError ? "error" : ""}">${escapeHtml(message)}</p>`;
+      });
+    }
+
+    async function loadYearData(year){
+      if(dataCache.has(year)) return dataCache.get(year);
+      const promise = fetchWorldCupValues(year).then(values => parseWorldCupSheet(values, { year }));
+      dataCache.set(year, promise);
+      return promise;
+    }
+
+    function memberDisplayName(member, fallback){
+      return String(member?.display_name || member?.username || fallback || "Player").trim();
+    }
+
+    function avatarUrlFor(member){
+      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
+    }
+
+    async function loadMembersForData(data){
+      const ids = [...new Set((data?.rosterPlayers || []).map(player => normalizeWorldCupDiscordId(player.discordId)).filter(Boolean))];
+      const missing = ids.filter(id => !memberCache.has(id));
+      for(let index = 0; index < missing.length; index += 100){
+        const chunk = missing.slice(index, index + 100);
+        const { data: rows, error } = await supabase
+          .from("discord_guild_members")
+          .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
+          .in("discord_user_id", chunk);
+        if(error) throw error;
+        chunk.forEach(id => memberCache.set(id, null));
+        (rows || []).forEach(member => {
+          const id = normalizeWorldCupDiscordId(member.discord_user_id);
+          if(id) memberCache.set(id, { ...member, discord_user_id:id });
+        });
+      }
+      return memberCache;
+    }
+
+    function groupBracketRounds(matches, year){
+      const roundGroups = new Map();
+      (matches || []).forEach((match) => {
+        const rawRound = String(match.round || "").trim();
+        const key = rawRound === "F" || rawRound === "Final" || rawRound === "3rd" ? "Medal" : rawRound;
+        if(!roundGroups.has(key)){
+          roundGroups.set(key, {
+            key,
+            label: key === "Medal" ? "Medal Matches" : worldCupRoundLabel(rawRound),
+            matches: [],
+          });
+        }
+        roundGroups.get(key).matches.push(match);
+      });
+      const order = year === 2024 ? ["R24", "R16", "QF", "SF", "Medal"] : ["R16", "QF", "SF", "Medal"];
+      return [...roundGroups.values()]
+        .sort((left, right) => order.indexOf(left.key) - order.indexOf(right.key))
+        .map(group => ({
+          ...group,
+          matches: group.matches.slice().sort((left, right) => Number(left.id || 0) - Number(right.id || 0)),
+        }));
+    }
+
+    function spacingIndexForRound(groups, index, year){
+      if(year === 2024 && index < 2) return 0;
+      const firstCount = groups[0]?.matches?.length || 1;
+      const count = groups[index]?.matches?.length || 1;
+      const ratio = Math.max(1, firstCount / count);
+      const raw = Math.round(Math.log2(ratio));
+      return year === 2024 ? Math.max(0, raw - 1) : Math.max(0, raw);
+    }
+
+    function renderBracketMatchRow(match, side){
+      const team = side === "team1" ? match.team1 : match.team2;
+      const score = side === "team1" ? match.score1 : match.score2;
+      const outcome = getWorldCupMatchOutcome(match, team);
+      const isBye = outcome?.outcome === "bye" || /^bye$/i.test(team);
+      const isWinner = outcome?.outcome === "win" && !isBye;
+      return `
+        <div class="wc-match-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
+          <span class="wc-team-name">${escapeHtml(worldCupTeamLabel(team) || team || "TBD")}</span>
+          <span class="wc-score ${score ? "" : "is-empty"}">${escapeHtml(scoreText(score))}</span>
+        </div>
+      `;
+    }
+
+    function renderBracket(data){
+      const groups = groupBracketRounds(data.bracket, data.year);
+      const matchHeight = 64;
+      const baseGap = 8;
+      const baseStep = matchHeight + (baseGap * 2);
+      panels.bracket.innerHTML = `
+        <div class="wc-bracket-scroll">
+          <div class="wc-bracket-grid" data-year="${escapeHtml(data.year)}">
+            ${groups.map((group, index) => {
+              const spacingIndex = spacingIndexForRound(groups, index, data.year);
+              const roundGap = Math.round((baseStep * (2 ** spacingIndex) - matchHeight) / 2);
+              const topPadding = spacingIndex ? Math.round((baseStep * ((2 ** spacingIndex) - 1)) / 2) : 0;
+              return `
+                <div class="wc-round-column" style="--wc-round-gap:${roundGap}px;--wc-round-padding-top:${topPadding}px;">
+                  <h3 class="wc-round-title">${escapeHtml(group.label)}</h3>
+                  <div class="wc-round-stack">
+                    ${group.matches.map(match => `
+                      <div class="wc-bracket-match">
+                        <div class="wc-match-card" title="${escapeHtml(`${worldCupRoundLabel(match.round)} ${match.id || ""}`.trim())}">
+                          ${renderBracketMatchRow(match, "team1")}
+                          ${renderBracketMatchRow(match, "team2")}
+                        </div>
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderGameRow(match, side){
+      const team = side === "team1" ? match.team1 : match.team2;
+      const score = side === "team1" ? match.score1 : match.score2;
+      const outcome = getWorldCupMatchOutcome(match, team);
+      const isBye = outcome?.outcome === "bye" || /^bye$/i.test(team);
+      const isWinner = outcome?.outcome === "win" && !isBye;
+      return `
+        <div class="group-game-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
+          <span class="group-game-team">${escapeHtml(worldCupTeamLabel(team) || team || "TBD")}</span>
+          <span>${escapeHtml(scoreText(score))}</span>
+        </div>
+      `;
+    }
+
+    function renderGroupStage(data){
+      panels.group.innerHTML = `
+        <div class="group-stage-list">
+          ${data.groups.map(group => `
+            <section class="group-stage-block" aria-label="${escapeHtml(group.name)}">
+              <div class="group-card">
+                <h2 class="group-title">${escapeHtml(group.name)}</h2>
+                <table class="standings-table">
+                  <thead>
+                    <tr>
+                      <th>Team</th>
+                      <th>Pts</th>
+                      <th>Diff</th>
+                      <th>${escapeHtml(group.recordHeader)}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${group.standings.map(row => `
+                      <tr>
+                        <td>${escapeHtml(worldCupTeamLabel(row.team))}</td>
+                        <td>${escapeHtml(row.points || "-")}</td>
+                        <td>${escapeHtml(row.differential || "-")}</td>
+                        <td>${escapeHtml(row.record || "-")}</td>
+                      </tr>
+                    `).join("")}
+                  </tbody>
+                </table>
+              </div>
+              <div class="games-card">
+                <div class="games-grid">
+                  ${group.games.map((game, index) => `
+                    <div class="group-game">
+                      <p class="group-game-label">Game ${index + 1}</p>
+                      ${renderGameRow(game, "team1")}
+                      ${renderGameRow(game, "team2")}
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            </section>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function renderRosters(data){
+      panels.rosters.innerHTML = `
+        <div class="rosters-grid">
+          ${data.rosters.map(team => `
+            <section class="roster-team-card">
+              <h2 class="roster-team-title">${escapeHtml(worldCupTeamLabel(team.name))}</h2>
+              <div class="roster-player-list">
+                ${team.players.map(player => {
+                  const member = player.discordId ? memberCache.get(player.discordId) : null;
+                  const tag = member?.discord_user_id ? "a" : "div";
+                  const href = member?.discord_user_id ? ` href="/player.html?id=${encodeURIComponent(member.discord_user_id)}"` : "";
+                  const username = member?.username ? `@${member.username}` : player.discordId || "Discord ID unavailable";
+                  return `
+                    <${tag} class="roster-player"${href}>
+                      <img class="roster-avatar" src="${escapeHtml(avatarUrlFor(member))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                      <span class="roster-copy">
+                        <span class="roster-name">${escapeHtml(memberDisplayName(member, player.playerName))}</span>
+                        <span class="roster-user">${escapeHtml(username)}</span>
+                      </span>
+                    </${tag}>
+                  `;
+                }).join("")}
+              </div>
+            </section>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    async function renderYear(){
+      showStatus(`Loading World Cup ${activeYear}...`);
+      try{
+        activeData = await loadYearData(activeYear);
+        await loadMembersForData(activeData);
+        renderBracket(activeData);
+        renderGroupStage(activeData);
+        renderRosters(activeData);
+      }catch(error){
+        console.error("Unable to load World Cup data", error);
+        showStatus("Unable to load World Cup data.", true);
+      }
+    }
+
+    function hydrateYearSelect(){
+      yearSelect.innerHTML = WORLD_CUP_YEARS.map(year => `<option value="${year}">${year}</option>`).join("");
+      yearSelect.value = String(activeYear);
+      yearSelect.addEventListener("change", async () => {
+        const nextYear = Number(yearSelect.value);
+        if(!WORLD_CUP_YEARS.includes(nextYear)) return;
+        activeYear = nextYear;
+        updateUrl();
+        await renderYear();
+      });
+    }
+
+    hydrateYearSelect();
+    setActiveTab(activeTab);
+    renderYear();
+
+    window.NSSGolfWorldCup = {
+      getActiveData: () => activeData,
+      findWorldCupTeamNamesForDiscordId,
+      worldCupMatchesForTeam,
+    };
+  </script>
 </body>
 </html>
