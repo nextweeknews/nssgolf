@@ -391,6 +391,10 @@
       background:rgba(255,255,255,0.045);
     }
     .wc-match-row + .wc-match-row{ border-top:1px solid rgba(148,163,184,0.38); }
+    .wc-match-row.is-winner + .wc-match-row,
+    .wc-match-row + .wc-match-row.is-winner{
+      border-top-color:transparent;
+    }
     .wc-match-row.is-winner{
       background:rgba(var(--worldcup-accent-rgb), .13);
       color:#fff;
