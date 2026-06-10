@@ -102,7 +102,7 @@ The bot can create a missing `player_settings` row for a Discord-only player. If
 For the rank bot, the Discord application needs:
 
 - OAuth scopes: `bot` and `applications.commands`
-- Bot/channel permissions: `View Channel`, `Send Messages`, `Read Message History`, `Use Application Commands`, and `Manage Webhooks`
+- Bot/channel permissions: `View Channel`, `Send Messages`, `Read Message History`, `Use Application Commands`, `Embed Links`, and `Manage Webhooks`
 - Privileged Gateway Intents: **Server Members Intent** and **Message Content Intent**
 
 Slash commands are registered as Administrator-only by default. At runtime, the bot also accepts the role in `DISCORD_ADMIN_ROLE_ID` as an admin role. If that role does not have Discord's Administrator permission, enable access to the slash commands for that role in the server's **Integrations** settings.

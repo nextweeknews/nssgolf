@@ -576,6 +576,35 @@ function webhookClientForRow(row) {
   });
 }
 
+const displayPermissionChecks = [
+  ["View Channel", PermissionFlagsBits.ViewChannel],
+  ["Send Messages", PermissionFlagsBits.SendMessages],
+  ["Embed Links", PermissionFlagsBits.EmbedLinks],
+  ["Manage Webhooks", PermissionFlagsBits.ManageWebhooks],
+];
+
+function missingDisplayPermissions(channel) {
+  const permissions = channel?.permissionsFor?.(client.user);
+  if (!permissions) {
+    return ["View Channel", "Send Messages", "Embed Links", "Manage Webhooks"];
+  }
+
+  return displayPermissionChecks
+    .filter(([, permission]) => !permissions.has(permission))
+    .map(([label]) => label);
+}
+
+function assertDisplayPermissions(channel) {
+  const missingPermissions = missingDisplayPermissions(channel);
+  if (!missingPermissions.length) {
+    return;
+  }
+
+  throw new Error(
+    `I need these channel permissions to create the public leaderboard webhook message: ${missingPermissions.join(", ")}.`
+  );
+}
+
 async function editDisplayRow(row, embeds) {
   const webhookClient = webhookClientForRow(row);
   await webhookClient.editMessage(row.message_id, {
@@ -588,6 +617,8 @@ async function ensureWebhook(channel) {
   if (!channel || typeof channel.createWebhook !== "function") {
     throw new Error("Use this command in a server text channel where the bot can manage webhooks.");
   }
+
+  assertDisplayPermissions(channel);
 
   const webhookName = "NSS Golf Rank Displays";
   const webhooks = await channel.fetchWebhooks();
