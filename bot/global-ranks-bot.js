@@ -37,20 +37,26 @@ const supabaseServiceRoleKey =
 const missingSetupMessage =
   "Run bot/discord-member-schema.sql, bot/player-settings-schema.sql, and bot/global-rank-displays-schema.sql in the Supabase SQL editor for this project.";
 
+const leaderboardMessageAuthorName = "nssgolf.com Global Ranks";
+const leaderboardMessageAvatarUrl =
+  process.env.NSSGOLF_GLOBAL_RANKS_AVATAR_URL ||
+  "https://www.nssgolf.com/logos/golf.png";
+const recordsButtonTealColor = 0x2dd4bf;
+
 const rankDisplayConfigs = {
   current_global_rank: {
     commandName: "display_global_ranks",
-    title: "Global Ranks",
+    title: GLOBAL_RANK_FIELD_LABELS.current_global_rank,
     rankOrder: GLOBAL_RANKS_WITH_CS,
   },
   max_global_rank_no_cs: {
     commandName: "display_global_max_nocs",
-    title: "Global Max Ranks (no cloud saves)",
+    title: GLOBAL_RANK_FIELD_LABELS.max_global_rank_no_cs,
     rankOrder: GLOBAL_RANKS_NO_CS,
   },
   max_global_rank_cs: {
     commandName: "display_global_max_cs",
-    title: "Global Max Ranks (with cloud saves)",
+    title: "Max. Rank (Cloud Saves)",
     rankOrder: GLOBAL_RANKS_WITH_CS,
   },
 };
@@ -474,7 +480,7 @@ function chunkRankSections(sections, maxLength = 3800) {
   let currentChunk = "";
 
   for (const section of sections) {
-    const nextChunk = currentChunk ? `${currentChunk}\n\n${section}` : section;
+    const nextChunk = currentChunk ? `${currentChunk}\n${section}` : section;
     if (nextChunk.length <= maxLength) {
       currentChunk = nextChunk;
       continue;
@@ -511,7 +517,7 @@ async function buildRankEmbeds(rankKey) {
       .map((row) => escapedDisplayName(displayNameForMemberRow(row.member)))
       .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: "base" }));
 
-    return `**${rank}**\n${names.map((name) => `- ${name}`).join("\n")}`;
+    return `**${rank}**\n${names.join("\n")}`;
   });
 
   const descriptionChunks = chunkRankSections(sections);
@@ -523,7 +529,7 @@ async function buildRankEmbeds(rankKey) {
 
     return new EmbedBuilder()
       .setTitle(title)
-      .setColor(0x2f855a)
+      .setColor(recordsButtonTealColor)
       .setDescription(description)
       .setFooter({ text: GLOBAL_RANK_FIELD_LABELS[rankKey] })
       .setTimestamp(new Date());
@@ -613,6 +619,11 @@ async function editDisplayRow(row, embeds) {
   });
 }
 
+async function deleteDisplayMessage(row) {
+  const webhookClient = webhookClientForRow(row);
+  await webhookClient.deleteMessage(row.message_id);
+}
+
 async function ensureWebhook(channel) {
   if (!channel || typeof channel.createWebhook !== "function") {
     throw new Error("Use this command in a server text channel where the bot can manage webhooks.");
@@ -620,7 +631,7 @@ async function ensureWebhook(channel) {
 
   assertDisplayPermissions(channel);
 
-  const webhookName = "NSS Golf Rank Displays";
+  const webhookName = leaderboardMessageAuthorName;
   const webhooks = await channel.fetchWebhooks();
   const existingWebhook = webhooks.find(
     (webhook) =>
@@ -635,6 +646,7 @@ async function ensureWebhook(channel) {
 
   return channel.createWebhook({
     name: webhookName,
+    avatar: leaderboardMessageAvatarUrl,
     reason: "Create NSS Golf global rank display messages.",
   });
 }
@@ -645,15 +657,15 @@ async function createOrUpdateDisplay(channel, rankKey, createdByDiscordUserId) {
 
   if (existingRow) {
     try {
-      await editDisplayRow(existingRow, embeds);
-      return { action: "updated", messageId: existingRow.message_id };
+      await deleteDisplayMessage(existingRow);
     } catch (error) {
       console.warn(
-        `Unable to edit existing ${rankKey} display ${existingRow.message_id}; creating a replacement.`,
+        `Unable to delete existing ${rankKey} display ${existingRow.message_id}; creating a replacement.`,
         error
       );
-      await deleteDisplayRow(existingRow);
     }
+
+    await deleteDisplayRow(existingRow);
   }
 
   const webhook = await ensureWebhook(channel);
@@ -662,6 +674,8 @@ async function createOrUpdateDisplay(channel, rankKey, createdByDiscordUserId) {
   }
 
   const message = await webhook.send({
+    username: leaderboardMessageAuthorName,
+    avatarURL: leaderboardMessageAvatarUrl,
     embeds,
     allowedMentions: { parse: [] },
     wait: true,
@@ -677,7 +691,7 @@ async function createOrUpdateDisplay(channel, rankKey, createdByDiscordUserId) {
     created_by_discord_user_id: createdByDiscordUserId,
   });
 
-  return { action: "created", messageId: message.id };
+  return { action: existingRow ? "recreated" : "created", messageId: message.id };
 }
 
 async function loadDisplayRowsForFields(rankKeys) {

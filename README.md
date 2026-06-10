@@ -115,6 +115,7 @@ Set the same Discord and Supabase secrets used by the member scan:
 DISCORD_BOT_TOKEN=your_real_bot_token
 DISCORD_GUILD_ID=your_server_id
 DISCORD_ADMIN_ROLE_ID=your_admin_role_id
+NSSGOLF_GLOBAL_RANKS_AVATAR_URL=https://www.nssgolf.com/logos/golf.png
 NSSGOLF_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NSSGOLF_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
