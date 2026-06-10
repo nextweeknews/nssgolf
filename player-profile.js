@@ -27,6 +27,7 @@ import {
   parseSeedsNameDiscordMap as parseLightningCupSeedsNameDiscordMap,
 } from "/lightningcup/match-feature.js";
 import {
+  WORLD_CUP_SHEET_ID,
   WORLD_CUP_YEARS,
   fetchWorldCupValues,
   findWorldCupTeamNamesForDiscordId,
@@ -85,6 +86,9 @@ const SUPERLEAGUE_DISCORD_IDS_SHEET = "Discord IDs";
 const NOPTATIONAL_SHEET_ID = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
 const NOPTATIONAL_SHEET_NAME = "Round Scores (2026)";
 const NOPTATIONAL_SHEET_RANGE = `'${NOPTATIONAL_SHEET_NAME}'!A1:J250`;
+const ARCHIVED_RANKED_LEAGUE_SHEET_NAME = "Ranked Seasons 1-6";
+const ARCHIVED_RANKED_LEAGUE_RANGE = `'${ARCHIVED_RANKED_LEAGUE_SHEET_NAME}'!A:AC`;
+const ARCHIVED_RANKED_LEAGUE_SEASONS = [1, 2, 3, 4, 5, 6];
 const LIGHTNING_CUP_SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
 const LIGHTNING_CUP_BRACKET_RANGE = "Bracket!A:T";
 const LIGHTNING_CUP_SEEDS_RANGE = "Seeds!C:E";
@@ -628,14 +632,45 @@ function getRankedEntryForPlayer(payload, discordId, season){
   return row ? normalizeRankedPlayerEntry(row, season) : null;
 }
 
-async function loadArchivedRankedLeagueRows(discordId){
+function parseArchivedRankedLeagueRows(values, discordId){
+  const normalizedDiscordId = normalizeDiscordPlayerId(discordId);
+  if(!normalizedDiscordId) return [];
+
+  const rows = Array.isArray(values) ? values : [];
+  return ARCHIVED_RANKED_LEAGUE_SEASONS.map((season, seasonIndex) => {
+    const startColumn = seasonIndex * 5;
+    for(const row of rows.slice(1)){
+      const playerId = normalizeDiscordPlayerId(row?.[startColumn + 1]);
+      if(playerId !== normalizedDiscordId) continue;
+
+      return {
+        season,
+        seasonLabel: rankedSeasonLabel(season),
+        rank: asWholeNumber(row?.[startColumn]),
+        elo: asWholeNumber(row?.[startColumn + 3]),
+        wins: null,
+        matches: null,
+        winRate: null,
+        playerName: String(row?.[startColumn + 2] ?? "").trim(),
+      };
+    }
+    return null;
+  }).filter(Boolean);
+}
+
+async function loadArchivedRankedLeagueRowsFromSheet(discordId){
+  const values = await fetchSheetRange(WORLD_CUP_SHEET_ID, ARCHIVED_RANKED_LEAGUE_RANGE);
+  return parseArchivedRankedLeagueRows(values, discordId);
+}
+
+async function loadStandardArchivedRankedLeagueRows(discordId){
   const currentSeasonNumber = parseCurrentRankedLeagueSeasonNumber();
-  if(!currentSeasonNumber || currentSeasonNumber <= 1) return [];
+  if(!currentSeasonNumber || currentSeasonNumber <= 7) return [];
 
   const { data, error } = await supabase
     .from("ranked")
     .select("season,payload")
-    .gte("season", 1)
+    .gte("season", 7)
     .lt("season", currentSeasonNumber)
     .order("season", { ascending: true });
 
@@ -669,21 +704,26 @@ async function loadCurrentRankedLeagueRow(discordId){
 }
 
 async function loadRankedLeagueRows(discordId){
-  const [archivedResult, currentResult] = await Promise.allSettled([
-    loadArchivedRankedLeagueRows(discordId),
+  const [sheetArchivedResult, standardArchivedResult, currentResult] = await Promise.allSettled([
+    loadArchivedRankedLeagueRowsFromSheet(discordId),
+    loadStandardArchivedRankedLeagueRows(discordId),
     loadCurrentRankedLeagueRow(discordId),
   ]);
 
-  if(archivedResult.status === "rejected"){
-    console.error("Unable to load archived Ranked League data", archivedResult.reason);
+  if(sheetArchivedResult.status === "rejected"){
+    console.error("Unable to load archived Ranked League sheet data", sheetArchivedResult.reason);
+  }
+  if(standardArchivedResult.status === "rejected"){
+    console.error("Unable to load standard archived Ranked League data", standardArchivedResult.reason);
   }
   if(currentResult.status === "rejected"){
     console.error("Unable to load current Ranked League data", currentResult.reason);
   }
 
-  const archivedRows = archivedResult.status === "fulfilled" ? archivedResult.value : [];
+  const sheetArchivedRows = sheetArchivedResult.status === "fulfilled" ? sheetArchivedResult.value : [];
+  const standardArchivedRows = standardArchivedResult.status === "fulfilled" ? standardArchivedResult.value : [];
   const currentRow = currentResult.status === "fulfilled" ? currentResult.value : null;
-  return [...archivedRows, currentRow]
+  return [...sheetArchivedRows, ...standardArchivedRows, currentRow]
     .filter(Boolean)
     .sort((left, right) => left.season - right.season);
 }
@@ -697,8 +737,16 @@ function formatRankedPlainInteger(value){
 }
 
 function formatRankedPercent(value){
-  const percent = Number.isFinite(value) ? value : 0;
-  return `${percent.toFixed(1)}%`;
+  return Number.isFinite(value) ? `${value.toFixed(1)}%` : "—";
+}
+
+function rankedFallbackName(rankedRows){
+  const rows = Array.isArray(rankedRows) ? rankedRows : [];
+  return rows
+    .slice()
+    .sort((left, right) => Number(right?.season || 0) - Number(left?.season || 0))
+    .map(row => String(row?.playerName || "").trim())
+    .find(Boolean) || "";
 }
 
 function renderRankedLeagueSection(rankedRows){
@@ -2667,6 +2715,16 @@ function initializeProLeaguePeriodsFromConfig(){
   }
 }
 
+function configuredProLeaguePeriodsForProfile(){
+  initializeProLeaguePeriodsFromConfig();
+  const season = proLeagueCurrentSeason;
+  if(!isProLeagueStagedSeason(season)) return [{ season, stage: null }];
+  const cleanStage = String(proLeagueCurrentStage ?? "").trim().toLowerCase();
+  if(cleanStage === "championship") return [{ season, stage: "championship" }];
+  const stage = Number(proLeagueCurrentStage);
+  return [{ season, stage: Number.isFinite(stage) ? Math.max(1, Math.trunc(stage)) : 1 }];
+}
+
 function findProLeagueMapValueByAlias(map, aliasKeys){
   for(const [name, value] of map.entries()){
     if(aliasKeys.has(proLeagueAliasKey(name))) return value;
@@ -2701,23 +2759,7 @@ async function loadProLeagueSummariesForAliases(aliasNames){
   if(!aliases.length) return [];
   const aliasKeys = new Set(aliases.map(proLeagueAliasKey).filter(Boolean));
 
-  initializeProLeaguePeriodsFromConfig();
-
-  const periods = [];
-  const maxSeason = Math.max(...proLeagueAvailableSeasons);
-  for(let season = 1; season <= maxSeason; season += 1){
-    if(!isProLeagueStagedSeason(season)){
-      periods.push({ season, stage: null });
-      continue;
-    }
-    const maxStage = season === proLeagueCurrentSeason
-      ? configuredProLeagueStageLimit(proLeagueCurrentStage)
-      : Number(proLeagueStageDataBySeason.get(season) || 3);
-    for(let stage = 1; stage <= maxStage; stage += 1){
-      periods.push({ season, stage });
-    }
-    periods.push({ season, stage: "championship" });
-  }
+  const periods = configuredProLeaguePeriodsForProfile();
 
   const summaries = [];
   const loadErrors = [];
@@ -3445,7 +3487,7 @@ async function loadPlayerProfile(){
       .from("discord_guild_members")
       .select("discord_user_id,username,display_name,avatar_url,server_avatar_url,joined_at,is_current_member")
       .eq("discord_user_id", discordId)
-      .eq("is_current_member", true)
+      .order("is_current_member", { ascending: false })
       .limit(1),
     supabase
       .from("discord_member_roles")
@@ -3463,15 +3505,27 @@ async function loadPlayerProfile(){
   if(membersRes.error) throw membersRes.error;
   if(linksRes.error) throw linksRes.error;
 
-  const member = (membersRes.data || [])[0];
-  if(!member){
+  const member = (membersRes.data || [])[0] || null;
+  const fallbackName = rankedFallbackName(rankedRows);
+  if(!member && !fallbackName){
     renderNotFound();
     return;
   }
-  const resolvedMember = {
-    ...member,
-    discord_user_id: normalizeDiscordPlayerId(member.discord_user_id) || discordId,
-  };
+  const resolvedMember = member
+    ? {
+      ...member,
+      display_name: member.display_name || member.username || fallbackName || "",
+      discord_user_id: normalizeDiscordPlayerId(member.discord_user_id) || discordId,
+    }
+    : {
+      discord_user_id: discordId,
+      username: fallbackName,
+      display_name: fallbackName,
+      avatar_url: "",
+      server_avatar_url: "",
+      joined_at: null,
+      is_current_member: false,
+    };
 
   const heldRoleIds = new Set((linksRes.data || []).map(row => row.role_id).filter(Boolean));
   let rolesById = new Map();
