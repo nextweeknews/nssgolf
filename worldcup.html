@@ -614,14 +614,59 @@
       gap:12px;
       align-items:end;
     }
-    .roster-podium .podium-placement-1{ grid-area:first; }
-    .roster-podium .podium-placement-2{ grid-area:second; }
-    .roster-podium .podium-placement-3{ grid-area:third; }
+    .podium-entry{
+      display:grid;
+      gap:0;
+      align-items:end;
+      align-self:end;
+    }
+    .podium-entry.placement-1{ grid-area:first; }
+    .podium-entry.placement-2{ grid-area:second; }
+    .podium-entry.placement-3{ grid-area:third; }
+    .podium-entry.placement-1{
+      transform:translateY(-18px);
+    }
+    .podium-entry.placement-2{
+      transform:translateY(-4px);
+    }
+    .podium-entry.placement-3{
+      transform:translateY(10px);
+    }
+    .podium-platform{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:var(--podium-height, 56px);
+      margin-top:-1px;
+      border:1px solid rgba(255,255,255,.20);
+      border-top:0;
+      border-bottom-left-radius:12px;
+      border-bottom-right-radius:12px;
+      color:rgba(2,6,23,.82);
+      font-size:13px;
+      font-weight:950;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 16px 22px rgba(0,0,0,.22);
+    }
+    .podium-entry.placement-1 .podium-platform{
+      --podium-height:82px;
+      background:linear-gradient(180deg, #fde68a, #f59e0b);
+    }
+    .podium-entry.placement-2 .podium-platform{
+      --podium-height:64px;
+      background:linear-gradient(180deg, #f8fafc, #94a3b8);
+    }
+    .podium-entry.placement-3 .podium-platform{
+      --podium-height:48px;
+      background:linear-gradient(180deg, #fdba74, #b45309);
+      color:rgba(255,247,237,.94);
+    }
     .roster-fourth-row{
       display:grid;
       grid-template-columns:minmax(250px, 390px);
       justify-content:center;
-      margin-top:2px;
+      margin-top:14px;
     }
     .roster-team-card{
       padding:12px;
@@ -631,6 +676,25 @@
     .roster-team-card.is-podium{
       background:linear-gradient(180deg, rgba(37,99,235,.18), rgba(15,23,42,.58));
       border-color:rgba(96,165,250,.36);
+    }
+    .podium-entry.placement-1 .roster-team-card{
+      min-height:226px;
+      padding:15px;
+      gap:12px;
+      border-color:rgba(250,204,21,.48);
+      background:linear-gradient(180deg, rgba(250,204,21,.18), rgba(37,99,235,.15) 46%, rgba(15,23,42,.68));
+      box-shadow:0 18px 34px rgba(0,0,0,.24);
+    }
+    .podium-entry.placement-1 .roster-team-title{
+      font-size:16px;
+    }
+    .podium-entry.placement-1 .roster-avatar{
+      width:42px;
+      height:42px;
+    }
+    .podium-entry.placement-1 .roster-player{
+      min-height:54px;
+      padding:9px;
     }
     .roster-place-badge{
       justify-self:start;
@@ -663,6 +727,9 @@
       color:rgba(233,238,248,.94);
       text-decoration:none;
     }
+    .roster-player.is-unknown{
+      align-items:center;
+    }
     a.roster-player:hover{
       background:rgba(255,255,255,.09);
       border-color:rgba(96,165,250,.34);
@@ -680,6 +747,9 @@
       min-width:0;
       display:grid;
       gap:3px;
+    }
+    .roster-player.is-unknown .roster-copy{
+      align-content:center;
     }
     .roster-name{
       min-width:0;
@@ -735,6 +805,17 @@
         grid-template-columns:1fr;
         grid-template-areas:"first" "second" "third";
         align-items:stretch;
+      }
+      .podium-entry.placement-1,
+      .podium-entry.placement-2,
+      .podium-entry.placement-3{
+        transform:none;
+      }
+      .podium-platform{
+        min-height:34px;
+      }
+      .podium-entry.placement-1 .roster-team-card{
+        min-height:0;
       }
       .roster-fourth-row{
         grid-template-columns:1fr;
@@ -1248,19 +1329,30 @@
               const member = player.discordId ? memberCache.get(player.discordId) : null;
               const tag = member?.discord_user_id ? "a" : "div";
               const href = member?.discord_user_id ? ` href="/player.html?id=${encodeURIComponent(member.discord_user_id)}"` : "";
-              const username = member?.username ? `@${member.username}` : player.discordId || "Discord ID unavailable";
+              const username = member?.username ? `@${member.username}` : player.discordId || "";
+              const playerClass = `roster-player${username ? "" : " is-unknown"}`;
               return `
-                <${tag} class="roster-player"${href}>
+                <${tag} class="${playerClass}"${href}>
                   <img class="roster-avatar" src="${escapeHtml(avatarUrlFor(member))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
                   <span class="roster-copy">
                     <span class="roster-name">${escapeHtml(memberDisplayName(member, player.playerName))}</span>
-                    <span class="roster-user">${escapeHtml(username)}</span>
+                    ${username ? `<span class="roster-user">${escapeHtml(username)}</span>` : ""}
                   </span>
                 </${tag}>
               `;
             }).join("")}
           </div>
         </section>
+      `;
+    }
+
+    function renderPodiumEntry(team){
+      const place = team.placement.rank + 1;
+      return `
+        <div class="podium-entry placement-${place}">
+          ${renderRosterCard(team, "is-podium")}
+          <div class="podium-platform" aria-hidden="true">${escapeHtml(team.placement.badge || ordinal(place))}</div>
+        </div>
       `;
     }
 
@@ -1291,7 +1383,7 @@
           <section class="roster-advancement-section">
             <h2 class="roster-section-title">Podium</h2>
             <div class="roster-podium">
-              ${podium.map(team => renderRosterCard(team, `is-podium podium-placement-${team.placement.rank + 1}`)).join("")}
+              ${podium.map(team => renderPodiumEntry(team)).join("")}
             </div>
             ${fourth ? `<div class="roster-fourth-row">${renderRosterCard(fourth, "is-podium")}</div>` : ""}
           </section>
