@@ -532,7 +532,7 @@ function chunkRankSections(sections, maxLength = 3800) {
 }
 
 function appendGlobalRanksLink(description) {
-  return `${description}\n${globalRankRecordsLink}`;
+  return `${description}\n\n${globalRankRecordsLink}`;
 }
 
 async function buildRankEmbeds(rankKey) {
