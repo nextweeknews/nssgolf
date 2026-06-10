@@ -311,21 +311,20 @@
     }
     .wc-match-label{
       position:absolute;
-      left:0;
-      right:0;
-      bottom:calc(100% - 10px);
+      left:1px;
+      right:1px;
+      bottom:100%;
       display:flex;
       align-items:center;
       justify-content:center;
-      min-height:34px;
-      padding:4px 10px 14px;
-      border:1px solid rgba(96,165,250,.38);
+      min-height:24px;
+      padding:5px 10px 4px;
+      border:1px solid rgba(96,165,250,.22);
       border-bottom:0;
-      border-top-left-radius:10px;
-      border-top-right-radius:10px;
-      background:rgba(15,23,42,.98);
-      box-shadow:0 -10px 18px rgba(0,0,0,.16);
-      color:rgba(186,230,253,.96);
+      border-top-left-radius:9px;
+      border-top-right-radius:9px;
+      background:rgba(15,23,42,.58);
+      color:rgba(186,230,253,.88);
       font-size:9px;
       font-weight:950;
       letter-spacing:.12em;
@@ -343,6 +342,7 @@
       overflow:hidden;
       background:rgba(255,255,255,0.05);
       isolation:isolate;
+      z-index:1;
     }
     .wc-match-card.has-label{
       overflow:visible;
@@ -611,7 +611,7 @@
       display:grid;
       grid-template-columns:repeat(3, minmax(0, 1fr));
       grid-template-areas:"second first third";
-      gap:12px;
+      gap:0;
       align-items:end;
     }
     .podium-entry{
@@ -623,50 +623,57 @@
     .podium-entry.placement-1{ grid-area:first; }
     .podium-entry.placement-2{ grid-area:second; }
     .podium-entry.placement-3{ grid-area:third; }
-    .podium-entry.placement-1{
-      transform:translateY(-18px);
-    }
-    .podium-entry.placement-2{
-      transform:translateY(-4px);
-    }
-    .podium-entry.placement-3{
-      transform:translateY(10px);
+    .podium-entry .roster-team-card{
+      margin-inline:6px;
     }
     .podium-platform{
       display:flex;
       align-items:center;
       justify-content:center;
       min-height:var(--podium-height, 56px);
-      margin-top:-1px;
-      border:1px solid rgba(255,255,255,.20);
-      border-top:0;
-      border-bottom-left-radius:12px;
-      border-bottom-right-radius:12px;
-      color:rgba(2,6,23,.82);
-      font-size:13px;
+      margin-top:8px;
+      border:1px solid var(--podium-border, rgba(255,255,255,.18));
+      border-radius:0;
+      background:var(--podium-bg, rgba(255,255,255,.055));
+      color:var(--podium-color, rgba(233,238,248,.82));
+      font-size:11px;
       font-weight:950;
-      letter-spacing:.14em;
+      letter-spacing:.10em;
       text-transform:uppercase;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 16px 22px rgba(0,0,0,.22);
     }
     .podium-entry.placement-1 .podium-platform{
       --podium-height:82px;
-      background:linear-gradient(180deg, #fde68a, #f59e0b);
+      --podium-bg:rgba(250,204,21,.12);
+      --podium-border:rgba(250,204,21,.34);
+      --podium-color:rgba(254,243,199,.96);
     }
     .podium-entry.placement-2 .podium-platform{
       --podium-height:64px;
-      background:linear-gradient(180deg, #f8fafc, #94a3b8);
+      --podium-bg:rgba(226,232,240,.10);
+      --podium-border:rgba(226,232,240,.30);
+      --podium-color:rgba(241,245,249,.92);
     }
     .podium-entry.placement-3 .podium-platform{
       --podium-height:48px;
-      background:linear-gradient(180deg, #fdba74, #b45309);
-      color:rgba(255,247,237,.94);
+      --podium-bg:rgba(217,119,6,.12);
+      --podium-border:rgba(251,146,60,.30);
+      --podium-color:rgba(255,237,213,.92);
     }
     .roster-fourth-row{
       display:grid;
       grid-template-columns:minmax(250px, 390px);
       justify-content:center;
       margin-top:14px;
+    }
+    .roster-fourth-podium{
+      display:grid;
+      gap:0;
+    }
+    .roster-fourth-podium .podium-platform{
+      --podium-height:34px;
+      --podium-bg:rgba(148,163,184,.08);
+      --podium-border:rgba(148,163,184,.24);
+      --podium-color:rgba(203,213,225,.86);
     }
     .roster-team-card{
       padding:12px;
@@ -805,14 +812,16 @@
         grid-template-columns:1fr;
         grid-template-areas:"first" "second" "third";
         align-items:stretch;
+        gap:12px;
       }
-      .podium-entry.placement-1,
-      .podium-entry.placement-2,
-      .podium-entry.placement-3{
-        transform:none;
+      .podium-entry .roster-team-card{
+        margin-inline:0;
       }
       .podium-platform{
         min-height:34px;
+      }
+      .podium-entry .roster-team-card{
+        margin-bottom:0;
       }
       .podium-entry.placement-1 .roster-team-card{
         min-height:0;
@@ -1320,9 +1329,10 @@
     }
 
     function renderRosterCard(team, className = ""){
+      const showBadge = team.placement.badge && !/\bis-podium\b/.test(className);
       return `
         <section class="roster-team-card ${className}">
-          ${team.placement.badge ? `<span class="roster-place-badge">${escapeHtml(team.placement.badge)}</span>` : ""}
+          ${showBadge ? `<span class="roster-place-badge">${escapeHtml(team.placement.badge)}</span>` : ""}
           <h2 class="roster-team-title">${renderWorldCupTeamLabel(team.name, "-")}</h2>
           <div class="roster-player-list">
             ${team.players.map(player => {
@@ -1348,10 +1358,20 @@
 
     function renderPodiumEntry(team){
       const place = team.placement.rank + 1;
+      const platformLabel = place === 1 ? "Champion" : place === 2 ? "Runner-up" : "3rd Place";
       return `
         <div class="podium-entry placement-${place}">
           ${renderRosterCard(team, "is-podium")}
-          <div class="podium-platform" aria-hidden="true">${escapeHtml(team.placement.badge || ordinal(place))}</div>
+          <div class="podium-platform" aria-hidden="true">${escapeHtml(platformLabel)}</div>
+        </div>
+      `;
+    }
+
+    function renderFourthPlaceEntry(team){
+      return `
+        <div class="roster-fourth-podium">
+          ${renderRosterCard(team, "is-podium")}
+          <div class="podium-platform" aria-hidden="true">4th Place</div>
         </div>
       `;
     }
@@ -1385,7 +1405,7 @@
             <div class="roster-podium">
               ${podium.map(team => renderPodiumEntry(team)).join("")}
             </div>
-            ${fourth ? `<div class="roster-fourth-row">${renderRosterCard(fourth, "is-podium")}</div>` : ""}
+            ${fourth ? `<div class="roster-fourth-row">${renderFourthPlaceEntry(fourth)}</div>` : ""}
           </section>
           ${remainingSections.map(section => `
             <section class="roster-advancement-section">
