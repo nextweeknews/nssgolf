@@ -1385,7 +1385,7 @@ function isSuperLeagueQfPlayerName(name){
 }
 
 function formatSuperLeagueResultChip(value, isWin){
-  return `<span class="${isWin ? "result-win" : "result-loss"}">${escapeHtml(value)}</span>`;
+  return `<span class="superleague-result-pill is-${isWin ? "win" : "loss"}">${escapeHtml(value)}</span>`;
 }
 
 function getSuperLeagueRoundCellHtml(playerScore, opponentScore, side){
@@ -1428,18 +1428,14 @@ function getSuperLeaguePlayerWeekResult(playerName, weekData){
     String(opponentSide.rounds[2] ?? "").trim() === "" &&
     (superLeagueNumOrZero(playerSide.gamesWon) === 2 || superLeagueNumOrZero(opponentSide.gamesWon) === 2);
 
-  const resultHtml = hasRecordedResult
-    ? formatSuperLeagueResultChip(isWin ? "W" : "L", isWin)
-    : '<span class="result-pending">-</span>';
   const gamesRecord = `${formatSuperLeagueStatValue(playerSide.gamesWon, "-")}-${formatSuperLeagueStatValue(opponentSide.gamesWon, "-")}`;
-  const gamesHtml = hasRecordedResult
-    ? formatSuperLeagueResultChip(gamesRecord, isWin)
-    : '<span class="result-pending">-</span>';
+  const resultHtml = hasRecordedResult
+    ? formatSuperLeagueResultChip(formatMatchResultChipText(isWin ? "win" : "loss", isWin ? "W" : "L", gamesRecord), isWin)
+    : '<span class="superleague-result-pill is-pending">-</span>';
 
   return {
     opponent: opponentSide.name || "TBD",
     resultHtml,
-    gamesHtml,
     roundCells: [0, 1, 2].map((index) => {
       if(index === 2 && round3NotPlayed){
         return { player: '<span class="score-dash">-</span>', opponent: '<span class="score-dash">-</span>' };
@@ -2556,7 +2552,7 @@ function renderSuperLeagueOpponent(result, discordIdByName, memberByDiscordId){
 
 function renderSuperLeagueWeeklyRow(row, discordIdByName, memberByDiscordId){
   if(row.section){
-    return `<tr class="weekly-section-row"><td colspan="7">${escapeHtml(row.section)}</td></tr>`;
+    return `<tr class="weekly-section-row"><td colspan="6">${escapeHtml(row.section)}</td></tr>`;
   }
 
   if(!row.result){
@@ -2564,8 +2560,7 @@ function renderSuperLeagueWeeklyRow(row, discordIdByName, memberByDiscordId){
       <tr>
         <td class="weekly-col-week">${escapeHtml(row.label)}</td>
         <td class="weekly-col-opponent"><span class="superleague-opponent-link"><span class="superleague-opponent-name">-</span></span></td>
-        <td class="weekly-col-result"><span class="result-pending">-</span></td>
-        <td class="weekly-col-games"><span class="result-pending">-</span></td>
+        <td class="weekly-col-result"><span class="superleague-result-pill is-pending">-</span></td>
         <td class="weekly-col-round"><span class="score-dash">-</span></td>
         <td class="weekly-col-round"><span class="score-dash">-</span></td>
         <td class="weekly-col-round"><span class="score-dash">-</span></td>
@@ -2578,7 +2573,6 @@ function renderSuperLeagueWeeklyRow(row, discordIdByName, memberByDiscordId){
       <td class="weekly-col-week">${escapeHtml(row.label)}</td>
       <td class="weekly-col-opponent">${renderSuperLeagueOpponent(row.result, discordIdByName, memberByDiscordId)}</td>
       <td class="weekly-col-result">${row.result.resultHtml}</td>
-      <td class="weekly-col-games">${row.result.gamesHtml}</td>
       <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[0])}</td>
       <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[1])}</td>
       <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[2])}</td>
@@ -2621,7 +2615,6 @@ function renderSuperLeaguePlayerPanel(data){
               <th class="weekly-col-week">Week</th>
               <th class="weekly-col-opponent">Opponent</th>
               <th class="weekly-col-result">Result</th>
-              <th class="weekly-col-games">Rounds</th>
               <th class="weekly-col-round">R1</th>
               <th class="weekly-col-round">R2</th>
               <th class="weekly-col-round">R3</th>

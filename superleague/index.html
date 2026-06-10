@@ -710,13 +710,59 @@
       font-weight: 950;
       text-transform: uppercase;
       letter-spacing: .03em;
+      overflow-wrap: anywhere;
     }
 
     .player-modal-head{
+      display:grid;
+      grid-template-columns: minmax(112px, 1fr) minmax(0, 2fr) minmax(112px, 1fr);
+      align-items:center;
+      gap:8px;
+      min-height: 34px;
+    }
+
+    .player-modal-title-group{
+      grid-column: 2;
       display:flex;
       justify-content:center;
       align-items:center;
       gap:8px;
+      min-width:0;
+      flex-wrap:wrap;
+    }
+
+    .player-modal-player-link{
+      grid-column: 3;
+      justify-self:end;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height: 32px;
+      padding: 7px 10px;
+      border: 1px solid rgba(125,211,252,.36);
+      border-radius: 10px;
+      background: rgba(125,211,252,.10);
+      color: rgba(224,242,254,.96);
+      font-size: 10px;
+      line-height:1;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-decoration:none;
+      white-space: nowrap;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .player-modal-player-link:hover,
+    .player-modal-player-link:focus-visible{
+      background: rgba(125,211,252,.18);
+      border-color: rgba(125,211,252,.58);
+      color:#fff;
+    }
+
+    .player-modal-player-link[aria-disabled="true"]{
+      visibility:hidden;
+      pointer-events:none;
     }
 
     .player-modal-division{
@@ -797,8 +843,7 @@
 
     .weekly-col-week{ width: 80px; }
     .weekly-col-opponent{ width: 160px; text-align: left; }
-    .weekly-col-result{ width: 90px; }
-    .weekly-col-games{ width: 90px; }
+    .weekly-col-result{ width: 130px; }
     .weekly-col-round{ width: 90px; }
 
     .weekly-round-group{ text-align: center; }
@@ -834,9 +879,34 @@
       font-weight: 900;
     }
 
-    .result-win{ color: #86efac; font-weight: 900; }
-    .result-loss{ color: #fca5a5; font-weight: 900; }
-    .result-pending{ color: #fff; font-weight: 900; }
+    .superleague-result-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width: 78px;
+      padding: 5px 7px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 950;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    .superleague-result-pill.is-win{
+      color: rgba(134,239,172,0.98);
+      background: rgba(34,197,94,0.12);
+      border: 1px solid rgba(34,197,94,0.28);
+    }
+    .superleague-result-pill.is-loss{
+      color: rgba(252,165,165,0.98);
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.28);
+    }
+    .superleague-result-pill.is-pending{
+      color: rgba(229,231,235,0.88);
+      background: rgba(148,163,184,0.12);
+      border: 1px solid rgba(148,163,184,0.24);
+    }
 
     .qualifiers-wrap{
       margin-top: 4px;
@@ -1547,7 +1617,21 @@
       }
 
       .player-modal-head{
+        grid-template-columns: minmax(112px, 1fr) minmax(0, 2fr) minmax(112px, 1fr);
         gap: 6px;
+        min-height: 28px;
+      }
+
+      .player-modal-title-group{
+        gap: 6px;
+      }
+
+      .player-modal-player-link{
+        min-height: 28px;
+        padding: 6px 7px;
+        border-radius: 8px;
+        font-size: 8px;
+        letter-spacing: .05em;
       }
 
       .player-modal-name,
@@ -1586,9 +1670,15 @@
 
       .weekly-col-week{ width: 40px; }
       .weekly-col-opponent{ width: 75px; }
-      .weekly-col-result{ width: 46px; }
-      .weekly-col-games{ width: 46px; }
+      .weekly-col-result{ width: 92px; }
       .weekly-col-round{ width: 40px; }
+
+      .superleague-result-pill{
+        min-width: 54px;
+        padding: 4px 5px;
+        font-size: 8px;
+        letter-spacing: .02em;
+      }
 
       .round-pair{
         display:flex;
@@ -1860,9 +1950,12 @@
           <button class="player-modal-close" id="playerModalClose" type="button" aria-label="Close player details">×</button>
           <div class="player-modal-content">
           <div class="player-modal-head">
-            <h2 class="player-modal-name" id="playerModalName"></h2>
-            <span class="player-modal-divider" aria-hidden="true">•</span>
-            <p class="player-modal-division" id="playerModalDivision"></p>
+            <div class="player-modal-title-group">
+              <h2 class="player-modal-name" id="playerModalName"></h2>
+              <span class="player-modal-divider" aria-hidden="true">•</span>
+              <p class="player-modal-division" id="playerModalDivision"></p>
+            </div>
+            <a class="player-modal-player-link" id="playerModalPlayerLink" href="#" aria-disabled="true">View Player Page</a>
           </div>
           <div class="player-modal-meta" id="playerModalMeta">
             <div class="player-modal-meta-cell">
@@ -1888,7 +1981,6 @@
                 <th class="weekly-col-week">Week</th>
                 <th class="weekly-col-opponent">Opponent</th>
                 <th class="weekly-col-result">Result</th>
-                <th class="weekly-col-games">Rounds</th>
                 <th class="weekly-round-group">R1</th>
                 <th class="weekly-round-group">R2</th>
                 <th class="weekly-round-group">R3</th>
@@ -1930,6 +2022,8 @@
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"];
     const PLAYOFF_RANGE = "I87:AB92";
+    const DISCORD_IDS_SHEET = "Discord IDs";
+    const DISCORD_IDS_RANGE = "A:B";
     let scheduleWeeks = [];
     let playoffMatchups = [];
     let playoffMetadata = null;
@@ -1941,6 +2035,7 @@
     const qualifierMobileQuery = window.matchMedia("(max-width: 760px)");
     const playerDivisionLookup = new Map();
     const playerStatsLookup = new Map();
+    const playerDiscordIdLookup = new Map();
 
     function applySuperLeagueSeasonHeadings(){
       document.querySelectorAll("[data-superleague-season-title]").forEach((heading) => {
@@ -2068,6 +2163,35 @@
       const divText = String(value ?? "").trim();
       const match = divText.match(/(\d+)/);
       return match ? match[1] : divText;
+    }
+
+    function playerNameKey(value){
+      return String(value ?? "").trim().toUpperCase();
+    }
+
+    function normalizeDiscordId(value){
+      return String(value || "").trim().replace(/[^\d]/g, "");
+    }
+
+    function buildPlayerPageUrl(playerName){
+      const discordId = playerDiscordIdLookup.get(playerNameKey(playerName));
+      return discordId ? `/player.html?id=${encodeURIComponent(discordId)}` : "";
+    }
+
+    async function loadPlayerDiscordIdLookup(){
+      try{
+        const rows = await fetchRange(DISCORD_IDS_RANGE, DISCORD_IDS_SHEET);
+        playerDiscordIdLookup.clear();
+        (rows || []).forEach((row = []) => {
+          const discordId = normalizeDiscordId(row[0]);
+          const playerName = String(row[1] ?? "").trim();
+          if(!discordId || !playerName) return;
+          playerDiscordIdLookup.set(playerNameKey(playerName), discordId);
+        });
+      }catch(error){
+        console.warn("Could not load Super League Discord ID map.", error);
+        playerDiscordIdLookup.clear();
+      }
     }
 
     function comparePctDesc(aWins, aLosses, bWins, bLosses){
@@ -2591,9 +2715,10 @@
       return /^QF\b/i.test(String(name ?? "").trim());
     }
 
-    function formatResultChip(value, isWin){
-      const cls = isWin ? "result-win" : "result-loss";
-      return `<span class="${cls}">${escapeHtml(value)}</span>`;
+    function formatResultChip(resultLabel, score, isWin){
+      const outcome = isWin ? "win" : "loss";
+      const text = `${resultLabel}, ${score}`;
+      return `<span class="superleague-result-pill is-${outcome}">${escapeHtml(text)}</span>`;
     }
 
     function getRoundCellHtml(playerScore, opponentScore, side){
@@ -2638,18 +2763,14 @@
         String(opponentSide.rounds[2] ?? "").trim() === "" &&
         (numOrZero(playerSide.gamesWon) === 2 || numOrZero(opponentSide.gamesWon) === 2);
 
-      const resultHtml = hasRecordedResult
-        ? formatResultChip(isWin ? "W" : "L", isWin)
-        : '<span class="result-pending">—</span>';
       const gamesRecord = `${formatStatValue(playerSide.gamesWon, "—")}-${formatStatValue(opponentSide.gamesWon, "—")}`;
-      const gamesHtml = hasRecordedResult
-        ? formatResultChip(gamesRecord, isWin)
-        : '<span class="result-pending">—</span>';
+      const resultHtml = hasRecordedResult
+        ? formatResultChip(isWin ? "W" : "L", gamesRecord, isWin)
+        : '<span class="superleague-result-pill is-pending">—</span>';
 
       return {
         opponent: opponentSide.name || "TBD",
         resultHtml,
-        gamesHtml,
         roundCells: [0, 1, 2].map((idx) => {
           if(idx === 2 && round3NotPlayed){
             return { player: '<span class="score-dash">–</span>', opponent: '<span class="score-dash">–</span>' };
@@ -2666,14 +2787,20 @@
       const modal = document.getElementById("playerModal");
       const nameEl = document.getElementById("playerModalName");
       const divisionEl = document.getElementById("playerModalDivision");
+      const playerLink = document.getElementById("playerModalPlayerLink");
       const tbody = document.getElementById("playerWeeklyBody");
-      const lookup = playerDivisionLookup.get(String(playerName ?? "").trim().toUpperCase());
-      const stats = playerStatsLookup.get(String(playerName ?? "").trim().toUpperCase());
+      const lookup = playerDivisionLookup.get(playerNameKey(playerName));
+      const stats = playerStatsLookup.get(playerNameKey(playerName));
+      const playerUrl = buildPlayerPageUrl(playerName);
 
       nameEl.textContent = playerName;
       divisionEl.className = "player-modal-division";
       divisionEl.textContent = lookup?.divisionTitle || "Division unavailable";
       if(lookup?.divisionClass) divisionEl.classList.add(lookup.divisionClass);
+
+      playerLink.href = playerUrl || "#";
+      playerLink.setAttribute("aria-label", playerUrl ? `View ${playerName}'s player page` : "Player page unavailable");
+      playerLink.setAttribute("aria-disabled", playerUrl ? "false" : "true");
 
       document.getElementById("playerMetaRank").textContent = stats?.rank || "—";
       document.getElementById("playerMetaMatches").textContent = stats?.matches || "—";
@@ -2684,7 +2811,7 @@
       const appendSectionRow = (label) => {
         const sectionRow = document.createElement("tr");
         sectionRow.className = "weekly-section-row";
-        sectionRow.innerHTML = `<td colspan="7">${escapeHtml(label)}</td>`;
+        sectionRow.innerHTML = `<td colspan="6">${escapeHtml(label)}</td>`;
         tbody.appendChild(sectionRow);
       };
 
@@ -2694,8 +2821,7 @@
           row.innerHTML = `
             <td class="weekly-col-week">${escapeHtml(label)}</td>
             <td class="weekly-col-opponent"><span class="opponent-name">—</span></td>
-            <td class="weekly-col-result"><span class="result-pending">—</span></td>
-            <td class="weekly-col-games"><span class="result-pending">—</span></td>
+            <td class="weekly-col-result"><span class="superleague-result-pill is-pending">—</span></td>
             <td class="weekly-col-round"><span class="score-dash">–</span></td>
             <td class="weekly-col-round"><span class="score-dash">–</span></td>
             <td class="weekly-col-round"><span class="score-dash">–</span></td>
@@ -2709,7 +2835,6 @@
           <td class="weekly-col-week">${escapeHtml(label)}</td>
           <td class="weekly-col-opponent"><button class="player-btn opponent-name${opponentQfClass}" type="button" data-player="${escapeHtml(result.opponent)}">${escapeHtml(result.opponent)}</button></td>
           <td class="weekly-col-result">${result.resultHtml}</td>
-          <td class="weekly-col-games">${result.gamesHtml}</td>
           <td class="weekly-col-round">${formatRoundPair(result.roundCells[0])}</td>
           <td class="weekly-col-round">${formatRoundPair(result.roundCells[1])}</td>
           <td class="weekly-col-round">${formatRoundPair(result.roundCells[2])}</td>
@@ -2724,7 +2849,7 @@
       }
 
       if(playoffMetadata){
-        const playerKey = String(playerName ?? "").trim().toUpperCase();
+        const playerKey = playerNameKey(playerName);
         const playoffEntries = [
           { label: "Division 1 Championship", matchup: playoffMetadata.championship },
           { label: "Division 1 3rd Place", matchup: playoffMetadata.thirdPlace },
@@ -3534,6 +3659,7 @@
           fetchRange(SCHEDULE_RANGE),
           fetchRange(PLAYOFF_RANGE),
           loadQualifiers(),
+          loadPlayerDiscordIdLookup(),
         ]);
         const scheduleRows = all[DIVISIONS.length] || [];
         const playoffRows = all[DIVISIONS.length + 1] || [];
