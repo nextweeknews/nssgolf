@@ -1545,7 +1545,25 @@ async function loadSuperLeaguePlayerData(playerName){
     });
   }
 
-  return { ...profile, rows, discordIdByName: idMaps.discordIdByName || new Map() };
+  const discordIdByName = idMaps.discordIdByName || new Map();
+  const opponentIds = rows
+    .map(row => row.result?.opponent)
+    .map(opponent => discordIdByName.get(normalizeSuperLeagueNameKey(opponent)))
+    .filter(Boolean);
+  let memberByDiscordId = new Map();
+  if(opponentIds.length){
+    try{
+      const membersById = await loadDiscordMembersByIds(opponentIds);
+      memberByDiscordId = new Map([...new Set(opponentIds)]
+        .map(id => normalizeDiscordPlayerId(id))
+        .filter(Boolean)
+        .map(id => [id, membersById.get(id) || null]));
+    }catch(error){
+      console.error("Unable to load Super League opponent member data", error);
+    }
+  }
+
+  return { ...profile, rows, discordIdByName, memberByDiscordId };
 }
 
 function proLeagueRowHasAnyValue(row){
@@ -2519,17 +2537,24 @@ function renderWorldCupResults(entries){
   return container;
 }
 
-function renderSuperLeagueOpponent(result, discordIdByName){
+function renderSuperLeagueOpponent(result, discordIdByName, memberByDiscordId){
   const opponent = String(result?.opponent || "TBD").trim();
   const qfClass = isSuperLeagueQfPlayerName(opponent) ? " qf-player" : "";
   const discordId = discordIdByName?.get(normalizeSuperLeagueNameKey(opponent)) || "";
+  const member = discordId ? memberByDiscordId?.get(normalizeDiscordPlayerId(discordId)) : null;
+  const displayName = member ? displayNameFor(member) : opponent || "TBD";
+  const avatarUrl = member ? avatarUrlFor(member) : "/logos/golf.png";
+  const inner = `
+    <img class="superleague-opponent-avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+    <span class="superleague-opponent-name">${escapeHtml(displayName)}</span>
+  `;
   if(discordId && !/^TBD$/i.test(opponent) && !isSuperLeagueQfPlayerName(opponent)){
-    return `<a class="opponent-name${qfClass}" href="/player.html?id=${encodeURIComponent(discordId)}">${escapeHtml(opponent)}</a>`;
+    return `<a class="superleague-opponent-link${qfClass}" href="/player.html?id=${encodeURIComponent(discordId)}" aria-label="View ${escapeHtml(displayName)}'s player page">${inner}</a>`;
   }
-  return `<span class="opponent-name${qfClass}">${escapeHtml(opponent || "TBD")}</span>`;
+  return `<span class="superleague-opponent-link${qfClass}">${inner}</span>`;
 }
 
-function renderSuperLeagueWeeklyRow(row, discordIdByName){
+function renderSuperLeagueWeeklyRow(row, discordIdByName, memberByDiscordId){
   if(row.section){
     return `<tr class="weekly-section-row"><td colspan="7">${escapeHtml(row.section)}</td></tr>`;
   }
@@ -2538,7 +2563,7 @@ function renderSuperLeagueWeeklyRow(row, discordIdByName){
     return `
       <tr>
         <td class="weekly-col-week">${escapeHtml(row.label)}</td>
-        <td class="weekly-col-opponent"><span class="opponent-name">-</span></td>
+        <td class="weekly-col-opponent"><span class="superleague-opponent-link"><span class="superleague-opponent-name">-</span></span></td>
         <td class="weekly-col-result"><span class="result-pending">-</span></td>
         <td class="weekly-col-games"><span class="result-pending">-</span></td>
         <td class="weekly-col-round"><span class="score-dash">-</span></td>
@@ -2551,7 +2576,7 @@ function renderSuperLeagueWeeklyRow(row, discordIdByName){
   return `
     <tr>
       <td class="weekly-col-week">${escapeHtml(row.label)}</td>
-      <td class="weekly-col-opponent">${renderSuperLeagueOpponent(row.result, discordIdByName)}</td>
+      <td class="weekly-col-opponent">${renderSuperLeagueOpponent(row.result, discordIdByName, memberByDiscordId)}</td>
       <td class="weekly-col-result">${row.result.resultHtml}</td>
       <td class="weekly-col-games">${row.result.gamesHtml}</td>
       <td class="weekly-col-round">${formatSuperLeagueRoundPair(row.result.roundCells[0])}</td>
@@ -2603,7 +2628,7 @@ function renderSuperLeaguePlayerPanel(data){
             </tr>
           </thead>
           <tbody>
-            ${(data.rows || []).map((row) => renderSuperLeagueWeeklyRow(row, data.discordIdByName)).join("")}
+            ${(data.rows || []).map((row) => renderSuperLeagueWeeklyRow(row, data.discordIdByName, data.memberByDiscordId)).join("")}
           </tbody>
         </table>
       </div>
