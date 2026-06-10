@@ -421,8 +421,6 @@
     }
     .wc-team-name{
       min-width:0;
-      overflow:hidden;
-      text-overflow:ellipsis;
       white-space:nowrap;
       font-weight:950;
       letter-spacing:.02em;
@@ -478,9 +476,16 @@
     .group-card{
       padding:12px;
     }
-    .group-title,
-    .roster-team-title{
+    .group-title{
       margin:0 0 10px;
+      color:#fff;
+      font-size:14px;
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+    }
+    .roster-team-title{
+      margin:0;
       color:#fff;
       font-size:14px;
       font-weight:950;
@@ -536,6 +541,23 @@
       overflow:hidden;
       background:rgba(255,255,255,.045);
     }
+    .group-game .wc-match-row{
+      grid-template-columns:minmax(0,1fr) 34px;
+      min-height:30px;
+      padding:4px 6px 4px 8px;
+      color:rgba(233,238,248,.88);
+    }
+    .group-game .wc-match-row:first-child{
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+    }
+    .group-game .wc-match-row:last-child{
+      border-bottom-left-radius:10px;
+      border-bottom-right-radius:10px;
+    }
+    .group-game .wc-match-row:nth-child(2){
+      background:rgba(255,255,255,0.045);
+    }
     .group-game-column{
       display:grid;
       gap:7px;
@@ -554,34 +576,6 @@
       border:1px solid rgba(255,255,255,.08);
       border-radius:10px;
     }
-    .group-game-row{
-      display:grid;
-      grid-template-columns:minmax(0,1fr) 30px;
-      gap:8px;
-      align-items:center;
-      min-height:28px;
-      padding:4px 7px;
-      color:rgba(233,238,248,.88);
-      font-size:11px;
-      font-weight:900;
-      text-transform:uppercase;
-    }
-    .group-game-row + .group-game-row{ border-top:1px solid rgba(148,163,184,.24); }
-    .group-game-row.is-winner{
-      color:#fff;
-      background:rgba(var(--worldcup-accent-rgb), .13);
-    }
-    .group-game-row.is-bye{
-      color:rgba(233,238,248,.72);
-      background:rgba(148,163,184,.08);
-    }
-    .group-game-team{
-      min-width:0;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-    }
-
     .rosters-layout{
       display:grid;
       gap:18px;
@@ -678,7 +672,7 @@
     .roster-team-card{
       padding:12px;
       display:grid;
-      gap:10px;
+      gap:6px;
     }
     .roster-team-card.is-podium{
       background:linear-gradient(180deg, rgba(37,99,235,.18), rgba(15,23,42,.58));
@@ -743,6 +737,16 @@
       border:1px solid rgba(255,255,255,.07);
       color:rgba(233,238,248,.94);
       text-decoration:none;
+    }
+    .podium-entry .roster-player{
+      position:relative;
+      z-index:1;
+      background:rgba(15,23,42,.92);
+      border-color:rgba(255,255,255,.12);
+    }
+    .podium-entry a.roster-player:hover{
+      background:rgba(20,35,64,.96);
+      border-color:rgba(96,165,250,.36);
     }
     .roster-player.is-unknown{
       align-items:center;
@@ -1142,9 +1146,9 @@
       const isBye = outcome?.outcome === "bye" || /^bye$/i.test(team);
       const isWinner = outcome?.outcome === "win" && !isBye;
       return `
-        <div class="group-game-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
-          <span class="group-game-team">${renderWorldCupTeamLabel(team)}</span>
-          <span>${escapeHtml(scoreText(score))}</span>
+        <div class="wc-match-row ${isWinner ? "is-winner" : ""} ${isBye ? "is-bye" : ""}">
+          <span class="wc-team-name">${renderWorldCupTeamLabel(team)}</span>
+          <span class="wc-score ${score ? "" : "is-empty"}">${escapeHtml(scoreText(score))}</span>
         </div>
       `;
     }
@@ -1339,7 +1343,8 @@
     }
 
     function renderRosterCard(team, className = ""){
-      const showBadge = team.placement.badge && !/\bis-podium\b/.test(className);
+      const isGroupStagePlacement = /^group-rank-/i.test(team.placement.sectionKey || "");
+      const showBadge = team.placement.badge && !isGroupStagePlacement && !/\bis-podium\b/.test(className);
       return `
         <section class="roster-team-card ${className}">
           ${showBadge ? `<span class="roster-place-badge">${escapeHtml(team.placement.badge)}</span>` : ""}
@@ -1411,7 +1416,6 @@
       panels.rosters.innerHTML = `
         <div class="rosters-layout">
           <section class="roster-advancement-section">
-            <h2 class="roster-section-title">Podium</h2>
             <div class="roster-podium">
               ${podium.map(team => renderPodiumEntry(team)).join("")}
             </div>
