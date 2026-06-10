@@ -1118,6 +1118,21 @@
       background: rgba(148,163,184,0.10);
       border: 1px solid rgba(148,163,184,0.22);
     }
+    .worldcup-standing-chip.is-gold{
+      color: var(--gold);
+      background: rgba(250,204,21,0.12);
+      border-color: rgba(250,204,21,0.56);
+    }
+    .worldcup-standing-chip.is-silver{
+      color: var(--silver);
+      background: rgba(226,232,240,0.11);
+      border-color: rgba(226,232,240,0.52);
+    }
+    .worldcup-standing-chip.is-bronze{
+      color: var(--bronze);
+      background: rgba(251,146,60,0.12);
+      border-color: rgba(251,146,60,0.50);
+    }
     .worldcup-results-wrap{
       width: 100%;
       overflow-x: auto;
@@ -1223,11 +1238,6 @@
       color: rgba(229,231,235,0.88);
       background: rgba(148,163,184,0.12);
       border: 1px solid rgba(148,163,184,0.24);
-    }
-    .worldcup-result-pill.is-bye{
-      color: rgba(186,230,253,0.98);
-      background: rgba(14,165,233,0.12);
-      border: 1px solid rgba(14,165,233,0.26);
     }
     .worldcup-empty-cell{
       color: rgba(156,163,199,0.86);
@@ -1572,7 +1582,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260610-profile-links"></script>
+  <script type="module" src="/player-profile.js?v=20260610-wc-chip-colors"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {

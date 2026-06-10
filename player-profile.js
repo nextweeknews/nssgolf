@@ -2432,13 +2432,19 @@ function renderWorldCupRows(matches){
     `;
   }
 
-  return matches.map((result) => `
+  return matches.map((result) => {
+    const outcome = String(result.outcome || "").toLowerCase();
+    const resultCellHtml = outcome === "bye"
+      ? ""
+      : `<span class="worldcup-result-pill is-${escapeHtml(result.outcome)}">${escapeHtml(formatMatchResultChipText(result.outcome, result.resultLabel, result.score))}</span>`;
+    return `
     <tr class="is-${escapeHtml(result.outcome)}">
       <td class="worldcup-round-cell">${escapeHtml(result.round || result.stage || "-")}</td>
       <td class="worldcup-opponent-cell">${renderWorldCupTeamLabel(result.opponent)}</td>
-      <td class="worldcup-result-cell"><span class="worldcup-result-pill is-${escapeHtml(result.outcome)}">${escapeHtml(formatMatchResultChipText(result.outcome, result.resultLabel, result.score))}</span></td>
+      <td class="worldcup-result-cell">${resultCellHtml}</td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 }
 
 function renderWorldCupPartnerChip(entry){
@@ -2469,6 +2475,14 @@ function renderWorldCupResults(entries){
       ? `${entry.groupName || "Group"}: #${entry.standing.rank}, ${entry.standing.points || "-"} pts, ${entry.standing.record || "-"}`
       : entry.groupName || "";
     const placementText = entry.placement?.sectionLabel || "";
+    const placementRank = Number(entry.placement?.rank);
+    const placementClass = placementRank === 0
+      ? " is-gold"
+      : placementRank === 1
+        ? " is-silver"
+        : placementRank === 2
+          ? " is-bronze"
+          : "";
     const partnerChip = renderWorldCupPartnerChip(entry);
     block.innerHTML = `
       <div class="worldcup-results-wrap">
@@ -2489,7 +2503,7 @@ function renderWorldCupResults(entries){
         </table>
         <div class="worldcup-stage-label">
           <span>Bracket Stage</span>
-          ${placementText ? `<span class="worldcup-standing-chip">${escapeHtml(placementText)}</span>` : ""}
+          ${placementText ? `<span class="worldcup-standing-chip${placementClass}">${escapeHtml(placementText)}</span>` : ""}
         </div>
         <table class="worldcup-results-table">
           <thead>
