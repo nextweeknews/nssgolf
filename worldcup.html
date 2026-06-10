@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#020B18" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="icon" href="/logos/golf.png" />
-  <link rel="stylesheet" href="/worldcup-flags.css?v=20260609-flags3" />
+  <link rel="stylesheet" href="/worldcup-flags.css?v=20260610-flag-img" />
   <title>World Cup</title>
 
   <style>
@@ -574,9 +574,6 @@
       color:rgba(233,238,248,.72);
       background:rgba(148,163,184,.08);
     }
-    .group-game .wc-flag-icon{
-      width:1.18em;
-    }
     .group-game-column{
       display:grid;
       gap:7px;
@@ -1011,10 +1008,10 @@
       let label = worldCupTeamLabel(rawName) || rawName || fallback;
       if(rawName && label !== rawName && label.endsWith(rawName)) label = rawName;
       const flagCode = rawName ? worldCupFlagForTeam(rawName) : "";
-      const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "";
+      const hasSafeFlagCode = /^[a-z0-9-]+$/i.test(flagCode);
       return `
         <span class="wc-team-label">
-          ${safeFlagClass ? `<span class="wc-flag-icon ${safeFlagClass}" style="--wc-flag-image:url('/assets/flag-icons/4x3/${escapeHtml(flagCode.toLowerCase())}.svg')" aria-hidden="true"></span>` : ""}
+          ${hasSafeFlagCode ? `<img class="wc-flag-icon" src="/assets/flag-icons/4x3/${escapeHtml(flagCode.toLowerCase())}.svg" alt="" aria-hidden="true" decoding="async" />` : ""}
           <span class="wc-team-label-text">${escapeHtml(label)}</span>
         </span>
       `;

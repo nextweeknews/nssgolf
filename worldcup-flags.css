@@ -1,6 +1,6 @@
 .wc-team-label{
   display:inline-flex;
-  align-items:center;
+  align-items:baseline;
   gap:.45em;
   min-width:0;
   max-width:100%;
@@ -25,42 +25,17 @@
 }
 
 .wc-flag-icon{
-  display:inline-block;
+  display:block;
   flex:0 0 auto;
-  width:1.25em;
-  aspect-ratio:4 / 3;
-  border-radius:2px;
-  background-image:var(--wc-flag-image, none);
-  background-color:rgba(255,255,255,.10);
-  background-position:50%;
-  background-repeat:no-repeat;
-  background-size:contain;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+  width:auto;
+  height:1cap;
+  max-width:none;
+  border-radius:.12em;
+  object-fit:contain;
+  object-position:50% 50%;
+  vertical-align:baseline;
 }
 
-.wc-flag-icon[style*="--wc-flag-image"]{
-  background-image:var(--wc-flag-image);
+@supports not (height:1cap){
+  .wc-flag-icon{ height:.72em; }
 }
-
-.wc-flag-au{ background-image:url("/assets/flag-icons/4x3/au.svg"); }
-.wc-flag-ca{ background-image:url("/assets/flag-icons/4x3/ca.svg"); }
-.wc-flag-cn{ background-image:url("/assets/flag-icons/4x3/cn.svg"); }
-.wc-flag-de{ background-image:url("/assets/flag-icons/4x3/de.svg"); }
-.wc-flag-eu{ background-image:url("/assets/flag-icons/4x3/eu.svg"); }
-.wc-flag-fr{ background-image:url("/assets/flag-icons/4x3/fr.svg"); }
-.wc-flag-gb-eng{ background-image:url("/assets/flag-icons/4x3/gb-eng.svg"); }
-.wc-flag-gb-sct{ background-image:url("/assets/flag-icons/4x3/gb-sct.svg"); }
-.wc-flag-hk{ background-image:url("/assets/flag-icons/4x3/hk.svg"); }
-.wc-flag-ie{ background-image:url("/assets/flag-icons/4x3/ie.svg"); }
-.wc-flag-in{ background-image:url("/assets/flag-icons/4x3/in.svg"); }
-.wc-flag-it{ background-image:url("/assets/flag-icons/4x3/it.svg"); }
-.wc-flag-jm{ background-image:url("/assets/flag-icons/4x3/jm.svg"); }
-.wc-flag-jp{ background-image:url("/assets/flag-icons/4x3/jp.svg"); }
-.wc-flag-kr{ background-image:url("/assets/flag-icons/4x3/kr.svg"); }
-.wc-flag-me{ background-image:url("/assets/flag-icons/4x3/me.svg"); }
-.wc-flag-mx{ background-image:url("/assets/flag-icons/4x3/mx.svg"); }
-.wc-flag-nl{ background-image:url("/assets/flag-icons/4x3/nl.svg"); }
-.wc-flag-tw{ background-image:url("/assets/flag-icons/4x3/tw.svg"); }
-.wc-flag-un{ background-image:url("/assets/flag-icons/4x3/un.svg"); }
-.wc-flag-us{ background-image:url("/assets/flag-icons/4x3/us.svg"); }
-.wc-flag-xx{ background-image:url("/assets/flag-icons/4x3/xx.svg"); }

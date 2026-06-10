@@ -381,7 +381,7 @@ function hasAnyPlayerSetting(settings){
 function renderFlagIcon(flagCode){
   const cleanCode = String(flagCode || "").trim().toLowerCase();
   if(!/^[a-z0-9-]+$/.test(cleanCode)) return "";
-  return `<span class="wc-flag-icon wc-flag-${escapeHtml(cleanCode)}" style="--wc-flag-image:url('/assets/flag-icons/4x3/${escapeHtml(cleanCode)}.svg')" aria-hidden="true"></span>`;
+  return `<img class="wc-flag-icon" src="/assets/flag-icons/4x3/${escapeHtml(cleanCode)}.svg" alt="" aria-hidden="true" decoding="async" />`;
 }
 
 function renderCountrySettingLabel(code){
@@ -844,10 +844,10 @@ function renderWorldCupTeamLabel(teamName, fallback = "TBD"){
   let label = worldCupTeamLabel(rawName) || rawName || fallback;
   if(rawName && label !== rawName && label.endsWith(rawName)) label = rawName;
   const flagCode = rawName ? worldCupFlagForTeam(rawName) : "";
-  const safeFlagClass = /^[a-z0-9-]+$/i.test(flagCode) ? `wc-flag-${flagCode.toLowerCase()}` : "";
+  const hasSafeFlagCode = /^[a-z0-9-]+$/i.test(flagCode);
   return `
     <span class="wc-team-label">
-      ${safeFlagClass ? renderFlagIcon(flagCode) : ""}
+      ${hasSafeFlagCode ? renderFlagIcon(flagCode) : ""}
       <span class="wc-team-label-text">${escapeHtml(label)}</span>
     </span>
   `;
