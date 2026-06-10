@@ -42,6 +42,8 @@ const leaderboardMessageAvatarUrl =
   process.env.NSSGOLF_GLOBAL_RANKS_AVATAR_URL ||
   "https://www.nssgolf.com/logos/golf.png";
 const recordsButtonTealColor = 0x2dd4bf;
+const globalRankRecordsLink =
+  "[View all Global Rank data at nssgolf.com](https://nssgolf.com/records.html?view=global-ranks)";
 
 const rankDisplayConfigs = {
   current_global_rank: {
@@ -386,6 +388,35 @@ function formatUpdateMessage(discordUserId, updateResult) {
   return `<@${discordUserId}> ${changeText}`;
 }
 
+function formatMessageCommandUpdate(discordUserId, operation, updateResult) {
+  const settings = updateResult?.settings || {};
+  const config = {
+    rank_no_cs: {
+      label: "Global rank (no CS)",
+      field: "current_global_rank",
+    },
+    rank_cs: {
+      label: "Global rank (CS)",
+      field: "current_global_rank",
+    },
+    max_no_cs: {
+      label: "Global max rank (no CS)",
+      field: "max_global_rank_no_cs",
+    },
+    max_cs: {
+      label: "Global max rank (CS)",
+      field: "max_global_rank_cs",
+    },
+  }[operation];
+
+  const rank = settings[config?.field] || updateResult?.changes?.[0]?.rank || "";
+  if (!config || !rank) {
+    return formatUpdateMessage(discordUserId, updateResult);
+  }
+
+  return `<@${discordUserId}> updated ${config.label} to **${rank}**`;
+}
+
 function parseMessageCommand(content) {
   const match = String(content || "").match(/^!(ranknocs|rankcs|maxnocs|maxcs)(?:\s+([\s\S]+))?$/i);
   if (!match) {
@@ -500,6 +531,10 @@ function chunkRankSections(sections, maxLength = 3800) {
   return chunks.length ? chunks : ["_No players listed yet._"];
 }
 
+function appendGlobalRanksLink(description) {
+  return `${description}\n${globalRankRecordsLink}`;
+}
+
 async function buildRankEmbeds(rankKey) {
   const config = rankDisplayConfigs[rankKey];
   if (!config) {
@@ -530,7 +565,7 @@ async function buildRankEmbeds(rankKey) {
     return new EmbedBuilder()
       .setTitle(title)
       .setColor(recordsButtonTealColor)
-      .setDescription(description)
+      .setDescription(appendGlobalRanksLink(description))
       .setFooter({ text: GLOBAL_RANK_FIELD_LABELS[rankKey] })
       .setTimestamp(new Date());
   });
@@ -832,15 +867,15 @@ async function handleMessage(message) {
       parsedCommand.rankText
     );
     const changedFields = changedFieldsFromUpdate(updateResult);
-    await refreshDisplaysForFields(changedFields);
 
-    await message.reply({
-      content: formatUpdateMessage(message.author.id, updateResult),
+    await message.channel.send({
+      content: formatMessageCommandUpdate(message.author.id, operation, updateResult),
       allowedMentions: {
-        repliedUser: false,
         users: [message.author.id],
       },
     });
+
+    await refreshDisplaysForFields(changedFields);
   } catch (error) {
     console.error(error);
     await message.reply({
