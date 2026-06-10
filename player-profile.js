@@ -170,7 +170,7 @@ const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
 let worldOpenDiscordMapsPromise = null;
 const worldCupDataPromises = new Map();
-const worldCupMemberCache = new Map();
+const discordMemberCache = new Map();
 let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
 let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
@@ -1699,10 +1699,10 @@ function deriveLightningCupSetCounts(match){
   return { top, bottom };
 }
 
-function lightningCupSeedPlayerText(slot){
+function lightningCupSeedPlayerParts(slot){
   const seed = slot?.seed == null ? "" : String(slot.seed);
   const name = String(slot?.name || "TBD").trim() || "TBD";
-  return [seed, name].filter(Boolean).join(" ");
+  return { seed, name };
 }
 
 function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
@@ -1720,6 +1720,7 @@ function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
   if(!playerIsTop && !playerIsBottom) return "";
 
   const opponentSlot = playerIsTop ? match.bottom : match.top;
+  const opponentParts = lightningCupSeedPlayerParts(opponentSlot);
   const setCounts = deriveLightningCupSetCounts(match);
   const playerSets = playerIsTop ? setCounts.top : setCounts.bottom;
   const opponentSets = playerIsTop ? setCounts.bottom : setCounts.top;
@@ -1727,8 +1728,9 @@ function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
   const score = `${playerSets}-${opponentSets}`;
 
   return {
-    opponent: lightningCupSeedPlayerText(opponentSlot),
-    opponentDiscordId: getLightningCupDiscordIdForPlayerName(seedMaps, opponentSlot?.name),
+    opponent: opponentParts.name,
+    opponentSeed: opponentParts.seed,
+    opponentDiscordId: getLightningCupDiscordIdForPlayerName(seedMaps, opponentParts.name),
     result: `${outcome}, ${score}`,
     score,
     resultLabel: outcome,
@@ -1759,7 +1761,7 @@ async function loadLightningCupPlayerResults(member){
   const context = buildLightningCupBracketContext(actualMatches);
   const resolvedMatches = buildLightningCupResolvedMatchMap(actualMatches, context);
 
-  return [...resolvedMatches.values()]
+  const results = [...resolvedMatches.values()]
     .filter((match) => {
       if(!String(match?.winner || "").trim()) return false;
       return isLightningCupPlayerSlot(match.top, seedMaps, discordId)
@@ -1773,6 +1775,20 @@ async function loadLightningCupPlayerResults(member){
       result: buildLightningCupResultLine(match, discordId, seedMaps),
     }))
     .filter(result => result.result);
+
+  try{
+    const membersById = await loadDiscordMembersByIds(results.map(result => result.result.opponentDiscordId).filter(Boolean));
+    return results.map(result => ({
+      ...result,
+      result: {
+        ...result.result,
+        opponentMember: membersById.get(normalizeDiscordPlayerId(result.result.opponentDiscordId)) || null,
+      },
+    }));
+  }catch(error){
+    console.error("Unable to load Lightning Cup opponent member data", error);
+    return results;
+  }
 }
 
 function normalizeWorldOpenName(value){
@@ -1908,12 +1924,23 @@ async function loadWorldOpenPlayerResults(member){
       .map(result => ({ ...result, roundIndex }));
   }));
 
-  return roundResults
+  const results = roundResults
     .flat()
     .sort((left, right) => {
       if(left.roundIndex !== right.roundIndex) return left.roundIndex - right.roundIndex;
       return left.matchIndex - right.matchIndex;
     });
+
+  try{
+    const membersById = await loadDiscordMembersByIds(results.map(result => result.opponentDiscordId).filter(Boolean));
+    return results.map(result => ({
+      ...result,
+      opponentMember: membersById.get(normalizeDiscordPlayerId(result.opponentDiscordId)) || null,
+    }));
+  }catch(error){
+    console.error("Unable to load World Open opponent member data", error);
+    return results;
+  }
 }
 
 async function loadWorldCupData(year){
@@ -1924,9 +1951,9 @@ async function loadWorldCupData(year){
   return promise;
 }
 
-async function loadWorldCupPartnerMembers(discordIds){
+async function loadDiscordMembersByIds(discordIds){
   const ids = [...new Set((discordIds || []).map(normalizeDiscordPlayerId).filter(Boolean))];
-  const missing = ids.filter(id => !worldCupMemberCache.has(id));
+  const missing = ids.filter(id => !discordMemberCache.has(id));
   for(let index = 0; index < missing.length; index += 100){
     const chunk = missing.slice(index, index + 100);
     const { data, error } = await supabase
@@ -1934,13 +1961,13 @@ async function loadWorldCupPartnerMembers(discordIds){
       .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
       .in("discord_user_id", chunk);
     if(error) throw error;
-    chunk.forEach(id => worldCupMemberCache.set(id, null));
+    chunk.forEach(id => discordMemberCache.set(id, null));
     (data || []).forEach(member => {
       const id = normalizeDiscordPlayerId(member?.discord_user_id);
-      if(id) worldCupMemberCache.set(id, { ...member, discord_user_id: id });
+      if(id) discordMemberCache.set(id, { ...member, discord_user_id: id });
     });
   }
-  return worldCupMemberCache;
+  return discordMemberCache;
 }
 
 function buildWorldCupPerspectiveResult(match, teamName, stageLabel){
@@ -2011,7 +2038,7 @@ async function loadWorldCupPlayerResults(member){
 
   const partnerIds = entries.map(entry => entry.partnerDiscordId).filter(Boolean);
   try{
-    const membersById = await loadWorldCupPartnerMembers(partnerIds);
+    const membersById = await loadDiscordMembersByIds(partnerIds);
     return entries.map(entry => ({
       ...entry,
       partnerMember: membersById.get(normalizeDiscordPlayerId(entry.partnerDiscordId)) || null,
@@ -2060,6 +2087,22 @@ function renderNoptationalPlayerTable(player){
   return table;
 }
 
+function renderTournamentOpponentLink({ name, discordId, member = null, seed = "" } = {}){
+  const fallbackName = String(name || "TBD").trim() || "TBD";
+  const displayName = member ? displayNameFor(member) : fallbackName;
+  const avatarUrl = member ? avatarUrlFor(member) : "/logos/golf.png";
+  const safeDisplayName = escapeHtml(displayName);
+  const inner = `
+    ${seed ? `<span class="tournament-opponent-seed">${escapeHtml(seed)}</span>` : ""}
+    <img class="tournament-opponent-avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+    <span class="tournament-opponent-name">${safeDisplayName}</span>
+  `;
+  if(discordId){
+    return `<a class="tournament-opponent-link" href="/player.html?id=${encodeURIComponent(discordId)}" aria-label="View ${safeDisplayName}'s player page">${inner}</a>`;
+  }
+  return `<span class="tournament-opponent-link">${inner}</span>`;
+}
+
 function renderLightningCupResults(results){
   const container = document.createElement("div");
   container.className = "tournament-history lightningcup-history";
@@ -2101,22 +2144,12 @@ function renderLightningCupResults(results){
     const opponentCell = document.createElement("td");
     opponentCell.className = "worldopen-opponent-cell";
 
-    const opponent = result.result.opponentDiscordId
-      ? document.createElement("a")
-      : document.createElement("span");
-    opponent.className = "worldopen-opponent lightningcup-result-opponent";
-    if(result.result.opponentDiscordId){
-      opponent.href = `/player.html?id=${encodeURIComponent(result.result.opponentDiscordId)}`;
-      opponent.setAttribute("aria-label", `View ${result.result.opponent}'s player page`);
-    }
-    const opponentPrefix = document.createElement("span");
-    opponentPrefix.className = "lightningcup-result-vs";
-    opponentPrefix.textContent = "vs.";
-    const opponentName = document.createElement("span");
-    opponentName.className = "lightningcup-result-opponent-name";
-    opponentName.textContent = result.result.opponent;
-    opponent.append(opponentPrefix, opponentName);
-    opponentCell.appendChild(opponent);
+    opponentCell.innerHTML = renderTournamentOpponentLink({
+      name: result.result.opponent,
+      discordId: result.result.opponentDiscordId,
+      member: result.result.opponentMember,
+      seed: result.result.opponentSeed,
+    });
 
     const resultCell = document.createElement("td");
     resultCell.className = "worldopen-result-cell";
@@ -2177,16 +2210,11 @@ function renderWorldOpenResults(results){
 
     const opponentCell = document.createElement("td");
     opponentCell.className = "worldopen-opponent-cell";
-    const opponent = result.opponentDiscordId
-      ? document.createElement("a")
-      : document.createElement("span");
-    opponent.className = "worldopen-opponent";
-    if(result.opponentDiscordId){
-      opponent.href = `/player.html?id=${encodeURIComponent(result.opponentDiscordId)}`;
-      opponent.setAttribute("aria-label", `View ${result.opponent}'s player page`);
-    }
-    opponent.textContent = result.opponent;
-    opponentCell.appendChild(opponent);
+    opponentCell.innerHTML = renderTournamentOpponentLink({
+      name: result.opponent,
+      discordId: result.opponentDiscordId,
+      member: result.opponentMember,
+    });
 
     const resultCell = document.createElement("td");
     resultCell.className = "worldopen-result-cell";
