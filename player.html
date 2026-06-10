@@ -462,6 +462,18 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .ranked-table thead tr:first-child > th{
+      border-top: 0;
+    }
+    .ranked-table tr > :first-child{
+      border-left: 0;
+    }
+    .ranked-table tr > :last-child{
+      border-right: 0;
+    }
+    .ranked-table tbody tr:last-child > :is(td, th){
+      border-bottom: 0;
+    }
     .ranked-table thead th{
       background: rgba(15,23,42,0.95);
       color: rgba(156,163,199,0.86);
@@ -793,6 +805,20 @@
       padding: 8px 5px;
       text-align: center;
       white-space: nowrap;
+    }
+    .tournament-table thead tr:first-child > th{
+      border-top: 0;
+    }
+    .tournament-table thead tr:first-child > :first-child,
+    .tournament-table tbody tr > :first-child{
+      border-left: 0;
+    }
+    .tournament-table thead tr > :last-child,
+    .tournament-table tbody tr > :last-child{
+      border-right: 0;
+    }
+    .tournament-table tbody tr:last-child > td{
+      border-bottom: 0;
     }
     .tournament-table thead th{
       background: rgba(15,23,42,0.95);
