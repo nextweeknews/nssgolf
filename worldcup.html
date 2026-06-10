@@ -395,6 +395,10 @@
       background:rgba(var(--worldcup-accent-rgb), .13);
       color:#fff;
     }
+    .wc-match-card.has-label .wc-match-row.is-winner{
+      background:rgba(var(--worldcup-accent-rgb), .13);
+      color:#fff;
+    }
     .wc-match-row.is-winner::after{
       content:"";
       position:absolute;
@@ -557,6 +561,17 @@
     }
     .group-game .wc-match-row:nth-child(2){
       background:rgba(255,255,255,0.045);
+    }
+    .group-game .wc-match-row.is-winner{
+      color:#fff;
+      background:rgba(var(--worldcup-accent-rgb), .13);
+    }
+    .group-game .wc-match-row.is-bye{
+      color:rgba(233,238,248,.72);
+      background:rgba(148,163,184,.08);
+    }
+    .group-game .wc-flag-icon{
+      width:1.18em;
     }
     .group-game-column{
       display:grid;
