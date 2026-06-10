@@ -5,8 +5,8 @@
 -- settings row tied to their own Supabase profile and Discord ID.
 
 create table if not exists public.player_settings (
-  user_id uuid not null primary key references auth.users(id) on delete cascade,
-  discord_user_id text not null unique check (discord_user_id ~ '^[0-9]+$'),
+  user_id uuid references auth.users(id) on delete cascade,
+  discord_user_id text not null primary key check (discord_user_id ~ '^[0-9]+$'),
   country_1 text check (country_1 is null or country_1 ~ '^[A-Z]{2}$'),
   country_2 text check (country_2 is null or country_2 ~ '^[A-Z]{2}$'),
   time_zone text,
@@ -19,8 +19,52 @@ create table if not exists public.player_settings (
     check (country_1 is null or country_2 is null or country_1 <> country_2)
 );
 
-create index if not exists player_settings_discord_user_idx
-on public.player_settings (discord_user_id);
+do $$
+begin
+  if exists (
+    select 1
+    from information_schema.table_constraints
+    where table_schema = 'public'
+      and table_name = 'player_settings'
+      and constraint_name = 'player_settings_pkey'
+      and constraint_type = 'PRIMARY KEY'
+  ) and not exists (
+    select 1
+    from information_schema.key_column_usage
+    where table_schema = 'public'
+      and table_name = 'player_settings'
+      and constraint_name = 'player_settings_pkey'
+      and column_name = 'discord_user_id'
+  ) then
+    alter table public.player_settings drop constraint player_settings_pkey;
+  end if;
+end;
+$$;
+
+alter table public.player_settings
+alter column user_id drop not null;
+
+alter table public.player_settings
+drop constraint if exists player_settings_discord_user_id_key;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from information_schema.table_constraints
+    where table_schema = 'public'
+      and table_name = 'player_settings'
+      and constraint_name = 'player_settings_pkey'
+      and constraint_type = 'PRIMARY KEY'
+  ) then
+    alter table public.player_settings add constraint player_settings_pkey primary key (discord_user_id);
+  end if;
+end;
+$$;
+
+create unique index if not exists player_settings_user_id_unique_idx
+on public.player_settings (user_id)
+where user_id is not null;
 
 alter table public.player_settings
 drop constraint if exists player_settings_current_global_rank_check;
@@ -109,7 +153,15 @@ create policy "players can update their own settings"
 on public.player_settings
 for update
 to authenticated
-using (auth.uid() = user_id)
+using (
+  (user_id is null or auth.uid() = user_id)
+  and exists (
+    select 1
+    from public.profiles p
+    where p.user_id = auth.uid()
+      and p.discord_user_id = player_settings.discord_user_id
+  )
+)
 with check (
   auth.uid() = user_id
   and exists (

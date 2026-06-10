@@ -253,11 +253,11 @@
       return data || null;
     }
 
-    async function loadSettings(userId){
+    async function loadSettings(discordId){
       const { data, error } = await supabase
         .from("player_settings")
         .select("country_1,country_2,time_zone,current_global_rank,max_global_rank_no_cs,max_global_rank_cs")
-        .eq("user_id", userId)
+        .eq("discord_user_id", discordId)
         .maybeSingle();
       if(error) throw error;
       return data || {};
@@ -322,7 +322,7 @@
       }
 
       const [settings, customUrl] = await Promise.all([
-        loadSettings(currentUser.id),
+        loadSettings(currentDiscordId),
         loadCustomUrl(currentUser.id),
       ]);
       setFormValues(settings);
@@ -395,7 +395,7 @@
 
       const { error } = await supabase
         .from("player_settings")
-        .upsert(payload, { onConflict: "user_id" });
+        .upsert(payload, { onConflict: "discord_user_id" });
 
       if(error){
         saveBtn.disabled = false;

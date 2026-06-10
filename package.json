@@ -11,10 +11,12 @@
     "build:worldcup-tabs": "esbuild worldcup-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=worldcup-tabs.bundle.js",
     "check:player-shell": "node scripts/sync-player-shell.js",
     "discord:scan-members": "node bot/scan-members.js",
+    "discord:global-ranks": "node bot/global-ranks-bot.js",
     "proleague:aliases:suggest": "node bot/proleague-player-aliases.js suggest",
     "proleague:aliases:export-sql": "node bot/proleague-player-aliases.js export-sql",
     "proleague:aliases:import": "node bot/proleague-player-aliases.js import",
     "sync:player-shell": "node scripts/sync-player-shell.js --write",
+    "test:global-ranks": "node bot/global-ranks-core.test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -56,6 +56,75 @@ Do not grant the bot `Administrator` or `Manage Roles`. The scheduled scanner re
 
 The bot does not need the Message Content intent for this scan.
 
+## Discord Global Rank Bot
+
+The global rank bot adds admin slash commands and player chat commands for the unofficial global rank fields stored in `public.player_settings`.
+
+### Commands
+
+Admin slash commands:
+
+- `/display_global_ranks`
+- `/display_global_max_nocs`
+- `/display_global_max_cs`
+- `/set_rank_nocs player rank`
+- `/set_rank_cs player rank`
+- `/set_max_nocs player rank`
+- `/set_max_cs player rank`
+
+Player message commands:
+
+- `!ranknocs [rank]`
+- `!rankcs [rank]`
+- `!maxnocs`
+- `!maxcs`
+
+Rank text accepts the stored infinity symbol, like `∞3`, and easier Discord input like `inf3`. `!maxnocs` and `!maxcs` use the player's current rank when no rank argument is supplied; they also accept an explicit rank as a convenience.
+
+`!ranknocs`, `!rankcs`, `/set_rank_nocs`, and `/set_rank_cs` update the player's current rank and bump the corresponding max rank when the new current rank is higher. Current rank updates are rejected if the resulting current rank would be below both max rank values.
+
+### Supabase setup
+
+Run these SQL files in the Supabase SQL editor:
+
+```sh
+bot/discord-member-schema.sql
+bot/player-settings-schema.sql
+bot/global-rank-displays-schema.sql
+```
+
+The display-message table stores Discord webhook tokens and is intentionally service-role only. Do not grant browser clients access to it.
+
+The bot can create a missing `player_settings` row for a Discord-only player. If that player later logs into nssgolf.com with Discord, the settings page updates the same row by `discord_user_id` and attaches the Supabase `user_id`.
+
+### Discord setup
+
+For the rank bot, the Discord application needs:
+
+- OAuth scopes: `bot` and `applications.commands`
+- Bot/channel permissions: `View Channel`, `Send Messages`, `Read Message History`, `Use Application Commands`, and `Manage Webhooks`
+- Privileged Gateway Intents: **Server Members Intent** and **Message Content Intent**
+
+Slash commands are registered as Administrator-only by default. At runtime, the bot also accepts the role in `DISCORD_ADMIN_ROLE_ID` as an admin role. If that role does not have Discord's Administrator permission, enable access to the slash commands for that role in the server's **Integrations** settings.
+
+### Running
+
+Set the same Discord and Supabase secrets used by the member scan:
+
+```sh
+DISCORD_BOT_TOKEN=your_real_bot_token
+DISCORD_GUILD_ID=your_server_id
+DISCORD_ADMIN_ROLE_ID=your_admin_role_id
+NSSGOLF_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+NSSGOLF_SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+Then start the long-running bot:
+
+```sh
+npm run discord:global-ranks
+```
+
 ### Local setup
 
 If you want to run the scanner locally, create a local `.env` file using `.env.example` as the template:
