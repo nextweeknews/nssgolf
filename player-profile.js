@@ -2877,12 +2877,29 @@ function initializeProLeaguePeriodsFromConfig(){
 
 function configuredProLeaguePeriodsForProfile(){
   initializeProLeaguePeriodsFromConfig();
-  const season = proLeagueCurrentSeason;
-  if(!isProLeagueStagedSeason(season)) return [{ season, stage: null }];
-  const cleanStage = String(proLeagueCurrentStage ?? "").trim().toLowerCase();
-  if(cleanStage === "championship") return [{ season, stage: "championship" }];
-  const stage = Number(proLeagueCurrentStage);
-  return [{ season, stage: Number.isFinite(stage) ? Math.max(1, Math.trunc(stage)) : 1 }];
+  const periods = [];
+  const currentSeason = Number(proLeagueCurrentSeason);
+  const currentStage = String(proLeagueCurrentStage ?? "").trim().toLowerCase();
+
+  proLeagueAvailableSeasons
+    .filter(season => Number(season) <= currentSeason)
+    .forEach((season) => {
+      if(!isProLeagueStagedSeason(season)){
+        periods.push({ season, stage: null });
+        return;
+      }
+
+      const stageLimit = proLeagueStageDataBySeason.get(season) || 1;
+      for(let stage = 1; stage <= stageLimit; stage += 1){
+        periods.push({ season, stage });
+      }
+
+      if(season < currentSeason || currentStage === "championship"){
+        periods.push({ season, stage: "championship" });
+      }
+    });
+
+  return periods;
 }
 
 function findProLeagueMapValueByAlias(map, aliasKeys){
