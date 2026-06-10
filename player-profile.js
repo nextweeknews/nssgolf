@@ -2053,6 +2053,145 @@ function formatMatchResultChipText(outcome, resultLabel, score){
     : shortLabel;
 }
 
+function worldCupPageUrl(year, tab = ""){
+  const url = new URL("/worldcup.html", window.location.origin);
+  if(year) url.searchParams.set("year", String(year));
+  if(tab) url.searchParams.set("tab", tab);
+  return `${url.pathname}${url.search}`;
+}
+
+function tournamentPageUrl(key){
+  const urls = {
+    noptational: "/noptational.html",
+    lightningcup: "/lightningcup/index.html",
+    worldopen: "/worldopen/index.html",
+  };
+  return urls[key] || "";
+}
+
+function proLeaguePageUrl(season, stage = null){
+  const url = new URL("/proleague/index.html", window.location.origin);
+  const seasonNumber = Number(season);
+  if(Number.isInteger(seasonNumber) && seasonNumber > 0) url.searchParams.set("season", String(seasonNumber));
+  if(stage != null && isProLeagueStagedSeason(seasonNumber)){
+    url.searchParams.set("stage", stage === "championship" ? "championship" : String(Number(stage)));
+  }
+  return `${url.pathname}${url.search}`;
+}
+
+function worldCupTeamKey(value){
+  return String(value || "").trim().toLowerCase();
+}
+
+function orderedWorldCupMatchTeams(match){
+  return [match?.team1, match?.team2].map(team => String(team || "").trim()).filter(Boolean);
+}
+
+function getWorldCupMatchWinnerLoser(match, fallbackToSheetOrder = false){
+  const teams = orderedWorldCupMatchTeams(match);
+  if(teams.length < 2) return { winner:"", loser:"" };
+  const first = getWorldCupMatchOutcome(match, teams[0]);
+  const second = getWorldCupMatchOutcome(match, teams[1]);
+  if(first?.outcome === "win") return { winner:teams[0], loser:teams[1] };
+  if(second?.outcome === "win") return { winner:teams[1], loser:teams[0] };
+  if(fallbackToSheetOrder) return { winner:teams[0], loser:teams[1] };
+  return { winner:"", loser:"" };
+}
+
+function ordinal(value){
+  const number = Number(value);
+  if(!Number.isInteger(number) || number <= 0) return "";
+  const suffix = [11, 12, 13].includes(number % 100) ? "th" : ({ 1:"st", 2:"nd", 3:"rd" }[number % 10] || "th");
+  return `${number}${suffix}`;
+}
+
+function numericText(value, fallback = 0){
+  const match = String(value ?? "").match(/-?\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : fallback;
+}
+
+function buildWorldCupTeamPlacement(data, teamName){
+  const targetKey = worldCupTeamKey(teamName);
+  if(!targetKey || /^bye$/i.test(teamName)) return null;
+
+  let bestPlacement = null;
+  const setPlacement = (team, placement) => {
+    const key = worldCupTeamKey(team);
+    if(key !== targetKey || /^bye$/i.test(team)) return;
+    const next = {
+      rank: placement.rank ?? 9999,
+      sourceIndex: placement.sourceIndex ?? 0,
+      sectionKey: placement.sectionKey || "other",
+      sectionLabel: placement.sectionLabel || "Other Teams",
+      badge: placement.badge || "",
+    };
+    if(bestPlacement && bestPlacement.rank <= next.rank) return;
+    bestPlacement = next;
+  };
+
+  const bracketMatches = (data?.bracket || []).slice().sort((left, right) => Number(left.id || 0) - Number(right.id || 0));
+  const finalMatch = bracketMatches.find(match => {
+    const round = String(match.round || "").trim();
+    return round === "F" || /^final$/i.test(round);
+  });
+  const thirdPlaceMatch = bracketMatches.find(match => String(match.round || "").trim() === "3rd");
+
+  if(finalMatch){
+    const { winner, loser } = getWorldCupMatchWinnerLoser(finalMatch, true);
+    setPlacement(winner, { rank:0, sourceIndex:0, sectionKey:"podium", sectionLabel:"Champion", badge:"1st" });
+    setPlacement(loser, { rank:1, sourceIndex:0, sectionKey:"podium", sectionLabel:"Runner-up", badge:"2nd" });
+  }
+  if(thirdPlaceMatch){
+    const { winner, loser } = getWorldCupMatchWinnerLoser(thirdPlaceMatch, true);
+    setPlacement(winner, { rank:2, sourceIndex:0, sectionKey:"podium", sectionLabel:"3rd Place", badge:"3rd" });
+    setPlacement(loser, { rank:3, sourceIndex:0, sectionKey:"fourth", sectionLabel:"4th Place", badge:"4th" });
+  }
+
+  const roundPlacement = {
+    SF:{ rank:4, sectionKey:"semifinalists", sectionLabel:"Semifinalists" },
+    QF:{ rank:5, sectionKey:"quarterfinalists", sectionLabel:"Quarterfinalists" },
+    R16:{ rank:6, sectionKey:"round-of-16", sectionLabel:"Round of 16" },
+    R24:{ rank:7, sectionKey:"round-of-24", sectionLabel:"Round of 24" },
+  };
+  const bracketTeamKeys = new Set();
+  bracketMatches.forEach((match) => {
+    orderedWorldCupMatchTeams(match).forEach((team) => {
+      if(!/^bye$/i.test(team)) bracketTeamKeys.add(worldCupTeamKey(team));
+    });
+    const placement = roundPlacement[String(match.round || "").trim()];
+    if(!placement) return;
+    const matchOrder = Number(match.id || 0);
+    orderedWorldCupMatchTeams(match).forEach((team, teamIndex) => {
+      setPlacement(team, { ...placement, sourceIndex:(matchOrder * 10) + teamIndex });
+    });
+  });
+
+  (data?.groups || []).forEach((group, groupIndex) => {
+    (group.standings || []).forEach((standing) => {
+      const key = worldCupTeamKey(standing.team);
+      if(key !== targetKey || bracketTeamKeys.has(key)) return;
+      const standingRank = Number(standing.rank || 99);
+      const points = numericText(standing.points, 0);
+      const differential = numericText(standing.differential, 0);
+      setPlacement(standing.team, {
+        rank:100 + standingRank,
+        sourceIndex:(-points * 1000) + (-differential * 10) + groupIndex,
+        sectionKey:`group-rank-${standingRank}`,
+        sectionLabel:`Group Stage - ${ordinal(standingRank)} in Group`,
+        badge:`${group.name} #${standingRank}`,
+      });
+    });
+  });
+
+  return bestPlacement || {
+    rank:9999,
+    sourceIndex:0,
+    sectionKey:"group-stage",
+    sectionLabel:"Group Stage",
+    badge:"",
+  };
+}
+
 async function loadWorldCupPlayerResults(member){
   const discordId = normalizeDiscordPlayerId(member?.discord_user_id);
   if(!discordId) return [];
@@ -2071,6 +2210,7 @@ async function loadWorldCupPlayerResults(member){
         partnerDiscordId: normalizeDiscordPlayerId(partner?.discordId),
         groupName: teamData.groupEntry?.group?.name || "",
         standing: teamData.groupEntry?.standing || null,
+        placement: buildWorldCupTeamPlacement(data, teamName),
         groupMatches: teamData.groupMatches
           .map(match => buildWorldCupPerspectiveResult(match, teamName, "Group Stage"))
           .filter(Boolean),
@@ -2109,7 +2249,7 @@ function renderNoptationalPlayerTable(player){
   const table = document.createElement("div");
   table.className = "tournament-history";
   table.innerHTML = `
-    <h3 class="tournament-title"><span>Noptational <span class="tournament-date">(JUN 2026)</span></span></h3>
+    <h3 class="tournament-title"><a href="${escapeHtml(tournamentPageUrl("noptational"))}">Noptational <span class="tournament-date">(JUN 2026)</span></a></h3>
     <div class="tournament-table-wrap">
       <table class="tournament-table noptational-player-table">
         <thead>
@@ -2157,7 +2297,8 @@ function renderLightningCupResults(results){
 
   const title = document.createElement("h3");
   title.className = "tournament-title";
-  const titleText = document.createElement("span");
+  const titleText = document.createElement("a");
+  titleText.href = tournamentPageUrl("lightningcup");
   titleText.append(document.createTextNode("Lightning Cup "));
   const titleDate = document.createElement("span");
   titleDate.className = "tournament-date";
@@ -2224,7 +2365,8 @@ function renderWorldOpenResults(results){
 
   const title = document.createElement("h3");
   title.className = "tournament-title";
-  const titleText = document.createElement("span");
+  const titleText = document.createElement("a");
+  titleText.href = tournamentPageUrl("worldopen");
   titleText.append(document.createTextNode("World Open "));
   const titleDate = document.createElement("span");
   titleDate.className = "tournament-date";
@@ -2326,11 +2468,12 @@ function renderWorldCupResults(entries){
     const standingText = entry.standing
       ? `${entry.groupName || "Group"}: #${entry.standing.rank}, ${entry.standing.points || "-"} pts, ${entry.standing.record || "-"}`
       : entry.groupName || "";
+    const placementText = entry.placement?.sectionLabel || "";
     const partnerChip = renderWorldCupPartnerChip(entry);
     block.innerHTML = `
       <div class="worldcup-results-wrap">
         <div class="worldcup-card-head">
-          <span class="worldcup-year-chip">${escapeHtml(entry.year)}</span>
+          <a class="worldcup-year-chip" href="${escapeHtml(worldCupPageUrl(entry.year))}" aria-label="View World Cup ${escapeHtml(entry.year)}">${escapeHtml(entry.year)}</a>
           <span class="worldcup-team-chip">${renderWorldCupTeamLabel(entry.teamName, "-")}</span>
           ${partnerChip}
         </div>
@@ -2344,7 +2487,10 @@ function renderWorldCupResults(entries){
           </thead>
           <tbody>${renderWorldCupRows(entry.groupMatches || [])}</tbody>
         </table>
-        <div class="worldcup-stage-label">Bracket Stage</div>
+        <div class="worldcup-stage-label">
+          <span>Bracket Stage</span>
+          ${placementText ? `<span class="worldcup-standing-chip">${escapeHtml(placementText)}</span>` : ""}
+        </div>
         <table class="worldcup-results-table">
           <thead>
             <tr><th>Round</th><th>Opponent</th><th>Result</th></tr>
@@ -2885,7 +3031,7 @@ function renderProLeagueSeasonPerformance(summaries){
 
     const head = document.createElement("div");
     head.className = "season-entry-head";
-    head.innerHTML = `<div class="season-entry-name">${escapeHtml(`Season ${season}`)}</div>`;
+    head.innerHTML = `<div class="season-entry-name"><a href="${escapeHtml(proLeaguePageUrl(season))}">${escapeHtml(`Season ${season}`)}</a></div>`;
     box.appendChild(head);
 
     const entries = bySeason.get(season).slice().sort((a, b) => proLeagueStageWeight(b.stage) - proLeagueStageWeight(a.stage));
@@ -2896,7 +3042,10 @@ function renderProLeagueSeasonPerformance(summaries){
       if(isProLeagueStagedSeason(season)){
         const stageHeader = document.createElement("div");
         stageHeader.className = "stage-header";
-        stageHeader.textContent = proLeagueStageHeaderText(season, entry.stage);
+        const stageLink = document.createElement("a");
+        stageLink.href = proLeaguePageUrl(season, entry.stage);
+        stageLink.textContent = proLeagueStageHeaderText(season, entry.stage);
+        stageHeader.appendChild(stageLink);
         stageBlock.appendChild(stageHeader);
       }
 
