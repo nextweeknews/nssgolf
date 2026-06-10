@@ -1723,11 +1723,14 @@ function buildLightningCupResultLine(match, playerDiscordId, seedMaps){
   const playerSets = playerIsTop ? setCounts.top : setCounts.bottom;
   const opponentSets = playerIsTop ? setCounts.bottom : setCounts.top;
   const outcome = (playerIsTop && winnerIsTop) || (playerIsBottom && winnerIsBottom) ? "W" : "L";
+  const score = `${playerSets}-${opponentSets}`;
 
   return {
     opponent: lightningCupSeedPlayerText(opponentSlot),
     opponentDiscordId: getLightningCupDiscordIdForPlayerName(seedMaps, opponentSlot?.name),
-    result: `${outcome} ${playerSets}-${opponentSets}`,
+    result: `${outcome}, ${score}`,
+    score,
+    resultLabel: outcome,
     outcome: outcome === "W" ? "win" : "loss",
   };
 }
@@ -1942,6 +1945,19 @@ function buildWorldCupPerspectiveResult(match, teamName, stageLabel){
   };
 }
 
+function formatMatchResultChipText(outcome, resultLabel, score){
+  const normalizedOutcome = String(outcome || "").toLowerCase();
+  const normalizedScore = String(score || "").trim();
+  const shortLabel = normalizedOutcome === "win"
+    ? "W"
+    : normalizedOutcome === "loss"
+      ? "L"
+      : String(resultLabel || "").trim();
+  return normalizedScore && normalizedScore !== "-"
+    ? `${shortLabel}, ${normalizedScore}`
+    : shortLabel;
+}
+
 async function loadWorldCupPlayerResults(member){
   const discordId = normalizeDiscordPlayerId(member?.discord_user_id);
   if(!discordId) return [];
@@ -2026,21 +2042,37 @@ function renderLightningCupResults(results){
   titleText.appendChild(titleDate);
   title.appendChild(titleText);
 
-  const table = document.createElement("div");
-  table.className = "lightningcup-results-table";
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "worldopen-results-wrap lightningcup-results-wrap";
 
+  const table = document.createElement("table");
+  table.className = "worldopen-results-table lightningcup-results-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  ["Round", "Opponent", "Result"].forEach((label) => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+
+  const tbody = document.createElement("tbody");
   results.forEach((result) => {
-    const row = document.createElement("div");
-    row.className = "lightningcup-result-row";
+    const row = document.createElement("tr");
+    row.className = `is-${result.result.outcome}`;
 
-    const round = document.createElement("span");
-    round.className = "lightningcup-result-round";
-    round.textContent = result.round;
+    const roundCell = document.createElement("td");
+    roundCell.className = "worldopen-round-cell lightningcup-result-round";
+    roundCell.textContent = result.round;
+
+    const opponentCell = document.createElement("td");
+    opponentCell.className = "worldopen-opponent-cell";
 
     const opponent = result.result.opponentDiscordId
       ? document.createElement("a")
       : document.createElement("span");
-    opponent.className = "lightningcup-result-opponent";
+    opponent.className = "worldopen-opponent lightningcup-result-opponent";
     if(result.result.opponentDiscordId){
       opponent.href = `/player.html?id=${encodeURIComponent(result.result.opponentDiscordId)}`;
       opponent.setAttribute("aria-label", `View ${result.result.opponent}'s player page`);
@@ -2052,18 +2084,24 @@ function renderLightningCupResults(results){
     opponentName.className = "lightningcup-result-opponent-name";
     opponentName.textContent = result.result.opponent;
     opponent.append(opponentPrefix, opponentName);
+    opponentCell.appendChild(opponent);
 
-    const score = document.createElement("a");
-    score.className = `lightningcup-result-score is-${result.result.outcome}`;
-    score.href = result.matchUrl || "/lightningcup/match/";
-    score.setAttribute("aria-label", `View Lightning Cup ${result.round} match`);
-    score.textContent = result.result.result;
+    const resultCell = document.createElement("td");
+    resultCell.className = "worldopen-result-cell";
+    const resultPill = document.createElement("a");
+    resultPill.className = `worldopen-result-pill lightningcup-result-score is-${result.result.outcome}`;
+    resultPill.href = result.matchUrl || "/lightningcup/match/";
+    resultPill.setAttribute("aria-label", `View Lightning Cup ${result.round} match`);
+    resultPill.textContent = result.result.result;
+    resultCell.appendChild(resultPill);
 
-    row.append(round, opponent, score);
-    table.appendChild(row);
+    row.append(roundCell, opponentCell, resultCell);
+    tbody.appendChild(row);
   });
 
-  container.append(title, table);
+  table.append(thead, tbody);
+  tableWrap.appendChild(table);
+  container.append(title, tableWrap);
   return container;
 }
 
@@ -2089,7 +2127,7 @@ function renderWorldOpenResults(results){
 
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
-  ["Round", "Opponent", "Score", "Result"].forEach((label) => {
+  ["Round", "Opponent", "Result"].forEach((label) => {
     const th = document.createElement("th");
     th.textContent = label;
     headRow.appendChild(th);
@@ -2118,18 +2156,14 @@ function renderWorldOpenResults(results){
     opponent.textContent = result.opponent;
     opponentCell.appendChild(opponent);
 
-    const scoreCell = document.createElement("td");
-    scoreCell.className = "worldopen-score-cell";
-    scoreCell.textContent = result.score;
-
     const resultCell = document.createElement("td");
     resultCell.className = "worldopen-result-cell";
     const resultPill = document.createElement("span");
     resultPill.className = `worldopen-result-pill is-${result.outcome}`;
-    resultPill.textContent = result.resultLabel;
+    resultPill.textContent = formatMatchResultChipText(result.outcome, result.resultLabel, result.score);
     resultCell.appendChild(resultPill);
 
-    row.append(roundCell, opponentCell, scoreCell, resultCell);
+    row.append(roundCell, opponentCell, resultCell);
     tbody.appendChild(row);
   });
 
