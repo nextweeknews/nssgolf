@@ -2258,8 +2258,8 @@ function renderWorldCupPartnerChip(entry){
   const displayName = displayNameFor(member || { display_name: partnerName });
   const avatarUrl = avatarUrlFor(member);
   const inner = `
-    <img class="worldcup-partner-avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
     <span class="worldcup-partner-label">Partner</span>
+    <img class="worldcup-partner-avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
     <span class="worldcup-partner-name">${escapeHtml(displayName)}</span>
   `;
   if(entry?.partnerDiscordId){
