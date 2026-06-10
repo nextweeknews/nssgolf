@@ -402,9 +402,12 @@ function playerSettingsLineHtml(settings){
   const countries = [settings.country_1, settings.country_2]
     .map(renderCountrySettingLabel)
     .filter(Boolean)
-    .join(" / ");
+    .join('<span class="player-settings-separator">/</span>');
   const timeZone = settings.time_zone ? timeZoneOffsetLabel(settings.time_zone) : "";
-  return [countries, escapeHtml(timeZone)].filter(Boolean).join(" · ");
+  const parts = [];
+  if(countries) parts.push(countries);
+  if(timeZone) parts.push(`<span class="player-settings-timezone">${escapeHtml(timeZone)}</span>`);
+  return `<span class="player-settings-location">${parts.join('<span class="player-settings-separator">·</span>')}</span>`;
 }
 
 function moderationKey(discordId, rankKey){
