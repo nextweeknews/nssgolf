@@ -170,6 +170,7 @@ const proLeagueChampCache = new Map();
 let superLeagueDiscordIdMapPromise = null;
 let worldOpenDiscordMapsPromise = null;
 const worldCupDataPromises = new Map();
+const worldCupMemberCache = new Map();
 let proLeagueCurrentSeason = SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
 let proLeagueCurrentStage = SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE;
 let proLeagueAvailableSeasons = [1, 2, 3, 4, 5];
@@ -1923,6 +1924,25 @@ async function loadWorldCupData(year){
   return promise;
 }
 
+async function loadWorldCupPartnerMembers(discordIds){
+  const ids = [...new Set((discordIds || []).map(normalizeDiscordPlayerId).filter(Boolean))];
+  const missing = ids.filter(id => !worldCupMemberCache.has(id));
+  for(let index = 0; index < missing.length; index += 100){
+    const chunk = missing.slice(index, index + 100);
+    const { data, error } = await supabase
+      .from("discord_guild_members")
+      .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
+      .in("discord_user_id", chunk);
+    if(error) throw error;
+    chunk.forEach(id => worldCupMemberCache.set(id, null));
+    (data || []).forEach(member => {
+      const id = normalizeDiscordPlayerId(member?.discord_user_id);
+      if(id) worldCupMemberCache.set(id, { ...member, discord_user_id: id });
+    });
+  }
+  return worldCupMemberCache;
+}
+
 function buildWorldCupPerspectiveResult(match, teamName, stageLabel){
   const perspective = getWorldCupMatchOutcome(match, teamName);
   if(!perspective) return null;
@@ -1986,8 +2006,20 @@ async function loadWorldCupPlayerResults(member){
     });
   }));
 
-  return loadedYears.flatMap((result) => result.status === "fulfilled" ? result.value : [])
+  const entries = loadedYears.flatMap((result) => result.status === "fulfilled" ? result.value : [])
     .sort((left, right) => Number(right.year) - Number(left.year));
+
+  const partnerIds = entries.map(entry => entry.partnerDiscordId).filter(Boolean);
+  try{
+    const membersById = await loadWorldCupPartnerMembers(partnerIds);
+    return entries.map(entry => ({
+      ...entry,
+      partnerMember: membersById.get(normalizeDiscordPlayerId(entry.partnerDiscordId)) || null,
+    }));
+  }catch(error){
+    console.error("Unable to load World Cup partner member data", error);
+    return entries;
+  }
 }
 
 function renderNoptationalPlayerTable(player){
@@ -2177,7 +2209,7 @@ function renderWorldCupRows(matches){
   if(!matches.length){
     return `
       <tr class="is-pending">
-        <td colspan="4" class="worldcup-empty-cell">No matches found.</td>
+        <td colspan="3" class="worldcup-empty-cell">No matches found.</td>
       </tr>
     `;
   }
@@ -2186,10 +2218,26 @@ function renderWorldCupRows(matches){
     <tr class="is-${escapeHtml(result.outcome)}">
       <td class="worldcup-round-cell">${escapeHtml(result.round || result.stage || "-")}</td>
       <td class="worldcup-opponent-cell">${renderWorldCupTeamLabel(result.opponent)}</td>
-      <td class="worldcup-score-cell">${escapeHtml(result.score || "-")}</td>
-      <td class="worldcup-result-cell"><span class="worldcup-result-pill is-${escapeHtml(result.outcome)}">${escapeHtml(result.resultLabel)}</span></td>
+      <td class="worldcup-result-cell"><span class="worldcup-result-pill is-${escapeHtml(result.outcome)}">${escapeHtml(formatMatchResultChipText(result.outcome, result.resultLabel, result.score))}</span></td>
     </tr>
   `).join("");
+}
+
+function renderWorldCupPartnerChip(entry){
+  const partnerName = String(entry?.partnerName || "").trim();
+  if(!partnerName) return "";
+  const member = entry?.partnerMember || null;
+  const displayName = displayNameFor(member || { display_name: partnerName });
+  const avatarUrl = avatarUrlFor(member);
+  const inner = `
+    <img class="worldcup-partner-avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+    <span class="worldcup-partner-label">Partner</span>
+    <span class="worldcup-partner-name">${escapeHtml(displayName)}</span>
+  `;
+  if(entry?.partnerDiscordId){
+    return `<a class="worldcup-partner-chip" href="/player.html?id=${encodeURIComponent(entry.partnerDiscordId)}" aria-label="View ${escapeHtml(displayName)}'s player page">${inner}</a>`;
+  }
+  return `<span class="worldcup-partner-chip">${inner}</span>`;
 }
 
 function renderWorldCupResults(entries){
@@ -2202,33 +2250,28 @@ function renderWorldCupResults(entries){
     const standingText = entry.standing
       ? `${entry.groupName || "Group"}: #${entry.standing.rank}, ${entry.standing.points || "-"} pts, ${entry.standing.record || "-"}`
       : entry.groupName || "";
-    const partnerName = String(entry.partnerName || "").trim();
-    const partnerChip = partnerName
-      ? entry.partnerDiscordId
-        ? `<a class="worldcup-partner-chip" href="/player.html?id=${encodeURIComponent(entry.partnerDiscordId)}">Partner: ${escapeHtml(partnerName)}</a>`
-        : `<span class="worldcup-partner-chip">Partner: ${escapeHtml(partnerName)}</span>`
-      : "";
+    const partnerChip = renderWorldCupPartnerChip(entry);
     block.innerHTML = `
-      <h3 class="tournament-title">
-        <span>World Cup <span class="tournament-date">(${escapeHtml(entry.year)})</span></span>
-      </h3>
-      <div class="worldcup-team-row">
-        <span class="worldcup-team-chip">${renderWorldCupTeamLabel(entry.teamName, "-")}</span>
-        ${partnerChip}
-        ${standingText ? `<span class="worldcup-standing-chip">${escapeHtml(standingText)}</span>` : ""}
-      </div>
       <div class="worldcup-results-wrap">
-        <div class="worldcup-stage-label">Group Stage</div>
+        <div class="worldcup-card-head">
+          <span class="worldcup-year-chip">${escapeHtml(entry.year)}</span>
+          <span class="worldcup-team-chip">${renderWorldCupTeamLabel(entry.teamName, "-")}</span>
+          ${partnerChip}
+        </div>
+        <div class="worldcup-stage-label">
+          <span>Group Stage</span>
+          ${standingText ? `<span class="worldcup-standing-chip">${escapeHtml(standingText)}</span>` : ""}
+        </div>
         <table class="worldcup-results-table">
           <thead>
-            <tr><th>Round</th><th>Opponent</th><th>Score</th><th>Result</th></tr>
+            <tr><th>Round</th><th>Opponent</th><th>Result</th></tr>
           </thead>
           <tbody>${renderWorldCupRows(entry.groupMatches || [])}</tbody>
         </table>
         <div class="worldcup-stage-label">Bracket Stage</div>
         <table class="worldcup-results-table">
           <thead>
-            <tr><th>Round</th><th>Opponent</th><th>Score</th><th>Result</th></tr>
+            <tr><th>Round</th><th>Opponent</th><th>Result</th></tr>
           </thead>
           <tbody>${renderWorldCupRows(entry.bracketMatches || [])}</tbody>
         </table>

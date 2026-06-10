@@ -1016,12 +1016,16 @@
       padding-top: 6px;
       border-top: 1px solid rgba(148,163,184,0.18);
     }
-    .worldcup-team-row{
+    .worldcup-card-head{
       display:flex;
-      gap: 6px;
+      align-items: center;
+      gap: 8px;
       flex-wrap: wrap;
-      margin: -4px 0 10px;
+      padding: 10px;
+      background: rgba(2,8,24,0.30);
+      border-bottom: 1px solid rgba(148,163,184,0.14);
     }
+    .worldcup-year-chip,
     .worldcup-team-chip,
     .worldcup-partner-chip,
     .worldcup-standing-chip{
@@ -1037,16 +1041,48 @@
       text-transform: uppercase;
       white-space: nowrap;
     }
+    .worldcup-year-chip{
+      color: rgba(186,230,253,0.98);
+      background: rgba(14,165,233,0.12);
+      border: 1px solid rgba(14,165,233,0.26);
+    }
     .worldcup-partner-chip{
       color: rgba(233,238,248,0.90);
       background: rgba(255,255,255,0.055);
       border: 1px solid rgba(148,163,184,0.26);
+      gap: 6px;
       text-decoration: none;
+      text-transform: none;
+      letter-spacing: 0;
     }
     a.worldcup-partner-chip:hover{
       color: rgba(255,255,255,0.98);
       border-color: rgba(96,165,250,0.42);
       background: rgba(96,165,250,0.10);
+    }
+    .worldcup-partner-avatar{
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex: 0 0 auto;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .worldcup-partner-label{
+      color: rgba(156,163,199,0.78);
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .worldcup-partner-name{
+      min-width: 0;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 11px;
+      font-weight: 950;
     }
     .worldcup-team-chip{
       color: rgba(219,234,254,0.98);
@@ -1067,6 +1103,10 @@
       -webkit-overflow-scrolling: touch;
     }
     .worldcup-stage-label{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
       padding: 9px 10px 6px;
       color: rgba(186,230,253,0.95);
       font-size: 9px;
@@ -1076,7 +1116,7 @@
       background: rgba(2,8,24,0.36);
       border-bottom: 1px solid rgba(148,163,184,0.14);
     }
-    .worldcup-stage-label:not(:first-child){
+    .worldcup-results-table + .worldcup-stage-label{
       border-top: 1px solid rgba(148,163,184,0.20);
     }
     .worldcup-results-table{
@@ -1111,13 +1151,11 @@
     }
     .worldcup-results-table th:nth-child(3),
     .worldcup-results-table td:nth-child(3){
-      width: 88px;
+      width: 124px;
       text-align: center;
     }
-    .worldcup-results-table th:nth-child(4),
-    .worldcup-results-table td:nth-child(4){
-      width: 96px;
-      text-align: center;
+    .worldcup-results-table tbody tr:last-child td{
+      border-bottom: 0;
     }
     .worldcup-round-cell{
       color: rgba(186,230,253,0.96);
@@ -1134,16 +1172,11 @@
       font-size: 13px;
       font-weight: 900;
     }
-    .worldcup-score-cell{
-      color: rgba(233,238,248,0.92);
-      font-size: 13px;
-      font-weight: 950;
-    }
     .worldcup-result-pill{
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 64px;
+      min-width: 78px;
       padding: 5px 7px;
       border-radius: 9px;
       font-size: 11px;
@@ -1519,7 +1552,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260610-tournament-tables"></script>
+  <script type="module" src="/player-profile.js?v=20260610-worldcup-cards"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {
