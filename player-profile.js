@@ -2455,9 +2455,9 @@ function renderLightningCupResults(results){
   });
 
   table.append(thead, tbody);
+  if(metaChips) tableWrap.appendChild(metaChips);
   tableWrap.appendChild(table);
   container.append(title);
-  if(metaChips) container.appendChild(metaChips);
   container.appendChild(tableWrap);
   return container;
 }
