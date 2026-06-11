@@ -875,6 +875,46 @@
     .lightningcup-history .tournament-title{
       padding-top: 6px;
     }
+    .lightningcup-meta-chips{
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: -4px 0 10px;
+    }
+    .lightningcup-region-chip,
+    .lightningcup-seed-chip{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 26px;
+      border-radius: 10px;
+      padding: 5px 8px;
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      line-height: 1;
+      text-transform: uppercase;
+      white-space: nowrap;
+      text-decoration: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .lightningcup-region-chip{
+      color: rgba(var(--lightningcup-region-rgb, 125,211,252), 0.98);
+      background: rgba(var(--lightningcup-region-rgb, 125,211,252), 0.12);
+      border: 1px solid rgba(var(--lightningcup-region-rgb, 125,211,252), 0.42);
+      transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+    }
+    .lightningcup-region-chip:hover{
+      background: rgba(var(--lightningcup-region-rgb, 125,211,252), 0.20);
+      border-color: rgba(var(--lightningcup-region-rgb, 125,211,252), 0.62);
+      transform: translateY(-1px);
+    }
+    .lightningcup-seed-chip{
+      color: rgba(233,238,248,0.82);
+      background: rgba(148,163,184,0.10);
+      border: 1px solid rgba(148,163,184,0.22);
+    }
     .worldopen-history .tournament-title{
       padding-top: 6px;
     }
@@ -1712,7 +1752,7 @@
     <div id="player-root"></div>
   </main>
 
-  <script type="module" src="/player-profile.js?v=20260610-superleague-result-chip"></script>
+  <script type="module" src="/player-profile.js?v=20260610-lightningcup-chips"></script>
   <script type="module" src="/site-topbar.js"></script>
   <script>
     document.getElementById("playerBackButton")?.addEventListener("click", () => {

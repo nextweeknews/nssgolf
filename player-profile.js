@@ -160,6 +160,24 @@ const NOPTATIONAL_SCORE_COLUMNS = [
   { course: "eighteen", title: "18 Holes R2", column: 9 },
 ];
 const LIGHTNING_CUP_ROUND_ORDER = ["R64", "R32", "R16", "R8", "R4", "Final", "final"];
+const LIGHTNING_CUP_REGION_NAME_BY_ID = {
+  1: "Wii Plaza",
+  2: "Wedge Island",
+  3: "Spocco Square",
+  4: "Wuhu Island",
+};
+const LIGHTNING_CUP_REGION_ACCENT_RGB_BY_NAME = {
+  "Wii Plaza": "250,204,21",
+  "Spocco Square": "249,115,22",
+  "Wedge Island": "125,211,252",
+  "Wuhu Island": "168,85,247",
+};
+const LIGHTNING_CUP_REGION_QUERY_VALUE_BY_NAME = {
+  "Wii Plaza": "wii-plaza",
+  "Wuhu Island": "wuhu-island",
+  "Wedge Island": "wedge-island",
+  "Spocco Square": "spocco-square",
+};
 const WORLD_OPEN_ROUNDS = [
   { key: "r1", title: "First Round", matchups: "C2:F33", matchSize: 32, showFlag: "F1:F1" },
   { key: "r2", title: "Second Round", matchups: "J2:M17", matchSize: 16, showFlag: "M1:M1" },
@@ -1731,6 +1749,39 @@ function isLightningCupPlayerSlot(slot, seedMaps, discordId){
   return getLightningCupDiscordIdForPlayerName(seedMaps, slot?.name) === cleanDiscordId;
 }
 
+function lightningCupRegionPageUrl(regionName){
+  const regionValue = LIGHTNING_CUP_REGION_QUERY_VALUE_BY_NAME[regionName] || "";
+  const url = new URL(tournamentPageUrl("lightningcup"), window.location.origin);
+  url.searchParams.set("view", "results");
+  url.searchParams.set("year", "2026");
+  if(regionValue) url.searchParams.set("region", regionValue);
+  return `${url.pathname}${url.search}`;
+}
+
+function buildLightningCupPlayerSummary(actualMatches, seedMaps, discordId){
+  const cleanDiscordId = normalizeDiscordPlayerId(discordId);
+  if(!cleanDiscordId) return null;
+
+  const openingMatch = (Array.isArray(actualMatches) ? actualMatches : [])
+    .filter(match => String(match?.round || "") === "R64")
+    .find(match => isLightningCupPlayerSlot(match.top, seedMaps, cleanDiscordId)
+      || isLightningCupPlayerSlot(match.bottom, seedMaps, cleanDiscordId));
+  if(!openingMatch) return null;
+
+  const playerSlot = isLightningCupPlayerSlot(openingMatch.top, seedMaps, cleanDiscordId)
+    ? openingMatch.top
+    : openingMatch.bottom;
+  const regionName = LIGHTNING_CUP_REGION_NAME_BY_ID[Number(openingMatch.region)] || "";
+  const seed = Number(playerSlot?.seed);
+
+  return {
+    regionName,
+    regionAccentRgb: LIGHTNING_CUP_REGION_ACCENT_RGB_BY_NAME[regionName] || "125,211,252",
+    regionUrl: regionName ? lightningCupRegionPageUrl(regionName) : tournamentPageUrl("lightningcup"),
+    seed: Number.isFinite(seed) ? seed : null,
+  };
+}
+
 function parseLightningCupSetCount(value){
   const text = String(value ?? "").trim();
   if(!text) return null;
@@ -1824,6 +1875,7 @@ async function loadLightningCupPlayerResults(member){
 
   const actualMatches = buildLightningCupActualMatchesFromSheet({ values: bracketValues });
   const seedMaps = parseLightningCupSeedsNameDiscordMap({ values: seedValues });
+  const playerSummary = buildLightningCupPlayerSummary(actualMatches, seedMaps, discordId);
   const context = buildLightningCupBracketContext(actualMatches);
   const resolvedMatches = buildLightningCupResolvedMatchMap(actualMatches, context);
 
@@ -1844,15 +1896,18 @@ async function loadLightningCupPlayerResults(member){
 
   try{
     const membersById = await loadDiscordMembersByIds(results.map(result => result.result.opponentDiscordId).filter(Boolean));
-    return results.map(result => ({
+    const hydratedResults = results.map(result => ({
       ...result,
       result: {
         ...result.result,
         opponentMember: membersById.get(normalizeDiscordPlayerId(result.result.opponentDiscordId)) || null,
       },
     }));
+    hydratedResults.lightningCupSummary = playerSummary;
+    return hydratedResults;
   }catch(error){
     console.error("Unable to load Lightning Cup opponent member data", error);
+    results.lightningCupSummary = playerSummary;
     return results;
   }
 }
@@ -2309,6 +2364,32 @@ function renderTournamentOpponentLink({ name, discordId, member = null, seed = "
   return `<span class="tournament-opponent-link">${inner}</span>`;
 }
 
+function renderLightningCupMetaChips(summary){
+  if(!summary?.regionName && summary?.seed == null) return null;
+
+  const row = document.createElement("div");
+  row.className = "lightningcup-meta-chips";
+
+  if(summary.regionName){
+    const regionChip = document.createElement("a");
+    regionChip.className = "lightningcup-region-chip";
+    regionChip.href = summary.regionUrl || tournamentPageUrl("lightningcup");
+    regionChip.textContent = `${summary.regionName} Region`;
+    regionChip.setAttribute("aria-label", `View ${summary.regionName} Region results`);
+    regionChip.style.setProperty("--lightningcup-region-rgb", summary.regionAccentRgb || "125,211,252");
+    row.appendChild(regionChip);
+  }
+
+  if(summary.seed != null){
+    const seedChip = document.createElement("span");
+    seedChip.className = "lightningcup-seed-chip";
+    seedChip.textContent = `${summary.seed} Seed`;
+    row.appendChild(seedChip);
+  }
+
+  return row;
+}
+
 function renderLightningCupResults(results){
   const container = document.createElement("div");
   container.className = "tournament-history lightningcup-history";
@@ -2323,6 +2404,8 @@ function renderLightningCupResults(results){
   titleDate.textContent = "(APR 2026)";
   titleText.appendChild(titleDate);
   title.appendChild(titleText);
+
+  const metaChips = renderLightningCupMetaChips(results?.lightningCupSummary || null);
 
   const tableWrap = document.createElement("div");
   tableWrap.className = "worldopen-results-wrap lightningcup-results-wrap";
@@ -2373,7 +2456,9 @@ function renderLightningCupResults(results){
 
   table.append(thead, tbody);
   tableWrap.appendChild(table);
-  container.append(title, tableWrap);
+  container.append(title);
+  if(metaChips) container.appendChild(metaChips);
+  container.appendChild(tableWrap);
   return container;
 }
 
