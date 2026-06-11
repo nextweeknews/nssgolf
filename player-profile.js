@@ -2410,6 +2410,9 @@ function renderLightningCupResults(results){
   const tableWrap = document.createElement("div");
   tableWrap.className = "worldopen-results-wrap lightningcup-results-wrap";
 
+  const tableScroll = document.createElement("div");
+  tableScroll.className = "lightningcup-table-scroll";
+
   const table = document.createElement("table");
   table.className = "worldopen-results-table lightningcup-results-table";
 
@@ -2455,8 +2458,9 @@ function renderLightningCupResults(results){
   });
 
   table.append(thead, tbody);
+  tableScroll.appendChild(table);
   if(metaChips) tableWrap.appendChild(metaChips);
-  tableWrap.appendChild(table);
+  tableWrap.appendChild(tableScroll);
   container.append(title);
   container.appendChild(tableWrap);
   return container;

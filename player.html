@@ -880,10 +880,9 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      min-width: 520px;
       padding: 10px;
-      border-bottom: 1px solid rgba(148,163,184,0.16);
-      background: rgba(15,23,42,0.72);
+      background: rgba(2,8,24,0.30);
+      border-bottom: 1px solid rgba(148,163,184,0.14);
     }
     .lightningcup-region-chip,
     .lightningcup-seed-chip{
@@ -1010,6 +1009,12 @@
     }
     .lightningcup-results-wrap{
       border-color: var(--event-lightning);
+      overflow: hidden;
+    }
+    .lightningcup-table-scroll{
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .worldopen-results-table{
       width: 100%;
