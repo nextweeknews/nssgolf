@@ -140,6 +140,18 @@
       );
     }
 
+    function getProviderProfileName(user){
+      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+      return normalizeText(
+        metadata.full_name ||
+        metadata.name ||
+        metadata.global_name ||
+        metadata.preferred_username ||
+        metadata.user_name ||
+        metadata.username
+      );
+    }
+
     function setStatus(message, tone = ""){
       statusEl.textContent = message || "";
       statusEl.className = `settings-status ${tone}`.trim();
@@ -246,11 +258,53 @@
     async function loadProfileForUser(user){
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id,username,discord_user_id")
+        .select("user_id,username,discord_user_id,full_name")
         .eq("user_id", user.id)
         .maybeSingle();
       if(error) throw error;
       return data || null;
+    }
+
+    async function syncProfileForUser(user, profile){
+      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(user);
+      if(!user?.id || !discordId){
+        return { profile, discordId: "" };
+      }
+
+      const providerFullName = getProviderProfileName(user);
+      const payload = { user_id: user.id };
+      let shouldUpsert = !profile;
+
+      if(discordId !== normalizeDiscordId(profile?.discord_user_id)){
+        payload.discord_user_id = discordId;
+        shouldUpsert = true;
+      }
+
+      if(providerFullName && providerFullName !== normalizeText(profile?.full_name)){
+        payload.full_name = providerFullName;
+        shouldUpsert = true;
+      }
+
+      if(!normalizeText(profile?.username) && providerFullName){
+        payload.username = providerFullName;
+        shouldUpsert = true;
+      }
+
+      if(!shouldUpsert){
+        return { profile, discordId };
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(payload, { onConflict: "user_id" })
+        .select("user_id,username,discord_user_id,full_name")
+        .single();
+      if(error) throw error;
+
+      return {
+        profile: data || { ...profile, ...payload },
+        discordId: normalizeDiscordId(data?.discord_user_id || payload.discord_user_id) || discordId,
+      };
     }
 
     async function loadSettings(discordId){
@@ -313,7 +367,8 @@
       if(userError) throw userError;
       currentUser = userData.user;
       const profile = await loadProfileForUser(currentUser);
-      currentDiscordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(currentUser);
+      const syncedProfile = await syncProfileForUser(currentUser, profile);
+      currentDiscordId = syncedProfile.discordId;
       if(!currentDiscordId){
         form.hidden = true;
         loginActions.hidden = true;
