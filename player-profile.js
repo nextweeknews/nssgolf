@@ -2368,7 +2368,7 @@ function renderLightningCupMetaChips(summary){
   if(!summary?.regionName && summary?.seed == null) return null;
 
   const row = document.createElement("div");
-  row.className = "lightningcup-meta-chips";
+  row.className = "lightningcup-card-head lightningcup-meta-chips";
 
   if(summary.regionName){
     const regionChip = document.createElement("a");
@@ -2408,7 +2408,7 @@ function renderLightningCupResults(results){
   const metaChips = renderLightningCupMetaChips(results?.lightningCupSummary || null);
 
   const tableWrap = document.createElement("div");
-  tableWrap.className = "worldopen-results-wrap lightningcup-results-wrap";
+  tableWrap.className = "lightningcup-results-wrap";
 
   const tableScroll = document.createElement("div");
   tableScroll.className = "lightningcup-table-scroll";
