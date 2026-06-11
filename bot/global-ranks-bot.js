@@ -200,7 +200,7 @@ function slashCommands() {
         .addStringOption((option) =>
           option
             .setName("rank")
-            .setDescription("Rank value, for example S9, ∞3, or inf3.")
+            .setDescription("Rank value, for example S9, ∞3, inf3, or remove.")
             .setRequired(true)
         );
     }
@@ -382,7 +382,11 @@ function formatUpdateMessage(discordUserId, updateResult) {
   }
 
   const changeText = changes
-    .map((change) => `${change.label} updated to **${change.rank}**`)
+    .map((change) =>
+      change.removed
+        ? `${change.label} removed`
+        : `${change.label} updated to **${change.rank}**`
+    )
     .join("; ");
 
   return `<@${discordUserId}> ${changeText}`;
@@ -410,6 +414,14 @@ function formatMessageCommandUpdate(discordUserId, operation, updateResult) {
   }[operation];
 
   const rank = settings[config?.field] || updateResult?.changes?.[0]?.rank || "";
+  const removed = updateResult?.changes?.some(
+    (change) => change.field === config?.field && change.removed
+  );
+
+  if (config && removed) {
+    return `<@${discordUserId}> removed ${config.label}`;
+  }
+
   if (!config || !rank) {
     return formatUpdateMessage(discordUserId, updateResult);
   }
@@ -442,7 +454,7 @@ async function rankForOperation(existingSettings, operation, rankText) {
   }
 
   throw new Error(
-    "Include a rank value, like S9 or inf3. For max commands, you can also set your current rank first."
+    "Include a rank value, like S9 or inf3, or type remove. For max commands, you can also set your current rank first."
   );
 }
 

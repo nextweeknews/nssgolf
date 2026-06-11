@@ -79,9 +79,9 @@ Player message commands:
 - `!maxnocs`
 - `!maxcs`
 
-Rank text accepts the stored infinity symbol, like `∞3`, and easier Discord input like `inf3`. `!maxnocs` and `!maxcs` use the player's current rank when no rank argument is supplied; they also accept an explicit rank as a convenience.
+Rank text accepts the stored infinity symbol, like `∞3`, and easier Discord input like `inf3`. Use `remove` with any rank-setting command to clear that field. `!maxnocs` and `!maxcs` use the player's current rank when no rank argument is supplied; they also accept an explicit rank as a convenience.
 
-`!ranknocs`, `!rankcs`, `/set_rank_nocs`, and `/set_rank_cs` update the player's current rank and bump the corresponding max rank when the new current rank is higher. Current rank updates are rejected if the resulting current rank would be below both max rank values.
+`!ranknocs`, `!rankcs`, `/set_rank_nocs`, and `/set_rank_cs` update the player's current rank and bump the corresponding max rank when the new current rank is higher. Current rank updates are rejected if the resulting current rank would be above both max rank values.
 
 ### Supabase setup
 

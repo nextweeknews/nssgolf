@@ -37,7 +37,7 @@ const GLOBAL_RANKS_WITH_CS = [
 
 const GLOBAL_RANK_FIELD_LABELS = {
   current_global_rank: "Current Rank",
-  max_global_rank_no_cs: "Max. Rank (no cloud saves)",
+  max_global_rank_no_cs: "Max. Rank (No Cloud Saves)",
   max_global_rank_cs: "Max. Rank (with cloud saves)",
 };
 
@@ -109,6 +109,10 @@ function normalizeRankInput(value, allowedRanks = GLOBAL_RANKS_WITH_CS) {
   return allowedRanks.includes(cleanValue) ? cleanValue : "";
 }
 
+function isRemoveRankInput(value) {
+  return String(value || "").trim().toLowerCase() === "remove";
+}
+
 function rankIndex(rank) {
   const cleanRank = normalizeRankInput(rank);
   return GLOBAL_RANK_INDEX.has(cleanRank) ? GLOBAL_RANK_INDEX.get(cleanRank) : -1;
@@ -126,7 +130,7 @@ function isRankHigher(leftRank, rightRank) {
   return rankIndex(leftRank) > rankIndex(rightRank);
 }
 
-function currentRankIsBelowBothMaximums(settings) {
+function currentRankIsAboveBothMaximums(settings) {
   const currentRank = normalizeRankInput(settings?.current_global_rank);
   const maxNoCs = normalizeRankInput(settings?.max_global_rank_no_cs);
   const maxCs = normalizeRankInput(settings?.max_global_rank_cs);
@@ -136,7 +140,7 @@ function currentRankIsBelowBothMaximums(settings) {
   }
 
   const currentIndex = rankIndex(currentRank);
-  return currentIndex < rankIndex(maxNoCs) && currentIndex < rankIndex(maxCs);
+  return currentIndex > rankIndex(maxNoCs) && currentIndex > rankIndex(maxCs);
 }
 
 function cloneSettings(settings) {
@@ -153,28 +157,51 @@ function applyRankUpdate(settings, operation, rankValue) {
     throw new Error(`Unknown global rank update operation: ${operation}`);
   }
 
-  const rank = normalizeRankInput(rankValue, config.rankOrder);
-  if (!rank) {
-    const highestRank = config.rankOrder[config.rankOrder.length - 1];
-    throw new Error(
-      `Use a valid rank from <A20 through ${highestRank}. You can type infinity ranks like inf3.`
-    );
-  }
-
   const nextSettings = cloneSettings(settings);
   const changes = [];
+  const removeValue = isRemoveRankInput(rankValue);
 
-  if (config.currentField) {
-    if (nextSettings[config.currentField] !== rank) {
-      nextSettings[config.currentField] = rank;
+  if (removeValue) {
+    const field = config.currentField || config.maxField;
+    const label = config.currentField ? config.currentLabel : config.maxLabel;
+
+    if (nextSettings[field]) {
+      nextSettings[field] = null;
       changes.push({
-        field: config.currentField,
-        label: config.currentLabel,
-        rank,
+        field,
+        label,
+        rank: null,
+        removed: true,
       });
     }
+  } else {
+    const rank = normalizeRankInput(rankValue, config.rankOrder);
+    if (!rank) {
+      const highestRank = config.rankOrder[config.rankOrder.length - 1];
+      throw new Error(
+        `Use a valid rank from <A20 through ${highestRank}, or remove. You can type infinity ranks like inf3.`
+      );
+    }
 
-    if (isRankHigher(rank, nextSettings[config.maxField])) {
+    if (config.currentField) {
+      if (nextSettings[config.currentField] !== rank) {
+        nextSettings[config.currentField] = rank;
+        changes.push({
+          field: config.currentField,
+          label: config.currentLabel,
+          rank,
+        });
+      }
+
+      if (isRankHigher(rank, nextSettings[config.maxField])) {
+        nextSettings[config.maxField] = rank;
+        changes.push({
+          field: config.maxField,
+          label: config.maxLabel,
+          rank,
+        });
+      }
+    } else if (nextSettings[config.maxField] !== rank) {
       nextSettings[config.maxField] = rank;
       changes.push({
         field: config.maxField,
@@ -182,18 +209,11 @@ function applyRankUpdate(settings, operation, rankValue) {
         rank,
       });
     }
-  } else if (nextSettings[config.maxField] !== rank) {
-    nextSettings[config.maxField] = rank;
-    changes.push({
-      field: config.maxField,
-      label: config.maxLabel,
-      rank,
-    });
   }
 
-  if (currentRankIsBelowBothMaximums(nextSettings)) {
+  if (currentRankIsAboveBothMaximums(nextSettings)) {
     throw new Error(
-      "Current rank cannot be below both max rank values. Update the current rank first, or lower one max value."
+      "Current rank cannot be above both max rank values. Raise one max value first, or lower the current rank."
     );
   }
 
@@ -234,8 +254,9 @@ module.exports = {
   RANK_OPERATION_CONFIGS,
   applyRankUpdate,
   changedFieldsFromUpdate,
-  currentRankIsBelowBothMaximums,
+  currentRankIsAboveBothMaximums,
   isRankHigher,
+  isRemoveRankInput,
   normalizeDiscordId,
   normalizeRankInput,
   orderRankValuesDescending,
