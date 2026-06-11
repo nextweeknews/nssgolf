@@ -359,6 +359,7 @@
     .profile-record-item.is-hidden-rank .profile-record-name{
       color: rgba(254,202,202,0.96);
     }
+    .profile-rank-visibility-toggle,
     .profile-hidden-rank-indicator{
       position:absolute;
       top: 8px;
@@ -372,8 +373,49 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      cursor:help;
     }
+    .profile-rank-visibility-toggle{
+      appearance:none;
+      -webkit-appearance:none;
+      padding:0;
+      background: rgba(2,6,23,0.64);
+      color: rgba(233,238,248,0.92);
+      cursor:pointer;
+      opacity:0;
+      transform: translateY(-2px);
+      transition: opacity 130ms ease, transform 130ms ease, background-color 130ms ease, border-color 130ms ease;
+    }
+    .profile-hidden-rank-indicator{
+      background: rgba(127,29,29,0.34);
+      color: rgba(254,202,202,0.96);
+      cursor:help;
+      opacity:1;
+    }
+    .profile-rank-visibility-toggle:hover{
+      background: rgba(127,29,29,0.52);
+      border-color: rgba(248,113,113,0.58);
+    }
+    .profile-rank-visibility-toggle:focus-visible{
+      opacity:1;
+      transform: translateY(0);
+      outline: 2px solid rgba(248,113,113,0.68);
+      outline-offset: 2px;
+    }
+    .profile-rank-visibility-toggle:disabled{
+      cursor:wait;
+      opacity:.72;
+    }
+    .profile-record-item:hover .profile-rank-visibility-toggle,
+    .profile-record-item:focus-within .profile-rank-visibility-toggle,
+    .profile-record-item.is-hidden-rank .profile-rank-visibility-toggle{
+      opacity:1;
+      transform: translateY(0);
+    }
+    .profile-record-item.is-hidden-rank .profile-rank-visibility-toggle{
+      background: rgba(127,29,29,0.34);
+      color: rgba(254,202,202,0.96);
+    }
+    .profile-rank-visibility-toggle svg,
     .profile-hidden-rank-indicator svg{
       width: 14px;
       height: 14px;

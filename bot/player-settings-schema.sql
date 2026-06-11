@@ -269,6 +269,14 @@ grant select on public.player_global_rank_moderation to anon, authenticated;
 grant insert, update, delete on public.player_global_rank_moderation to authenticated;
 grant select, insert, update, delete on public.player_global_rank_moderation to service_role;
 
+do $$
+begin
+  alter publication supabase_realtime add table public.player_global_rank_moderation;
+exception
+  when duplicate_object then null;
+end;
+$$;
+
 create table if not exists public.player_custom_urls (
   user_id uuid not null primary key references auth.users(id) on delete cascade,
   discord_user_id text not null unique check (discord_user_id ~ '^[0-9]+$'),

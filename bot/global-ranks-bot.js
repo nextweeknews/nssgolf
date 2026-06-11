@@ -466,12 +466,33 @@ async function applyPlayerRankOperation(discordUserId, operation, rankText) {
   return updateResult;
 }
 
-async function loadRankRows(rankKey, rankOrder) {
-  const { data: settingsRows, error: settingsError } = await supabase
-    .from("player_settings")
-    .select(`discord_user_id,${rankKey}`)
-    .not(rankKey, "is", null);
+async function loadHiddenRankDiscordIds(rankKey) {
+  const { data, error } = await supabase
+    .from("player_global_rank_moderation")
+    .select("discord_user_id")
+    .eq("rank_key", rankKey);
 
+  if (error) {
+    throwSupabaseError("Global rank moderation lookup failed", error);
+  }
+
+  return new Set(
+    (data || [])
+      .map((row) => normalizeDiscordId(row.discord_user_id))
+      .filter(Boolean)
+  );
+}
+
+async function loadRankRows(rankKey, rankOrder) {
+  const [hiddenDiscordIds, settingsResponse] = await Promise.all([
+    loadHiddenRankDiscordIds(rankKey),
+    supabase
+      .from("player_settings")
+      .select(`discord_user_id,${rankKey}`)
+      .not(rankKey, "is", null),
+  ]);
+
+  const { data: settingsRows, error: settingsError } = settingsResponse;
   if (settingsError) {
     throwSupabaseError("Global rank settings lookup failed", settingsError);
   }
@@ -481,7 +502,7 @@ async function loadRankRows(rankKey, rankOrder) {
       discord_user_id: normalizeDiscordId(row.discord_user_id),
       rank: normalizeRankInput(row[rankKey], rankOrder),
     }))
-    .filter((row) => row.discord_user_id && row.rank);
+    .filter((row) => row.discord_user_id && row.rank && !hiddenDiscordIds.has(row.discord_user_id));
 
   const memberIds = [...new Set(cleanSettingsRows.map((row) => row.discord_user_id))];
   const memberRows = [];
@@ -773,6 +794,56 @@ async function refreshDisplaysForFields(rankKeys) {
   }
 }
 
+const displayRefreshTimers = new Map();
+
+function scheduleDisplayRefreshForField(rankKey) {
+  if (!rankDisplayConfigs[rankKey] || displayRefreshTimers.has(rankKey)) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    displayRefreshTimers.delete(rankKey);
+    void refreshDisplaysForFields([rankKey]).catch((error) => {
+      console.warn(`Unable to refresh ${rankKey} display after moderation change.`, error);
+    });
+  }, 300);
+
+  displayRefreshTimers.set(rankKey, timer);
+}
+
+function rankKeyFromModerationPayload(payload) {
+  return payload?.new?.rank_key || payload?.old?.rank_key || "";
+}
+
+function subscribeGlobalRankModerationChanges() {
+  return supabase
+    .channel("global-rank-moderation-changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "player_global_rank_moderation",
+      },
+      (payload) => {
+        const rankKey = rankKeyFromModerationPayload(payload);
+        if (!rankKey) {
+          return;
+        }
+
+        scheduleDisplayRefreshForField(rankKey);
+      }
+    )
+    .subscribe((status, error) => {
+      if (error) {
+        console.warn("Global rank moderation realtime subscription error.", error);
+        return;
+      }
+
+      console.log(`Global rank moderation realtime subscription status: ${status}`);
+    });
+}
+
 async function handleDisplayInteraction(interaction, rankKey) {
   if (!memberIsRankAdmin(interaction.member)) {
     await interaction.reply({
@@ -903,6 +974,7 @@ async function handleMessage(message) {
 client.once("ready", async () => {
   try {
     await registerSlashCommands();
+    subscribeGlobalRankModerationChanges();
     console.log(`Logged in as ${client.user.tag}. Global rank commands registered.`);
   } catch (error) {
     console.error("Unable to register global rank slash commands.", error);

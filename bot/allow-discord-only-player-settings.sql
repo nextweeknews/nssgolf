@@ -74,4 +74,12 @@ with check (
   )
 );
 
+do $$
+begin
+  alter publication supabase_realtime add table public.player_global_rank_moderation;
+exception
+  when duplicate_object then null;
+end;
+$$;
+
 notify pgrst, 'reload schema';

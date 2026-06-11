@@ -97,6 +97,8 @@ The display-message table stores Discord webhook tokens and is intentionally ser
 
 The bot can create a missing `player_settings` row for a Discord-only player. If that player later logs into nssgolf.com with Discord, the settings page updates the same row by `discord_user_id` and attaches the Supabase `user_id`.
 
+Run `bot/enable-global-rank-moderation-realtime.sql` if the bot should live-refresh Discord leaderboard displays when a website admin hides or restores a rank.
+
 ### Discord setup
 
 For the rank bot, the Discord application needs:
