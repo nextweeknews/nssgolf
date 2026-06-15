@@ -746,6 +746,8 @@
     const WORLD_OPEN = {
       sheetId:"1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM",
       sheetName:"2026 Results",
+      discordIdsSheet:"Discord IDs",
+      discordIdsRange:"A:B",
       rounds:[
         { key:"r1", field:"A2:A65", fieldSize:64, matchups:"C2:F33", matchSize:32, showFlag:"F1:F1" },
         { key:"r2", field:"H2:H33", fieldSize:32, matchups:"J2:M17", matchSize:16, showFlag:"M1:M1", reachedKey:"secondRound", loserKey:"secondRound" },
@@ -1348,7 +1350,7 @@
       if(cleanDiscordId) player.discordId = cleanDiscordId;
       if(cleanName){
         player.names.add(cleanName);
-        state.aliasToPlayerKey.set(nameKey, playerKey);
+        state.aliasToPlayerKey.set(nameKey, player.key);
       }
       return player;
     }
@@ -1365,8 +1367,8 @@
       };
     }
 
-    function setResultForName(name, eventKey, points, result){
-      const player = ensureParticipant({ name });
+    function setResultForName(name, eventKey, points, result, discordId = ""){
+      const player = ensureParticipant({ name, discordId });
       setEventResult(player, eventKey, points, result, name);
     }
 
@@ -1556,15 +1558,35 @@
       };
     }
 
+    async function loadWorldOpenDiscordIds(){
+      const aliasDiscordIds = new Map();
+      const rows = await fetchSheetRange(WORLD_OPEN.sheetId, sheetRange(WORLD_OPEN.discordIdsSheet, WORLD_OPEN.discordIdsRange));
+      (rows || []).forEach((row = []) => {
+        const sheetName = normalizeText(row[0]);
+        const discordId = normalizeDiscordId(row[1]);
+        if(!sheetName || !discordId) return;
+        aliasDiscordIds.set(normalizeNameKey(sheetName), discordId);
+        ensureParticipant({ name:sheetName, discordId });
+      });
+      return aliasDiscordIds;
+    }
+
+    function worldOpenDiscordIdFor(aliasDiscordIds, sheetName){
+      return aliasDiscordIds.get(normalizeNameKey(sheetName)) || "";
+    }
+
     async function scoreWorldOpen(){
-      const roundResults = await Promise.all(WORLD_OPEN.rounds.map(round => fetchWorldOpenRound(round)));
+      const [aliasDiscordIds, roundResults] = await Promise.all([
+        loadWorldOpenDiscordIds(),
+        Promise.all(WORLD_OPEN.rounds.map(round => fetchWorldOpenRound(round))),
+      ]);
 
       roundResults.forEach(({ round, field, byes }) => {
         if(!round.reachedKey) return;
         const points = pointValue("worldOpen", round.reachedKey);
         const label = SETTINGS_LABELS.worldOpen[round.reachedKey] || round.reachedKey;
         [...field, ...byes].forEach((name) => {
-          if(name && !/^bye$/i.test(name)) setResultForName(name, "worldOpen", points, label);
+          if(name && !/^bye$/i.test(name)) setResultForName(name, "worldOpen", points, label, worldOpenDiscordIdFor(aliasDiscordIds, name));
         });
       });
 
@@ -1574,7 +1596,7 @@
         const label = SETTINGS_LABELS.worldOpen[round.loserKey] || round.loserKey;
         matchups.forEach((matchup) => {
           const { loser } = winnerLoserFromScores(matchup);
-          if(loser) setResultForName(loser, "worldOpen", points, label);
+          if(loser) setResultForName(loser, "worldOpen", points, label, worldOpenDiscordIdFor(aliasDiscordIds, loser));
         });
       });
 
@@ -1585,10 +1607,10 @@
         ? [finalMatch.p1, finalMatch.p2].map(normalizeText).find(name => name && name !== finalWinner && !/^bye$/i.test(name))
         : "";
       if(finalLoser){
-        setResultForName(finalLoser, "worldOpen", pointValue("worldOpen", "runnerUp"), "Runner-up");
+        setResultForName(finalLoser, "worldOpen", pointValue("worldOpen", "runnerUp"), "Runner-up", worldOpenDiscordIdFor(aliasDiscordIds, finalLoser));
       }
       if(finalWinner){
-        setResultForName(finalWinner, "worldOpen", pointValue("worldOpen", "winner"), "Winner");
+        setResultForName(finalWinner, "worldOpen", pointValue("worldOpen", "winner"), "Winner", worldOpenDiscordIdFor(aliasDiscordIds, finalWinner));
       }
 
       const scored = countPlayersWithEvent("worldOpen");
