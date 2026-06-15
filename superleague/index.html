@@ -198,6 +198,47 @@
       align-items:center;
     }
 
+    .superleague-control-stack{
+      width:min(920px, 100%);
+      display:grid;
+      gap:10px;
+    }
+
+    .season-switch{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .season-switch-button{
+      appearance:none;
+      border:1px solid var(--btn-border);
+      background:var(--btn-bg);
+      color:rgba(255,255,255,.88);
+      border-radius:999px;
+      min-height:34px;
+      padding:7px 14px;
+      font:inherit;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      cursor:pointer;
+    }
+
+    .season-switch-button:hover{
+      background:var(--btn-bg-hover);
+      border-color:var(--btn-border-hover);
+    }
+
+    .season-switch-button.is-active{
+      color:#07111f;
+      background:linear-gradient(180deg, #dbeafe, #93c5fd);
+      border-color:rgba(219,234,254,.88);
+    }
+
     .card{
       width: min(920px, 100%);
       background: var(--card-bg);
@@ -1751,7 +1792,10 @@
   </div>
 
   <div class="container">
-    <div class="main-view-switch" id="superleagueTabs"></div>
+    <div class="superleague-control-stack">
+      <div class="season-switch" id="seasonSwitch" aria-label="Select Super League season"></div>
+      <div class="main-view-switch" id="superleagueTabs"></div>
+    </div>
 
     <div class="card">
       <section id="seasonPage" role="tabpanel" aria-labelledby="seasonViewTab">
@@ -2000,9 +2044,8 @@
 
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
-    const SHEET_NAME = SUPER_LEAGUE_SEASON;
-    const SUPER_LEAGUE_SEASON_NUMBER = Number(String(SHEET_NAME).match(/\d+/)?.[0] || 0);
-    const SUPER_LEAGUE_SHORT_SEASON = SUPER_LEAGUE_SEASON_NUMBER ? `S${SUPER_LEAGUE_SEASON_NUMBER}` : "S6";
+    const SUPER_LEAGUE_SEASONS = ["Season 6", "Season 5"];
+    let activeSuperLeagueSeason = SUPER_LEAGUE_SEASONS.includes(SUPER_LEAGUE_SEASON) ? SUPER_LEAGUE_SEASON : "Season 6";
 
     const DIVISIONS = [
       { title: "Division 1", range: "B3:G10" },
@@ -2012,12 +2055,9 @@
     const SCHEDULE_RANGE = "I2:AB85";
     const QUALIFIER_LIST_RANGE = "A:B";
     const DIVISION_QUALIFICATIONS_RANGE = "A4:C11";
-    const DIVISION_QUALIFICATIONS_SHEET = `${SUPER_LEAGUE_SHORT_SEASON} Divisions`;
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
-    const QUALIFIER_BRACKET_SHEET = `${SUPER_LEAGUE_SHORT_SEASON} Winners Bracket`;
     const WINNER_THIRD_PLACE_RANGE = "A68:H68";
     const LOSER_BRACKET_RANGE = "A4:H62";
-    const LOSER_BRACKET_SHEET = `${SUPER_LEAGUE_SHORT_SEASON} Losers Bracket`;
     const LOSER_THIRD_PLACE_RANGE = "A62:H62";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"];
@@ -2037,10 +2077,83 @@
     const playerStatsLookup = new Map();
     const playerDiscordIdLookup = new Map();
 
+    function getActiveSeasonNumber(){
+      return Number(String(activeSuperLeagueSeason).match(/\d+/)?.[0] || 0);
+    }
+
+    function getActiveShortSeason(){
+      const seasonNumber = getActiveSeasonNumber();
+      return seasonNumber ? `S${seasonNumber}` : "S6";
+    }
+
+    function getDivisionQualificationsSheet(){
+      return `${getActiveShortSeason()} Divisions`;
+    }
+
+    function getQualifierBracketSheet(){
+      return `${getActiveShortSeason()} Winners Bracket`;
+    }
+
+    function getLoserBracketSheet(){
+      return `${getActiveShortSeason()} Losers Bracket`;
+    }
+
+    function usesHeadToHeadTiebreaker(){
+      return getActiveSeasonNumber() >= 6;
+    }
+
+    function hydrateInitialSeasonFromUrl(){
+      const params = new URLSearchParams(window.location.search);
+      const requestedSeason = params.get("season");
+      const normalized = SUPER_LEAGUE_SEASONS.find((season) => {
+        const seasonNumber = String(season).match(/\d+/)?.[0] || "";
+        return requestedSeason === seasonNumber || requestedSeason === season || requestedSeason === season.toLowerCase().replace(/\s+/g, "-");
+      });
+      if(normalized) activeSuperLeagueSeason = normalized;
+    }
+
+    function renderSeasonSwitch(){
+      const target = document.getElementById("seasonSwitch");
+      if(!target) return;
+      target.innerHTML = SUPER_LEAGUE_SEASONS.map((season) => {
+        const isActive = season === activeSuperLeagueSeason;
+        return `<button class="season-switch-button${isActive ? " is-active" : ""}" type="button" data-season="${escapeHtml(season)}" aria-pressed="${isActive ? "true" : "false"}">${escapeHtml(season)}</button>`;
+      }).join("");
+    }
+
+    async function setActiveSeason(season){
+      if(!SUPER_LEAGUE_SEASONS.includes(season)) return;
+      if(activeSuperLeagueSeason === season) return;
+      activeSuperLeagueSeason = season;
+      const url = new URL(window.location.href);
+      url.searchParams.set("season", String(getActiveSeasonNumber()));
+      window.history.replaceState({}, "", url);
+      applySuperLeagueSeasonHeadings();
+      renderSeasonSwitch();
+      await loadRankings();
+      if(!document.getElementById("qualifiersPage")?.hidden){
+        requestAnimationFrame(() => {
+          rerenderQualifierBracketsFromCache();
+        });
+      }
+      if(!document.getElementById("playoffsPage")?.hidden){
+        requestAnimationFrame(updatePlayoffBracketLayout);
+      }
+    }
+
+    function setupSeasonSwitch(){
+      renderSeasonSwitch();
+      document.getElementById("seasonSwitch")?.addEventListener("click", (event) => {
+        const button = event.target.closest("button[data-season]");
+        if(!button) return;
+        setActiveSeason(button.dataset.season);
+      });
+    }
+
     function applySuperLeagueSeasonHeadings(){
       document.querySelectorAll("[data-superleague-season-title]").forEach((heading) => {
         const suffix = heading.getAttribute("data-superleague-season-title") || "";
-        heading.textContent = `${SHEET_NAME} ${suffix}`.trim();
+        heading.textContent = `${activeSuperLeagueSeason} ${suffix}`.trim();
       });
     }
 
@@ -2114,7 +2227,7 @@
       return [];
     }
 
-    async function fetchRange(a1, sheetName = SHEET_NAME){
+    async function fetchRange(a1, sheetName = activeSuperLeagueSeason){
       const range = `'${sheetName}'!${a1}`;
       const payload = { sheetId: SHEET_ID, range };
 
@@ -2127,15 +2240,36 @@
         if(r.ok) return normalizeValues(await r.json());
       }catch(e){}
 
-      const u = new URL(WORKER_URL);
-      u.searchParams.set("sheetId", SHEET_ID);
-      u.searchParams.set("range", range);
-      const r2 = await fetch(u.toString());
-      if(!r2.ok){
-        const text = await r2.text().catch(() => "");
-        throw new Error(`Worker request failed (${r2.status}). ${text}`.trim());
+      try{
+        const u = new URL(WORKER_URL);
+        u.searchParams.set("sheetId", SHEET_ID);
+        u.searchParams.set("range", range);
+        const r2 = await fetch(u.toString());
+        if(r2.ok) return normalizeValues(await r2.json());
+      }catch(e){}
+
+      return fetchRangeGviz(sheetName, a1);
+    }
+
+    function parseGvizResponse(text){
+      const match = String(text || "").match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/s);
+      if(!match) throw new Error("Unable to parse Google Sheets response.");
+      const payload = JSON.parse(match[1]);
+      const rows = payload?.table?.rows ?? [];
+      return rows.map(row => (row.c ?? []).map(cell => cell?.v ?? ""));
+    }
+
+    async function fetchRangeGviz(sheetName, a1){
+      const url = new URL(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`);
+      url.searchParams.set("tqx", "out:json");
+      url.searchParams.set("sheet", sheetName);
+      url.searchParams.set("range", a1);
+      const response = await fetch(url.toString());
+      if(!response.ok){
+        const text = await response.text().catch(() => "");
+        throw new Error(`Google Sheets request failed (${response.status}). ${text}`.trim());
       }
-      return normalizeValues(await r2.json());
+      return parseGvizResponse(await response.text());
     }
 
     function escapeHtml(s){
@@ -2275,6 +2409,7 @@
     function rankDivisionRows(rows, divisionTitle, headToHeadByDivision){
       const divisionKey = normalizeDivisionValue(divisionTitle);
       const headToHeadMap = headToHeadByDivision.get(divisionKey) || new Map();
+      const useHeadToHead = usesHeadToHeadTiebreaker();
 
       const withKeys = rows.map((row) => ({ ...row, playerKey: row.player.toUpperCase() }));
       withKeys.sort((a, b) => comparePctDesc(a.matchesWon, a.matchesLost, b.matchesWon, b.matchesLost));
@@ -2298,11 +2433,11 @@
 
         if(group.length === 2){
           const h2h = getHeadToHeadOutcome(headToHeadMap, group[0].playerKey, group[1].playerKey);
-          if(h2h === -1){
+          if(useHeadToHead && h2h === -1){
             group.reverse();
             group[0].tied = false;
             group[1].tied = false;
-          }else if(h2h === 1){
+          }else if(useHeadToHead && h2h === 1){
             group[0].tied = false;
             group[1].tied = false;
           }else{
@@ -2323,11 +2458,11 @@
         }else if(group.length > 2){
           const withHeadToHead = group.map((row) => ({
             ...row,
-            headToHeadPct: computeHeadToHeadPct(row, group, headToHeadMap),
+            headToHeadPct: useHeadToHead ? computeHeadToHeadPct(row, group, headToHeadMap) : null,
           }));
 
           const uniqueHeadToHeadPcts = new Set(withHeadToHead.map((row) => row.headToHeadPct));
-          const canUseHeadToHead = !(uniqueHeadToHeadPcts.size === 1 && uniqueHeadToHeadPcts.has(null));
+          const canUseHeadToHead = useHeadToHead && !(uniqueHeadToHeadPcts.size === 1 && uniqueHeadToHeadPcts.has(null));
 
           withHeadToHead.sort((a, b) => {
             if(canUseHeadToHead){
@@ -2353,7 +2488,7 @@
               current.tied = false;
               continue;
             }
-            const sameHeadToHead = current.headToHeadPct === prev.headToHeadPct;
+            const sameHeadToHead = !useHeadToHead || current.headToHeadPct === prev.headToHeadPct;
             const sameGames = compareRoundDiffDesc(current.gamesWon, current.gamesLost, prev.gamesWon, prev.gamesLost) === 0;
             const sameDiff = current.diff === prev.diff;
             current.tied = sameHeadToHead && sameGames && sameDiff;
@@ -3617,29 +3752,43 @@
     }
 
     async function loadQualifiers(){
-      const [
-        qualifierValues,
-        divisionQualificationValues,
-        winnerBracketValues,
-        loserBracketValues,
-        winnerThirdPlaceValues,
-        loserThirdPlaceValues,
-      ] = await Promise.all([
-        fetchRange(QUALIFIER_LIST_RANGE, `${SHEET_NAME} Qualifiers`),
-        fetchRange(DIVISION_QUALIFICATIONS_RANGE, DIVISION_QUALIFICATIONS_SHEET),
-        fetchRange(QUALIFIER_BRACKET_RANGE, QUALIFIER_BRACKET_SHEET),
-        fetchRange(LOSER_BRACKET_RANGE, LOSER_BRACKET_SHEET),
-        fetchRange(WINNER_THIRD_PLACE_RANGE, QUALIFIER_BRACKET_SHEET),
-        fetchRange(LOSER_THIRD_PLACE_RANGE, LOSER_BRACKET_SHEET),
-      ]);
-      renderQualifierSeeds(qualifierValues);
-      renderDivisionQualifications(divisionQualificationValues);
-      renderThirdPlaceMatch(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
-      renderThirdPlaceMatch(loserThirdPlaceValues, "loserThirdPlaceMatch", "losers bracket 3rd place game", {
-        styleLoserPlaceholders: true,
-      });
-      renderBracket(winnerBracketValues, winnerBracketConfig);
-      renderBracket(loserBracketValues, loserBracketConfig);
+      try{
+        const qualifierBracketSheet = getQualifierBracketSheet();
+        const loserBracketSheet = getLoserBracketSheet();
+        const [
+          qualifierValues,
+          divisionQualificationValues,
+          winnerBracketValues,
+          loserBracketValues,
+          winnerThirdPlaceValues,
+          loserThirdPlaceValues,
+        ] = await Promise.all([
+          fetchRange(QUALIFIER_LIST_RANGE, `${activeSuperLeagueSeason} Qualifiers`),
+          fetchRange(DIVISION_QUALIFICATIONS_RANGE, getDivisionQualificationsSheet()),
+          fetchRange(QUALIFIER_BRACKET_RANGE, qualifierBracketSheet),
+          fetchRange(LOSER_BRACKET_RANGE, loserBracketSheet),
+          fetchRange(WINNER_THIRD_PLACE_RANGE, qualifierBracketSheet),
+          fetchRange(LOSER_THIRD_PLACE_RANGE, loserBracketSheet),
+        ]);
+        renderQualifierSeeds(qualifierValues);
+        renderDivisionQualifications(divisionQualificationValues);
+        renderThirdPlaceMatch(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+        renderThirdPlaceMatch(loserThirdPlaceValues, "loserThirdPlaceMatch", "losers bracket 3rd place game", {
+          styleLoserPlaceholders: true,
+        });
+        renderBracket(winnerBracketValues, winnerBracketConfig);
+        renderBracket(loserBracketValues, loserBracketConfig);
+      }catch(error){
+        console.warn(`Could not load ${activeSuperLeagueSeason} qualifier data.`, error);
+        renderQualifierSeeds([]);
+        renderDivisionQualifications([]);
+        renderThirdPlaceMatch([], "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+        renderThirdPlaceMatch([], "loserThirdPlaceMatch", "losers bracket 3rd place game", {
+          styleLoserPlaceholders: true,
+        });
+        renderBracket([], winnerBracketConfig);
+        renderBracket([], loserBracketConfig);
+      }
 
       if(!document.getElementById("qualifiersPage")?.hidden){
         requestAnimationFrame(() => {
@@ -3654,6 +3803,19 @@
       const gridEl = document.getElementById("divisionGrid");
 
       try{
+        statusEl.textContent = `Loading ${activeSuperLeagueSeason}...`;
+        errorEl.textContent = "";
+        errorEl.classList.remove("show");
+        scheduleWeeks = [];
+        playoffMatchups = [];
+        playoffMetadata = null;
+        qualifierBracketRowsCache = [];
+        loserBracketRowsCache = [];
+        qualifierMobileRoundIndex = 0;
+        loserMobileRoundIndex = 0;
+        playerDivisionLookup.clear();
+        playerStatsLookup.clear();
+
         const all = await Promise.all([
           ...DIVISIONS.map((division) => fetchRange(division.range)),
           fetchRange(SCHEDULE_RANGE),
@@ -3669,13 +3831,10 @@
         updateStandingsLegend(playoffMetadata);
 
         gridEl.innerHTML = "";
-        playerDivisionLookup.clear();
-
         DIVISIONS.forEach((division, idx) => {
           gridEl.appendChild(renderDivision(division, all[idx], headToHeadByDivision, playoffMetadata));
         });
 
-        playerStatsLookup.clear();
         Array.from(gridEl.querySelectorAll(".rankings tbody tr")).forEach((tr) => {
           const playerName = tr.querySelector(".col-player .player-btn")?.textContent?.trim();
           if(!playerName) return;
@@ -3700,7 +3859,9 @@
       }
     }
 
+    hydrateInitialSeasonFromUrl();
     applySuperLeagueSeasonHeadings();
+    setupSeasonSwitch();
     setupViewNav();
     setupScheduleNav();
     setupQualifierRoundNav();

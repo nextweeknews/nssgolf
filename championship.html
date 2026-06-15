@@ -524,7 +524,7 @@
       <div class="card-head">
         <div>
           <h1 class="headline" id="championship-title">World Championship</h1>
-          <p class="lede">Running leaderboard from Lightning Cup 2026, World Cup 2025, World Open, and Super League Season 5.</p>
+          <p class="lede">Running leaderboard from Lightning Cup 2026, World Cup 2025, World Open, and Super League Seasons 5 and 6.</p>
         </div>
         <button class="btn" id="refreshBtn" type="button">Refresh</button>
       </div>
@@ -600,6 +600,7 @@
       { key:"worldCup2025", short:"WC 2025", label:"World Cup 2025" },
       { key:"worldOpen", short:"World Open", label:"World Open" },
       { key:"superLeagueS5", short:"SL S5", label:"Super League S5" },
+      { key:"superLeagueS6", short:"SL S6", label:"Super League S6" },
     ];
 
     const DEFAULT_POINT_SETTINGS = {
@@ -632,6 +633,11 @@
         winner:100,
       },
       superLeagueS5:{
+        division1:[100,80,65,50,40,30,20,10],
+        division2:[75,55,40,30,20,15,10,5],
+        division3:[50,40,30,20,15,10,5,2],
+      },
+      superLeagueS6:{
         division1:[100,80,65,50,40,30,20,10],
         division2:[75,55,40,30,20,15,10,5],
         division3:[50,40,30,20,15,10,5,2],
@@ -672,6 +678,11 @@
         division2:"Division 2",
         division3:"Division 3",
       },
+      superLeagueS6:{
+        division1:"Division 1",
+        division2:"Division 2",
+        division3:"Division 3",
+      },
     };
 
     const LIGHTNING_CUP = {
@@ -695,10 +706,8 @@
       ],
     };
 
-    const SUPER_LEAGUE = {
+    const SUPER_LEAGUE_BASE = {
       sheetId:"1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY",
-      sheetName:"Season 5",
-      resultsUploaded:false,
       discordIdsSheet:"Discord IDs",
       discordIdsRange:"A:B",
       divisions:[
@@ -706,6 +715,22 @@
         { key:"division2", title:"Division 2", range:"B13:G20" },
         { key:"division3", title:"Division 3", range:"B23:G30" },
       ],
+    };
+    const SUPER_LEAGUE_SEASONS = {
+      superLeagueS5:{
+        ...SUPER_LEAGUE_BASE,
+        label:"Super League S5",
+        sheetName:"Season 5",
+        resultsUploaded:true,
+        pendingMessage:"Point schedule ready; awaiting uploaded results.",
+      },
+      superLeagueS6:{
+        ...SUPER_LEAGUE_BASE,
+        label:"Super League S6",
+        sheetName:"Season 6",
+        resultsUploaded:true,
+        pendingMessage:"Point schedule ready; awaiting uploaded results.",
+      },
     };
 
     const state = {
@@ -1156,39 +1181,45 @@
       formatSourceStatus("worldOpen", "ok", scored ? `${scored} players scored.` : "No completed results found.");
     }
 
-    async function scoreSuperLeagueS5(){
-      const discordRows = await fetchSheetRange(SUPER_LEAGUE.sheetId, sheetRange(SUPER_LEAGUE.discordIdsSheet, SUPER_LEAGUE.discordIdsRange));
+    async function scoreSuperLeagueSeason(eventKey){
+      const config = SUPER_LEAGUE_SEASONS[eventKey];
+      if(!config) return;
+
+      const discordRows = await fetchSheetRange(config.sheetId, sheetRange(config.discordIdsSheet, config.discordIdsRange));
       discordRows.forEach((row) => {
         const discordId = normalizeDiscordId(row?.[0]);
         const name = normalizeText(row?.[1]);
         if(discordId && name) ensureParticipant({ name, discordId });
       });
 
-      if(!SUPER_LEAGUE.resultsUploaded){
-        formatSourceStatus("superLeagueS5", "ok", "Point schedule ready; awaiting uploaded results.");
+      if(!config.resultsUploaded){
+        formatSourceStatus(eventKey, "ok", config.pendingMessage || "Point schedule ready; awaiting uploaded results.");
         return;
       }
 
-      const divisionRows = await Promise.all(SUPER_LEAGUE.divisions.map((division) => {
-        return fetchSheetRange(SUPER_LEAGUE.sheetId, sheetRange(SUPER_LEAGUE.sheetName, division.range))
+      const divisionRows = await Promise.all(config.divisions.map((division) => {
+        return fetchSheetRange(config.sheetId, sheetRange(config.sheetName, division.range))
           .then(rows => ({ division, rows }));
       }));
 
       divisionRows.forEach(({ division, rows }) => {
-        const pointsList = state.pointSettings.superLeagueS5?.[division.key] || [];
+        const pointsList = state.pointSettings[eventKey]?.[division.key] || [];
         (rows || []).forEach((row, index) => {
           const name = normalizeText(row?.[0]);
           if(!name) return;
           const player = ensureParticipant({ name });
           const points = Number(pointsList[index]) || 0;
           if(points <= 0) return;
-          setEventResult(player, "superLeagueS5", points, `${division.title} ${index + 1}`, name);
+          setEventResult(player, eventKey, points, `${division.title} ${index + 1}`, name);
         });
       });
 
-      const scored = countPlayersWithEvent("superLeagueS5");
-      formatSourceStatus("superLeagueS5", "ok", scored ? `${scored} players scored.` : "Ready for Season 5 results.");
+      const scored = countPlayersWithEvent(eventKey);
+      formatSourceStatus(eventKey, "ok", scored ? `${scored} players scored.` : (config.pendingMessage || "No completed results found."));
     }
+
+    const scoreSuperLeagueS5 = () => scoreSuperLeagueSeason("superLeagueS5");
+    const scoreSuperLeagueS6 = () => scoreSuperLeagueSeason("superLeagueS6");
 
     function countPlayersWithEvent(eventKey){
       return [...state.players.values()].filter(player => (player.events[eventKey]?.points || 0) > 0).length;
@@ -1572,6 +1603,7 @@
         ["lightningCup2026", scoreLightningCup],
         ["worldCup2025", scoreWorldCup2025],
         ["superLeagueS5", scoreSuperLeagueS5],
+        ["superLeagueS6", scoreSuperLeagueS6],
       ];
       const settled = await Promise.allSettled(initialLoaders.map(([, loader]) => loader()));
       settled.forEach((result, index) => {
