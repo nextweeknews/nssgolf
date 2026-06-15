@@ -278,7 +278,9 @@
       letter-spacing:.02em;
     }
     .event-cell{
-      min-width:124px;
+      min-width:var(--event-column-width, 124px);
+      width:var(--event-column-width, 124px);
+      white-space:nowrap;
     }
     .event-cell.is-empty{
       color:transparent;
@@ -360,6 +362,26 @@
     }
     .sort-btn.is-active{ color:#bfdbfe; }
     .sort-mark{ font-size:11px; color:#93c5fd; }
+    .hide-toggle-cell{
+      min-width:76px;
+    }
+    .hide-toggle{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      color:rgba(233,238,248,.85);
+      font-size:11px;
+      font-weight:850;
+      cursor:pointer;
+      user-select:none;
+    }
+    .hide-toggle input{
+      width:16px;
+      height:16px;
+      accent-color:#93c5fd;
+      cursor:pointer;
+    }
     .panel[hidden],
     [hidden]{ display:none !important; }
     .empty-state{
@@ -519,6 +541,7 @@
         <div class="table-scroll">
           <table id="adminResultsTable"></table>
         </div>
+        <p class="settings-status" id="adminResultsStatus" aria-live="polite"></p>
       </section>
 
       <section class="panel" id="settingsPanel" aria-label="Point settings" hidden>
@@ -553,7 +576,6 @@
     const supabase = createBrowserSupabaseClient();
 
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
-    const SETTINGS_STORAGE_KEY = "nssgolf:championship:point-settings";
     const SETTINGS_TABLE = "championship_point_settings";
     const SETTINGS_ID = "current";
 
@@ -702,6 +724,7 @@
       aliasToPlayerKey:new Map(),
       memberCache:new Map(),
       pointSettings:clonePointSettings(DEFAULT_POINT_SETTINGS),
+      hiddenPlayerKeys:new Set(),
       sourceStatus:new Map(EVENT_DEFS.map(event => [event.key, { tone:"pending", message:"Loading..." }])),
       view:"leaderboard",
       adminSort:{ key:"total", direction:"desc" },
@@ -724,6 +747,7 @@
       adminResultsPanel:document.getElementById("adminResultsPanel"),
       settingsPanel:document.getElementById("settingsPanel"),
       adminResultsGate:document.getElementById("adminResultsGate"),
+      adminResultsStatus:document.getElementById("adminResultsStatus"),
       settingsGate:document.getElementById("settingsGate"),
       settingsGrid:document.getElementById("settingsGrid"),
       settingsForm:document.getElementById("settingsForm"),
@@ -1235,6 +1259,10 @@
           });
           state.players.set(idKey, idPlayer);
           state.players.delete(aliasKey);
+          if(state.hiddenPlayerKeys.has(aliasKey)){
+            state.hiddenPlayerKeys.delete(aliasKey);
+            state.hiddenPlayerKeys.add(idKey);
+          }
         }
         playerKey = idKey;
       }
@@ -1566,12 +1594,14 @@
       return EVENT_DEFS.reduce((sum, event) => sum + (Number(player.events[event.key]?.points) || 0), 0);
     }
 
-    function buildRows(){
+    function buildRows({ includeHidden = false } = {}){
       const rows = [...state.players.values()]
+        .filter(player => includeHidden || !state.hiddenPlayerKeys.has(player.key))
         .map((player) => ({
           player,
           name:playerPreferredName(player),
           total:playerTotal(player),
+          hidden:state.hiddenPlayerKeys.has(player.key),
         }))
         .filter(row => row.total > 0)
         .sort((left, right) => {
@@ -1663,10 +1693,19 @@
     function renderEventCell(player, eventKey){
       const result = player.events[eventKey];
       if(!result){
-        return `<td class="event-cell is-empty"></td>`;
+        return `<td class="event-cell is-empty" data-event-column="${escapeHtml(eventKey)}"></td>`;
       }
       const resultLabel = formatTournamentResultLabel(eventKey, result.result);
-      return `<td class="event-cell"><span class="event-score">+${Number(result.points) || 0}</span><span class="event-result">${escapeHtml(resultLabel)}</span></td>`;
+      return `<td class="event-cell" data-event-column="${escapeHtml(eventKey)}"><span class="event-score">+${Number(result.points) || 0}</span><span class="event-result">${escapeHtml(resultLabel)}</span></td>`;
+    }
+
+    function syncTournamentColumnWidth(table){
+      if(!table) return;
+      table.style.removeProperty("--event-column-width");
+      const eventCells = [...table.querySelectorAll("[data-event-column]")];
+      if(!eventCells.length) return;
+      const widest = eventCells.reduce((max, cell) => Math.max(max, cell.scrollWidth), 0);
+      table.style.setProperty("--event-column-width", `${Math.max(124, Math.ceil(widest))}px`);
     }
 
     function renderLeaderboard(){
@@ -1682,7 +1721,7 @@
             <th>Rank</th>
             <th class="player-heading">Player</th>
             <th>Total</th>
-            ${EVENT_DEFS.map(event => `<th>${escapeHtml(event.short)}</th>`).join("")}
+            ${EVENT_DEFS.map(event => `<th class="event-heading" data-event-column="${escapeHtml(event.key)}">${escapeHtml(event.short)}</th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -1698,6 +1737,7 @@
           }).join("")}
         </tbody>
       `;
+      syncTournamentColumnWidth(els.leaderboardTable);
     }
 
     function sortButton(key, label){
@@ -1723,7 +1763,7 @@
         return;
       }
       els.adminResultsGate.hidden = true;
-      const rows = buildRows();
+      const rows = buildRows({ includeHidden:true });
       const multiplier = state.adminSort.direction === "asc" ? 1 : -1;
       rows.sort((left, right) => {
         const key = state.adminSort.key;
@@ -1738,7 +1778,8 @@
           <tr>
             <th class="player-heading">${sortButton("name", "Player")}</th>
             <th>${sortButton("total", "Total")}</th>
-            ${EVENT_DEFS.map(event => `<th>${sortButton(event.key, event.short)}</th>`).join("")}
+            ${EVENT_DEFS.map(event => `<th class="event-heading" data-event-column="${escapeHtml(event.key)}">${sortButton(event.key, event.short)}</th>`).join("")}
+            <th>Hide</th>
           </tr>
         </thead>
         <tbody>
@@ -1747,10 +1788,17 @@
               <td class="player-cell">${renderPlayerCell(row.player)}</td>
               <td class="total-cell"><span class="total-score">${row.total}</span></td>
               ${EVENT_DEFS.map(event => renderEventCell(row.player, event.key)).join("")}
+              <td class="hide-toggle-cell">
+                <label class="hide-toggle">
+                  <input type="checkbox" data-hide-player-key="${escapeHtml(row.player.key)}"${row.hidden ? " checked" : ""} />
+                  Hide
+                </label>
+              </td>
             </tr>
-          `).join("") || `<tr><td colspan="${EVENT_DEFS.length + 2}"><div class="empty-state">No championship results available yet.</div></td></tr>`}
+          `).join("") || `<tr><td colspan="${EVENT_DEFS.length + 3}"><div class="empty-state">No championship results available yet.</div></td></tr>`}
         </tbody>
       `;
+      syncTournamentColumnWidth(els.adminResultsTable);
     }
 
     function settingInputName(eventKey, settingKey, index = null){
@@ -1804,39 +1852,44 @@
       return next;
     }
 
-    async function loadPointSettings(){
-      let loaded = false;
+    function normalizeHiddenPlayerKeys(value){
+      return [...new Set((Array.isArray(value) ? value : [])
+        .map(item => normalizeText(item))
+        .filter(item => /^(id:\d+|name:.+)$/.test(item)))];
+    }
+
+    function currentHiddenPlayerKeys(){
+      return [...state.hiddenPlayerKeys].sort((left, right) => left.localeCompare(right));
+    }
+
+    function readChampionshipSettingsPayload(settings = state.pointSettings){
+      return {
+        settings:mergePointSettings(settings),
+        hidden_player_keys:currentHiddenPlayerKeys(),
+      };
+    }
+
+    async function loadChampionshipSettings(){
       try{
         const { data, error } = await supabase
           .from(SETTINGS_TABLE)
-          .select("settings")
+          .select("settings, hidden_player_keys")
           .eq("id", SETTINGS_ID)
           .maybeSingle();
-        if(!error && data?.settings){
+        if(error) throw error;
+        if(data){
           state.pointSettings = mergePointSettings(data.settings);
+          state.hiddenPlayerKeys = new Set(normalizeHiddenPlayerKeys(data.hidden_player_keys));
           state.settingsRemote = true;
           state.settingsSaveMode = "remote";
-          loaded = true;
+          return;
         }
       }catch{
       }
 
-      if(!loaded){
-        try{
-          const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
-          if(raw){
-            state.pointSettings = mergePointSettings(JSON.parse(raw));
-            state.settingsSaveMode = "local";
-            loaded = true;
-          }
-        }catch{
-        }
-      }
-
-      if(!loaded){
-        state.pointSettings = clonePointSettings(DEFAULT_POINT_SETTINGS);
-        state.settingsSaveMode = "defaults";
-      }
+      state.pointSettings = clonePointSettings(DEFAULT_POINT_SETTINGS);
+      state.hiddenPlayerKeys = new Set();
+      state.settingsSaveMode = "defaults";
     }
 
     function mergePointSettings(candidate){
@@ -1859,28 +1912,35 @@
       return base;
     }
 
-    async function savePointSettings(settings){
-      state.pointSettings = mergePointSettings(settings);
-      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(state.pointSettings));
-      let savedRemote = false;
-      try{
-        const { error } = await supabase
-          .from(SETTINGS_TABLE)
-          .upsert({
-            id:SETTINGS_ID,
-            settings:state.pointSettings,
-            updated_at:new Date().toISOString(),
-          }, { onConflict:"id" });
-        if(!error) savedRemote = true;
-      }catch{
-      }
-      state.settingsSaveMode = savedRemote ? "remote" : "local";
-      return savedRemote;
+    async function saveChampionshipSettings(settings = state.pointSettings){
+      if(!state.isAdmin) throw new Error("Admin access required.");
+      const payload = readChampionshipSettingsPayload(settings);
+      const { error } = await supabase
+        .from(SETTINGS_TABLE)
+        .upsert({
+          id:SETTINGS_ID,
+          settings:payload.settings,
+          hidden_player_keys:payload.hidden_player_keys,
+          updated_by_user_id:state.session?.user?.id || null,
+          updated_at:new Date().toISOString(),
+        }, { onConflict:"id" });
+      if(error) throw error;
+      state.pointSettings = payload.settings;
+      state.hiddenPlayerKeys = new Set(payload.hidden_player_keys);
+      state.settingsRemote = true;
+      state.settingsSaveMode = "remote";
+      return true;
     }
 
     function setSettingsStatus(message, tone = ""){
       els.settingsStatus.textContent = message || "";
       els.settingsStatus.className = `settings-status${tone ? ` is-${tone}` : ""}`;
+    }
+
+    function setAdminResultsStatus(message, tone = ""){
+      if(!els.adminResultsStatus) return;
+      els.adminResultsStatus.textContent = message || "";
+      els.adminResultsStatus.className = `settings-status${tone ? ` is-${tone}` : ""}`;
     }
 
     async function getSessionDiscordId(user){
@@ -1954,6 +2014,10 @@
       els.leaderboardPanel.hidden = state.view !== "leaderboard";
       els.adminResultsPanel.hidden = state.view !== "admin-results";
       els.settingsPanel.hidden = state.view !== "settings";
+      requestAnimationFrame(() => {
+        syncTournamentColumnWidth(els.leaderboardTable);
+        syncTournamentColumnWidth(els.adminResultsTable);
+      });
     }
 
     async function loadChampionship(){
@@ -2014,16 +2078,44 @@
         const sortButton = event.target.closest("[data-admin-sort]");
         if(sortButton) setAdminSort(sortButton.dataset.adminSort);
       });
+      els.adminResultsTable.addEventListener("change", async (event) => {
+        const input = event.target.closest("[data-hide-player-key]");
+        if(!input || !state.isAdmin) return;
+        const playerKey = normalizeText(input.dataset.hidePlayerKey);
+        const previousHidden = state.hiddenPlayerKeys.has(playerKey);
+        input.disabled = true;
+        try{
+          if(input.checked){
+            state.hiddenPlayerKeys.add(playerKey);
+          }else{
+            state.hiddenPlayerKeys.delete(playerKey);
+          }
+          await saveChampionshipSettings();
+          renderLeaderboard();
+          renderAdminResults();
+          setAdminResultsStatus("Hidden player settings saved.", "ok");
+        }catch(error){
+          if(previousHidden){
+            state.hiddenPlayerKeys.add(playerKey);
+          }else{
+            state.hiddenPlayerKeys.delete(playerKey);
+          }
+          input.checked = previousHidden;
+          setAdminResultsStatus(error?.message || "Unable to save hidden player setting.", "error");
+        }finally{
+          input.disabled = false;
+        }
+      });
       els.settingsForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         if(!state.isAdmin) return;
         els.saveSettingsBtn.disabled = true;
         setSettingsStatus("Saving settings...");
         try{
-          const remote = await savePointSettings(readSettingsForm());
+          await saveChampionshipSettings(readSettingsForm());
           renderSettings();
           await loadChampionship();
-          setSettingsStatus(remote ? "Settings saved." : "Settings saved in this browser. Add the Supabase settings table to make them global.", remote ? "ok" : "");
+          setSettingsStatus("Settings saved.", "ok");
         }catch(error){
           setSettingsStatus(error?.message || "Unable to save settings.", "error");
         }finally{
@@ -2036,6 +2128,10 @@
         renderSettings();
         setSettingsStatus("Defaults restored in the form. Save to apply.");
       });
+      window.addEventListener("resize", () => {
+        syncTournamentColumnWidth(els.leaderboardTable);
+        syncTournamentColumnWidth(els.adminResultsTable);
+      });
     }
 
     function requestedViewFromUrl(){
@@ -2046,7 +2142,7 @@
     async function boot(){
       renderSourceStatuses();
       bindEvents();
-      await loadPointSettings();
+      await loadChampionshipSettings();
       renderSettings();
       setView("leaderboard");
       await Promise.all([

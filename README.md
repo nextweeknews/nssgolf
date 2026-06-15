@@ -91,6 +91,7 @@ Run these SQL files in the Supabase SQL editor:
 bot/discord-member-schema.sql
 bot/player-settings-schema.sql
 bot/global-rank-displays-schema.sql
+bot/championship-settings-schema.sql
 ```
 
 The display-message table stores Discord webhook tokens and is intentionally service-role only. Do not grant browser clients access to it.
