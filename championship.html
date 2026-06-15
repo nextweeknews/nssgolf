@@ -710,6 +710,8 @@
       sheetId:"1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY",
       discordIdsSheet:"Discord IDs",
       discordIdsRange:"A:B",
+      scheduleRange:"I2:AB85",
+      playoffRange:"I87:AB92",
       divisions:[
         { key:"division1", title:"Division 1", range:"B3:G10" },
         { key:"division2", title:"Division 2", range:"B13:G20" },
@@ -881,6 +883,359 @@
 
     function sheetRange(sheetName, a1){
       return `'${sheetName}'!${a1}`;
+    }
+
+    function numOrZero(value){
+      const number = Number(String(value ?? "").trim());
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function normalizeDivisionValue(value){
+      const text = normalizeText(value);
+      const match = text.match(/(\d+)/);
+      return match ? match[1] : text;
+    }
+
+    function superLeaguePlayerKey(value){
+      return normalizeText(value).toUpperCase();
+    }
+
+    function superLeagueSeasonNumber(config){
+      return Number(String(config?.sheetName || "").match(/\d+/)?.[0] || 0);
+    }
+
+    function superLeagueUsesHeadToHead(config){
+      return superLeagueSeasonNumber(config) >= 6;
+    }
+
+    function comparePctDesc(aWins, aLosses, bWins, bLosses){
+      const aTotal = aWins + aLosses;
+      const bTotal = bWins + bLosses;
+      if(aTotal === 0 && bTotal === 0) return 0;
+      if(aTotal === 0) return bWins > 0 ? 1 : -1;
+      if(bTotal === 0) return aWins > 0 ? -1 : 1;
+
+      const left = aWins * bTotal;
+      const right = bWins * aTotal;
+      if(left === right) return 0;
+      return left > right ? -1 : 1;
+    }
+
+    function compareRoundDiffDesc(aWins, aLosses, bWins, bLosses){
+      const aDiff = aWins - aLosses;
+      const bDiff = bWins - bLosses;
+      return bDiff - aDiff;
+    }
+
+    function mapSuperLeagueRows(values){
+      return (values || [])
+        .map((row = [], index) => {
+          const player = normalizeText(row[0]);
+          const matchesWon = numOrZero(row[1]);
+          const matchesLost = numOrZero(row[2]);
+          const gamesWon = numOrZero(row[3]);
+          const gamesLost = numOrZero(row[4]);
+          return {
+            player,
+            playerKey:superLeaguePlayerKey(player),
+            matchesWon,
+            matchesLost,
+            gamesWon,
+            gamesLost,
+            diff:numOrZero(row[5]),
+            sourceOrder:index,
+            tied:false,
+            rank:"",
+          };
+        })
+        .filter(row => row.player);
+    }
+
+    function buildSuperLeagueHeadToHeadByDivision(scheduleRows){
+      const byDivision = new Map();
+      (scheduleRows || []).forEach((row = []) => {
+        const division = normalizeDivisionValue(row[1]);
+        const p1Name = normalizeText(row[3]);
+        const p2Name = normalizeText(row[12]);
+        const p1Result = normalizeText(row[10]).toUpperCase();
+        const p2Result = normalizeText(row[19]).toUpperCase();
+        if(!division || !p1Name || !p2Name) return;
+        if(!((p1Result === "W" && p2Result === "L") || (p1Result === "L" && p2Result === "W"))) return;
+
+        if(!byDivision.has(division)) byDivision.set(division, new Map());
+        const divisionMap = byDivision.get(division);
+        const p1Key = superLeaguePlayerKey(p1Name);
+        const p2Key = superLeaguePlayerKey(p2Name);
+        if(!divisionMap.has(p1Key)) divisionMap.set(p1Key, new Map());
+        if(!divisionMap.has(p2Key)) divisionMap.set(p2Key, new Map());
+
+        const p1Won = p1Result === "W";
+        divisionMap.get(p1Key).set(p2Key, p1Won ? 1 : -1);
+        divisionMap.get(p2Key).set(p1Key, p1Won ? -1 : 1);
+      });
+      return byDivision;
+    }
+
+    function getSuperLeagueHeadToHeadOutcome(headToHeadMap, playerA, playerB){
+      const aKey = superLeaguePlayerKey(playerA);
+      const bKey = superLeaguePlayerKey(playerB);
+      if(!aKey || !bKey) return null;
+      const aVs = headToHeadMap.get(aKey);
+      if(aVs?.has(bKey)) return aVs.get(bKey);
+      const bVs = headToHeadMap.get(bKey);
+      if(bVs?.has(aKey)) return bVs.get(aKey) === 1 ? -1 : 1;
+      return null;
+    }
+
+    function computeSuperLeagueHeadToHeadPct(row, group, headToHeadMap){
+      let wins = 0;
+      let losses = 0;
+      group.forEach((other) => {
+        if(other.playerKey === row.playerKey) return;
+        const outcome = getSuperLeagueHeadToHeadOutcome(headToHeadMap, row.playerKey, other.playerKey);
+        if(outcome === 1) wins += 1;
+        if(outcome === -1) losses += 1;
+      });
+      const played = wins + losses;
+      return played ? wins / played : null;
+    }
+
+    function rankSuperLeagueRows(rows, divisionTitle, headToHeadByDivision, useHeadToHead){
+      const divisionKey = normalizeDivisionValue(divisionTitle);
+      const headToHeadMap = headToHeadByDivision.get(divisionKey) || new Map();
+      const ranked = rows.map(row => ({ ...row }));
+
+      ranked.sort((a, b) => comparePctDesc(a.matchesWon, a.matchesLost, b.matchesWon, b.matchesLost));
+
+      const ordered = [];
+      for(let index = 0; index < ranked.length;){
+        const group = [ranked[index]];
+        let next = index + 1;
+        while(
+          next < ranked.length &&
+          comparePctDesc(
+            ranked[index].matchesWon,
+            ranked[index].matchesLost,
+            ranked[next].matchesWon,
+            ranked[next].matchesLost,
+          ) === 0
+        ){
+          group.push(ranked[next]);
+          next += 1;
+        }
+
+        if(group.length === 2){
+          const h2h = getSuperLeagueHeadToHeadOutcome(headToHeadMap, group[0].playerKey, group[1].playerKey);
+          if(useHeadToHead && h2h === -1){
+            group.reverse();
+            group[0].tied = false;
+            group[1].tied = false;
+          }else if(useHeadToHead && h2h === 1){
+            group[0].tied = false;
+            group[1].tied = false;
+          }else{
+            const gamesCmp = compareRoundDiffDesc(group[0].gamesWon, group[0].gamesLost, group[1].gamesWon, group[1].gamesLost);
+            if(gamesCmp > 0) group.reverse();
+            if(gamesCmp !== 0){
+              group[0].tied = false;
+              group[1].tied = false;
+            }else if(group[0].diff !== group[1].diff){
+              if(group[0].diff > group[1].diff) group.reverse();
+              group[0].tied = false;
+              group[1].tied = false;
+            }else{
+              group[0].tied = true;
+              group[1].tied = true;
+            }
+          }
+        }else if(group.length > 2){
+          const withHeadToHead = group.map(row => ({
+            ...row,
+            headToHeadPct:useHeadToHead ? computeSuperLeagueHeadToHeadPct(row, group, headToHeadMap) : null,
+          }));
+          const uniqueHeadToHeadPcts = new Set(withHeadToHead.map(row => row.headToHeadPct));
+          const canUseHeadToHead = useHeadToHead && !(uniqueHeadToHeadPcts.size === 1 && uniqueHeadToHeadPcts.has(null));
+
+          withHeadToHead.sort((a, b) => {
+            if(canUseHeadToHead && a.headToHeadPct !== b.headToHeadPct){
+              if(a.headToHeadPct === null) return 1;
+              if(b.headToHeadPct === null) return -1;
+              return b.headToHeadPct - a.headToHeadPct;
+            }
+            const gamesCmp = compareRoundDiffDesc(a.gamesWon, a.gamesLost, b.gamesWon, b.gamesLost);
+            if(gamesCmp !== 0) return gamesCmp;
+            if(a.diff !== b.diff) return a.diff - b.diff;
+            return a.sourceOrder - b.sourceOrder;
+          });
+
+          for(let i = 0; i < withHeadToHead.length; i += 1){
+            const current = withHeadToHead[i];
+            const previous = withHeadToHead[i - 1];
+            if(!previous){
+              current.tied = false;
+              continue;
+            }
+            const sameHeadToHead = !useHeadToHead || current.headToHeadPct === previous.headToHeadPct;
+            const sameGames = compareRoundDiffDesc(current.gamesWon, current.gamesLost, previous.gamesWon, previous.gamesLost) === 0;
+            const sameDiff = current.diff === previous.diff;
+            current.tied = sameHeadToHead && sameGames && sameDiff;
+            if(current.tied) previous.tied = true;
+          }
+          group.splice(0, group.length, ...withHeadToHead);
+        }else{
+          group[0].tied = false;
+        }
+
+        ordered.push(...group);
+        index = next;
+      }
+
+      let displayRank = 1;
+      ordered.forEach((row, index) => {
+        if(index > 0){
+          const previous = ordered[index - 1];
+          const samePrimary = comparePctDesc(row.matchesWon, row.matchesLost, previous.matchesWon, previous.matchesLost) === 0;
+          const sameGames = compareRoundDiffDesc(row.gamesWon, row.gamesLost, previous.gamesWon, previous.gamesLost) === 0;
+          if(!(row.tied && previous.tied && samePrimary && sameGames && row.diff === previous.diff)){
+            displayRank = index + 1;
+          }
+        }
+        row.rank = row.tied ? `T${displayRank}` : String(displayRank);
+      });
+
+      return ordered;
+    }
+
+    function parseSuperLeaguePlayoffRows(values){
+      return (values || []).map((row = []) => ({
+        p1:{
+          name:normalizeText(row[3]),
+          gamesWon:row[7],
+          result:normalizeText(row[10]).toUpperCase(),
+        },
+        p2:{
+          name:normalizeText(row[12]),
+          gamesWon:row[16],
+          result:normalizeText(row[19]).toUpperCase(),
+        },
+      }));
+    }
+
+    function isSuperLeagueMatchComplete(matchup){
+      return Boolean(matchup && (matchup.p1.result === "W" || matchup.p2.result === "W"));
+    }
+
+    function getSuperLeagueMatchWinnerKey(matchup){
+      if(!isSuperLeagueMatchComplete(matchup)) return "";
+      if(matchup.p1.result === "W") return superLeaguePlayerKey(matchup.p1.name);
+      if(matchup.p2.result === "W") return superLeaguePlayerKey(matchup.p2.name);
+      if(matchup.p1.result === "L") return superLeaguePlayerKey(matchup.p2.name);
+      if(matchup.p2.result === "L") return superLeaguePlayerKey(matchup.p1.name);
+      return "";
+    }
+
+    function getSuperLeagueMatchLoserKey(matchup){
+      if(!isSuperLeagueMatchComplete(matchup)) return "";
+      if(matchup.p1.result === "L") return superLeaguePlayerKey(matchup.p1.name);
+      if(matchup.p2.result === "L") return superLeaguePlayerKey(matchup.p2.name);
+      if(matchup.p1.result === "W") return superLeaguePlayerKey(matchup.p2.name);
+      if(matchup.p2.result === "W") return superLeaguePlayerKey(matchup.p1.name);
+      return "";
+    }
+
+    function deriveSuperLeaguePlayoffMetadata(matchups){
+      if(!Array.isArray(matchups) || matchups.length < 6) return null;
+      const championship = matchups[2];
+      const thirdPlace = matchups[3];
+      const oneOffs = [
+        { matchup:matchups[4], label:"Division 1/2 Playoff" },
+        { matchup:matchups[5], label:"Division 2/3 Playoff" },
+      ];
+      const championshipComplete = isSuperLeagueMatchComplete(championship);
+      const thirdPlaceComplete = isSuperLeagueMatchComplete(thirdPlace);
+      const d1FinalRanks = new Map();
+
+      if(championshipComplete && thirdPlaceComplete){
+        const championKey = getSuperLeagueMatchWinnerKey(championship);
+        const runnerUpKey = getSuperLeagueMatchLoserKey(championship);
+        const thirdKey = getSuperLeagueMatchWinnerKey(thirdPlace);
+        const fourthKey = getSuperLeagueMatchLoserKey(thirdPlace);
+        const topFour = [championKey, runnerUpKey, thirdKey, fourthKey].filter(Boolean);
+        if(topFour.length === 4 && new Set(topFour).size === 4){
+          d1FinalRanks.set(championKey, 1);
+          d1FinalRanks.set(runnerUpKey, 2);
+          d1FinalRanks.set(thirdKey, 3);
+          d1FinalRanks.set(fourthKey, 4);
+        }
+      }
+
+      return { championship, thirdPlace, oneOffs, championshipComplete, thirdPlaceComplete, d1FinalRanks };
+    }
+
+    function applySuperLeaguePlayoffStatTotals(rows, metadata){
+      const nextRows = rows.map(row => ({ ...row }));
+      if(!metadata) return nextRows;
+
+      const statDeltas = new Map();
+      const addResult = (playerKey, matchWon, matchLost, gamesWon, gamesLost) => {
+        if(!playerKey) return;
+        if(!statDeltas.has(playerKey)){
+          statDeltas.set(playerKey, { matchesWon:0, matchesLost:0, gamesWon:0, gamesLost:0, diff:0 });
+        }
+        const totals = statDeltas.get(playerKey);
+        totals.matchesWon += matchWon;
+        totals.matchesLost += matchLost;
+        totals.gamesWon += gamesWon;
+        totals.gamesLost += gamesLost;
+        totals.diff += gamesWon - gamesLost;
+      };
+      const addMatch = (matchup) => {
+        if(!isSuperLeagueMatchComplete(matchup)) return;
+        const p1Key = superLeaguePlayerKey(matchup.p1.name);
+        const p2Key = superLeaguePlayerKey(matchup.p2.name);
+        const p1Games = numOrZero(matchup.p1.gamesWon);
+        const p2Games = numOrZero(matchup.p2.gamesWon);
+        const p1Win = matchup.p1.result === "W";
+        const p2Win = matchup.p2.result === "W";
+        addResult(p1Key, p1Win ? 1 : 0, p1Win ? 0 : 1, p1Games, p2Games);
+        addResult(p2Key, p2Win ? 1 : 0, p2Win ? 0 : 1, p2Games, p1Games);
+      };
+
+      addMatch(metadata.championship);
+      addMatch(metadata.thirdPlace);
+      metadata.oneOffs.forEach(entry => addMatch(entry.matchup));
+
+      nextRows.forEach((row) => {
+        const delta = statDeltas.get(row.playerKey);
+        if(!delta) return;
+        row.matchesWon += delta.matchesWon;
+        row.matchesLost += delta.matchesLost;
+        row.gamesWon += delta.gamesWon;
+        row.gamesLost += delta.gamesLost;
+        row.diff += delta.diff;
+      });
+      return nextRows;
+    }
+
+    function applySuperLeagueDivisionOnePlayoffOverrides(rows, metadata){
+      if(!metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return rows;
+      if(metadata.d1FinalRanks.size !== 4) return rows;
+
+      const forcedRows = [];
+      rows.forEach((row, index) => {
+        const playoffRank = metadata.d1FinalRanks.get(row.playerKey);
+        if(playoffRank) forcedRows.push({ row, playoffRank, index });
+      });
+      if(!forcedRows.length) return rows;
+
+      forcedRows.sort((a, b) => a.playoffRank - b.playoffRank || a.index - b.index);
+      const forcedKeys = new Set(forcedRows.map(entry => entry.row.playerKey));
+      const orderedRows = [
+        ...forcedRows.map(entry => ({ ...entry.row, rank:String(entry.playoffRank), tied:false })),
+        ...rows.filter(row => !forcedKeys.has(row.playerKey)).map((row, index) => ({ ...row, rank:String(index + 5), tied:false })),
+      ];
+      rows.splice(0, rows.length, ...orderedRows);
+      return rows;
     }
 
     function memberDisplayName(member, fallback){
@@ -1197,15 +1552,29 @@
         return;
       }
 
-      const divisionRows = await Promise.all(config.divisions.map((division) => {
-        return fetchSheetRange(config.sheetId, sheetRange(config.sheetName, division.range))
-          .then(rows => ({ division, rows }));
-      }));
+      const useHeadToHead = superLeagueUsesHeadToHead(config);
+      const [divisionRows, scheduleRows, playoffRows] = await Promise.all([
+        Promise.all(config.divisions.map((division) => {
+          return fetchSheetRange(config.sheetId, sheetRange(config.sheetName, division.range))
+            .then(rows => ({ division, rows }));
+        })),
+        useHeadToHead ? fetchSheetRange(config.sheetId, sheetRange(config.sheetName, config.scheduleRange)) : Promise.resolve([]),
+        fetchSheetRange(config.sheetId, sheetRange(config.sheetName, config.playoffRange)).catch(() => []),
+      ]);
+      const headToHeadByDivision = useHeadToHead ? buildSuperLeagueHeadToHeadByDivision(scheduleRows) : new Map();
+      const playoffMetadata = deriveSuperLeaguePlayoffMetadata(parseSuperLeaguePlayoffRows(playoffRows));
 
       divisionRows.forEach(({ division, rows }) => {
         const pointsList = state.pointSettings[eventKey]?.[division.key] || [];
-        (rows || []).forEach((row, index) => {
-          const name = normalizeText(row?.[0]);
+        const baseRows = mapSuperLeagueRows(rows);
+        const rowsForRanking = division.key === "division1" ? baseRows : applySuperLeaguePlayoffStatTotals(baseRows, playoffMetadata);
+        const rankedRows = rankSuperLeagueRows(rowsForRanking, division.title, headToHeadByDivision, useHeadToHead);
+        if(division.key === "division1"){
+          applySuperLeagueDivisionOnePlayoffOverrides(rankedRows, playoffMetadata);
+        }
+
+        rankedRows.forEach((row, index) => {
+          const name = normalizeText(row?.player);
           if(!name) return;
           const player = ensureParticipant({ name });
           const points = Number(pointsList[index]) || 0;
