@@ -195,36 +195,6 @@
       border-color:rgba(219,234,254,.9);
       box-shadow:0 10px 24px rgba(96,165,250,.18);
     }
-    .status-grid{
-      display:grid;
-      grid-template-columns:repeat(4, minmax(0, 1fr));
-      gap:8px;
-      margin:0 0 18px;
-    }
-    .source-status{
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(2,6,23,.34);
-      border-radius:12px;
-      padding:10px;
-      min-height:68px;
-    }
-    .source-status strong{
-      display:block;
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:.09em;
-      color:rgba(255,255,255,.82);
-      margin-bottom:5px;
-    }
-    .source-status span{
-      display:block;
-      color:var(--muted);
-      font-size:12px;
-      font-weight:750;
-      line-height:1.35;
-    }
-    .source-status.is-ok span{ color:var(--green); }
-    .source-status.is-error span{ color:var(--red); }
     .table-toolbar{
       display:flex;
       align-items:center;
@@ -282,48 +252,40 @@
     }
     tbody tr:last-child td{ border-bottom:0; }
     tbody tr:hover td{ background:rgba(125,211,252,.05); }
-    .rank-chip,
-    .points-chip,
-    .event-chip{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-width:34px;
-      min-height:28px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.06);
-      color:rgba(255,255,255,.94);
+    .rank-cell{
+      color:rgba(255,255,255,.9);
       font-weight:950;
-      font-size:12px;
-      white-space:nowrap;
+      text-align:center;
+      width:70px;
     }
-    .rank-chip.is-gold{ background:rgba(250,204,21,.15); border-color:rgba(250,204,21,.45); color:#fde68a; }
-    .rank-chip.is-silver{ background:rgba(203,213,225,.13); border-color:rgba(203,213,225,.42); color:#e2e8f0; }
-    .rank-chip.is-bronze{ background:rgba(251,146,60,.13); border-color:rgba(251,146,60,.42); color:#fed7aa; }
-    .points-chip{
-      min-width:54px;
-      background:rgba(34,197,94,.12);
-      border-color:rgba(134,239,172,.35);
-      color:var(--green);
+    .total-cell{
+      background:#fff !important;
+      color:#020617;
+      font-weight:950;
+      text-align:center;
+      min-width:72px;
+    }
+    .total-score{
+      color:#020617;
+      font-weight:950;
     }
     .event-cell{
       min-width:124px;
     }
-    .event-chip{
-      min-width:42px;
-      min-height:24px;
-      font-size:11px;
-      color:rgba(255,255,255,.9);
+    .event-cell.is-empty{
+      color:transparent;
     }
-    .event-chip.is-empty{
-      color:rgba(156,163,199,.72);
-      background:rgba(255,255,255,.03);
-      border-color:rgba(255,255,255,.08);
+    .event-score{
+      display:block;
+      color:var(--green);
+      font-size:12px;
+      font-weight:950;
+      line-height:1.1;
+      text-align:center;
     }
     .event-result{
       display:block;
-      margin-top:4px;
+      margin-top:3px;
       color:rgba(156,163,199,.92);
       font-size:11px;
       font-weight:800;
@@ -467,7 +429,6 @@
     .settings-status.is-ok{ color:var(--green); }
     .settings-status.is-error{ color:var(--red); }
     @media (max-width:900px){
-      .status-grid,
       .settings-grid{ grid-template-columns:1fr 1fr; }
     }
     @media (max-width:760px){
@@ -479,7 +440,6 @@
       .discord-button{ padding:8px 10px; font-size:10px; letter-spacing:.06em; }
       .card{ padding:18px 14px; border-radius:18px; }
       .headline{ font-size:20px; }
-      .status-grid,
       .settings-grid{ grid-template-columns:1fr; }
       table{ min-width:820px; }
       tbody td,
@@ -524,24 +484,17 @@
       <div class="card-head">
         <div>
           <h1 class="headline" id="championship-title">World Championship</h1>
-          <p class="lede">Running leaderboard from Lightning Cup 2026, World Cup 2025, World Open, and Super League Seasons 5 and 6.</p>
         </div>
         <button class="btn" id="refreshBtn" type="button">Refresh</button>
       </div>
 
       <div class="view-tabs" aria-label="World Championship views">
         <button class="btn tab-btn is-active" type="button" data-view="leaderboard">Leaderboard</button>
-        <button class="btn tab-btn" type="button" data-view="admin-results" id="adminResultsTab" hidden>Admin Results</button>
-        <button class="btn tab-btn" type="button" data-view="settings" id="settingsTab" hidden>Point Settings</button>
-        <button class="btn tab-btn" type="button" id="adminLoginBtn" hidden>Admin Log In</button>
       </div>
-
-      <div class="status-grid" id="statusGrid"></div>
 
       <section class="panel" id="leaderboardPanel" aria-label="Leaderboard">
         <div class="table-toolbar">
           <h2 class="toolbar-title">Leaderboard</h2>
-          <span class="toolbar-meta" id="leaderboardMeta">Loading results...</span>
         </div>
         <div class="table-scroll">
           <table id="leaderboardTable"></table>
@@ -812,6 +765,7 @@
     }
 
     function renderSourceStatuses(){
+      if(!els.statusGrid) return;
       els.statusGrid.innerHTML = EVENT_DEFS.map((event) => {
         const status = state.sourceStatus.get(event.key) || { tone:"pending", message:"Pending" };
         const toneClass = status.tone === "ok" ? " is-ok" : status.tone === "error" ? " is-error" : "";
@@ -1620,7 +1574,7 @@
       let previousRank = 0;
       rows.forEach((row, index) => {
         row.rank = row.total === previousTotal ? previousRank : index + 1;
-        row.rankLabel = row.total === previousTotal ? `T-${row.rank}` : String(row.rank);
+        row.rankLabel = String(row.rank);
         previousTotal = row.total;
         previousRank = row.rank;
       });
@@ -1668,14 +1622,17 @@
     function renderEventCell(player, eventKey){
       const result = player.events[eventKey];
       if(!result){
-        return `<td class="event-cell"><span class="event-chip is-empty">0</span><span class="event-result">-</span></td>`;
+        return `<td class="event-cell is-empty"></td>`;
       }
-      return `<td class="event-cell"><span class="event-chip">${Number(result.points) || 0}</span><span class="event-result">${escapeHtml(result.result || "-")}</span></td>`;
+      const resultLabel = eventKey === "worldCup2025"
+        ? normalizeText(result.result).replace(/\s*\([^)]*\)\s*$/, "")
+        : normalizeText(result.result);
+      return `<td class="event-cell"><span class="event-score">+${Number(result.points) || 0}</span><span class="event-result">${escapeHtml(resultLabel)}</span></td>`;
     }
 
     function renderLeaderboard(){
       const rows = buildRows();
-      els.leaderboardMeta.textContent = rows.length ? `${rows.length} scored players` : "No scored players yet";
+      if(els.leaderboardMeta) els.leaderboardMeta.textContent = "";
       if(!rows.length){
         els.leaderboardTable.innerHTML = `<tbody><tr><td><div class="empty-state">No championship results available yet.</div></td></tr></tbody>`;
         return;
@@ -1691,12 +1648,11 @@
         </thead>
         <tbody>
           ${rows.map((row) => {
-            const placement = row.rank === 1 ? " is-gold" : row.rank === 2 ? " is-silver" : row.rank === 3 ? " is-bronze" : "";
             return `
               <tr>
-                <td><span class="rank-chip${placement}">${escapeHtml(row.rankLabel)}</span></td>
+                <td class="rank-cell">${escapeHtml(row.rankLabel)}</td>
                 <td>${renderPlayerCell(row.player)}</td>
-                <td><span class="points-chip">${row.total}</span></td>
+                <td class="total-cell"><span class="total-score">${row.total}</span></td>
                 ${EVENT_DEFS.map(event => renderEventCell(row.player, event.key)).join("")}
               </tr>
             `;
@@ -1750,7 +1706,7 @@
           ${rows.map(row => `
             <tr>
               <td>${renderPlayerCell(row.player)}</td>
-              <td><span class="points-chip">${row.total}</span></td>
+              <td class="total-cell"><span class="total-score">${row.total}</span></td>
               ${EVENT_DEFS.map(event => renderEventCell(row.player, event.key)).join("")}
             </tr>
           `).join("") || `<tr><td colspan="${EVENT_DEFS.length + 2}"><div class="empty-state">No championship results available yet.</div></td></tr>`}
@@ -1940,9 +1896,9 @@
     }
 
     function updateAdminVisibility(){
-      els.adminLoginBtn.hidden = !!state.session;
-      els.adminResultsTab.hidden = !state.isAdmin;
-      els.settingsTab.hidden = !state.isAdmin;
+      if(els.adminLoginBtn) els.adminLoginBtn.hidden = !!state.session;
+      if(els.adminResultsTab) els.adminResultsTab.hidden = !state.isAdmin;
+      if(els.settingsTab) els.settingsTab.hidden = !state.isAdmin;
       if(!state.isAdmin && (state.view === "admin-results" || state.view === "settings")){
         setView("leaderboard");
       }
@@ -2008,7 +1964,7 @@
       document.querySelectorAll("[data-view]").forEach((button) => {
         button.addEventListener("click", () => setView(button.dataset.view));
       });
-      els.adminLoginBtn.addEventListener("click", async () => {
+      els.adminLoginBtn?.addEventListener("click", async () => {
         const { error } = await supabase.auth.signInWithOAuth({
           provider:"discord",
           options:{ redirectTo:buildAuthRedirectTo("/championship.html") },
@@ -2043,6 +1999,11 @@
       });
     }
 
+    function requestedViewFromUrl(){
+      const view = new URLSearchParams(window.location.search).get("view");
+      return ["leaderboard", "admin-results", "settings"].includes(view) ? view : "leaderboard";
+    }
+
     async function boot(){
       renderSourceStatuses();
       bindEvents();
@@ -2053,6 +2014,7 @@
         loadChampionship(),
         refreshAdminState(),
       ]);
+      setView(requestedViewFromUrl());
     }
 
     boot().catch((error) => {
