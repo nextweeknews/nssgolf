@@ -178,22 +178,65 @@
       font-weight:750;
       max-width:760px;
     }
-    .view-tabs{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
+    .champ-tabs{
+      --champ-tabs-accent-rgb:134,239,172;
+      width:100%;
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:0;
+      padding:0;
       margin:14px 0 18px;
+      border-bottom:1px solid rgba(148,163,184,.24);
+      background:transparent;
     }
-    .tab-btn{
-      border-radius:999px;
-      min-height:34px;
+    .champ-tab{
+      position:relative;
+      min-height:35px;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      color:rgba(233,238,248,.86);
+      padding:6px 8px 7px;
+      text-align:center;
+      line-height:1.2;
+      font:inherit;
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      appearance:none;
+      cursor:pointer;
+      transition:background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
     }
-    .tab-btn.is-active{
-      color:#06121f;
-      background:linear-gradient(180deg, #dbeafe, #93c5fd);
-      border-color:rgba(219,234,254,.9);
-      box-shadow:0 10px 24px rgba(96,165,250,.18);
+    .champ-tab-label{
+      display:block;
+      width:100%;
+      text-align:center;
+    }
+    .champ-tab::after{
+      content:"";
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      height:2px;
+      background:transparent;
+      transition:background-color 140ms ease;
+    }
+    .champ-tab:hover{
+      background:rgba(148,163,184,.10);
+      color:rgba(255,255,255,.95);
+    }
+    .champ-tab[data-state="active"]{
+      background:rgba(var(--champ-tabs-accent-rgb), .09);
+      color:#f4fff8;
+    }
+    .champ-tab[data-state="active"]::after{
+      background:rgba(var(--champ-tabs-accent-rgb), .78);
+    }
+    .champ-tab:focus-visible{
+      outline:none;
+      box-shadow:inset 0 0 0 1px rgba(var(--champ-tabs-accent-rgb), .42);
     }
     .table-toolbar{
       display:flex;
@@ -329,6 +372,11 @@
       display:grid;
       gap:2px;
     }
+    .player-copy.is-single-line{
+      min-height:34px;
+      align-content:center;
+      gap:0;
+    }
     .player-name{
       overflow:hidden;
       text-overflow:ellipsis;
@@ -389,6 +437,19 @@
       color:var(--muted);
       text-align:center;
       font-weight:850;
+    }
+    .coming-soon{
+      min-height:220px;
+      display:grid;
+      place-items:center;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(2,6,23,.28);
+      color:rgba(233,238,248,.86);
+      font-size:18px;
+      font-weight:950;
+      letter-spacing:.08em;
+      text-transform:uppercase;
     }
     .admin-gate{
       border:1px solid rgba(250,204,21,.26);
@@ -519,17 +580,23 @@
         <button class="btn" id="refreshBtn" type="button">Refresh</button>
       </div>
 
-      <div class="view-tabs" aria-label="World Championship views">
-        <button class="btn tab-btn is-active" type="button" data-view="leaderboard">Leaderboard</button>
+      <div class="champ-tabs" role="tablist" aria-label="World Championship views">
+        <button class="champ-tab" id="rankingsTab" role="tab" type="button" data-view="leaderboard" data-state="active" aria-selected="true" aria-controls="leaderboardPanel">
+          <span class="champ-tab-label">Rankings</span>
+        </button>
+        <button class="champ-tab" id="bracketTab" role="tab" type="button" data-view="bracket" data-state="inactive" aria-selected="false" aria-controls="bracketPanel">
+          <span class="champ-tab-label">Bracket</span>
+        </button>
       </div>
 
-      <section class="panel" id="leaderboardPanel" aria-label="Leaderboard">
-        <div class="table-toolbar">
-          <h2 class="toolbar-title">Leaderboard</h2>
-        </div>
+      <section class="panel" id="leaderboardPanel" role="tabpanel" aria-labelledby="rankingsTab">
         <div class="table-scroll">
           <table id="leaderboardTable"></table>
         </div>
+      </section>
+
+      <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab" hidden>
+        <div class="coming-soon">Coming soon</div>
       </section>
 
       <section class="panel" id="adminResultsPanel" aria-label="Admin tournament results" hidden>
@@ -744,6 +811,7 @@
       adminResultsTab:document.getElementById("adminResultsTab"),
       settingsTab:document.getElementById("settingsTab"),
       leaderboardPanel:document.getElementById("leaderboardPanel"),
+      bracketPanel:document.getElementById("bracketPanel"),
       adminResultsPanel:document.getElementById("adminResultsPanel"),
       settingsPanel:document.getElementById("settingsPanel"),
       adminResultsGate:document.getElementById("adminResultsGate"),
@@ -1646,13 +1714,15 @@
       const className = discordId ? "player-link" : "player-static";
       const fallbackName = playerPreferredName(player);
       const displayName = memberDisplayName(member, fallbackName);
-      const username = member?.username ? `@${member.username}` : (discordId || "Name-only result");
+      const username = member?.username ? `@${member.username}` : (discordId || "");
+      const singleLineClass = username ? "" : " is-single-line";
+      const usernameMarkup = username ? `<span class="player-sub">${escapeHtml(username)}</span>` : "";
       return `
         <${tag} class="${className}"${href}>
           <img class="player-avatar" src="${escapeHtml(avatarUrlFor(member))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
-          <span class="player-copy">
+          <span class="player-copy${singleLineClass}">
             <span class="player-name">${escapeHtml(displayName)}</span>
-            <span class="player-sub">${escapeHtml(username)}</span>
+            ${usernameMarkup}
           </span>
         </${tag}>
       `;
@@ -2009,9 +2079,13 @@
       if((view === "admin-results" || view === "settings") && !state.isAdmin) view = "leaderboard";
       state.view = view;
       document.querySelectorAll("[data-view]").forEach((button) => {
-        button.classList.toggle("is-active", button.dataset.view === state.view);
+        const isActive = button.dataset.view === state.view;
+        button.classList.toggle("is-active", isActive);
+        button.dataset.state = isActive ? "active" : "inactive";
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
       });
       els.leaderboardPanel.hidden = state.view !== "leaderboard";
+      els.bracketPanel.hidden = state.view !== "bracket";
       els.adminResultsPanel.hidden = state.view !== "admin-results";
       els.settingsPanel.hidden = state.view !== "settings";
       requestAnimationFrame(() => {
@@ -2136,7 +2210,7 @@
 
     function requestedViewFromUrl(){
       const view = new URLSearchParams(window.location.search).get("view");
-      return ["leaderboard", "admin-results", "settings"].includes(view) ? view : "leaderboard";
+      return ["leaderboard", "bracket", "admin-results", "settings"].includes(view) ? view : "leaderboard";
     }
 
     async function boot(){
