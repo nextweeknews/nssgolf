@@ -144,10 +144,16 @@ body {
 
 .team-head.player-rankings {
   grid-template-columns: 1fr;
-  justify-items: start;
-  padding-left: 30px;
-  background: rgba(30, 42, 67, 0.98);
+  justify-items: center;
+  padding: 0;
+  background: rgba(50, 61, 80, 0.98);
   color: #f8fafc;
+}
+
+.rankings-head {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 100%;
 }
 
 .team-logo-wrap {
@@ -188,6 +194,10 @@ body {
   height: 100%;
   display: grid;
   place-items: center;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 0 10px 0 0;
   background: #ffffff;
   color: #202734;
   font-size: 36px;
@@ -455,6 +465,19 @@ function fmtScore(value) {
   return number > 0 ? `+${number}` : String(number);
 }
 
+function formatOrdinal(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "-";
+  const mod100 = Math.abs(number) % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${number}th`;
+  switch (Math.abs(number) % 10) {
+    case 1: return `${number}st`;
+    case 2: return `${number}nd`;
+    case 3: return `${number}rd`;
+    default: return `${number}th`;
+  }
+}
+
 function isStagedSeason(season) {
   return Number(season) >= 6;
 }
@@ -662,7 +685,7 @@ function buildTeamSlide(team, data) {
     team,
     ...renderSlideParts({
       period: data.period,
-      rank: `#${team.rank}`,
+      rank: formatOrdinal(team.rank),
       teamName: team.displayName,
       teamScore: team.score,
       teamStyle: getTeamStyle(team.name),
@@ -684,7 +707,7 @@ function buildPlayerSlides(data) {
       ...renderSlideParts({
         period: data.period,
         rank: "",
-        teamName: "Player Rankings",
+        teamName: "Individual Rankings",
         teamScore: null,
         teamStyle: null,
         logoTeam: null,
@@ -702,19 +725,26 @@ function renderSlideParts({ period, rank, teamName, teamScore, teamStyle, logoTe
   const fg = teamStyle?.fg || "#ffffff";
   const headerClass = playerHeader ? "team-head player-rankings" : "team-head";
   const total = playerHeader ? "" : escapeHtml(fmtScore(teamScore));
-
-  return {
-    label: playerHeader ? "Player Rankings" : teamName,
-    periodLabel: periodDisplayLabel(period.season, period.stage),
-    mainClass: mainClass || "",
-    capHtml: `
+  const capHtml = playerHeader
+    ? `
+        <div class="${headerClass} rankings-head">
+          <div class="headline">${escapeHtml(teamName)}</div>
+        </div>
+      `
+    : `
         <div class="rank">${escapeHtml(rank)}</div>
         <div class="${headerClass}" style="--team-bg:${escapeHtml(bg)}; --team-fg:${escapeHtml(fg)}">
-          ${playerHeader ? "" : renderLogo(logoTeam)}
-          <div class="${playerHeader ? "headline" : "team-name"}">${escapeHtml(teamName)}</div>
+          ${renderLogo(logoTeam)}
+          <div class="team-name">${escapeHtml(teamName)}</div>
         </div>
         <div class="total">${total}</div>
-    `,
+      `;
+
+  return {
+    label: playerHeader ? "Individual Rankings" : teamName,
+    periodLabel: periodDisplayLabel(period.season, period.stage),
+    mainClass: mainClass || "",
+    capHtml,
     cellsHtml: slots.join(""),
   };
 }
@@ -753,7 +783,7 @@ function renderIndividualPlayerSlot(player, data) {
 
   return `
     <article class="player-slot individual">
-      <div class="player-rank">#${escapeHtml(player.rank)}</div>
+      <div class="player-rank">${escapeHtml(formatOrdinal(player.rank))}</div>
       <div class="player-name" style="--name-bg:${escapeHtml(bg)}; --name-fg:${escapeHtml(fg)}">
         ${teamName ? renderLogo(teamName, "mini-logo") : `<span class="mini-logo"></span>`}
         <span class="name-text">${escapeHtml(player.displayName || player.name)}</span>
@@ -886,7 +916,7 @@ async function showSlide(nextIndex, animated = true) {
 
 function scheduleNextSlide() {
   clearTimeout(slideTimer);
-  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), 7000);
+  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), 10000);
 }
 
 async function boot() {
