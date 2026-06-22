@@ -53,7 +53,7 @@ body {
   position: absolute;
   inset: 6px 24px 6px;
   display: grid;
-  grid-template-rows: 50px 1fr;
+  grid-template-rows: 58px 1fr;
   filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.36));
 }
 
@@ -72,10 +72,10 @@ body {
 .cap {
   z-index: 2;
   justify-self: end;
-  width: 1318px;
+  width: 895px;
   height: 58px;
   display: grid;
-  grid-template-columns: 258px 86px minmax(0, 1fr) 128px;
+  grid-template-columns: 258px 86px 423px 128px;
   align-items: center;
   border-radius: 10px 10px 0 0;
   overflow: hidden;
@@ -87,7 +87,7 @@ body {
   content: "";
   position: absolute;
   top: 0;
-  right: 1318px;
+  right: 895px;
   width: 74px;
   height: 58px;
   background: linear-gradient(135deg, transparent 0 48%, rgba(12,18,29,0.98) 49%);
@@ -123,14 +123,12 @@ body {
   min-width: 0;
   height: 100%;
   display: grid;
-  grid-template-columns: 66px minmax(0, 1fr);
+  grid-template-columns: 58px minmax(0, 1fr);
   align-items: center;
-  gap: 13px;
-  padding: 0 22px 0 13px;
+  gap: 10px;
+  padding: 0 16px 0 0;
   color: var(--team-fg, #fff);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.18), transparent 56%),
-    var(--team-bg, #323844);
+  background: var(--team-bg, #323844);
   text-transform: uppercase;
 }
 
@@ -138,15 +136,13 @@ body {
   grid-template-columns: 1fr;
   justify-items: start;
   padding-left: 30px;
-  background:
-    linear-gradient(90deg, rgba(94,234,212,0.22), rgba(125,211,252,0.08)),
-    rgba(30, 42, 67, 0.98);
+  background: rgba(30, 42, 67, 0.98);
   color: #f8fafc;
 }
 
 .team-logo-wrap {
-  width: 56px;
-  height: 48px;
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -164,7 +160,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 29px;
+  font-size: 24px;
   line-height: 1;
   font-weight: 1000;
   letter-spacing: 0.03em;
@@ -193,7 +189,7 @@ body {
   position: relative;
   z-index: 1;
   min-height: 0;
-  padding: 26px 18px 10px;
+  padding: 0 18px 10px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
@@ -228,7 +224,8 @@ body {
   height: 100%;
   display: grid;
   place-items: center;
-  background: rgba(10, 14, 23, 0.74);
+  border-radius: 8px 0 0 8px;
+  background: rgba(36, 72, 126, 0.88);
   color: #ffffff;
   font-size: 27px;
   font-weight: 1000;
@@ -250,9 +247,7 @@ body {
 
 .player-slot.individual .player-name {
   grid-template-columns: 52px minmax(0, 1fr);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.17), transparent 62%),
-    var(--name-bg, var(--dark-cell));
+  background: var(--name-bg, var(--dark-cell));
 }
 
 .mini-logo {
@@ -280,9 +275,9 @@ body {
 }
 
 .player-score {
-  height: calc(100% - 16px);
-  margin: 8px 8px 8px 0;
-  border-radius: 8px;
+  height: 100%;
+  margin: 0;
+  border-radius: 0 8px 8px 0;
   display: grid;
   place-items: center;
   background: var(--score-cell);
