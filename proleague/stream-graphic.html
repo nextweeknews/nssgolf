@@ -16,6 +16,7 @@
   --text: #f8fafc;
   --muted: #aab4c5;
   --dark-cell: #333842;
+  --rank-bg: rgba(255,255,255,0.06);
   --score-cell: #ffffff;
   --score-text: #272d36;
 }
@@ -111,7 +112,7 @@ body {
   bottom: 0;
   left: 258px;
   width: 86px;
-  background: rgba(8, 12, 20, 0.78);
+  background: var(--rank-bg);
 }
 
 .period {
@@ -281,7 +282,7 @@ body {
   display: grid;
   place-items: center;
   border-radius: 8px 0 0 8px;
-  background: rgba(36, 72, 126, 0.88);
+  background: var(--rank-bg);
   color: #ffffff;
   font-size: 24px;
   font-weight: 1000;
