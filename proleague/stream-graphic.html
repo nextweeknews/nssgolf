@@ -78,6 +78,7 @@ body {
   border-radius: 10px 10px 0 0;
   overflow: hidden;
   background: transparent;
+  isolation: isolate;
 }
 
 .cap-layer {
@@ -91,6 +92,7 @@ body {
   align-items: center;
   opacity: 1;
   transition: opacity var(--view-transition-ms) ease;
+  will-change: opacity;
 }
 
 .cap-layer.is-hidden {
@@ -101,6 +103,15 @@ body {
   position: absolute;
   inset: 0 auto 0 0;
   width: 258px;
+}
+
+.cap-rank-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 258px;
+  width: 86px;
+  background: rgba(8, 12, 20, 0.78);
 }
 
 .period {
@@ -122,7 +133,7 @@ body {
   height: 100%;
   display: grid;
   place-items: center;
-  background: rgba(8, 12, 20, 0.78);
+  background: transparent;
   color: #ffffff;
   font-size: 30px;
   font-weight: 1000;
@@ -857,6 +868,7 @@ function ensureShell() {
     <section class="shell" aria-label="">
       <header class="cap">
         <div class="period cap-period"></div>
+        <div class="cap-rank-bg"></div>
       </header>
       <main class="main">
         <div class="cells-layer"></div>
@@ -882,6 +894,7 @@ function setCapContent(slide, animated) {
   incoming.className = "cap-layer is-hidden";
   incoming.innerHTML = slide.capHtml;
   cap.appendChild(incoming);
+  incoming.getBoundingClientRect();
 
   requestAnimationFrame(() => {
     current.classList.add("is-hidden");
