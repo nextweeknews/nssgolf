@@ -8,6 +8,7 @@
 :root {
   --w: 1800px;
   --h: 178px;
+  --view-transition-ms: 650ms;
   --bg: rgba(9, 14, 24, 0.97);
   --rail: rgba(18, 27, 43, 0.98);
   --panel: rgba(29, 39, 59, 0.94);
@@ -87,10 +88,10 @@ body {
   bottom: 0;
   left: 258px;
   display: grid;
-  grid-template-columns: 86px 423px 128px;
+  grid-template-columns: 213px 296px 128px;
   align-items: center;
   opacity: 1;
-  transition: opacity 300ms ease;
+  transition: opacity var(--view-transition-ms) ease;
 }
 
 .cap-layer.is-hidden {
@@ -127,6 +128,27 @@ body {
   font-size: 34px;
   font-weight: 1000;
   font-variant-numeric: tabular-nums;
+}
+
+.rank.rank-gold,
+.player-rank.rank-gold {
+  background:
+    linear-gradient(135deg, #6f5113 0%, #b58923 28%, #f6dc80 52%, #a87918 76%, #5d4210 100%);
+  color: #121827;
+}
+
+.rank.rank-silver,
+.player-rank.rank-silver {
+  background:
+    linear-gradient(135deg, #596170 0%, #aeb6c2 30%, #f1f4f7 54%, #8f98a7 78%, #444b57 100%);
+  color: #111827;
+}
+
+.rank.rank-bronze,
+.player-rank.rank-bronze {
+  background:
+    linear-gradient(135deg, #6d3f20 0%, #b06f3b 32%, #e3a56f 54%, #8f5129 78%, #4f2d18 100%);
+  color: #fff7ed;
 }
 
 .team-head {
@@ -217,7 +239,7 @@ body {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   opacity: 1;
-  transition: opacity 300ms ease;
+  transition: opacity var(--view-transition-ms) ease;
 }
 
 .cells-layer.is-hidden {
@@ -398,6 +420,7 @@ let slides = [];
 let slideIndex = 0;
 let slideTimer = 0;
 let refreshTimer = 0;
+const VIEW_TRANSITION_MS = 650;
 
 function normalizeValues(resp) {
   if (!resp) return [];
@@ -476,6 +499,14 @@ function formatOrdinal(value) {
     case 3: return `${number}rd`;
     default: return `${number}th`;
   }
+}
+
+function rankTierClass(value) {
+  const number = Number(value);
+  if (number === 1) return "rank-gold";
+  if (number === 2) return "rank-silver";
+  if (number === 3) return "rank-bronze";
+  return "";
 }
 
 function isStagedSeason(season) {
@@ -686,6 +717,7 @@ function buildTeamSlide(team, data) {
     ...renderSlideParts({
       period: data.period,
       rank: formatOrdinal(team.rank),
+      rankClass: rankTierClass(team.rank),
       teamName: team.displayName,
       teamScore: team.score,
       teamStyle: getTeamStyle(team.name),
@@ -720,7 +752,7 @@ function buildPlayerSlides(data) {
   return chunks;
 }
 
-function renderSlideParts({ period, rank, teamName, teamScore, teamStyle, logoTeam, playerHeader = false, mainClass, slots }) {
+function renderSlideParts({ period, rank, rankClass = "", teamName, teamScore, teamStyle, logoTeam, playerHeader = false, mainClass, slots }) {
   const bg = teamStyle?.bg || "#323844";
   const fg = teamStyle?.fg || "#ffffff";
   const headerClass = playerHeader ? "team-head player-rankings" : "team-head";
@@ -732,7 +764,7 @@ function renderSlideParts({ period, rank, teamName, teamScore, teamStyle, logoTe
         </div>
       `
     : `
-        <div class="rank">${escapeHtml(rank)}</div>
+        <div class="rank ${escapeHtml(rankClass)}">${escapeHtml(rank)}</div>
         <div class="${headerClass}" style="--team-bg:${escapeHtml(bg)}; --team-fg:${escapeHtml(fg)}">
           ${renderLogo(logoTeam)}
           <div class="team-name">${escapeHtml(teamName)}</div>
@@ -783,7 +815,7 @@ function renderIndividualPlayerSlot(player, data) {
 
   return `
     <article class="player-slot individual">
-      <div class="player-rank">${escapeHtml(formatOrdinal(player.rank))}</div>
+      <div class="player-rank ${escapeHtml(rankTierClass(player.rank))}">${escapeHtml(formatOrdinal(player.rank))}</div>
       <div class="player-name" style="--name-bg:${escapeHtml(bg)}; --name-fg:${escapeHtml(fg)}">
         ${teamName ? renderLogo(teamName, "mini-logo") : `<span class="mini-logo"></span>`}
         <span class="name-text">${escapeHtml(player.displayName || player.name)}</span>
@@ -865,7 +897,7 @@ function setCapContent(slide, animated) {
     window.setTimeout(() => {
       current.remove();
       resolve();
-    }, 320);
+    }, VIEW_TRANSITION_MS);
   });
 }
 
@@ -889,8 +921,8 @@ function setCellContent(slide, animated) {
       requestAnimationFrame(() => {
         cells.classList.remove("is-hidden");
       });
-      window.setTimeout(resolve, 320);
-    }, 320);
+      window.setTimeout(resolve, VIEW_TRANSITION_MS);
+    }, VIEW_TRANSITION_MS);
   });
 }
 
