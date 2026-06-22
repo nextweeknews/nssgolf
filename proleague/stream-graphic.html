@@ -54,7 +54,6 @@ body {
   inset: 6px 24px 6px;
   display: grid;
   grid-template-rows: 58px 1fr;
-  filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.36));
 }
 
 .shell::before {
@@ -62,22 +61,11 @@ body {
   position: absolute;
   inset: 58px 0 0;
   z-index: 0;
-  border-radius: 10px;
+  border-radius: 10px 0 10px 10px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.055), transparent 42%),
     linear-gradient(90deg, rgba(11, 18, 30, 0.99), rgba(19, 29, 48, 0.98));
   box-shadow: inset 0 0 0 1px rgba(199, 215, 255, 0.11);
-}
-
-.shell::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 895px;
-  z-index: 2;
-  width: 74px;
-  height: 58px;
-  background: linear-gradient(135deg, transparent 0 48%, rgba(12,18,29,0.98) 49%);
 }
 
 .cap {
