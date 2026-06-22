@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shotgun Pro League Stream Graphic</title>
+<style>
+:root {
+  --w: 1800px;
+  --h: 178px;
+  --bg: rgba(9, 14, 24, 0.97);
+  --rail: rgba(18, 27, 43, 0.98);
+  --panel: rgba(29, 39, 59, 0.94);
+  --line: rgba(255, 255, 255, 0.12);
+  --text: #f8fafc;
+  --muted: #aab4c5;
+  --dark-cell: #333842;
+  --score-cell: #ffffff;
+  --score-text: #272d36;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: grid;
+  place-items: center;
+}
+
+.stage {
+  width: var(--w);
+  height: var(--h);
+  padding: 0 24px;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.shell {
+  position: absolute;
+  inset: 6px 24px 6px;
+  display: grid;
+  grid-template-rows: 50px 1fr;
+  filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.36));
+}
+
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 28px 0 0;
+  z-index: 0;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), transparent 42%),
+    linear-gradient(90deg, rgba(11, 18, 30, 0.99), rgba(19, 29, 48, 0.98));
+  box-shadow: inset 0 0 0 1px rgba(199, 215, 255, 0.11);
+}
+
+.cap {
+  z-index: 2;
+  justify-self: end;
+  width: 1318px;
+  height: 58px;
+  display: grid;
+  grid-template-columns: 258px 86px minmax(0, 1fr) 128px;
+  align-items: center;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  background: rgba(12, 18, 29, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+}
+
+.cap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 1318px;
+  width: 74px;
+  height: 58px;
+  background: linear-gradient(135deg, transparent 0 48%, rgba(12,18,29,0.98) 49%);
+}
+
+.period {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dbe7ff;
+  background: rgba(37, 51, 79, 0.96);
+  font-size: 19px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.rank {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 12, 20, 0.78);
+  color: #ffffff;
+  font-size: 34px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-head {
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 66px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  padding: 0 22px 0 13px;
+  color: var(--team-fg, #fff);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.18), transparent 56%),
+    var(--team-bg, #323844);
+  text-transform: uppercase;
+}
+
+.team-head.player-rankings {
+  grid-template-columns: 1fr;
+  justify-items: start;
+  padding-left: 30px;
+  background:
+    linear-gradient(90deg, rgba(94,234,212,0.22), rgba(125,211,252,0.08)),
+    rgba(30, 42, 67, 0.98);
+  color: #f8fafc;
+}
+
+.team-logo-wrap {
+  width: 56px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.team-logo-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.team-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 29px;
+  line-height: 1;
+  font-weight: 1000;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.18);
+}
+
+.headline {
+  font-size: 30px;
+  font-weight: 1000;
+  letter-spacing: 0.085em;
+  line-height: 1;
+}
+
+.total {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #202734;
+  font-size: 36px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  padding: 26px 18px 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.main.players {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.player-slot {
+  min-width: 0;
+  height: 78px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  align-items: center;
+  background: rgba(255,255,255,0.055);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.07);
+}
+
+.player-slot.individual {
+  grid-template-columns: 72px minmax(0, 1fr) 92px;
+}
+
+.player-slot.blank {
+  opacity: 0.36;
+  background: rgba(255,255,255,0.035);
+}
+
+.player-rank {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 14, 23, 0.74);
+  color: #ffffff;
+  font-size: 27px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-name {
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  background: var(--name-bg, var(--dark-cell));
+  color: var(--name-fg, #ffffff);
+  text-transform: uppercase;
+}
+
+.player-slot.individual .player-name {
+  grid-template-columns: 52px minmax(0, 1fr);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.17), transparent 62%),
+    var(--name-bg, var(--dark-cell));
+}
+
+.mini-logo {
+  width: 48px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+}
+
+.mini-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 24px;
+  font-weight: 1000;
+  letter-spacing: 0.035em;
+}
+
+.player-score {
+  height: calc(100% - 16px);
+  margin: 8px 8px 8px 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--score-cell);
+  color: var(--score-text);
+  font-size: 30px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
+}
+
+.loading,
+.error {
+  position: absolute;
+  inset: 16px 24px 10px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.94);
+  color: #dbe7ff;
+  font-size: 26px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.error {
+  color: #fecaca;
+  font-size: 20px;
+  text-align: center;
+  line-height: 1.35;
+  padding: 20px;
+}
+
+.swipe-out {
+  animation: swipeOut 360ms cubic-bezier(.45, 0, .2, 1) both;
+}
+
+.swipe-in {
+  animation: swipeIn 430ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes swipeOut {
+  from { transform: translateX(0); opacity: 1; filter: blur(0); }
+  to { transform: translateX(-44px); opacity: 0; filter: blur(2px); }
+}
+
+@keyframes swipeIn {
+  from { transform: translateX(54px); opacity: 0; filter: blur(2px); }
+  to { transform: translateX(0); opacity: 1; filter: blur(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-out,
+  .swipe-in {
+    animation: none;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="stage" aria-live="polite">
+    <div id="graphic" class="loading"></div>
+  </div>
+
+<script type="module">
+import {
+  SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
+  SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
+} from "/ranked-league-config.js";
+
+const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+const SHEET_ID = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+
+const RANGE_PLAYER_STANDINGS_A1 = "AE4:AH101";
+const LOOKUP_RANGE_A1 = "A3:S250";
+const LEGACY_SEASON_CONFIG = {
+  5: { sheet: "Season 5", rosters: "A3:S63", teamRank: "U4:X15" },
+  4: { sheet: "Season 4", rosters: "A3:S53", teamRank: "U4:X13" },
+  3: { sheet: "Season 3", rosters: "A3:S48", teamRank: "U4:X12" },
+  2: { sheet: "Season 2", rosters: "A3:S43", teamRank: "U4:X11" },
+  1: { sheet: "Season 1", rosters: "A3:S38", teamRank: "U4:X10" },
+};
+const STAGED_FORMAT = { rosters: "A3:S63", teamRank: "U4:X15" };
+
+const TEAM_STYLES = {
+  "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
+  "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000" },
+  "BREAKERS":        { bg: "#f1c232", fg: "#1c4487" },
+  "DAGGERS":         { bg: "#ea9999", fg: "#1d2244" },
+  "SNIPERS":         { bg: "#275318", fg: "#ffe6cd" },
+  "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff" },
+  "INFERNIX":        { bg: "#f6b26b", fg: "#000000" },
+  "INFERNIX*":       { bg: "#f6b26b", fg: "#000000" },
+  "DOUBLE-EAGLES":   { bg: "#1c4487", fg: "#ffffff" },
+  "PHANTOM TROUPE":  { bg: "#674ea7", fg: "#ffffff" },
+  "ASTERISM":        { bg: "#ba2636", fg: "#ffffff" },
+  "CARROTS":         { bg: "#ff9966", fg: "#000000" },
+  "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
+  "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
+  "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
+  "FLAG SMOKERS":    { bg: "#03384B", fg: "#ffffff" },
+  "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
+};
+
+const graphic = document.getElementById("graphic");
+let slides = [];
+let slideIndex = 0;
+let slideTimer = 0;
+let refreshTimer = 0;
+
+function normalizeValues(resp) {
+  if (!resp) return [];
+  if (Array.isArray(resp)) return resp;
+  if (Array.isArray(resp.values)) return resp.values;
+  if (Array.isArray(resp.data?.values)) return resp.data.values;
+  if (Array.isArray(resp.result?.values)) return resp.result.values;
+  return [];
+}
+
+async function fetchRange(range) {
+  const payload = { sheetId: SHEET_ID, range };
+
+  try {
+    const response = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (response.ok) return normalizeValues(await response.json());
+  } catch (error) {}
+
+  const url = new URL(WORKER_URL);
+  url.searchParams.set("sheetId", SHEET_ID);
+  url.searchParams.set("range", range);
+  const fallback = await fetch(url.toString());
+  if (!fallback.ok) {
+    const text = await fallback.text().catch(() => "");
+    throw new Error(`Worker request failed (${fallback.status}). ${text}`.trim());
+  }
+  return normalizeValues(await fallback.json());
+}
+
+function rowHasAnyValue(row) {
+  return Array.isArray(row) && row.some((cell) => String(cell ?? "").trim() !== "");
+}
+
+function slugify(name) {
+  return String(name).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function toNum(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const number = Number(text);
+  return Number.isFinite(number) ? number : null;
+}
+
+function fmtScore(value) {
+  if (value === null || value === undefined) return "-";
+  const text = String(value).trim();
+  if (text === "") return "-";
+  const number = Number(text);
+  if (!Number.isFinite(number)) return text;
+  if (number === 0 || Object.is(number, -0)) return "E";
+  return number > 0 ? `+${number}` : String(number);
+}
+
+function isStagedSeason(season) {
+  return Number(season) >= 6;
+}
+
+function sheetNameForPeriod(season, stage) {
+  const s = Number(season);
+  if (!isStagedSeason(s)) return `Season ${s}`;
+  return `Season ${s}, Stage ${Number(stage)}`;
+}
+
+function periodDisplayLabel(season, stage) {
+  const s = Number(season);
+  if (!isStagedSeason(s)) return `Season ${s}`;
+  return `Season ${s}, Stage ${Number(stage)}`;
+}
+
+function getPeriodConfig(season, stage) {
+  const s = Number(season);
+  if (!isStagedSeason(s)) {
+    const legacy = LEGACY_SEASON_CONFIG[s];
+    return legacy ? { sheet: legacy.sheet, rosters: legacy.rosters, teamRank: legacy.teamRank } : null;
+  }
+  return { sheet: sheetNameForPeriod(s, stage), rosters: STAGED_FORMAT.rosters, teamRank: STAGED_FORMAT.teamRank };
+}
+
+function previousPeriod(period) {
+  const season = Number(period.season);
+  if (!isStagedSeason(season)) {
+    return season > 1 ? { season: season - 1, stage: null } : null;
+  }
+
+  const stage = Number(period.stage);
+  if (stage > 1) return { season, stage: stage - 1 };
+  if (season > 6) return { season: season - 1, stage: 3 };
+  return { season: 5, stage: null };
+}
+
+function getTeamStyle(name) {
+  if (!name) return null;
+  return TEAM_STYLES[String(name).trim().toUpperCase()] || null;
+}
+
+function teamLogoSrc(teamName) {
+  return `logos/${slugify(teamName)}.png`;
+}
+
+function normalizeStandingsGeneric(rows) {
+  return (rows || [])
+    .filter(rowHasAnyValue)
+    .map((row) => {
+      const arr = Array.isArray(row) ? row : [];
+      const rank = arr[0];
+      const name = arr.length >= 2 ? arr[arr.length - 2] : "";
+      const score = arr.length >= 1 ? arr[arr.length - 1] : "";
+      if (!rank || !name) return null;
+      return {
+        rank: Number(rank),
+        name: String(name).trim(),
+        displayName: String(name).trim().toUpperCase(),
+        score: String(score ?? "").trim() !== "" ? Number(score) : null,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.rank - b.rank);
+}
+
+function parseTeamRosters(values) {
+  const cleaned = (values || []).filter(rowHasAnyValue);
+  const byTeam = new Map();
+  const byPlayer = new Map();
+  const playerTeamByName = new Map();
+  if (!cleaned.length) return { byTeam, byPlayer, playerTeamByName };
+
+  const rows = cleaned.slice(1);
+  for (let index = 0; index < rows.length; index += 5) {
+    const teamRow = rows[index] || [];
+    const teamName = String(teamRow[2] ?? "").trim();
+    if (!teamName) continue;
+
+    const playerRows = [rows[index + 1], rows[index + 2], rows[index + 3], rows[index + 4]].filter(Boolean);
+    const players = playerRows.map((playerRow) => {
+      const row = playerRow || [];
+      const name = String(row[2] ?? "").trim();
+      const player = {
+        name,
+        displayName: name ? name.toUpperCase() : "",
+        overallRank: toNum(row[0]),
+        stageScore: toNum(row[3]),
+      };
+      if (name) {
+        byPlayer.set(name, player);
+        playerTeamByName.set(name, teamName);
+      }
+      return player;
+    });
+
+    byTeam.set(teamName, { teamName, displayTeamName: teamName.toUpperCase(), players });
+  }
+
+  return { byTeam, byPlayer, playerTeamByName };
+}
+
+function parseLookupStats(values) {
+  const cleaned = (values || []).filter(rowHasAnyValue);
+  const byPlayer = new Map();
+  if (!cleaned.length) return byPlayer;
+
+  for (const row of cleaned.slice(1)) {
+    const name = String(row?.[2] ?? "").trim();
+    if (!name) continue;
+    const overallRank = toNum(row?.[0]);
+    if (overallRank === null) continue;
+    byPlayer.set(name, {
+      name,
+      displayName: name.toUpperCase(),
+      overallRank,
+      stageScore: toNum(row?.[3]),
+    });
+  }
+  return byPlayer;
+}
+
+async function loadPeriod(period) {
+  const config = getPeriodConfig(period.season, period.stage);
+  if (!config) throw new Error("Unknown season/stage config.");
+
+  const sheet = config.sheet;
+  const ranges = {
+    teams: `'${sheet}'!${config.teamRank}`,
+    rosters: `'${sheet}'!${config.rosters}`,
+    lookup: `'${sheet}'!${LOOKUP_RANGE_A1}`,
+    players: `'${sheet}'!${RANGE_PLAYER_STANDINGS_A1}`,
+  };
+
+  const [teamRows, rosterRows, lookupRows, playerRows] = await Promise.all([
+    fetchRange(ranges.teams),
+    fetchRange(ranges.rosters),
+    fetchRange(ranges.lookup),
+    fetchRange(ranges.players),
+  ]);
+
+  const teams = normalizeStandingsGeneric(teamRows);
+  const players = normalizeStandingsGeneric(playerRows);
+  const parsed = parseTeamRosters(rosterRows);
+  const lookupStats = parseLookupStats(lookupRows);
+  const playerStats = new Map();
+  for (const [name, stat] of lookupStats.entries()) playerStats.set(name, stat);
+  for (const [name, stat] of parsed.byPlayer.entries()) playerStats.set(name, stat);
+
+  return {
+    period,
+    teams,
+    players,
+    rosterByTeam: parsed.byTeam,
+    playerTeamByName: parsed.playerTeamByName,
+    playerStats,
+  };
+}
+
+async function loadMostRecentData() {
+  let period = {
+    season: Number(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON),
+    stage: Number(SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE),
+  };
+
+  if (!isStagedSeason(period.season)) period.stage = null;
+
+  const errors = [];
+  while (period) {
+    try {
+      const data = await loadPeriod(period);
+      if (data.teams.length || data.players.length) return data;
+      errors.push(`${periodDisplayLabel(period.season, period.stage)} had no standings.`);
+    } catch (error) {
+      errors.push(`${periodDisplayLabel(period.season, period.stage)} failed: ${error.message || error}`);
+    }
+    period = previousPeriod(period);
+  }
+
+  throw new Error(errors[0] || "No Pro League data found.");
+}
+
+function playerScoreFor(player, data) {
+  const stat = data.playerStats.get(player.name);
+  return player.score ?? stat?.stageScore ?? null;
+}
+
+function renderLogo(teamName, className = "team-logo-wrap") {
+  if (!teamName) return `<span class="${className}"></span>`;
+  return `
+    <span class="${className}">
+      <img src="${escapeHtml(teamLogoSrc(teamName))}" alt="${escapeHtml(String(teamName).toUpperCase())} logo" decoding="async" onerror="this.style.display='none';" />
+    </span>
+  `;
+}
+
+function buildTeamSlide(team, data) {
+  const roster = data.rosterByTeam.get(team.name);
+  const players = roster?.players?.slice(0, 4) || [];
+  while (players.length < 4) players.push(null);
+
+  return {
+    type: "team",
+    period: data.period,
+    team,
+    html: renderShell({
+      period: data.period,
+      rank: `#${team.rank}`,
+      teamName: team.displayName,
+      teamScore: team.score,
+      teamStyle: getTeamStyle(team.name),
+      logoTeam: team.name,
+      mainClass: "",
+      slots: players.map((player) => renderTeamPlayerSlot(player)),
+    }),
+  };
+}
+
+function buildPlayerSlides(data) {
+  const chunks = [];
+  for (let index = 0; index < data.players.length; index += 3) {
+    const group = data.players.slice(index, index + 3);
+    while (group.length < 3) group.push(null);
+    chunks.push({
+      type: "players",
+      period: data.period,
+      html: renderShell({
+        period: data.period,
+        rank: "",
+        teamName: "Player Rankings",
+        teamScore: null,
+        teamStyle: null,
+        logoTeam: null,
+        playerHeader: true,
+        mainClass: "players",
+        slots: group.map((player) => renderIndividualPlayerSlot(player, data)),
+      }),
+    });
+  }
+  return chunks;
+}
+
+function renderShell({ period, rank, teamName, teamScore, teamStyle, logoTeam, playerHeader = false, mainClass, slots }) {
+  const bg = teamStyle?.bg || "#323844";
+  const fg = teamStyle?.fg || "#ffffff";
+  const headerClass = playerHeader ? "team-head player-rankings" : "team-head";
+  const total = playerHeader ? "" : escapeHtml(fmtScore(teamScore));
+
+  return `
+    <section class="shell swipe-in" aria-label="${escapeHtml(playerHeader ? "Player Rankings" : teamName)}">
+      <header class="cap">
+        <div class="period">${escapeHtml(periodDisplayLabel(period.season, period.stage))}</div>
+        <div class="rank">${escapeHtml(rank)}</div>
+        <div class="${headerClass}" style="--team-bg:${escapeHtml(bg)}; --team-fg:${escapeHtml(fg)}">
+          ${playerHeader ? "" : renderLogo(logoTeam)}
+          <div class="${playerHeader ? "headline" : "team-name"}">${escapeHtml(teamName)}</div>
+        </div>
+        <div class="total">${total}</div>
+      </header>
+      <main class="main ${escapeHtml(mainClass || "")}">
+        ${slots.join("")}
+      </main>
+    </section>
+  `;
+}
+
+function renderTeamPlayerSlot(player) {
+  if (!player || !player.name) {
+    return `<article class="player-slot blank"><div class="player-name"></div><div class="player-score"></div></article>`;
+  }
+
+  return `
+    <article class="player-slot">
+      <div class="player-name">
+        <span class="name-text">${escapeHtml(player.displayName || player.name)}</span>
+      </div>
+      <div class="player-score">${escapeHtml(fmtScore(player.stageScore))}</div>
+    </article>
+  `;
+}
+
+function renderIndividualPlayerSlot(player, data) {
+  if (!player || !player.name) {
+    return `
+      <article class="player-slot individual blank">
+        <div class="player-rank"></div>
+        <div class="player-name"></div>
+        <div class="player-score"></div>
+      </article>
+    `;
+  }
+
+  const teamName = data.playerTeamByName.get(player.name) || null;
+  const style = teamName ? getTeamStyle(teamName) : null;
+  const bg = style?.bg || "#333842";
+  const fg = style?.fg || "#ffffff";
+  const score = playerScoreFor(player, data);
+
+  return `
+    <article class="player-slot individual">
+      <div class="player-rank">#${escapeHtml(player.rank)}</div>
+      <div class="player-name" style="--name-bg:${escapeHtml(bg)}; --name-fg:${escapeHtml(fg)}">
+        ${teamName ? renderLogo(teamName, "mini-logo") : `<span class="mini-logo"></span>`}
+        <span class="name-text">${escapeHtml(player.displayName || player.name)}</span>
+      </div>
+      <div class="player-score">${escapeHtml(fmtScore(score))}</div>
+    </article>
+  `;
+}
+
+function buildSlides(data) {
+  const teamSlides = data.teams.map((team) => buildTeamSlide(team, data));
+  const playerSlides = buildPlayerSlides(data);
+  return [...teamSlides, ...playerSlides];
+}
+
+async function preloadLogos(data) {
+  const teams = new Set(data.teams.map((team) => team.name));
+  for (const teamName of data.playerTeamByName.values()) teams.add(teamName);
+
+  await Promise.all(Array.from(teams).map((teamName) => new Promise((resolve) => {
+    const image = new Image();
+    const done = () => resolve();
+    image.onload = done;
+    image.onerror = done;
+    image.src = teamLogoSrc(teamName);
+  })));
+}
+
+function showError(message) {
+  clearTimeout(slideTimer);
+  console.error(message);
+  graphic.className = "error";
+  graphic.innerHTML = "";
+}
+
+function showSlide(nextIndex, animated = true) {
+  if (!slides.length) return;
+  const index = ((nextIndex % slides.length) + slides.length) % slides.length;
+  const oldShell = graphic.querySelector(".shell");
+
+  const paint = () => {
+    graphic.className = "";
+    graphic.innerHTML = slides[index].html;
+    slideIndex = index;
+    scheduleNextSlide();
+  };
+
+  clearTimeout(slideTimer);
+  if (!animated || !oldShell) {
+    paint();
+    return;
+  }
+
+  oldShell.classList.remove("swipe-in");
+  oldShell.classList.add("swipe-out");
+  window.setTimeout(paint, 360);
+}
+
+function scheduleNextSlide() {
+  clearTimeout(slideTimer);
+  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), 7000);
+}
+
+async function boot() {
+  try {
+    const data = await loadMostRecentData();
+    await preloadLogos(data);
+    slides = buildSlides(data);
+    if (!slides.length) throw new Error("No teams or players found.");
+    showSlide(0, false);
+  } catch (error) {
+    showError(error.message || "Failed to load standings.");
+  }
+}
+
+refreshTimer = window.setInterval(async () => {
+  try {
+    const data = await loadMostRecentData();
+    const nextSlides = buildSlides(data);
+    if (nextSlides.length) slides = nextSlides;
+  } catch (error) {
+    console.error(error);
+  }
+}, 300000);
+
+window.addEventListener("beforeunload", () => {
+  clearTimeout(slideTimer);
+  clearInterval(refreshTimer);
+});
+
+boot();
+</script>
+</body>
+</html>

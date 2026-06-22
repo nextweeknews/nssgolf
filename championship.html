@@ -577,7 +577,6 @@
         <div>
           <h1 class="headline" id="championship-title">World Championship</h1>
         </div>
-        <button class="btn" id="refreshBtn" type="button">Refresh</button>
       </div>
 
       <div class="champ-tabs" role="tablist" aria-label="World Championship views">
@@ -804,7 +803,6 @@
     };
 
     const els = {
-      refreshBtn:document.getElementById("refreshBtn"),
       statusGrid:document.getElementById("statusGrid"),
       leaderboardMeta:document.getElementById("leaderboardMeta"),
       leaderboardTable:document.getElementById("leaderboardTable"),
@@ -2120,8 +2118,6 @@
       state.players = new Map();
       state.aliasToPlayerKey = new Map();
       EVENT_DEFS.forEach(event => formatSourceStatus(event.key, "pending", "Loading..."));
-      els.refreshBtn.disabled = true;
-      els.refreshBtn.textContent = "Loading";
 
       const initialLoaders = [
         ["lightningCup2026", scoreLightningCup],
@@ -2154,12 +2150,9 @@
       renderLeaderboard();
       renderAdminResults();
       renderSettings();
-      els.refreshBtn.disabled = false;
-      els.refreshBtn.textContent = "Refresh";
     }
 
     function bindEvents(){
-      els.refreshBtn.addEventListener("click", loadChampionship);
       document.querySelectorAll("[data-view]").forEach((button) => {
         button.addEventListener("click", () => setView(button.dataset.view));
       });
@@ -2251,8 +2244,6 @@
     boot().catch((error) => {
       console.error(error);
       els.leaderboardTable.innerHTML = `<tbody><tr><td><div class="empty-state">Unable to load championship leaderboard.</div></td></tr></tbody>`;
-      els.refreshBtn.disabled = false;
-      els.refreshBtn.textContent = "Refresh";
     });
   </script>
 </body>
