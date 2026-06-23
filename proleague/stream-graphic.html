@@ -17,6 +17,7 @@
   --muted: #aab4c5;
   --dark-cell: #333842;
   --rank-bg: #222a39;
+  --player-pad: 8px;
   --score-cell: #ffffff;
   --score-text: #272d36;
 }
@@ -61,7 +62,7 @@ body {
 .shell::before {
   content: "";
   position: absolute;
-  inset: 58px 0 21px;
+  inset: 58px 0 14px;
   z-index: 0;
   border-radius: 10px 0 10px 10px;
   background: rgba(19, 29, 48, 0.98);
@@ -234,13 +235,13 @@ body {
   position: relative;
   z-index: 1;
   min-height: 0;
-  padding: 7px;
+  padding: var(--player-pad);
 }
 
 .cells-layer {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+  gap: var(--player-pad);
   opacity: 1;
   transition: opacity var(--view-transition-ms) ease;
 }
