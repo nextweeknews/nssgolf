@@ -359,8 +359,8 @@ body {
 }
 
 .intro-logo {
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
   display: block;
   flex: 0 0 auto;
@@ -382,7 +382,7 @@ body {
 }
 
 .intro-title {
-  font-size: 34px;
+  font-size: 40px;
   display: inline-block;
   transform-origin: center;
 }
@@ -1343,8 +1343,21 @@ function wait(ms) {
   });
 }
 
+function prepareInitialIntroShell() {
+  const shell = ensureShell();
+  const cap = shell.querySelector(".cap");
+  const cells = shell.querySelector(".cells-layer");
+  const main = shell.querySelector(".main");
+  shell.classList.add("is-intro");
+  cap.classList.add("is-blank");
+  clearCapLayers(cap);
+  main.className = "main intro";
+  cells.innerHTML = "";
+  cells.classList.remove("is-hidden");
+}
+
 async function fadeInInitialGraphic() {
-  ensureShell();
+  prepareInitialIntroShell();
   graphic.classList.add("is-initial-fading");
   graphic.getBoundingClientRect();
 
@@ -1354,7 +1367,6 @@ async function fadeInInitialGraphic() {
 
   await wait(INITIAL_FADE_MS);
   graphic.classList.remove("is-initial-fading");
-  graphic.classList.add("is-intro-effects-active");
 }
 
 async function boot() {
@@ -1367,8 +1379,9 @@ async function boot() {
 
     slides = buildIntroSlides();
     if (!slides.length) throw new Error("No teams or players found.");
-    await showSlide(0, false, false);
     await fadeInInitialGraphic();
+    graphic.classList.add("is-intro-effects-active");
+    await showSlide(0, true, false);
     scheduleNextSlide();
 
     dataPromise
