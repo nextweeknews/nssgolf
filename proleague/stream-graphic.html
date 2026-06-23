@@ -11,6 +11,7 @@
   --view-transition-ms: 650ms;
   --initial-fade-ms: 300ms;
   --intro-title-duration-ms: 5000ms;
+  --intro-description-duration-ms: 7000ms;
   --cap-slide-distance: 58px;
   --bg: rgba(9, 14, 24, 0.97);
   --rail: rgba(18, 27, 43, 0.98);
@@ -345,6 +346,10 @@ body {
   animation: introTitleScale var(--intro-title-duration-ms) linear forwards;
 }
 
+#graphic.is-intro-effects-active .intro-copy {
+  animation: introTitleScale var(--intro-description-duration-ms) linear forwards;
+}
+
 #graphic.is-intro-effects-active .cells-layer.is-hidden .intro-title-card::after {
   animation: introFlashOut var(--view-transition-ms) ease-in;
 }
@@ -380,6 +385,12 @@ body {
 
 .intro-copy {
   font-size: 30px;
+  display: inline-block;
+  transform-origin: center;
+}
+
+.intro-separator {
+  color: #dbe7ff;
 }
 
 @keyframes introTitleScale {
@@ -556,6 +567,7 @@ body {
 
   .intro-title,
   .intro-title-group,
+  .intro-copy,
   #graphic.is-intro-effects-active .intro-title-card::after,
   #graphic.is-intro-effects-active .cells-layer.is-hidden .intro-title-card::after {
     animation: none;
@@ -990,7 +1002,7 @@ function buildIntroSlides() {
       capHtml: "",
       cellsHtml: `
         <article class="intro-card">
-          <span class="intro-copy">4 WEEKS, 2 18-HOLE ROUNDS PER WEEK, BEST 3 SCORES COUNT</span>
+          <span class="intro-copy">4 WEEKS <span class="intro-separator">·</span> 2 18-HOLE ROUNDS PER WEEK <span class="intro-separator">·</span> BEST 3 SCORES COUNT</span>
         </article>
       `,
     },
