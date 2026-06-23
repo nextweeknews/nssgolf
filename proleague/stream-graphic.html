@@ -345,11 +345,18 @@ body {
   background: var(--name-bg, var(--dark-cell));
 }
 
+.player-slot.individual.no-team .player-name {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 0 15px;
+}
+
 .mini-logo {
   width: 78px;
   height: 78px;
   display: grid;
   place-items: center;
+  padding: 4px;
 }
 
 .mini-logo img {
@@ -877,10 +884,10 @@ function renderIndividualPlayerSlot(player, data) {
   const score = playerScoreFor(player, data);
 
   return `
-    <article class="player-slot individual">
+    <article class="player-slot individual${teamName ? "" : " no-team"}">
       <div class="player-rank ${escapeHtml(rankTierClass(player.rank))}">${escapeHtml(formatOrdinal(player.rank))}</div>
       <div class="player-name" style="--name-bg:${escapeHtml(bg)}; --name-fg:${escapeHtml(fg)}">
-        ${teamName ? renderLogo(teamName, "mini-logo") : `<span class="mini-logo"></span>`}
+        ${teamName ? renderLogo(teamName, "mini-logo") : ""}
         <span class="name-text">${escapeHtml(player.displayName || player.name)}</span>
       </div>
       <div class="player-score">${escapeHtml(fmtScore(score))}</div>
