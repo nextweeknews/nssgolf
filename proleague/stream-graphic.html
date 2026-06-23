@@ -16,7 +16,7 @@
   --text: #f8fafc;
   --muted: #aab4c5;
   --dark-cell: #333842;
-  --rank-bg: #222a39;
+  --rank-bg: #2a3345;
   --player-pad: 8px;
   --score-cell: #ffffff;
   --score-text: #272d36;
@@ -111,6 +111,10 @@ body {
   left: 258px;
   width: 86px;
   background: var(--rank-bg);
+}
+
+.cap.is-player-rankings .cap-rank-bg {
+  background: rgba(50, 61, 80, 0.98);
 }
 
 .period {
@@ -883,6 +887,7 @@ function setCapContent(slide, animated) {
   const cap = graphic.querySelector(".cap");
   const period = cap.querySelector(".cap-period");
   const current = cap.querySelector(".cap-layer");
+  cap.classList.toggle("is-player-rankings", slide.type === "players");
   period.textContent = slide.periodLabel;
 
   if (!animated) {
