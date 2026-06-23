@@ -100,12 +100,6 @@ body {
   opacity: 0;
 }
 
-.cap-layer.blank-cap {
-  left: 0;
-  grid-template-columns: 1fr;
-  background: var(--card-bg);
-}
-
 .cap-period {
   position: absolute;
   inset: 0 auto 0 0;
@@ -127,6 +121,11 @@ body {
 
 .cap.is-player-rankings .cap-layer {
   background: var(--individual-head-bg);
+}
+
+.cap.is-blank .cap-period,
+.cap.is-blank .cap-rank-bg {
+  opacity: 0;
 }
 
 .period {
@@ -406,10 +405,9 @@ body {
   <div class="stage" aria-live="polite">
     <div id="graphic">
       <section class="shell" aria-label="">
-        <header class="cap">
+        <header class="cap is-blank">
           <div class="period cap-period"></div>
           <div class="cap-rank-bg"></div>
-          <div class="cap-layer blank-cap" data-slide-type="blank"></div>
         </header>
         <main class="main">
           <div class="cells-layer"></div>
@@ -922,14 +920,17 @@ function setCapContent(slide, animated, animateOnlyFromBlank = false) {
   const period = cap.querySelector(".cap-period");
   const current = cap.querySelector(".cap-layer");
   const currentType = current?.dataset.slideType || "";
+  const isBlankShell = cap.classList.contains("is-blank");
+  const animateFromBlankShell = animated && !current && isBlankShell;
   cap.classList.toggle("is-player-rankings", slide.type === "players");
+  cap.classList.remove("is-blank");
   period.textContent = slide.periodLabel;
 
   if (slide.type === "players" && currentType === "players") {
     return Promise.resolve();
   }
 
-  if (!animated || !current || (animateOnlyFromBlank && currentType !== "blank")) {
+  if (!animated || (!current && !animateFromBlankShell) || (animateOnlyFromBlank && currentType !== "blank" && !isBlankShell)) {
     for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
     cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}">${slide.capHtml}</div>`);
     return Promise.resolve();
