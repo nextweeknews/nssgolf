@@ -9,6 +9,7 @@
   --w: 1800px;
   --h: 178px;
   --view-transition-ms: 650ms;
+  --initial-fade-ms: 300ms;
   --bg: rgba(9, 14, 24, 0.97);
   --rail: rgba(18, 27, 43, 0.98);
   --card-bg: rgba(19, 29, 48, 0.98);
@@ -52,6 +53,18 @@ body {
   background: transparent;
   position: relative;
   overflow: hidden;
+}
+
+#graphic {
+  opacity: 1;
+}
+
+#graphic.is-loading {
+  opacity: 0;
+}
+
+#graphic.is-initial-fading {
+  transition: opacity var(--initial-fade-ms) ease;
 }
 
 .shell {
@@ -394,6 +407,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #graphic.is-initial-fading,
   .cap-layer,
   .cells-layer {
     transition: none;
@@ -403,7 +417,7 @@ body {
 </head>
 <body>
   <div class="stage" aria-live="polite">
-    <div id="graphic">
+    <div id="graphic" class="is-loading">
       <section class="shell" aria-label="">
         <header class="cap is-blank">
           <div class="period cap-period"></div>
@@ -464,6 +478,7 @@ let refreshTimer = 0;
 let hasShownSlide = false;
 const VIEW_TRANSITION_MS = 650;
 const DISPLAY_DURATION_MS = 15000;
+const INITIAL_FADE_MS = 300;
 
 function normalizeValues(resp) {
   if (!resp) return [];
@@ -905,7 +920,7 @@ function ensureShell() {
   let shell = graphic.querySelector(".shell");
   if (shell) return shell;
 
-  graphic.className = "";
+  graphic.classList.remove("loading", "error");
   graphic.innerHTML = `
     <section class="shell" aria-label="">
       <header class="cap">
@@ -1005,7 +1020,7 @@ function setCellContent(slide, animated) {
   });
 }
 
-async function showSlide(nextIndex, animated = true) {
+async function showSlide(nextIndex, animated = true, schedule = true) {
   if (!slides.length) return;
   const index = ((nextIndex % slides.length) + slides.length) % slides.length;
   const slide = slides[index];
@@ -1024,12 +1039,31 @@ async function showSlide(nextIndex, animated = true) {
 
   slideIndex = index;
   hasShownSlide = true;
-  scheduleNextSlide();
+  if (schedule) scheduleNextSlide();
 }
 
 function scheduleNextSlide() {
   clearTimeout(slideTimer);
   slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), DISPLAY_DURATION_MS);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function fadeInInitialGraphic() {
+  ensureShell();
+  graphic.classList.add("is-initial-fading");
+  graphic.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    graphic.classList.remove("is-loading");
+  });
+
+  await wait(INITIAL_FADE_MS);
+  graphic.classList.remove("is-initial-fading");
 }
 
 async function boot() {
@@ -1038,7 +1072,9 @@ async function boot() {
     await preloadLogos(data);
     slides = buildSlides(data);
     if (!slides.length) throw new Error("No teams or players found.");
-    await showSlide(0, true);
+    await showSlide(0, false, false);
+    await fadeInInitialGraphic();
+    scheduleNextSlide();
   } catch (error) {
     showError(error.message || "Failed to load standings.");
   }
