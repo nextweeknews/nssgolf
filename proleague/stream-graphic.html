@@ -18,6 +18,7 @@
   --muted: #aab4c5;
   --dark-cell: #333842;
   --rank-bg: #2a3345;
+  --individual-head-bg: rgba(50, 61, 80, 0.98);
   --player-pad: 8px;
   --score-cell: #ffffff;
   --score-text: #272d36;
@@ -115,7 +116,11 @@ body {
 }
 
 .cap.is-player-rankings .cap-rank-bg {
-  background: rgba(50, 61, 80, 0.98);
+  background: var(--individual-head-bg);
+}
+
+.cap.is-player-rankings .cap-layer {
+  background: var(--individual-head-bg);
 }
 
 .period {
@@ -177,7 +182,7 @@ body {
   grid-template-columns: 1fr;
   justify-items: center;
   padding: 0;
-  background: rgba(50, 61, 80, 0.98);
+  background: var(--individual-head-bg);
   color: #f8fafc;
 }
 
@@ -901,14 +906,19 @@ function setCapContent(slide, animated) {
   cap.classList.toggle("is-player-rankings", slide.type === "players");
   period.textContent = slide.periodLabel;
 
+  if (slide.type === "players" && current?.dataset.slideType === "players") {
+    return Promise.resolve();
+  }
+
   if (!animated) {
     for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
-    cap.insertAdjacentHTML("beforeend", `<div class="cap-layer">${slide.capHtml}</div>`);
+    cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}">${slide.capHtml}</div>`);
     return Promise.resolve();
   }
 
   const incoming = document.createElement("div");
   incoming.className = "cap-layer is-hidden";
+  incoming.dataset.slideType = slide.type;
   incoming.innerHTML = slide.capHtml;
   cap.appendChild(incoming);
   incoming.getBoundingClientRect();
