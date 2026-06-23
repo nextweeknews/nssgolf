@@ -459,12 +459,15 @@ const TEAM_STYLES = {
 };
 
 const graphic = document.getElementById("graphic");
+const bootStartedAt = performance.now();
 let slides = [];
 let slideIndex = 0;
 let slideTimer = 0;
 let refreshTimer = 0;
+let hasShownSlide = false;
 const VIEW_TRANSITION_MS = 650;
 const DISPLAY_DURATION_MS = 15000;
+const INITIAL_BLANK_HOLD_MS = 1500;
 
 function normalizeValues(resp) {
   if (!resp) return [];
@@ -916,18 +919,19 @@ function ensureShell() {
   return graphic.querySelector(".shell");
 }
 
-function setCapContent(slide, animated) {
+function setCapContent(slide, animated, animateOnlyFromBlank = false) {
   const cap = graphic.querySelector(".cap");
   const period = cap.querySelector(".cap-period");
   const current = cap.querySelector(".cap-layer");
+  const currentType = current?.dataset.slideType || "";
   cap.classList.toggle("is-player-rankings", slide.type === "players");
   period.textContent = slide.periodLabel;
 
-  if (slide.type === "players" && current?.dataset.slideType === "players") {
+  if (slide.type === "players" && currentType === "players") {
     return Promise.resolve();
   }
 
-  if (!animated || !current) {
+  if (!animated || !current || (animateOnlyFromBlank && currentType !== "blank")) {
     for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
     cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}">${slide.capHtml}</div>`);
     return Promise.resolve();
@@ -998,16 +1002,18 @@ async function showSlide(nextIndex, animated = true) {
   const shell = ensureShell();
   const transitionToken = Symbol("transition");
   activeTransition = transitionToken;
+  const animateInitialFromBlank = !hasShownSlide && index === 0 && slide.type === "team";
 
   clearTimeout(slideTimer);
   shell.setAttribute("aria-label", slide.label);
   await Promise.all([
-    setCapContent(slide, animated),
+    setCapContent(slide, animated, animateInitialFromBlank),
     setCellContent(slide, animated),
   ]);
   if (activeTransition !== transitionToken) return;
 
   slideIndex = index;
+  hasShownSlide = true;
   scheduleNextSlide();
 }
 
@@ -1016,12 +1022,24 @@ function scheduleNextSlide() {
   slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), DISPLAY_DURATION_MS);
 }
 
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function holdInitialBlankState() {
+  const remaining = INITIAL_BLANK_HOLD_MS - (performance.now() - bootStartedAt);
+  if (remaining > 0) await wait(remaining);
+}
+
 async function boot() {
   try {
     const data = await loadMostRecentData();
     await preloadLogos(data);
     slides = buildSlides(data);
     if (!slides.length) throw new Error("No teams or players found.");
+    await holdInitialBlankState();
     await showSlide(0, true);
   } catch (error) {
     showError(error.message || "Failed to load standings.");
