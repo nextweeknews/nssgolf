@@ -11,6 +11,7 @@
   --view-transition-ms: 650ms;
   --bg: rgba(9, 14, 24, 0.97);
   --rail: rgba(18, 27, 43, 0.98);
+  --card-bg: rgba(19, 29, 48, 0.98);
   --panel: rgba(29, 39, 59, 0.94);
   --line: rgba(255, 255, 255, 0.12);
   --text: #f8fafc;
@@ -65,7 +66,7 @@ body {
   inset: 58px 0 14px;
   z-index: 0;
   border-radius: 10px 0 10px 10px;
-  background: rgba(19, 29, 48, 0.98);
+  background: var(--card-bg);
 }
 
 .cap {
@@ -275,8 +276,17 @@ body {
 }
 
 .player-slot.blank {
-  opacity: 0.36;
-  background: rgba(255,255,255,0.035);
+  opacity: 1;
+  background: var(--card-bg);
+  box-shadow: none;
+}
+
+.player-slot.individual.blank .player-rank,
+.player-slot.individual.blank .player-name,
+.player-slot.individual.blank .player-score {
+  background: var(--card-bg);
+  color: transparent;
+  box-shadow: none;
 }
 
 .player-rank {
@@ -432,6 +442,7 @@ let slideIndex = 0;
 let slideTimer = 0;
 let refreshTimer = 0;
 const VIEW_TRANSITION_MS = 650;
+const DISPLAY_DURATION_MS = 15000;
 
 function normalizeValues(resp) {
   if (!resp) return [];
@@ -975,7 +986,7 @@ async function showSlide(nextIndex, animated = true) {
 
 function scheduleNextSlide() {
   clearTimeout(slideTimer);
-  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), 10000);
+  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), DISPLAY_DURATION_MS);
 }
 
 async function boot() {
