@@ -333,8 +333,12 @@ body {
   animation: introFlashIn var(--view-transition-ms) ease-out;
 }
 
-.intro-title-card .intro-logo,
-.intro-title-card .intro-title {
+.intro-title-group {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
   animation: introTitleScale var(--intro-title-duration-ms) linear forwards;
 }
 
@@ -548,8 +552,7 @@ body {
   }
 
   .intro-title,
-  .intro-title-card .intro-logo,
-  .intro-title-card .intro-title,
+  .intro-title-group,
   .intro-title-card::after,
   .cells-layer.is-hidden .intro-title-card::after {
     animation: none;
@@ -618,6 +621,7 @@ let slideIndex = 0;
 let slideTimer = 0;
 let refreshTimer = 0;
 let hasShownSlide = false;
+let rankingsSlides = null;
 const VIEW_TRANSITION_MS = 650;
 const DISPLAY_DURATION_MS = 15000;
 const INTRO_TITLE_DURATION_MS = 5000;
@@ -966,8 +970,10 @@ function buildIntroSlides() {
       capHtml: "",
       cellsHtml: `
         <article class="intro-card intro-title-card">
-          <img class="intro-logo" src="/logos/golf.png" alt="" decoding="async" />
-          <span class="intro-title">Shotgun Pro League</span>
+          <span class="intro-title-group">
+            <img class="intro-logo" src="/logos/golf.png" alt="" decoding="async" />
+            <span class="intro-title">Shotgun Pro League</span>
+          </span>
         </article>
       `,
     },
@@ -1071,6 +1077,16 @@ function buildSlides(data) {
   const teamSlides = data.teams.map((team) => buildTeamSlide(team, data));
   const playerSlides = buildPlayerSlides(data);
   return [...introSlides, ...teamSlides, ...playerSlides];
+}
+
+function isIntroOnlyCycle() {
+  return slides.length > 0 && slides.every((slide) => slide.type === "intro");
+}
+
+function setRankingsSlides(nextSlides) {
+  const wasIntroOnly = isIntroOnlyCycle();
+  rankingsSlides = nextSlides;
+  if (!wasIntroOnly) slides = nextSlides;
 }
 
 async function preloadLogos(data) {
@@ -1289,7 +1305,17 @@ async function showSlide(nextIndex, animated = true, schedule = true) {
 function scheduleNextSlide() {
   clearTimeout(slideTimer);
   const duration = slides[slideIndex]?.durationMs || DISPLAY_DURATION_MS;
-  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), duration);
+  slideTimer = window.setTimeout(advanceSlide, duration);
+}
+
+function advanceSlide() {
+  if (rankingsSlides && isIntroOnlyCycle()) {
+    slides = rankingsSlides;
+    showSlide(slideIndex === 0 ? 1 : 2);
+    return;
+  }
+
+  showSlide(slideIndex + 1);
 }
 
 function wait(ms) {
@@ -1327,7 +1353,7 @@ async function boot() {
 
     dataPromise
       .then((nextSlides) => {
-        if (nextSlides.length) slides = nextSlides;
+        if (nextSlides.length) setRankingsSlides(nextSlides);
       })
       .catch((error) => {
         showError(error.message || "Failed to load standings.");
@@ -1341,7 +1367,7 @@ refreshTimer = window.setInterval(async () => {
   try {
     const data = await loadMostRecentData();
     const nextSlides = buildSlides(data);
-    if (nextSlides.length) slides = nextSlides;
+    if (nextSlides.length) setRankingsSlides(nextSlides);
   } catch (error) {
     console.error(error);
   }
