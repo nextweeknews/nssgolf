@@ -800,6 +800,10 @@ function renderSlideParts({ period, rank, rankClass = "", teamName, teamScore, t
   const fg = teamStyle?.fg || "#ffffff";
   const headerClass = playerHeader ? "team-head player-rankings" : "team-head";
   const total = playerHeader ? "" : escapeHtml(fmtScore(teamScore));
+  const periodLabel = periodDisplayLabel(period.season, period.stage);
+  const capKey = playerHeader
+    ? `${periodLabel}|players|${teamName}`
+    : `${periodLabel}|team|${rank}|${teamName}|${fmtScore(teamScore)}|${bg}|${fg}|${logoTeam || ""}`;
   const capHtml = playerHeader
     ? `
         <div class="${headerClass} rankings-head">
@@ -817,7 +821,8 @@ function renderSlideParts({ period, rank, rankClass = "", teamName, teamScore, t
 
   return {
     label: playerHeader ? "Individual Rankings" : teamName,
-    periodLabel: periodDisplayLabel(period.season, period.stage),
+    periodLabel,
+    capKey,
     mainClass: mainClass || "",
     capHtml,
     cellsHtml: slots.join(""),
@@ -920,11 +925,16 @@ function setCapContent(slide, animated, animateOnlyFromBlank = false) {
   const period = cap.querySelector(".cap-period");
   const current = cap.querySelector(".cap-layer");
   const currentType = current?.dataset.slideType || "";
+  const currentKey = current?.dataset.capKey || "";
   const isBlankShell = cap.classList.contains("is-blank");
   const animateFromBlankShell = animated && !current && isBlankShell;
   cap.classList.toggle("is-player-rankings", slide.type === "players");
   cap.classList.remove("is-blank");
   period.textContent = slide.periodLabel;
+
+  if (currentKey && currentKey === slide.capKey) {
+    return Promise.resolve();
+  }
 
   if (slide.type === "players" && currentType === "players") {
     return Promise.resolve();
@@ -932,13 +942,14 @@ function setCapContent(slide, animated, animateOnlyFromBlank = false) {
 
   if (!animated || (!current && !animateFromBlankShell) || (animateOnlyFromBlank && currentType !== "blank" && !isBlankShell)) {
     for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
-    cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}">${slide.capHtml}</div>`);
+    cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}" data-cap-key="${escapeHtml(slide.capKey)}">${slide.capHtml}</div>`);
     return Promise.resolve();
   }
 
   const incoming = document.createElement("div");
   incoming.className = "cap-layer is-hidden";
   incoming.dataset.slideType = slide.type;
+  incoming.dataset.capKey = slide.capKey;
   incoming.innerHTML = slide.capHtml;
   cap.appendChild(incoming);
   incoming.getBoundingClientRect();
