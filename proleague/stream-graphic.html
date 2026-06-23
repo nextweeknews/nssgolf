@@ -10,6 +10,7 @@
   --h: 178px;
   --view-transition-ms: 650ms;
   --initial-fade-ms: 300ms;
+  --cap-slide-distance: 58px;
   --bg: rgba(9, 14, 24, 0.97);
   --rail: rgba(18, 27, 43, 0.98);
   --card-bg: rgba(19, 29, 48, 0.98);
@@ -78,14 +79,14 @@ body {
   content: "";
   position: absolute;
   inset: 58px 0 14px;
-  z-index: 0;
+  z-index: 1;
   border-radius: 10px 0 10px 10px;
   background: var(--card-bg);
 }
 
 .cap {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   justify-self: end;
   width: 812px;
   height: 58px;
@@ -93,6 +94,21 @@ body {
   overflow: hidden;
   background: transparent;
   isolation: isolate;
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.shell.is-intro .cap {
+  transform: translateY(var(--cap-slide-distance));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.shell.is-cap-sliding .cap {
+  z-index: 0;
+  transition:
+    transform var(--view-transition-ms) ease,
+    opacity var(--view-transition-ms) ease;
 }
 
 .cap-layer {
@@ -261,7 +277,7 @@ body {
 
 .main {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   min-height: 0;
   padding: var(--player-pad);
 }
@@ -280,6 +296,51 @@ body {
 
 .main.players .cells-layer {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.main.intro .cells-layer {
+  grid-template-columns: 1fr;
+}
+
+.intro-card {
+  min-width: 0;
+  height: 78px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 30px;
+  background: var(--dark-cell);
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.intro-logo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.intro-title,
+.intro-copy {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 1000;
+  letter-spacing: 0.055em;
+  line-height: 1;
+}
+
+.intro-title {
+  font-size: 34px;
+}
+
+.intro-copy {
+  font-size: 30px;
 }
 
 .player-slot {
@@ -415,6 +476,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   #graphic.is-initial-fading,
+  .shell.is-cap-sliding .cap,
   .cap-layer,
   .cells-layer {
     transition: none;
@@ -817,6 +879,38 @@ function buildPlayerSlides(data) {
   return chunks;
 }
 
+function buildIntroSlides() {
+  return [
+    {
+      type: "intro",
+      label: "Shotgun Pro League",
+      periodLabel: "",
+      capKey: "intro-title",
+      mainClass: "intro",
+      capHtml: "",
+      cellsHtml: `
+        <article class="intro-card">
+          <img class="intro-logo" src="/logos/golf.png" alt="" decoding="async" />
+          <span class="intro-title">Shotgun Pro League</span>
+        </article>
+      `,
+    },
+    {
+      type: "intro",
+      label: "4 WEEKS, 2 18-HOLE ROUNDS PER WEEK, BEST 3 SCORES COUNT",
+      periodLabel: "",
+      capKey: "intro-description",
+      mainClass: "intro",
+      capHtml: "",
+      cellsHtml: `
+        <article class="intro-card">
+          <span class="intro-copy">4 WEEKS, 2 18-HOLE ROUNDS PER WEEK, BEST 3 SCORES COUNT</span>
+        </article>
+      `,
+    },
+  ];
+}
+
 function renderSlideParts({ period, rank, rankClass = "", teamName, teamScore, teamStyle, logoTeam, playerHeader = false, mainClass, slots }) {
   const bg = teamStyle?.bg || "#323844";
   const fg = teamStyle?.fg || "#ffffff";
@@ -896,21 +990,24 @@ function renderIndividualPlayerSlot(player, data) {
 }
 
 function buildSlides(data) {
+  const introSlides = buildIntroSlides();
   const teamSlides = data.teams.map((team) => buildTeamSlide(team, data));
   const playerSlides = buildPlayerSlides(data);
-  return [...teamSlides, ...playerSlides];
+  return [...introSlides, ...teamSlides, ...playerSlides];
 }
 
 async function preloadLogos(data) {
   const teams = new Set(data.teams.map((team) => team.name));
   for (const teamName of data.playerTeamByName.values()) teams.add(teamName);
+  const logoSources = new Set(Array.from(teams, (teamName) => teamLogoSrc(teamName)));
+  logoSources.add("/logos/golf.png");
 
-  await Promise.all(Array.from(teams).map((teamName) => new Promise((resolve) => {
+  await Promise.all(Array.from(logoSources).map((src) => new Promise((resolve) => {
     const image = new Image();
     const done = () => resolve();
     image.onload = done;
     image.onerror = done;
-    image.src = teamLogoSrc(teamName);
+    image.src = src;
   })));
 }
 
@@ -942,7 +1039,45 @@ function ensureShell() {
   return graphic.querySelector(".shell");
 }
 
+function clearCapLayers(cap) {
+  for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
+}
+
+function insertCapLayer(cap, slide) {
+  clearCapLayers(cap);
+  cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}" data-cap-key="${escapeHtml(slide.capKey)}">${slide.capHtml}</div>`);
+}
+
+async function slideCapToIntro(shell, cap) {
+  shell.classList.add("is-cap-sliding");
+  shell.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    shell.classList.add("is-intro");
+  });
+
+  await wait(VIEW_TRANSITION_MS);
+  clearCapLayers(cap);
+  cap.classList.add("is-blank");
+  shell.classList.remove("is-cap-sliding");
+}
+
+async function slideCapFromIntro(shell, cap, slide) {
+  insertCapLayer(cap, slide);
+  cap.classList.remove("is-blank");
+  shell.classList.add("is-cap-sliding");
+  shell.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    shell.classList.remove("is-intro");
+  });
+
+  await wait(VIEW_TRANSITION_MS);
+  shell.classList.remove("is-cap-sliding");
+}
+
 function setCapContent(slide, animated, animateOnlyFromBlank = false) {
+  const shell = graphic.querySelector(".shell");
   const cap = graphic.querySelector(".cap");
   const period = cap.querySelector(".cap-period");
   const current = cap.querySelector(".cap-layer");
@@ -950,9 +1085,35 @@ function setCapContent(slide, animated, animateOnlyFromBlank = false) {
   const currentKey = current?.dataset.capKey || "";
   const isBlankShell = cap.classList.contains("is-blank");
   const animateFromBlankShell = animated && !current && isBlankShell;
+
+  if (slide.type === "intro") {
+    cap.classList.remove("is-player-rankings");
+    period.textContent = "";
+
+    if (shell.classList.contains("is-intro")) {
+      clearCapLayers(cap);
+      cap.classList.add("is-blank");
+      return Promise.resolve();
+    }
+
+    if (animated && current) return slideCapToIntro(shell, cap);
+
+    clearCapLayers(cap);
+    cap.classList.add("is-blank");
+    shell.classList.add("is-intro");
+    return Promise.resolve();
+  }
+
   cap.classList.toggle("is-player-rankings", slide.type === "players");
   cap.classList.remove("is-blank");
   period.textContent = slide.periodLabel;
+
+  if (shell.classList.contains("is-intro")) {
+    if (animated) return slideCapFromIntro(shell, cap, slide);
+    insertCapLayer(cap, slide);
+    shell.classList.remove("is-intro");
+    return Promise.resolve();
+  }
 
   if (currentKey && currentKey === slide.capKey) {
     return Promise.resolve();
@@ -963,8 +1124,7 @@ function setCapContent(slide, animated, animateOnlyFromBlank = false) {
   }
 
   if (!animated || (!current && !animateFromBlankShell) || (animateOnlyFromBlank && currentType !== "blank" && !isBlankShell)) {
-    for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
-    cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}" data-cap-key="${escapeHtml(slide.capKey)}">${slide.capHtml}</div>`);
+    insertCapLayer(cap, slide);
     return Promise.resolve();
   }
 
