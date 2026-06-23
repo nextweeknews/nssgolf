@@ -329,7 +329,7 @@ body {
   transform: translateX(-120%);
 }
 
-.intro-title-card::after {
+#graphic.is-intro-effects-active .intro-title-card::after {
   animation: introFlashIn var(--view-transition-ms) ease-out;
 }
 
@@ -339,10 +339,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 18px;
+}
+
+#graphic.is-intro-effects-active .intro-title-group {
   animation: introTitleScale var(--intro-title-duration-ms) linear forwards;
 }
 
-.cells-layer.is-hidden .intro-title-card::after {
+#graphic.is-intro-effects-active .cells-layer.is-hidden .intro-title-card::after {
   animation: introFlashOut var(--view-transition-ms) ease-in;
 }
 
@@ -553,8 +556,8 @@ body {
 
   .intro-title,
   .intro-title-group,
-  .intro-title-card::after,
-  .cells-layer.is-hidden .intro-title-card::after {
+  #graphic.is-intro-effects-active .intro-title-card::after,
+  #graphic.is-intro-effects-active .cells-layer.is-hidden .intro-title-card::after {
     animation: none;
   }
 }
@@ -1335,6 +1338,7 @@ async function fadeInInitialGraphic() {
 
   await wait(INITIAL_FADE_MS);
   graphic.classList.remove("is-initial-fading");
+  graphic.classList.add("is-intro-effects-active");
 }
 
 async function boot() {
