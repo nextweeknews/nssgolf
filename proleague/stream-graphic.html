@@ -1313,13 +1313,25 @@ async function fadeInInitialGraphic() {
 
 async function boot() {
   try {
-    const data = await loadMostRecentData();
-    await preloadLogos(data);
-    slides = buildSlides(data);
+    const dataPromise = loadMostRecentData()
+      .then(async (data) => {
+        await preloadLogos(data);
+        return buildSlides(data);
+      });
+
+    slides = buildIntroSlides();
     if (!slides.length) throw new Error("No teams or players found.");
     await showSlide(0, false, false);
     await fadeInInitialGraphic();
     scheduleNextSlide();
+
+    dataPromise
+      .then((nextSlides) => {
+        if (nextSlides.length) slides = nextSlides;
+      })
+      .catch((error) => {
+        showError(error.message || "Failed to load standings.");
+      });
   } catch (error) {
     showError(error.message || "Failed to load standings.");
   }
