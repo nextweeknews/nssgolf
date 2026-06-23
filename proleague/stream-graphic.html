@@ -100,6 +100,12 @@ body {
   opacity: 0;
 }
 
+.cap-layer.blank-cap {
+  left: 0;
+  grid-template-columns: 1fr;
+  background: var(--card-bg);
+}
+
 .cap-period {
   position: absolute;
   inset: 0 auto 0 0;
@@ -398,7 +404,18 @@ body {
 </head>
 <body>
   <div class="stage" aria-live="polite">
-    <div id="graphic" class="loading"></div>
+    <div id="graphic">
+      <section class="shell" aria-label="">
+        <header class="cap">
+          <div class="period cap-period"></div>
+          <div class="cap-rank-bg"></div>
+          <div class="cap-layer blank-cap" data-slide-type="blank"></div>
+        </header>
+        <main class="main">
+          <div class="cells-layer"></div>
+        </main>
+      </section>
+    </div>
   </div>
 
 <script type="module">
@@ -910,7 +927,7 @@ function setCapContent(slide, animated) {
     return Promise.resolve();
   }
 
-  if (!animated) {
+  if (!animated || !current) {
     for (const layer of cap.querySelectorAll(".cap-layer")) layer.remove();
     cap.insertAdjacentHTML("beforeend", `<div class="cap-layer" data-slide-type="${escapeHtml(slide.type)}">${slide.capHtml}</div>`);
     return Promise.resolve();
