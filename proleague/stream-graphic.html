@@ -10,6 +10,7 @@
   --h: 178px;
   --view-transition-ms: 650ms;
   --initial-fade-ms: 300ms;
+  --intro-title-duration-ms: 5000ms;
   --cap-slide-distance: 58px;
   --bg: rgba(9, 14, 24, 0.97);
   --rail: rgba(18, 27, 43, 0.98);
@@ -306,6 +307,8 @@ body {
   min-width: 0;
   height: 78px;
   border-radius: 8px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,12 +319,37 @@ body {
   text-transform: uppercase;
 }
 
+.intro-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.18) 48%, transparent 78%);
+  transform: translateX(-120%);
+}
+
+.intro-title-card::after {
+  animation: introFlashIn var(--view-transition-ms) ease-out;
+}
+
+.intro-title-card .intro-logo,
+.intro-title-card .intro-title {
+  animation: introTitleScale var(--intro-title-duration-ms) linear forwards;
+}
+
+.cells-layer.is-hidden .intro-title-card::after {
+  animation: introFlashOut var(--view-transition-ms) ease-in;
+}
+
 .intro-logo {
   width: 46px;
   height: 46px;
   object-fit: contain;
   display: block;
   flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .intro-title,
@@ -333,14 +361,51 @@ body {
   font-weight: 1000;
   letter-spacing: 0.055em;
   line-height: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .intro-title {
   font-size: 34px;
+  display: inline-block;
+  transform-origin: center;
 }
 
 .intro-copy {
   font-size: 30px;
+}
+
+@keyframes introTitleScale {
+  from { transform: scale(1); }
+  to { transform: scale(1.035); }
+}
+
+@keyframes introFlashIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%);
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+}
+
+@keyframes introFlashOut {
+  0% {
+    opacity: 0;
+    transform: translateX(-90%);
+  }
+  45% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(115%);
+  }
 }
 
 .player-slot {
@@ -481,6 +546,14 @@ body {
   .cells-layer {
     transition: none;
   }
+
+  .intro-title,
+  .intro-title-card .intro-logo,
+  .intro-title-card .intro-title,
+  .intro-title-card::after,
+  .cells-layer.is-hidden .intro-title-card::after {
+    animation: none;
+  }
 }
 </style>
 </head>
@@ -547,6 +620,8 @@ let refreshTimer = 0;
 let hasShownSlide = false;
 const VIEW_TRANSITION_MS = 650;
 const DISPLAY_DURATION_MS = 15000;
+const INTRO_TITLE_DURATION_MS = 5000;
+const INTRO_DESCRIPTION_DURATION_MS = 7000;
 const INITIAL_FADE_MS = 300;
 
 function normalizeValues(resp) {
@@ -886,10 +961,11 @@ function buildIntroSlides() {
       label: "Shotgun Pro League",
       periodLabel: "",
       capKey: "intro-title",
+      durationMs: INTRO_TITLE_DURATION_MS,
       mainClass: "intro",
       capHtml: "",
       cellsHtml: `
-        <article class="intro-card">
+        <article class="intro-card intro-title-card">
           <img class="intro-logo" src="/logos/golf.png" alt="" decoding="async" />
           <span class="intro-title">Shotgun Pro League</span>
         </article>
@@ -900,6 +976,7 @@ function buildIntroSlides() {
       label: "4 WEEKS, 2 18-HOLE ROUNDS PER WEEK, BEST 3 SCORES COUNT",
       periodLabel: "",
       capKey: "intro-description",
+      durationMs: INTRO_DESCRIPTION_DURATION_MS,
       mainClass: "intro",
       capHtml: "",
       cellsHtml: `
@@ -1211,7 +1288,8 @@ async function showSlide(nextIndex, animated = true, schedule = true) {
 
 function scheduleNextSlide() {
   clearTimeout(slideTimer);
-  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), DISPLAY_DURATION_MS);
+  const duration = slides[slideIndex]?.durationMs || DISPLAY_DURATION_MS;
+  slideTimer = window.setTimeout(() => showSlide(slideIndex + 1), duration);
 }
 
 function wait(ms) {
