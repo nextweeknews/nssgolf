@@ -816,6 +816,7 @@
       playerStandingsRange:"AE4:AH101",
       stageRosterRange:"A3:D63",
       stageTeamStandingsRange:"U4:X15",
+      stageWinnerRange:"K4:K6",
       championshipRosterRange:"B3:H23",
       championshipChampionCell:"U6:U6",
       countedPeriods:[
@@ -2168,27 +2169,43 @@
       return rosters;
     }
 
+    async function loadProLeagueManualStageWinners(season){
+      const sheet = proLeagueSheetName(season, "championship");
+      const rows = await fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageWinnerRange)).catch(() => []);
+      return rows.map(row => normalizeText(row?.[0]));
+    }
+
     async function loadProLeagueStageTeamWinners(season, stage){
       const sheet = proLeagueSheetName(season, stage);
-      const [teamRows, rosterRows] = await Promise.all([
+      const [teamRows, rosterRows, manualWinnerRows] = await Promise.all([
         fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageTeamStandingsRange)).catch(() => []),
         fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageRosterRange)).catch(() => []),
+        loadProLeagueManualStageWinners(season),
       ]);
       const source = proLeaguePeriodLabel(season, stage);
       const teamStandings = normalizeProLeagueStandingsRows(teamRows);
       const rosters = parseProLeagueStageRosters(rosterRows);
       const winningTeamKeys = new Set();
       const scoreByTeamKey = new Map();
+      const manualWinnerName = normalizeText(manualWinnerRows[Number(stage) - 1]);
       teamStandings.forEach((team) => {
         const key = normalizeNameKey(team.name);
         if(!key) return;
         if(Number.isFinite(team.score)) scoreByTeamKey.set(key, team.score);
-        if(team.rank === 1) winningTeamKeys.add(key);
       });
       rosters.forEach((roster, key) => {
         if(Number.isFinite(roster.score) && !scoreByTeamKey.has(key)) scoreByTeamKey.set(key, roster.score);
-        if(roster.rank === 1) winningTeamKeys.add(key);
       });
+      const manualWinnerKey = normalizeNameKey(manualWinnerName);
+      if(manualWinnerKey){
+        winningTeamKeys.add(manualWinnerKey);
+      }else{
+        const standingsWinner = teamStandings.find(team => team.rank === 1);
+        const rosterWinner = [...rosters.values()].find(roster => roster.rank === 1);
+        const fallbackWinnerName = standingsWinner?.name || rosterWinner?.teamName;
+        const fallbackWinnerKey = normalizeNameKey(fallbackWinnerName);
+        if(fallbackWinnerKey) winningTeamKeys.add(fallbackWinnerKey);
+      }
       return [...winningTeamKeys]
         .flatMap((key) => {
           const roster = rosters.get(key);
