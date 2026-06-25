@@ -2349,7 +2349,7 @@
               discordId,
               score:row.score,
               source,
-              reason:"Best stage score",
+              reason:"Stage score",
             });
           }
         });
@@ -2358,8 +2358,14 @@
       const stageRows = automaticRows
         .map(entry => proLeagueStageRosterRow(entry, qualifiedKeys))
         .filter(Boolean);
-      stageRows.forEach((row, index) => {
-        row.slot = index + 1;
+      let nextProLeagueSlot = 1;
+      stageRows.forEach((row) => {
+        if(row.qualified){
+          row.slot = nextProLeagueSlot;
+          nextProLeagueSlot += 1;
+        }else{
+          row.slot = "";
+        }
       });
 
       const scoreRows = [];
@@ -2379,19 +2385,20 @@
           addProLeagueQualifier(scoreRows, seenScoreKeys, entry, qualifiedKeys);
         }
       });
+      let scoreRank = nextProLeagueSlot;
+      let previousScore = null;
       scoreRows.forEach((row, index) => {
-        row.slot = index + 1;
+        if(previousScore != null && row.score !== previousScore){
+          scoreRank = nextProLeagueSlot + index;
+        }
+        row.slot = scoreRank;
+        previousScore = row.score;
         row.section = "score-qualifiers";
         row.qualified = true;
         addQualifiedKey(qualifiedKeys, row);
       });
 
       const rows = [...stageRows, ...scoreRows];
-      if(!scoreRows.length){
-        rows.forEach((row, index) => {
-          if(!row.slot) row.slot = index + 1;
-        });
-      }
       return rows;
     }
 
