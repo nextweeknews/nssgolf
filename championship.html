@@ -399,6 +399,11 @@
       background:rgba(250,204,21,.10);
       color:#fde68a;
     }
+    .status-pill.is-already{
+      border-color:rgba(148,163,184,.24);
+      background:rgba(148,163,184,.10);
+      color:rgba(226,232,240,.82);
+    }
     .season-divider td{
       padding-top:14px;
       background:rgba(8,18,39,.88);
@@ -2299,6 +2304,22 @@
       return true;
     }
 
+    function proLeagueStageRosterRow(entry, qualifiedKeys){
+      const discordId = normalizeDiscordId(entry.discordId) || proLeagueDiscordIdForName(entry.name);
+      const player = ensureParticipant({ name:entry.name, discordId });
+      const candidate = { player, name:entry.name, discordId, score:entry.score, source:entry.source, reason:entry.reason };
+      if(isEntryHidden(candidate)) return null;
+      const alreadyIn = isEntryQualified(qualifiedKeys, candidate);
+      const row = {
+        ...candidate,
+        section:"stage-winners",
+        qualified:!alreadyIn,
+        alreadyIn,
+      };
+      if(!alreadyIn) addQualifiedKey(qualifiedKeys, row);
+      return row;
+    }
+
     async function buildProLeagueQualifierRows(qualifiedKeys){
       await loadProLeagueAliases();
       const automaticRows = [];
@@ -2334,31 +2355,40 @@
         });
       }
 
-      const rows = [];
-      const seenByKey = new Map();
-      automaticRows.forEach(entry => addProLeagueQualifier(rows, seenByKey, entry, qualifiedKeys));
-
-      const remainingSlots = PRO_LEAGUE_QUALIFIER_TARGET - rows.length;
-      if(remainingSlots > 0){
-        const bestScores = [...bestScoreByKey.values()]
-          .filter(entry => !seenByKey.has(playerIdentityKey(entry)))
-          .sort((left, right) => {
-            if(left.score !== right.score) return left.score - right.score;
-            return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
-          });
-        const cutoffScore = bestScores[remainingSlots - 1]?.score ?? null;
-        bestScores.forEach((entry, index) => {
-          if(index < remainingSlots || (cutoffScore != null && entry.score === cutoffScore)){
-            addProLeagueQualifier(rows, seenByKey, entry, qualifiedKeys);
-          }
-        });
-      }
-
-      rows.forEach((row, index) => {
+      const stageRows = automaticRows
+        .map(entry => proLeagueStageRosterRow(entry, qualifiedKeys))
+        .filter(Boolean);
+      stageRows.forEach((row, index) => {
         row.slot = index + 1;
+      });
+
+      const scoreRows = [];
+      const seenScoreKeys = new Map();
+      const bestScores = [...bestScoreByKey.values()]
+        .filter(entry => !isEntryQualified(qualifiedKeys, entry))
+        .sort((left, right) => {
+          if(left.score !== right.score) return left.score - right.score;
+          return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
+        });
+      const cutoffScore = bestScores[PRO_LEAGUE_QUALIFIER_TARGET - 1]?.score ?? null;
+      bestScores.forEach((entry, index) => {
+        if(index < PRO_LEAGUE_QUALIFIER_TARGET || (cutoffScore != null && entry.score === cutoffScore)){
+          addProLeagueQualifier(scoreRows, seenScoreKeys, entry, qualifiedKeys);
+        }
+      });
+      scoreRows.forEach((row, index) => {
+        row.slot = index + 1;
+        row.section = "score-qualifiers";
         row.qualified = true;
         addQualifiedKey(qualifiedKeys, row);
       });
+
+      const rows = [...stageRows, ...scoreRows];
+      if(!scoreRows.length){
+        rows.forEach((row, index) => {
+          if(!row.slot) row.slot = index + 1;
+        });
+      }
       return rows;
     }
 
@@ -2486,7 +2516,7 @@
           source:"Tournaments",
           detail:`${row.total} pts`,
         })),
-        ...proLeague.map(row => ({
+        ...proLeague.filter(row => row.qualified).map(row => ({
           player:row.player,
           name:row.name,
           source:"Shotgun Pro League",
@@ -2665,12 +2695,37 @@
         .join("");
     }
 
+    function proLeagueSectionDivider(label, colspan = 5){
+      return `<tr class="season-divider"><td colspan="${escapeHtml(colspan)}">${escapeHtml(label)}</td></tr>`;
+    }
+
     function renderProLeagueQualifiers(){
       const rows = state.qualifierRows.proLeague || [];
       if(!rows.length){
         els.proLeagueTable.innerHTML = `<tbody><tr><td><div class="empty-state">No Shotgun Pro League qualifiers available yet.</div></td></tr></tbody>`;
         return;
       }
+      const sectionDividerColspan = state.isAdmin ? 6 : 5;
+      let currentSection = "";
+      const body = rows.map((row) => {
+        const section = row.section || "score-qualifiers";
+        const divider = section !== currentSection
+          ? proLeagueSectionDivider(section === "stage-winners" ? "Winning Team Rosters" : "Best Stage Scores", sectionDividerColspan)
+          : "";
+        currentSection = section;
+        const rowClass = row.qualified ? "is-qualified" : "";
+        return `
+          ${divider}
+          <tr${rowClass ? ` class="${rowClass}"` : ""}>
+            <td class="rank-cell">${escapeHtml(row.slot)}</td>
+            <td class="player-cell">${renderPlayerCell(row.player)}</td>
+            <td class="total-cell"><span class="total-score">${escapeHtml(formatGolfScore(row.score))}</span></td>
+            <td class="source-cell">${renderProLeagueAccomplishments(row)}</td>
+            <td>${renderStatusPill(row.qualified ? "Qualified" : "Already In", row.qualified ? "in" : "already")}</td>
+            ${renderAdminHideCell(row)}
+          </tr>
+        `;
+      }).join("");
       els.proLeagueTable.innerHTML = `
         <thead>
           <tr>
@@ -2683,16 +2738,7 @@
           </tr>
         </thead>
         <tbody>
-          ${rows.map(row => `
-            <tr class="is-qualified">
-              <td class="rank-cell">${escapeHtml(row.slot)}</td>
-              <td class="player-cell">${renderPlayerCell(row.player)}</td>
-              <td class="total-cell"><span class="total-score">${escapeHtml(formatGolfScore(row.score))}</span></td>
-              <td class="source-cell">${renderProLeagueAccomplishments(row)}</td>
-              <td>${renderStatusPill("Qualified", "in")}</td>
-              ${renderAdminHideCell(row)}
-            </tr>
-          `).join("")}
+          ${body}
         </tbody>
       `;
     }
