@@ -373,6 +373,46 @@
     .accomplishment-line + .accomplishment-line{
       margin-top:3px;
     }
+    .winner-source-line{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      color:rgba(233,238,248,.9);
+      font-size:12px;
+      font-weight:850;
+      line-height:1.35;
+      text-align:left;
+    }
+    .winner-source-line + .winner-source-line{
+      margin-top:4px;
+    }
+    .winner-icon{
+      color:#facc15;
+      font-size:13px;
+      line-height:1;
+    }
+    .winner-period{
+      white-space:nowrap;
+    }
+    .winner-separator{
+      color:rgba(148,163,184,.75);
+      font-weight:900;
+    }
+    .winner-team{
+      display:inline-flex;
+      align-items:center;
+      gap:5px;
+      min-width:0;
+    }
+    .winner-team-logo{
+      width:18px;
+      height:18px;
+      object-fit:contain;
+      flex:0 0 auto;
+    }
+    .winner-team-name{
+      white-space:nowrap;
+    }
     .status-pill{
       display:inline-flex;
       align-items:center;
@@ -1050,6 +1090,10 @@
       return normalizeText(value).toLowerCase().replace(/[^a-z0-9]+/g, "");
     }
 
+    function slugify(value){
+      return normalizeText(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    }
+
     function playerIdentityKey({ player = null, name = "", discordId = "" } = {}){
       const cleanDiscordId = normalizeDiscordId(discordId || player?.discordId);
       if(cleanDiscordId) return `id:${cleanDiscordId}`;
@@ -1642,7 +1686,6 @@
 
       addMatch(metadata.championship);
       addMatch(metadata.thirdPlace);
-      metadata.oneOffs.forEach(entry => addMatch(entry.matchup));
 
       nextRows.forEach((row) => {
         const delta = statDeltas.get(row.playerKey);
@@ -2694,6 +2737,40 @@
       return `<span class="status-pill${tone ? ` is-${escapeHtml(tone)}` : ""}">${escapeHtml(label)}</span>`;
     }
 
+    function proLeagueTeamLogoSrc(teamName){
+      const slug = slugify(teamName);
+      return slug ? `/proleague/logos/${slug}.png` : "";
+    }
+
+    function proLeagueWinnerSourceParts(label){
+      const text = normalizeText(label);
+      const match = text.match(/^(Winning team|Champion team):\s*(.+?),\s*(Season\s+\d+)\s+(Stage\s+\d+|Championship)$/i);
+      if(!match) return null;
+      return {
+        teamName:match[2],
+        period:`${match[3]}, ${match[4]}`,
+      };
+    }
+
+    function renderProLeagueSourceLabel(label){
+      const winner = proLeagueWinnerSourceParts(label);
+      if(!winner){
+        return `<span class="accomplishment-line">${escapeHtml(label)}</span>`;
+      }
+      const logoSrc = proLeagueTeamLogoSrc(winner.teamName);
+      const logo = logoSrc
+        ? `<img class="winner-team-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(winner.teamName)} logo" loading="lazy" decoding="async" onerror="this.style.display='none'; this.removeAttribute('src');" />`
+        : "";
+      return `
+        <span class="winner-source-line">
+          <span class="winner-icon" aria-hidden="true">🏆</span>
+          <span class="winner-period">${escapeHtml(winner.period)}</span>
+          <span class="winner-separator">|</span>
+          <span class="winner-team">${logo}<span class="winner-team-name">${escapeHtml(winner.teamName)}</span></span>
+        </span>
+      `;
+    }
+
     function renderProLeagueAccomplishments(row){
       const accomplishments = Array.isArray(row?.accomplishments) && row.accomplishments.length
         ? row.accomplishments
@@ -2701,7 +2778,7 @@
       return accomplishments
         .map(normalizeText)
         .filter(Boolean)
-        .map(label => `<span class="accomplishment-line">${escapeHtml(label)}</span>`)
+        .map(renderProLeagueSourceLabel)
         .join("");
     }
 
