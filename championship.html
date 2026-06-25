@@ -1686,6 +1686,7 @@
 
       addMatch(metadata.championship);
       addMatch(metadata.thirdPlace);
+      metadata.oneOffs.forEach(entry => addMatch(entry.matchup));
 
       nextRows.forEach((row) => {
         const delta = statDeltas.get(row.playerKey);
