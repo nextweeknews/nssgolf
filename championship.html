@@ -1688,7 +1688,6 @@
 
       addMatch(metadata.championship);
       addMatch(metadata.thirdPlace);
-      metadata.oneOffs.forEach(entry => addMatch(entry.matchup));
 
       nextRows.forEach((row) => {
         const delta = statDeltas.get(row.playerKey);
@@ -2076,8 +2075,7 @@
       divisionRows.forEach(({ division, rows }) => {
         const pointsList = state.pointSettings[eventKey]?.[division.key] || [];
         const baseRows = mapSuperLeagueRows(rows);
-        const rowsForRanking = division.key === "division1" ? baseRows : applySuperLeaguePlayoffStatTotals(baseRows, playoffMetadata);
-        const rankedRows = rankSuperLeagueRows(rowsForRanking, division.title, headToHeadByDivision, useHeadToHead);
+        const rankedRows = rankSuperLeagueRows(baseRows, division.title, headToHeadByDivision, useHeadToHead);
         if(division.key === "division1"){
           applySuperLeagueDivisionOnePlayoffOverrides(rankedRows, playoffMetadata);
         }
