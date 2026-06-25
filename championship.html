@@ -2364,15 +2364,18 @@
 
       const scoreRows = [];
       const seenScoreKeys = new Map();
+      const remainingScoreSlots = Math.max(
+        0,
+        PRO_LEAGUE_QUALIFIER_TARGET - stageRows.filter(row => row.qualified).length
+      );
       const bestScores = [...bestScoreByKey.values()]
         .filter(entry => !isEntryQualified(qualifiedKeys, entry))
         .sort((left, right) => {
           if(left.score !== right.score) return left.score - right.score;
           return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
         });
-      const cutoffScore = bestScores[PRO_LEAGUE_QUALIFIER_TARGET - 1]?.score ?? null;
       bestScores.forEach((entry, index) => {
-        if(index < PRO_LEAGUE_QUALIFIER_TARGET || (cutoffScore != null && entry.score === cutoffScore)){
+        if(index < remainingScoreSlots){
           addProLeagueQualifier(scoreRows, seenScoreKeys, entry, qualifiedKeys);
         }
       });
