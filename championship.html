@@ -1033,6 +1033,7 @@
         rankedLeague:[],
         field:[],
       },
+      qualifiersLoading:true,
       proLeagueAliasDiscordByKey:new Map(),
       rankedSeasonPayloads:new Map(),
       adminSort:{ key:"total", direction:"desc" },
@@ -2140,8 +2141,11 @@
     async function loadMembers(){
       const ids = [...new Set([...state.players.values()].map(player => normalizeDiscordId(player.discordId)).filter(Boolean))];
       const missing = ids.filter(id => !state.memberCache.has(id));
+      const chunks = [];
       for(let index = 0; index < missing.length; index += 100){
-        const chunk = missing.slice(index, index + 100);
+        chunks.push(missing.slice(index, index + 100));
+      }
+      await Promise.all(chunks.map(async (chunk) => {
         const { data, error } = await supabase
           .from("discord_guild_members")
           .select("discord_user_id,username,display_name,avatar_url,server_avatar_url")
@@ -2152,7 +2156,7 @@
           const id = normalizeDiscordId(member.discord_user_id);
           if(id) state.memberCache.set(id, { ...member, discord_user_id:id });
         });
-      }
+      }));
     }
 
     function tournamentQualifiedRows(){
@@ -2225,12 +2229,12 @@
       return rows.map(row => normalizeText(row?.[0]));
     }
 
-    async function loadProLeagueStageTeamWinners(season, stage){
+    async function loadProLeagueStageTeamWinners(season, stage, cachedManualWinnerRows = null){
       const sheet = proLeagueSheetName(season, stage);
       const [teamRows, rosterRows, manualWinnerRows] = await Promise.all([
         fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageTeamStandingsRange)).catch(() => []),
         fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageRosterRange)).catch(() => []),
-        loadProLeagueManualStageWinners(season),
+        cachedManualWinnerRows ? Promise.resolve(cachedManualWinnerRows) : loadProLeagueManualStageWinners(season),
       ]);
       const source = proLeaguePeriodLabel(season, stage);
       const teamStandings = normalizeProLeagueStandingsRows(teamRows);
@@ -2369,18 +2373,31 @@
       await loadProLeagueAliases();
       const automaticRows = [];
       const bestScoreByKey = new Map();
+      const manualWinnerPromisesBySeason = new Map();
 
-      for(const period of PRO_LEAGUE.countedPeriods){
+      const manualWinnersForSeason = (season) => {
+        if(!manualWinnerPromisesBySeason.has(season)){
+          manualWinnerPromisesBySeason.set(season, loadProLeagueManualStageWinners(season));
+        }
+        return manualWinnerPromisesBySeason.get(season);
+      };
+
+      const periodResults = await Promise.all(PRO_LEAGUE.countedPeriods.map(async (period) => {
         if(period.stage === "championship"){
           const winners = await loadProLeagueChampionshipWinners(period.season);
-          winners.forEach(row => automaticRows.push(row));
-          continue;
+          return { period, winners, standings:[] };
         }
 
-        const teamWinners = await loadProLeagueStageTeamWinners(period.season, period.stage);
-        teamWinners.forEach(row => automaticRows.push(row));
+        const [winners, standings] = await Promise.all([
+          loadProLeagueStageTeamWinners(period.season, period.stage, manualWinnersForSeason(period.season)),
+          loadProLeagueStageStandings(period.season, period.stage),
+        ]);
+        return { period, winners, standings };
+      }));
 
-        const standings = await loadProLeagueStageStandings(period.season, period.stage);
+      periodResults.forEach(({ period, winners, standings }) => {
+        winners.forEach(row => automaticRows.push(row));
+        if(period.stage === "championship") return;
         const source = proLeaguePeriodLabel(period.season, period.stage);
         standings.forEach((row) => {
           if(!Number.isFinite(row.score)) return;
@@ -2398,7 +2415,7 @@
             });
           }
         });
-      }
+      });
 
       const stageRows = automaticRows
         .map(entry => proLeagueStageRosterRow(entry, qualifiedKeys))
@@ -2696,11 +2713,15 @@
       `;
     }
 
+    function qualifierEmptyState(message){
+      return `<tbody><tr><td><div class="empty-state">${escapeHtml(message)}</div></td></tr></tbody>`;
+    }
+
     function renderLeaderboard(){
       const rows = state.qualifierRows.tournaments?.length ? state.qualifierRows.tournaments : tournamentQualifiedRows();
       if(els.leaderboardMeta) els.leaderboardMeta.textContent = "";
       if(!rows.length){
-        els.leaderboardTable.innerHTML = `<tbody><tr><td><div class="empty-state">No championship results available yet.</div></td></tr></tbody>`;
+        els.leaderboardTable.innerHTML = qualifierEmptyState(state.qualifiersLoading ? "Loading tournament qualifiers..." : "No championship results available yet.");
         return;
       }
       const lastQualifiedIndex = rows.reduce((last, row, index) => row.qualified ? index : last, -1);
@@ -2791,7 +2812,7 @@
     function renderProLeagueQualifiers(){
       const rows = state.qualifierRows.proLeague || [];
       if(!rows.length){
-        els.proLeagueTable.innerHTML = `<tbody><tr><td><div class="empty-state">No Shotgun Pro League qualifiers available yet.</div></td></tr></tbody>`;
+        els.proLeagueTable.innerHTML = qualifierEmptyState(state.qualifiersLoading ? "Loading Shotgun Pro League qualifiers..." : "No Shotgun Pro League qualifiers available yet.");
         return;
       }
       const sectionDividerColspan = state.isAdmin ? 6 : 5;
@@ -2844,7 +2865,7 @@
     function renderRankedLeagueQualifiers(){
       const rows = state.qualifierRows.rankedLeague || [];
       if(!rows.length){
-        els.rankedLeagueTable.innerHTML = `<tbody><tr><td><div class="empty-state">No Ranked League qualifiers available yet.</div></td></tr></tbody>`;
+        els.rankedLeagueTable.innerHTML = qualifierEmptyState(state.qualifiersLoading ? "Loading Ranked League qualifiers..." : "No Ranked League qualifiers available yet.");
         return;
       }
       const currentSeason = parseCurrentRankedLeagueSeasonNumber();
@@ -2901,7 +2922,7 @@
     function renderFieldQualifiers(){
       const rows = state.qualifierRows.field || [];
       if(!rows.length){
-        els.fieldTable.innerHTML = `<tbody><tr><td><div class="empty-state">No qualifiers available yet.</div></td></tr></tbody>`;
+        els.fieldTable.innerHTML = qualifierEmptyState(state.qualifiersLoading ? "Loading qualified field..." : "No qualifiers available yet.");
         return;
       }
       els.fieldTable.innerHTML = `
@@ -2933,6 +2954,20 @@
       renderProLeagueQualifiers();
       renderRankedLeagueQualifiers();
       renderFieldQualifiers();
+    }
+
+    let memberDisplayRefreshToken = 0;
+
+    async function refreshMemberDisplays(){
+      const token = ++memberDisplayRefreshToken;
+      try{
+        await loadMembers();
+      }catch(error){
+        console.warn("Unable to load Discord member display data.", error);
+      }
+      if(token !== memberDisplayRefreshToken) return;
+      renderQualifierTables();
+      renderAdminResults();
     }
 
     function sortButton(key, label){
@@ -3237,7 +3272,15 @@
     async function loadChampionship(){
       state.players = new Map();
       state.aliasToPlayerKey = new Map();
+      state.qualifierRows = {
+        tournaments:[],
+        proLeague:[],
+        rankedLeague:[],
+        field:[],
+      };
+      state.qualifiersLoading = true;
       EVENT_DEFS.forEach(event => formatSourceStatus(event.key, "pending", "Loading..."));
+      renderQualifierTables();
 
       const initialLoaders = [
         ["lightningCup2026", scoreLightningCup],
@@ -3263,16 +3306,11 @@
 
       await buildQualifierRows();
       ensureHiddenPlayersForAdminRestore();
-
-      try{
-        await loadMembers();
-      }catch(error){
-        console.warn("Unable to load Discord member display data.", error);
-      }
-
+      state.qualifiersLoading = false;
       renderQualifierTables();
       renderAdminResults();
       renderSettings();
+      void refreshMemberDisplays();
     }
 
     function bindEvents(){
@@ -3309,17 +3347,23 @@
             state.hiddenPlayerKeys.delete(playerKey);
           }
           await saveChampionshipSettings();
+          state.qualifierRows = {
+            tournaments:[],
+            proLeague:[],
+            rankedLeague:[],
+            field:[],
+          };
+          state.qualifiersLoading = true;
+          renderQualifierTables();
           await buildQualifierRows();
           ensureHiddenPlayersForAdminRestore();
-          try{
-            await loadMembers();
-          }catch(error){
-            console.warn("Unable to load Discord member display data.", error);
-          }
+          state.qualifiersLoading = false;
           renderQualifierTables();
           renderAdminResults();
+          void refreshMemberDisplays();
           setAdminResultsStatus("Hidden player settings saved.", "ok");
         }catch(error){
+          state.qualifiersLoading = false;
           if(previousHidden){
             state.hiddenPlayerKeys.add(playerKey);
           }else{
