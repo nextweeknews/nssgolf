@@ -362,6 +362,17 @@
       font-weight:850;
       min-width:190px;
     }
+    .accomplishment-line{
+      display:block;
+      color:rgba(233,238,248,.88);
+      font-size:12px;
+      font-weight:850;
+      line-height:1.35;
+      text-align:left;
+    }
+    .accomplishment-line + .accomplishment-line{
+      margin-top:3px;
+    }
     .status-pill{
       display:inline-flex;
       align-items:center;
@@ -697,7 +708,6 @@
         <div class="qualifier-panel" id="qualifierTournamentsPanel" data-qualifier-panel="tournaments">
           <div class="table-toolbar">
             <h2 class="toolbar-title">Tournaments</h2>
-            <span class="toolbar-meta">Top 20 by tournament points, including ties.</span>
           </div>
           <div class="table-scroll">
             <table id="leaderboardTable"></table>
@@ -707,7 +717,6 @@
         <div class="qualifier-panel" id="qualifierProLeaguePanel" data-qualifier-panel="pro-league" hidden>
           <div class="table-toolbar">
             <h2 class="toolbar-title">Shotgun Pro League</h2>
-            <span class="toolbar-meta">20 qualifiers after tournament qualifiers are removed.</span>
           </div>
           <div class="table-scroll">
             <table id="proLeagueTable"></table>
@@ -717,7 +726,6 @@
         <div class="qualifier-panel" id="qualifierRankedLeaguePanel" data-qualifier-panel="ranked-league" hidden>
           <div class="table-toolbar">
             <h2 class="toolbar-title">Ranked League</h2>
-            <span class="toolbar-meta">Season 12 live, then Seasons 11-9.</span>
           </div>
           <div class="table-scroll">
             <table id="rankedLeagueTable"></table>
@@ -727,7 +735,6 @@
         <div class="qualifier-panel" id="qualifierFieldPanel" data-qualifier-panel="field" hidden>
           <div class="table-toolbar">
             <h2 class="toolbar-title">The Field</h2>
-            <span class="toolbar-meta">Qualified players and source.</span>
           </div>
           <div class="table-scroll">
             <table id="fieldTable"></table>
@@ -792,7 +799,8 @@
     const SETTINGS_ID = "current";
     const TOURNAMENT_QUALIFIER_TARGET = 20;
     const PRO_LEAGUE_QUALIFIER_TARGET = 20;
-    const RANKED_LEAGUE_SEASONS = [12, 11, 10, 9];
+    const RANKED_LEAGUE_DISPLAY_SEASONS = [12, 11, 10, 9];
+    const RANKED_LEAGUE_PRIORITY_SEASONS = [9, 10, 11, 12];
     const RANKED_LEAGUE_PER_SEASON = 5;
     const RANKED_LEAGUE_HUNT_COUNT = 5;
     const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
@@ -806,6 +814,8 @@
     const PRO_LEAGUE = {
       sheetId:"1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o",
       playerStandingsRange:"AE4:AH101",
+      stageRosterRange:"A3:D63",
+      stageTeamStandingsRange:"U4:X15",
       championshipRosterRange:"B3:H23",
       championshipChampionCell:"U6:U6",
       countedPeriods:[
@@ -2137,18 +2147,78 @@
       return normalizeProLeagueStandingsRows(rows);
     }
 
+    function parseProLeagueStageRosters(values){
+      const rawRows = (values || [])
+        .filter(row => Array.isArray(row) && row.some(cell => normalizeText(cell)));
+      const hasHeader = normalizeAliasKey(rawRows[0]?.[2]) === "teamplayer";
+      const rows = hasHeader ? rawRows.slice(1) : rawRows;
+      const rosters = new Map();
+      for(let index = 0; index < rows.length; index += 5){
+        const teamName = normalizeText(rows[index]?.[2]);
+        if(!teamName) continue;
+        const rank = wholeNumber(rows[index]?.[0]);
+        const score = finiteNumber(rows[index]?.[3]);
+        const players = [];
+        for(let playerIndex = 1; playerIndex <= 4; playerIndex += 1){
+          const name = normalizeText(rows[index + playerIndex]?.[2]);
+          if(name) players.push(name);
+        }
+        rosters.set(normalizeNameKey(teamName), { teamName, rank, score, players });
+      }
+      return rosters;
+    }
+
+    async function loadProLeagueStageTeamWinners(season, stage){
+      const sheet = proLeagueSheetName(season, stage);
+      const [teamRows, rosterRows] = await Promise.all([
+        fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageTeamStandingsRange)).catch(() => []),
+        fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.stageRosterRange)).catch(() => []),
+      ]);
+      const source = proLeaguePeriodLabel(season, stage);
+      const teamStandings = normalizeProLeagueStandingsRows(teamRows);
+      const rosters = parseProLeagueStageRosters(rosterRows);
+      const winningTeamKeys = new Set();
+      const scoreByTeamKey = new Map();
+      teamStandings.forEach((team) => {
+        const key = normalizeNameKey(team.name);
+        if(!key) return;
+        if(Number.isFinite(team.score)) scoreByTeamKey.set(key, team.score);
+        if(team.rank === 1) winningTeamKeys.add(key);
+      });
+      rosters.forEach((roster, key) => {
+        if(Number.isFinite(roster.score) && !scoreByTeamKey.has(key)) scoreByTeamKey.set(key, roster.score);
+        if(roster.rank === 1) winningTeamKeys.add(key);
+      });
+      return [...winningTeamKeys]
+        .flatMap((key) => {
+          const roster = rosters.get(key);
+          return (roster?.players || []).map(name => ({
+            name,
+            discordId:proLeagueDiscordIdForName(name),
+            score:scoreByTeamKey.get(key) ?? roster.score,
+            source,
+            reason:`Winning team: ${roster.teamName}`,
+          }));
+        });
+    }
+
     function parseProLeagueChampionshipRoster(values){
-      const rows = (values || []).slice(1);
+      const rawRows = (values || [])
+        .filter(row => Array.isArray(row) && row.some(cell => normalizeText(cell)));
+      const hasHeader = normalizeAliasKey(rawRows[0]?.[0]) === "teamplayer";
+      const rows = hasHeader ? rawRows.slice(1) : rawRows;
       const teams = [];
       for(let index = 0; index < rows.length; index += 5){
         const teamName = normalizeText(rows[index]?.[0]);
         if(!teamName) continue;
+        const semifinalScore = finiteNumber(rows[index]?.[1]);
+        const finalScore = finiteNumber(rows[index]?.[2]);
         const players = [];
         for(let playerIndex = 1; playerIndex <= 4; playerIndex += 1){
           const name = normalizeText(rows[index + playerIndex]?.[0]);
           if(name) players.push(name);
         }
-        teams.push({ teamName, players });
+        teams.push({ teamName, semifinalScore, finalScore, players });
       }
       return teams;
     }
@@ -2160,26 +2230,54 @@
         fetchProLeagueRange(sheetRange(sheet, PRO_LEAGUE.championshipChampionCell)).catch(() => []),
       ]);
       const championName = normalizeText(championRows?.[0]?.[0]);
-      const championTeam = parseProLeagueChampionshipRoster(rosterRows)
-        .find(team => normalizeNameKey(team.teamName) === normalizeNameKey(championName));
+      const teams = parseProLeagueChampionshipRoster(rosterRows);
+      const championTeam = teams.find(team => normalizeNameKey(team.teamName) === normalizeNameKey(championName))
+        || teams
+          .filter(team => Number.isFinite(team.finalScore))
+          .sort((left, right) => left.finalScore - right.finalScore)[0];
       return (championTeam?.players || []).map(name => ({
         name,
         discordId:proLeagueDiscordIdForName(name),
-        score:null,
+        score:championTeam.finalScore ?? championTeam.semifinalScore ?? null,
         source:proLeaguePeriodLabel(season, "championship"),
         reason:`Champion team: ${championTeam.teamName}`,
       }));
     }
 
-    function addProLeagueQualifier(rows, seenKeys, entry, qualifiedKeys, reasonFallback = ""){
+    function proLeagueAccomplishmentLabel(entry){
+      if(typeof entry === "string") return normalizeText(entry);
+      const reason = normalizeText(entry?.reason);
+      const source = normalizeText(entry?.source);
+      if(reason && source) return `${reason}, ${source}`;
+      return reason || source;
+    }
+
+    function mergeProLeagueAccomplishments(row, entry){
+      const labels = Array.isArray(entry?.accomplishments) && entry.accomplishments.length
+        ? entry.accomplishments.map(proLeagueAccomplishmentLabel)
+        : [proLeagueAccomplishmentLabel(entry)];
+      if(!Array.isArray(row.accomplishments)) row.accomplishments = [];
+      labels.map(normalizeText).filter(Boolean).forEach((label) => {
+        if(!row.accomplishments.includes(label)) row.accomplishments.push(label);
+      });
+    }
+
+    function addProLeagueQualifier(rows, seenByKey, entry, qualifiedKeys, reasonFallback = ""){
       const discordId = normalizeDiscordId(entry.discordId) || proLeagueDiscordIdForName(entry.name);
       const player = ensureParticipant({ name:entry.name, discordId });
       const candidate = { player, name:entry.name, discordId, score:entry.score, source:entry.source, reason:entry.reason || reasonFallback };
       if(isEntryQualified(qualifiedKeys, candidate)) return false;
       if(isEntryHidden(candidate)) return false;
       const key = playerIdentityKey(candidate);
-      if(!key || seenKeys.has(key)) return false;
-      seenKeys.add(key);
+      if(!key) return false;
+      const existing = seenByKey.get(key);
+      if(existing){
+        mergeProLeagueAccomplishments(existing, candidate);
+        return false;
+      }
+      candidate.accomplishments = [];
+      mergeProLeagueAccomplishments(candidate, candidate);
+      seenByKey.set(key, candidate);
       rows.push(candidate);
       return true;
     }
@@ -2196,19 +2294,11 @@
           continue;
         }
 
+        const teamWinners = await loadProLeagueStageTeamWinners(period.season, period.stage);
+        teamWinners.forEach(row => automaticRows.push(row));
+
         const standings = await loadProLeagueStageStandings(period.season, period.stage);
         const source = proLeaguePeriodLabel(period.season, period.stage);
-        const stageWinners = standings.filter(row => row.rank === 1);
-        stageWinners.forEach(row => {
-          automaticRows.push({
-            name:row.name,
-            discordId:proLeagueDiscordIdForName(row.name),
-            score:row.score,
-            source,
-            reason:"Stage winner",
-          });
-        });
-
         standings.forEach((row) => {
           if(!Number.isFinite(row.score)) return;
           const discordId = proLeagueDiscordIdForName(row.name);
@@ -2228,13 +2318,13 @@
       }
 
       const rows = [];
-      const seenKeys = new Set();
-      automaticRows.forEach(entry => addProLeagueQualifier(rows, seenKeys, entry, qualifiedKeys));
+      const seenByKey = new Map();
+      automaticRows.forEach(entry => addProLeagueQualifier(rows, seenByKey, entry, qualifiedKeys));
 
       const remainingSlots = PRO_LEAGUE_QUALIFIER_TARGET - rows.length;
       if(remainingSlots > 0){
         const bestScores = [...bestScoreByKey.values()]
-          .filter(entry => !seenKeys.has(playerIdentityKey(entry)))
+          .filter(entry => !seenByKey.has(playerIdentityKey(entry)))
           .sort((left, right) => {
             if(left.score !== right.score) return left.score - right.score;
             return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
@@ -2242,7 +2332,7 @@
         const cutoffScore = bestScores[remainingSlots - 1]?.score ?? null;
         bestScores.forEach((entry, index) => {
           if(index < remainingSlots || (cutoffScore != null && entry.score === cutoffScore)){
-            addProLeagueQualifier(rows, seenKeys, entry, qualifiedKeys);
+            addProLeagueQualifier(rows, seenByKey, entry, qualifiedKeys);
           }
         });
       }
@@ -2273,7 +2363,7 @@
 
     async function loadRankedSeasonPayloads(){
       const currentSeason = parseCurrentRankedLeagueSeasonNumber();
-      const archivedSeasons = RANKED_LEAGUE_SEASONS.filter(season => season !== currentSeason);
+      const archivedSeasons = RANKED_LEAGUE_DISPLAY_SEASONS.filter(season => season !== currentSeason);
       const payloads = new Map();
 
       const archivedPromise = supabase
@@ -2290,7 +2380,7 @@
         }else{
           (data || []).forEach((row) => {
             const season = Number(row?.season);
-            if(RANKED_LEAGUE_SEASONS.includes(season)) payloads.set(season, row?.payload);
+            if(RANKED_LEAGUE_DISPLAY_SEASONS.includes(season)) payloads.set(season, row?.payload);
           });
         }
       }else{
@@ -2318,7 +2408,7 @@
       const rows = [];
       const currentSeason = parseCurrentRankedLeagueSeasonNumber();
 
-      RANKED_LEAGUE_SEASONS.forEach((season) => {
+      RANKED_LEAGUE_PRIORITY_SEASONS.forEach((season) => {
         const entries = extractRankedEntriesFromPayload(payloads.get(season))
           .map(row => normalizeRankedEntry(row, season))
           .filter(Boolean)
@@ -2383,7 +2473,9 @@
           player:row.player,
           name:row.name,
           source:"Shotgun Pro League",
-          detail:row.reason ? `${row.reason}, ${row.source}` : row.source,
+          detail:Array.isArray(row.accomplishments) && row.accomplishments.length
+            ? row.accomplishments.join("; ")
+            : (row.reason ? `${row.reason}, ${row.source}` : row.source),
         })),
         ...rankedLeague.filter(row => row.qualified).map(row => ({
           player:row.player,
@@ -2545,6 +2637,17 @@
       return `<span class="status-pill${tone ? ` is-${escapeHtml(tone)}` : ""}">${escapeHtml(label)}</span>`;
     }
 
+    function renderProLeagueAccomplishments(row){
+      const accomplishments = Array.isArray(row?.accomplishments) && row.accomplishments.length
+        ? row.accomplishments
+        : [row?.reason ? `${row.reason}, ${row.source}` : row?.source];
+      return accomplishments
+        .map(normalizeText)
+        .filter(Boolean)
+        .map(label => `<span class="accomplishment-line">${escapeHtml(label)}</span>`)
+        .join("");
+    }
+
     function renderProLeagueQualifiers(){
       const rows = state.qualifierRows.proLeague || [];
       if(!rows.length){
@@ -2568,7 +2671,7 @@
               <td class="rank-cell">${escapeHtml(row.slot)}</td>
               <td class="player-cell">${renderPlayerCell(row.player)}</td>
               <td class="total-cell"><span class="total-score">${escapeHtml(formatGolfScore(row.score))}</span></td>
-              <td class="source-cell">${escapeHtml(row.reason ? `${row.reason}, ${row.source}` : row.source)}</td>
+              <td class="source-cell">${renderProLeagueAccomplishments(row)}</td>
               <td>${renderStatusPill("Qualified", "in")}</td>
               ${renderAdminHideCell(row)}
             </tr>
@@ -2592,10 +2695,16 @@
         els.rankedLeagueTable.innerHTML = `<tbody><tr><td><div class="empty-state">No Ranked League qualifiers available yet.</div></td></tr></tbody>`;
         return;
       }
+      const currentSeason = parseCurrentRankedLeagueSeasonNumber();
+      const displayRows = rows.slice().sort((left, right) => {
+        if(right.season !== left.season) return right.season - left.season;
+        if(left.seasonSlot !== right.seasonSlot) return left.seasonSlot - right.seasonSlot;
+        return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
+      });
       let lastSeason = null;
       const body = [];
       const seasonDividerColspan = state.isAdmin ? 9 : 8;
-      rows.forEach((row) => {
+      displayRows.forEach((row) => {
         if(row.season !== lastSeason){
           body.push(rankedSeasonDivider(row.season, seasonDividerColspan));
           lastSeason = row.season;
@@ -2603,7 +2712,7 @@
         const rowClass = [
           row.qualified ? "is-qualified" : "",
           row.inHunt ? "is-hunt-row" : "",
-          row.seasonSlot === RANKED_LEAGUE_PER_SEASON ? "is-cutoff-row" : "",
+          row.season === currentSeason && row.seasonSlot === RANKED_LEAGUE_PER_SEASON ? "is-cutoff-row" : "",
         ].filter(Boolean).join(" ");
         body.push(`
           <tr${rowClass ? ` class="${rowClass}"` : ""}>
