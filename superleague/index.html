@@ -573,7 +573,7 @@
 
     .match-labeled{
       display:grid;
-      gap:4px;
+      gap:2px;
     }
 
     .match-label{
@@ -596,7 +596,7 @@
     .match-row{
       display:flex;
       align-items:stretch;
-      min-height: 36px;
+      min-height: 30px;
       background: rgba(255,255,255,0.06);
       border: 1px solid transparent;
     }
@@ -632,7 +632,7 @@
     .match-player{
       flex: 1 1 auto;
       min-width: 0;
-      padding: 8px 10px;
+      padding: 6px 8px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: .02em;
@@ -1414,13 +1414,13 @@
     .format-table td.fill-red{ background: var(--row-highlight-red); }
 
     .playoffs-layout{
-      --playoff-cell-width: clamp(220px, 31vw, 320px);
+      --playoff-cell-width: clamp(220px, 29vw, 300px);
       border: 1px solid var(--border-lite);
       border-radius: 16px;
-      padding: 12px;
+      padding: 10px;
       background: rgba(15,23,42,0.55);
       display:grid;
-      gap:18px;
+      gap:10px;
     }
 
     .playoff-bracket-row{
@@ -1439,12 +1439,12 @@
 
     .playoff-semifinals{
       display:grid;
-      gap:16px;
+      gap:8px;
     }
 
     .playoff-finals{
       display:grid;
-      gap:16px;
+      gap:8px;
       align-self:start;
       padding-top: var(--playoff-finals-offset);
     }
@@ -1511,7 +1511,7 @@
       display:grid;
       grid-template-columns: repeat(2, minmax(220px, var(--playoff-cell-width)));
       justify-content:center;
-      gap:16px;
+      gap:10px;
       margin: 0 auto;
     }
 
@@ -1519,8 +1519,8 @@
       display:grid;
       grid-template-columns: 36px repeat(3, 22px);
       gap:8px;
-      padding: 6px 8px;
-      min-width: 124px;
+      padding: 4px 6px;
+      min-width: 118px;
       align-items:center;
       justify-items:center;
       font-size: 10px;
@@ -1538,8 +1538,8 @@
       place-items:center;
       background: rgba(255,255,255,0.95);
       color: #000;
-      padding: 4px 8px;
-      font-size: 16px;
+      padding: 2px 6px;
+      font-size: 14px;
       font-weight: 800;
     }
 
@@ -1806,6 +1806,26 @@
         <p class="status" id="status"></p>
         <p class="error" id="error"></p>
 
+        <div class="playoffs-wrap">
+          <section class="playoffs-layout" aria-label="Playoff matchups">
+            <div class="playoff-bracket-row">
+              <div class="playoff-semifinals" id="playoffSemifinals"></div>
+              <div class="playoff-connector" aria-hidden="true">
+                <span class="playoff-connector-line top"></span>
+                <span class="playoff-connector-line bottom"></span>
+                <span class="playoff-connector-line vertical"></span>
+                <span class="playoff-connector-line to-final"></span>
+              </div>
+              <div class="playoff-finals">
+                <div class="playoff-championship-slot" id="playoffChampionship"></div>
+                <div id="playoffThirdPlace"></div>
+              </div>
+            </div>
+            <div class="playoff-divider" aria-hidden="true"></div>
+            <div class="playoff-oneoffs" id="playoffOneOffs"></div>
+          </section>
+        </div>
+
         <div class="division-grid" id="divisionGrid"></div>
 
         <div class="standings-legend" aria-label="Standings legend">
@@ -1879,32 +1899,6 @@
               </div>
             </section>
           </div>
-        </div>
-      </section>
-
-      <section id="playoffsPage" role="tabpanel" aria-labelledby="playoffsViewTab" hidden>
-        <div class="season-head">
-          <h1 class="headline" data-superleague-season-title="Playoffs">Playoffs</h1>
-        </div>
-
-        <div class="playoffs-wrap">
-          <section class="playoffs-layout" aria-label="Playoff matchups">
-            <div class="playoff-bracket-row">
-              <div class="playoff-semifinals" id="playoffSemifinals"></div>
-              <div class="playoff-connector" aria-hidden="true">
-                <span class="playoff-connector-line top"></span>
-                <span class="playoff-connector-line bottom"></span>
-                <span class="playoff-connector-line vertical"></span>
-                <span class="playoff-connector-line to-final"></span>
-              </div>
-              <div class="playoff-finals">
-                <div class="playoff-championship-slot" id="playoffChampionship"></div>
-                <div id="playoffThirdPlace"></div>
-              </div>
-            </div>
-            <div class="playoff-divider" aria-hidden="true"></div>
-            <div class="playoff-oneoffs" id="playoffOneOffs"></div>
-          </section>
         </div>
       </section>
 
@@ -2169,13 +2163,11 @@
       const tabsEl = document.getElementById("superleagueTabs");
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
-      const playoffsPage = document.getElementById("playoffsPage");
       const formatPage = document.getElementById("formatPage");
-      const validPages = new Set(["season", "qualifiers", "playoffs", "format"]);
+      const validPages = new Set(["season", "qualifiers", "format"]);
       const tabs = [
-        { value: "season", label: "League", id: "seasonViewTab", controls: "seasonPage" },
+        { value: "season", label: "Season", id: "seasonViewTab", controls: "seasonPage" },
         { value: "qualifiers", label: "Qualifiers", id: "qualifiersViewTab", controls: "qualifiersPage" },
-        { value: "playoffs", label: "Playoffs", id: "playoffsViewTab", controls: "playoffsPage" },
         { value: "format", label: "Format", id: "formatViewTab", controls: "formatPage" },
       ];
       const tabControl = mountSuperLeagueTabs(tabsEl, {
@@ -2187,11 +2179,9 @@
         const nextPage = validPages.has(page) ? page : "season";
         const showSeason = nextPage === "season";
         const showQualifiers = nextPage === "qualifiers";
-        const showPlayoffs = nextPage === "playoffs";
         const showFormat = nextPage === "format";
         seasonPage.hidden = !showSeason;
         qualifiersPage.hidden = !showQualifiers;
-        playoffsPage.hidden = !showPlayoffs;
         formatPage.hidden = !showFormat;
         tabControl?.render(nextPage);
 
@@ -2199,7 +2189,7 @@
         url.searchParams.set("page", nextPage);
         window.history.replaceState({}, "", url);
 
-        if(showPlayoffs){
+        if(showSeason){
           requestAnimationFrame(updatePlayoffBracketLayout);
         }
 
@@ -2773,9 +2763,7 @@
 
     function renderDivision(division, values, headToHeadByDivision, metadata){
       const baseRows = mapRows(values);
-      const rowsWithPlayoffs = applyPlayoffStatTotals(baseRows, metadata);
-      const rows = rankDivisionRows(rowsWithPlayoffs, division.title, headToHeadByDivision);
-      if(normalizeDivisionValue(division.title) === "1") applyDivisionOnePlayoffOverrides(rows, metadata);
+      const rows = rankDivisionRows(baseRows, division.title, headToHeadByDivision);
       applyRowHighlights(rows, division.title);
       const divisionClass = divisionClassFromLabel(division.title);
 
