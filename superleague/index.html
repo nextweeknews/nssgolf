@@ -208,35 +208,57 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
+      position:relative;
     }
 
-    .season-switch-button{
-      appearance:none;
-      border:1px solid var(--btn-border);
-      background:var(--btn-bg);
-      color:rgba(255,255,255,.88);
-      border-radius:999px;
-      min-height:34px;
-      padding:7px 14px;
-      font:inherit;
+    .select-wrap{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      position:relative;
+    }
+
+    .select-label{
       font-size:11px;
-      font-weight:900;
-      letter-spacing:.08em;
+      letter-spacing:.22em;
       text-transform:uppercase;
+      color:rgba(255,255,255,.65);
+      font-weight:900;
+      white-space:nowrap;
+    }
+
+    .select{
+      appearance:none;
+      -webkit-appearance:none;
+      -moz-appearance:none;
+      border:1px solid rgba(255,255,255,.15);
+      background:rgba(255,255,255,.06);
+      color:rgba(255,255,255,.90);
+      padding:10px 42px 10px 14px;
+      border-radius:12px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      font-size:12px;
       cursor:pointer;
+      outline:none;
+      min-width:210px;
     }
 
-    .season-switch-button:hover{
-      background:var(--btn-bg-hover);
-      border-color:var(--btn-border-hover);
+    .select-wrap::after{
+      content:"▾";
+      position:absolute;
+      right:14px;
+      top:50%;
+      transform:translateY(-50%);
+      color:rgba(255,255,255,.75);
+      pointer-events:none;
+      font-weight:900;
     }
 
-    .season-switch-button.is-active{
-      color:#07111f;
-      background:linear-gradient(180deg, #dbeafe, #93c5fd);
-      border-color:rgba(219,234,254,.88);
+    .select:focus{
+      border-color:rgba(255,255,255,.35);
+      background:rgba(255,255,255,.09);
     }
 
     .card{
@@ -287,6 +309,7 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap:12px;
       align-items:start;
+      margin-top:18px;
     }
 
     .division-card{
@@ -2109,10 +2132,16 @@
     function renderSeasonSwitch(){
       const target = document.getElementById("seasonSwitch");
       if(!target) return;
-      target.innerHTML = SUPER_LEAGUE_SEASONS.map((season) => {
-        const isActive = season === activeSuperLeagueSeason;
-        return `<button class="season-switch-button${isActive ? " is-active" : ""}" type="button" data-season="${escapeHtml(season)}" aria-pressed="${isActive ? "true" : "false"}">${escapeHtml(season)}</button>`;
-      }).join("");
+      target.innerHTML = `
+        <div class="select-wrap" aria-label="Season selector">
+          <label class="select-label" for="seasonSelect">Season</label>
+          <select id="seasonSelect" class="select">
+            ${SUPER_LEAGUE_SEASONS.map((season) => `
+              <option value="${escapeHtml(season)}"${season === activeSuperLeagueSeason ? " selected" : ""}>${escapeHtml(season)}</option>
+            `).join("")}
+          </select>
+        </div>
+      `;
     }
 
     async function setActiveSeason(season){
@@ -2137,17 +2166,17 @@
 
     function setupSeasonSwitch(){
       renderSeasonSwitch();
-      document.getElementById("seasonSwitch")?.addEventListener("click", (event) => {
-        const button = event.target.closest("button[data-season]");
-        if(!button) return;
-        setActiveSeason(button.dataset.season);
+      document.getElementById("seasonSwitch")?.addEventListener("change", (event) => {
+        const select = event.target.closest("select#seasonSelect");
+        if(!select) return;
+        setActiveSeason(select.value);
       });
     }
 
     function applySuperLeagueSeasonHeadings(){
       document.querySelectorAll("[data-superleague-season-title]").forEach((heading) => {
         const suffix = heading.getAttribute("data-superleague-season-title") || "";
-        heading.textContent = `${activeSuperLeagueSeason} ${suffix}`.trim();
+        heading.textContent = suffix === "Standings" ? activeSuperLeagueSeason : `${activeSuperLeagueSeason} ${suffix}`.trim();
       });
     }
 
@@ -3790,7 +3819,7 @@
       const gridEl = document.getElementById("divisionGrid");
 
       try{
-        statusEl.textContent = `Loading ${activeSuperLeagueSeason}...`;
+        statusEl.textContent = "";
         errorEl.textContent = "";
         errorEl.classList.remove("show");
         scheduleWeeks = [];

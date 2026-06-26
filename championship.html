@@ -1639,22 +1639,34 @@
       const championshipComplete = isSuperLeagueMatchComplete(championship);
       const thirdPlaceComplete = isSuperLeagueMatchComplete(thirdPlace);
       const d1FinalRanks = new Map();
+      const d1PlayoffPlayerKeys = new Set();
 
-      if(championshipComplete && thirdPlaceComplete){
+      [matchups[0], matchups[1], championship, thirdPlace].forEach((matchup) => {
+        [matchup?.p1?.name, matchup?.p2?.name].forEach((name) => {
+          const key = superLeaguePlayerKey(name);
+          if(key) d1PlayoffPlayerKeys.add(key);
+        });
+      });
+
+      if(championshipComplete){
         const championKey = getSuperLeagueMatchWinnerKey(championship);
         const runnerUpKey = getSuperLeagueMatchLoserKey(championship);
-        const thirdKey = getSuperLeagueMatchWinnerKey(thirdPlace);
-        const fourthKey = getSuperLeagueMatchLoserKey(thirdPlace);
-        const topFour = [championKey, runnerUpKey, thirdKey, fourthKey].filter(Boolean);
-        if(topFour.length === 4 && new Set(topFour).size === 4){
+        if(championKey && runnerUpKey && championKey !== runnerUpKey){
           d1FinalRanks.set(championKey, 1);
           d1FinalRanks.set(runnerUpKey, 2);
+        }
+      }
+
+      if(thirdPlaceComplete){
+        const thirdKey = getSuperLeagueMatchWinnerKey(thirdPlace);
+        const fourthKey = getSuperLeagueMatchLoserKey(thirdPlace);
+        if(thirdKey && fourthKey && thirdKey !== fourthKey && !d1FinalRanks.has(thirdKey) && !d1FinalRanks.has(fourthKey)){
           d1FinalRanks.set(thirdKey, 3);
           d1FinalRanks.set(fourthKey, 4);
         }
       }
 
-      return { championship, thirdPlace, oneOffs, championshipComplete, thirdPlaceComplete, d1FinalRanks };
+      return { championship, thirdPlace, oneOffs, championshipComplete, thirdPlaceComplete, d1FinalRanks, d1PlayoffPlayerKeys };
     }
 
     function applySuperLeaguePlayoffStatTotals(rows, metadata){
@@ -2074,6 +2086,8 @@
         const pointsList = state.pointSettings[eventKey]?.[division.key] || [];
         const baseRows = mapSuperLeagueRows(rows);
         const rankedRows = rankSuperLeagueRows(baseRows, division.title, headToHeadByDivision, useHeadToHead);
+        const useD1PlayoffRanks = division.key === "division1"
+          && playoffMetadata?.d1FinalRanks?.size > 0;
         if(division.key === "division1"){
           applySuperLeagueDivisionOnePlayoffOverrides(rankedRows, playoffMetadata);
         }
@@ -2082,9 +2096,13 @@
           const name = normalizeText(row?.player);
           if(!name) return;
           const player = ensureParticipant({ name });
-          const points = Number(pointsList[index]) || 0;
+          const playoffRank = useD1PlayoffRanks ? playoffMetadata.d1FinalRanks.get(row.playerKey) : 0;
+          if(useD1PlayoffRanks && playoffMetadata.d1PlayoffPlayerKeys?.has(row.playerKey) && !playoffRank) return;
+          const placementIndex = playoffRank ? playoffRank - 1 : index;
+          const points = Number(pointsList[placementIndex]) || 0;
           if(points <= 0) return;
-          setEventResult(player, eventKey, points, `${division.title} ${index + 1}`, name);
+          const placementLabel = playoffRank ? `${division.title} playoff ${playoffRank}` : `${division.title} ${index + 1}`;
+          setEventResult(player, eventKey, points, placementLabel, name);
         });
       });
 
@@ -2655,9 +2673,11 @@
     }
 
     function formatSuperLeagueResultLabel(result){
-      const match = normalizeText(result).match(/^Division\s+([123])\s+(\d+)$/i);
+      const label = normalizeText(result);
+      const match = label.match(/^Division\s+([123])\s+(?:(playoff)\s+)?(\d+)$/i);
       if(!match) return normalizeText(result);
-      return `${ordinal(match[2])} in D${match[1]}`;
+      const playoffSuffix = match[2] ? " playoff" : "";
+      return `${ordinal(match[3])} in D${match[1]}${playoffSuffix}`;
     }
 
     function formatTournamentResultLabel(eventKey, result){
