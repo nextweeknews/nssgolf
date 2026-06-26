@@ -32,7 +32,7 @@ export const RESERVED_PLAYER_URL_SLUGS = [
   "players",
   "privacy",
   "proleague",
-  "ranked-league-config",
+  "config",
   "records",
   "settings",
   "settings-data",

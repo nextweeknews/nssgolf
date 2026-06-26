@@ -6,7 +6,7 @@ import {
   SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
   SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
   SUPER_LEAGUE_SEASON,
-} from "/ranked-league-config.js";
+} from "/config.js";
 import {
   ADMIN_ROLE_ID,
   countryFlagCodeFor,

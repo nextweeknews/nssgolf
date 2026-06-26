@@ -334,7 +334,7 @@ create table if not exists public.player_custom_urls (
         'players',
         'privacy',
         'proleague',
-        'ranked-league-config',
+        'config',
         'records',
         'settings',
         'settings-data',
