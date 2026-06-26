@@ -1705,20 +1705,18 @@
       if(!metadata || !(metadata.championshipComplete && metadata.thirdPlaceComplete)) return rows;
       if(metadata.d1FinalRanks.size !== 4) return rows;
 
-      const forcedRows = [];
-      rows.forEach((row, index) => {
-        const playoffRank = metadata.d1FinalRanks.get(row.playerKey);
-        if(playoffRank) forcedRows.push({ row, playoffRank, index });
-      });
-      if(!forcedRows.length) return rows;
+      const regularSeasonTopFour = rows.slice(0, 4);
+      const topFourKeys = new Set(regularSeasonTopFour.map(row => row.playerKey));
+      const hasAllPlayoffFinishersInTopFour = [...metadata.d1FinalRanks.keys()].every(key => topFourKeys.has(key));
+      if(!hasAllPlayoffFinishersInTopFour) return rows;
 
-      forcedRows.sort((a, b) => a.playoffRank - b.playoffRank || a.index - b.index);
-      const forcedKeys = new Set(forcedRows.map(entry => entry.row.playerKey));
-      const orderedRows = [
-        ...forcedRows.map(entry => ({ ...entry.row, rank:String(entry.playoffRank), tied:false })),
-        ...rows.filter(row => !forcedKeys.has(row.playerKey)).map((row, index) => ({ ...row, rank:String(index + 5), tied:false })),
-      ];
-      rows.splice(0, rows.length, ...orderedRows);
+      const playoffRows = regularSeasonTopFour
+        .map((row, index) => ({ row, playoffRank:metadata.d1FinalRanks.get(row.playerKey), index }))
+        .sort((a, b) => a.playoffRank - b.playoffRank || a.index - b.index)
+        .map(entry => ({ ...entry.row, rank:String(entry.playoffRank), tied:false }));
+      const regularSeasonRows = rows.slice(4).map((row, index) => ({ ...row, rank:String(index + 5), tied:false }));
+
+      rows.splice(0, rows.length, ...playoffRows, ...regularSeasonRows);
       return rows;
     }
 
