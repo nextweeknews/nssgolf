@@ -206,7 +206,7 @@
 
     .season-switch{
       display:flex;
-      justify-content:center;
+      justify-content:flex-end;
       align-items:center;
       position:relative;
     }
@@ -1598,6 +1598,15 @@
       .brand > div{ min-width: 0; }
       .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
       .topbar-actions{ gap:6px; }
+      .season-switch{ justify-content:stretch; }
+      .season-switch .select-wrap{
+        flex:1 1 220px;
+        min-width:0;
+      }
+      .season-switch .select{
+        min-width:0;
+        width:100%;
+      }
       .superleague-tabs-trigger{ font-size: 11px; padding: 8px 10px; }
       .headline{ font-size: 18px; }
       .card{ padding: 12px 14px 20px; border-radius: 18px; }
@@ -2176,7 +2185,7 @@
     function applySuperLeagueSeasonHeadings(){
       document.querySelectorAll("[data-superleague-season-title]").forEach((heading) => {
         const suffix = heading.getAttribute("data-superleague-season-title") || "";
-        heading.textContent = suffix === "Standings" ? activeSuperLeagueSeason : `${activeSuperLeagueSeason} ${suffix}`.trim();
+        heading.textContent = suffix === "Standings" ? `Super League ${activeSuperLeagueSeason}` : `${activeSuperLeagueSeason} ${suffix}`.trim();
       });
     }
 
