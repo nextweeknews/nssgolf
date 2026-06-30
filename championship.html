@@ -852,6 +852,7 @@
     const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
     const VIEW_QUERY_PARAM = "view";
     const QUALIFIER_QUERY_PARAM = "qualifier";
+    const FETCH_NO_STORE = { cache:"no-store" };
     const QUALIFIER_TABS = [
       { value:"tournaments", label:"Tournaments", id:"qualifierTournamentsTab", controls:"qualifierTournamentsPanel" },
       { value:"pro-league", label:"Shotgun Pro League", id:"qualifierProLeagueTab", controls:"qualifierProLeaguePanel" },
@@ -1210,6 +1211,7 @@
       const payload = { sheetId, range };
       try{
         const response = await fetch(WORKER_URL, {
+          ...FETCH_NO_STORE,
           method:"POST",
           headers:{ "Content-Type":"application/json" },
           body:JSON.stringify(payload),
@@ -1222,7 +1224,7 @@
         const url = new URL(WORKER_URL);
         url.searchParams.set("sheetId", sheetId);
         url.searchParams.set("range", range);
-        const response = await fetch(url.toString());
+        const response = await fetch(url.toString(), FETCH_NO_STORE);
         if(response.ok) return normalizeValues(await response.json());
       }catch{
       }
@@ -1251,7 +1253,7 @@
       url.searchParams.set("tqx", "out:json");
       if(sheetName) url.searchParams.set("sheet", sheetName);
       if(a1) url.searchParams.set("range", a1);
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), FETCH_NO_STORE);
       if(!response.ok){
         const text = await response.text().catch(() => "");
         throw new Error(`Google Sheets request failed (${response.status}). ${text}`.trim());
@@ -2198,37 +2200,26 @@
       return left.display.localeCompare(right.display, undefined, { sensitivity:"base" });
     }
 
-    function noptationalStageRank(player){
-      if(!player.cutCourse) return NOPTATIONAL.courses.length;
-      const courseIndex = NOPTATIONAL.courses.findIndex(course => course.key === player.cutCourse.key);
-      return courseIndex < 0 ? -1 : courseIndex;
-    }
-
     function buildNoptationalPlacementRows(players){
       const withScores = players.filter(player => player.countedCount > 0);
-      const ordered = withScores.sort((left, right) => {
-        const leftStage = noptationalStageRank(left);
-        const rightStage = noptationalStageRank(right);
-        if(leftStage !== rightStage) return rightStage - leftStage;
-        return compareNoptationalPlayers(left, right);
+      const contenders = withScores
+        .filter(player => !player.cutCourse)
+        .sort(compareNoptationalPlayers);
+      const cutRows = NOPTATIONAL.courses.flatMap((course) => {
+        return withScores
+          .filter(player => player.cutCourse?.key === course.key)
+          .sort(compareNoptationalPlayers);
       });
-
-      let previousKey = "";
-      let previousRank = 0;
+      const ordered = [...contenders, ...cutRows];
       ordered.forEach((player, index) => {
-        const placementKey = `${noptationalStageRank(player)}:${player.total}`;
-        if(index === 0 || placementKey !== previousKey){
-          previousRank = index + 1;
-          previousKey = placementKey;
-        }
-        player.rank = previousRank;
+        player.placement = index + 1;
       });
       return ordered;
     }
 
-    function noptationalPointsForRank(rank){
+    function noptationalPointsForPlacement(placement){
       const placementPoints = state.pointSettings.noptational2026?.placements || [];
-      return Number(placementPoints[Number(rank) - 1]) || 0;
+      return Number(placementPoints[Number(placement) - 1]) || 0;
     }
 
     async function scoreNoptational(){
@@ -2242,10 +2233,10 @@
       const rows = buildNoptationalPlacementRows(buildNoptationalPlayers(values, discordIdsByUsername));
 
       rows.forEach((row) => {
-        const points = noptationalPointsForRank(row.rank);
+        const points = noptationalPointsForPlacement(row.placement);
         if(points <= 0) return;
         const player = ensureParticipant({ name:row.display, discordId:row.discordId });
-        setEventResult(player, "noptational2026", points, ordinal(row.rank), row.display);
+        setEventResult(player, "noptational2026", points, ordinal(row.placement), row.display);
       });
 
       const scored = countPlayersWithEvent("noptational2026");
@@ -2589,12 +2580,15 @@
 
       const manualWinnersForSeason = (season) => {
         if(!manualWinnerPromisesBySeason.has(season)){
-          manualWinnerPromisesBySeason.set(season, loadProLeagueManualStageWinners(season));
+          manualWinnerPromisesBySeason.set(season, loadProLeagueManualStageWinners(season).catch((error) => {
+            console.warn(`Unable to load Pro League manual winners for ${seasonLabel(season)}.`, error);
+            return [];
+          }));
         }
         return manualWinnerPromisesBySeason.get(season);
       };
 
-      const periodResults = await Promise.all(PRO_LEAGUE.countedPeriods.map(async (period) => {
+      const periodSettled = await Promise.allSettled(PRO_LEAGUE.countedPeriods.map(async (period) => {
         if(period.stage === "championship"){
           const winners = await loadProLeagueChampionshipWinners(period.season);
           return { period, winners, standings:[] };
@@ -2606,6 +2600,15 @@
         ]);
         return { period, winners, standings };
       }));
+      const periodResults = [];
+      periodSettled.forEach((result, index) => {
+        if(result.status === "fulfilled"){
+          periodResults.push(result.value);
+        }else{
+          const period = PRO_LEAGUE.countedPeriods[index];
+          console.warn(`Unable to load ${proLeaguePeriodLabel(period.season, period.stage)}.`, result.reason);
+        }
+      });
 
       periodResults.forEach(({ period, winners, standings }) => {
         winners.forEach(row => automaticRows.push(row));
@@ -2684,6 +2687,7 @@
 
     async function loadCurrentRankedPayload(){
       const response = await fetch(`${RANKED_LEAGUE_WORKER_URL}${RANKED_LEADERBOARD_SNAPSHOT_PATH}`, {
+        ...FETCH_NO_STORE,
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body:JSON.stringify({ leaderboard_name:CURRENT_RANKED_LEAGUE_SEASON }),
@@ -2791,8 +2795,20 @@
       const tournaments = tournamentQualifiedRows();
       tournaments.filter(row => row.qualified).forEach(row => addQualifiedKey(qualifiedKeys, { player:row.player }));
 
-      const proLeague = await buildProLeagueQualifierRows(qualifiedKeys);
-      const rankedLeague = await buildRankedQualifierRows(qualifiedKeys);
+      let proLeague = [];
+      try{
+        proLeague = await buildProLeagueQualifierRows(qualifiedKeys);
+      }catch(error){
+        console.error("Unable to load Shotgun Pro League qualifiers.", error);
+      }
+      proLeague.filter(row => row.qualified).forEach(row => addQualifiedKey(qualifiedKeys, row));
+
+      let rankedLeague = [];
+      try{
+        rankedLeague = await buildRankedQualifierRows(qualifiedKeys);
+      }catch(error){
+        console.error("Unable to load Ranked League qualifiers.", error);
+      }
       const field = [
         ...tournaments.filter(row => row.qualified).map(row => ({
           player:row.player,
@@ -3535,6 +3551,7 @@
       const initialLoaders = [
         ["lightningCup2026", scoreLightningCup],
         ["worldCup2025", scoreWorldCup2025],
+        ["worldOpen", scoreWorldOpen],
         ["noptational2026", scoreNoptational],
         ["superLeagueS5", scoreSuperLeagueS5],
         ["superLeagueS6", scoreSuperLeagueS6],
@@ -3547,13 +3564,6 @@
           formatSourceStatus(eventKey, "error", result.reason?.message || "Unable to load.");
         }
       });
-
-      try{
-        await scoreWorldOpen();
-      }catch(error){
-        console.error("Unable to load World Open", error);
-        formatSourceStatus("worldOpen", "error", error?.message || "Unable to load.");
-      }
 
       await buildQualifierRows();
       ensureHiddenPlayersForAdminRestore();
