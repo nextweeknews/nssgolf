@@ -879,8 +879,26 @@
       { key:"lightningCup2026", short:"Lightning Cup", label:"Lightning Cup 2026" },
       { key:"worldCup2025", short:"World Cup", label:"World Cup 2025" },
       { key:"worldOpen", short:"World Open", label:"World Open" },
+      { key:"noptational2026", short:"Noptational", label:"The Noptational" },
       { key:"superLeagueS5", short:"Super League S5", label:"Super League S5" },
       { key:"superLeagueS6", short:"Super League S6", label:"Super League S6" },
+    ];
+
+    const NOPTATIONAL_POINTS_BY_RANK = [
+      100,
+      80,
+      70,
+      60,
+      ...Array(4).fill(50),
+      ...Array(4).fill(40),
+      ...Array(4).fill(30),
+      ...Array(4).fill(25),
+      ...Array(4).fill(20),
+      ...Array(4).fill(15),
+      ...Array(4).fill(10),
+      ...Array(4).fill(6),
+      ...Array(4).fill(4),
+      ...Array(4).fill(2),
     ];
 
     const DEFAULT_POINT_SETTINGS = {
@@ -911,6 +929,9 @@
         semifinalist:50,
         runnerUp:70,
         winner:100,
+      },
+      noptational2026:{
+        placements:NOPTATIONAL_POINTS_BY_RANK,
       },
       superLeagueS5:{
         division1:[100,80,65,50,40,30,20,10],
@@ -953,6 +974,9 @@
         runnerUp:"Runner-up",
         winner:"Winner",
       },
+      noptational2026:{
+        placements:"Placement",
+      },
       superLeagueS5:{
         division1:"Division 1",
         division2:"Division 2",
@@ -985,6 +1009,19 @@
         { key:"r5", field:"AC2:AC9", fieldSize:8, matchups:"AE2:AH5", matchSize:4, reachedKey:"quarterfinalist", loserKey:"quarterfinalist" },
         { key:"r6", field:"AJ2:AJ5", fieldSize:4, matchups:"AL2:AO3", matchSize:2, reachedKey:"semifinalist", loserKey:"semifinalist" },
         { key:"r7", field:"AQ2:AQ3", fieldSize:2, matchups:"AS2:AV2", matchSize:1, champion:"AX2:AX2", reachedKey:"runnerUp", loserKey:"runnerUp" },
+      ],
+    };
+
+    const NOPTATIONAL = {
+      sheetId:"1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00",
+      sheetName:"Round Scores (2026)",
+      range:"A1:J250",
+      memberPageSize:1000,
+      courses:[
+        { key:"classic", name:"Classic", minimum:-12, columns:[1, 2] },
+        { key:"resort", name:"Resort", minimum:-10, columns:[3, 4] },
+        { key:"specials", name:"Specials", minimum:-3, columns:[5, 6, 7] },
+        { key:"eighteen", name:"18 Holes", minimum:-22, columns:[8, 9] },
       ],
     };
 
@@ -2052,6 +2089,165 @@
 
       const scored = countPlayersWithEvent("worldOpen");
       formatSourceStatus("worldOpen", "ok", scored ? `${scored} players scored.` : "No completed results found.");
+    }
+
+    function parseNoptationalScore(value){
+      const raw = normalizeText(value);
+      if(!raw) return null;
+      if(/^e$/i.test(raw)) return 0;
+      const cleaned = raw.replace(/[^\d.+-]/g, "");
+      if(!cleaned || cleaned === "+" || cleaned === "-") return null;
+      const number = Number(cleaned);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function noptationalDisplayParts(rawName){
+      const lines = String(rawName ?? "")
+        .split(/\r?\n/)
+        .map(part => part.trim())
+        .filter(Boolean);
+      return {
+        display:lines[0] || "",
+        username:lines[1] || "",
+      };
+    }
+
+    function normalizeUsernameKey(value){
+      return normalizeText(value).replace(/^@+/, "").toLowerCase();
+    }
+
+    async function loadNoptationalMembersByUsername(){
+      const members = [];
+      for(let from = 0;; from += NOPTATIONAL.memberPageSize){
+        const to = from + NOPTATIONAL.memberPageSize - 1;
+        const { data, error } = await supabase
+          .from("discord_guild_members")
+          .select("discord_user_id,username")
+          .eq("is_current_member", true)
+          .range(from, to);
+        if(error) throw error;
+        members.push(...(data || []));
+        if(!data || data.length < NOPTATIONAL.memberPageSize) break;
+      }
+
+      const byUsername = new Map();
+      members.forEach((member) => {
+        const username = normalizeUsernameKey(member?.username);
+        const discordId = normalizeDiscordId(member?.discord_user_id);
+        if(username && discordId && !byUsername.has(username)){
+          byUsername.set(username, discordId);
+        }
+      });
+      return byUsername;
+    }
+
+    function scoreNoptationalCourse(row, course){
+      const scores = course.columns
+        .map(column => parseNoptationalScore(row?.[column]))
+        .filter(score => score !== null);
+      if(!scores.length){
+        return {
+          roundTotal:0,
+          roundCount:0,
+          hasScore:false,
+          madeCut:null,
+        };
+      }
+      return {
+        roundTotal:scores.reduce((sum, score) => sum + score, 0),
+        roundCount:scores.length,
+        hasScore:true,
+        madeCut:Math.min(...scores) <= course.minimum,
+      };
+    }
+
+    function buildNoptationalPlayers(values, discordIdsByUsername){
+      return (values || []).slice(1).map((row = [], index) => {
+        const { display, username } = noptationalDisplayParts(row[0]);
+        if(!display) return null;
+
+        let cutCourse = null;
+        let total = 0;
+        let countedCount = 0;
+        NOPTATIONAL.courses.forEach((course) => {
+          const result = scoreNoptationalCourse(row, course);
+          total += result.roundTotal;
+          countedCount += result.roundCount;
+          if(!cutCourse && result.hasScore && !result.madeCut){
+            cutCourse = course;
+          }
+        });
+
+        return {
+          sourceOrder:index,
+          display,
+          username,
+          discordId:discordIdsByUsername.get(normalizeUsernameKey(username)) || "",
+          cutCourse,
+          total,
+          countedCount,
+        };
+      }).filter(Boolean);
+    }
+
+    function compareNoptationalPlayers(left, right){
+      if(left.total !== right.total) return left.total - right.total;
+      if(left.countedCount !== right.countedCount) return right.countedCount - left.countedCount;
+      return left.display.localeCompare(right.display, undefined, { sensitivity:"base" });
+    }
+
+    function noptationalStageRank(player){
+      if(!player.cutCourse) return NOPTATIONAL.courses.length;
+      const courseIndex = NOPTATIONAL.courses.findIndex(course => course.key === player.cutCourse.key);
+      return courseIndex < 0 ? -1 : courseIndex;
+    }
+
+    function buildNoptationalPlacementRows(players){
+      const withScores = players.filter(player => player.countedCount > 0);
+      const ordered = withScores.sort((left, right) => {
+        const leftStage = noptationalStageRank(left);
+        const rightStage = noptationalStageRank(right);
+        if(leftStage !== rightStage) return rightStage - leftStage;
+        return compareNoptationalPlayers(left, right);
+      });
+
+      let previousKey = "";
+      let previousRank = 0;
+      ordered.forEach((player, index) => {
+        const placementKey = `${noptationalStageRank(player)}:${player.total}`;
+        if(index === 0 || placementKey !== previousKey){
+          previousRank = index + 1;
+          previousKey = placementKey;
+        }
+        player.rank = previousRank;
+      });
+      return ordered;
+    }
+
+    function noptationalPointsForRank(rank){
+      const placementPoints = state.pointSettings.noptational2026?.placements || [];
+      return Number(placementPoints[Number(rank) - 1]) || 0;
+    }
+
+    async function scoreNoptational(){
+      const [values, discordIdsByUsername] = await Promise.all([
+        fetchSheetRange(NOPTATIONAL.sheetId, sheetRange(NOPTATIONAL.sheetName, NOPTATIONAL.range)),
+        loadNoptationalMembersByUsername().catch((error) => {
+          console.warn("Unable to load Noptational Discord member aliases.", error);
+          return new Map();
+        }),
+      ]);
+      const rows = buildNoptationalPlacementRows(buildNoptationalPlayers(values, discordIdsByUsername));
+
+      rows.forEach((row) => {
+        const points = noptationalPointsForRank(row.rank);
+        if(points <= 0) return;
+        const player = ensureParticipant({ name:row.display, discordId:row.discordId });
+        setEventResult(player, "noptational2026", points, ordinal(row.rank), row.display);
+      });
+
+      const scored = countPlayersWithEvent("noptational2026");
+      formatSourceStatus("noptational2026", "ok", scored ? `${scored} players scored.` : "No completed results found.");
     }
 
     async function scoreSuperLeagueSeason(eventKey){
@@ -3301,6 +3497,7 @@
       const initialLoaders = [
         ["lightningCup2026", scoreLightningCup],
         ["worldCup2025", scoreWorldCup2025],
+        ["noptational2026", scoreNoptational],
         ["superLeagueS5", scoreSuperLeagueS5],
         ["superLeagueS6", scoreSuperLeagueS6],
       ];
