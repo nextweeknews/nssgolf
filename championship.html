@@ -850,6 +850,8 @@
     const RANKED_LEAGUE_PER_SEASON = 5;
     const RANKED_LEAGUE_HUNT_COUNT = 5;
     const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
+    const VIEW_QUERY_PARAM = "view";
+    const QUALIFIER_QUERY_PARAM = "qualifier";
     const QUALIFIER_TABS = [
       { value:"tournaments", label:"Tournaments", id:"qualifierTournamentsTab", controls:"qualifierTournamentsPanel" },
       { value:"pro-league", label:"Shotgun Pro League", id:"qualifierProLeagueTab", controls:"qualifierProLeaguePanel" },
@@ -3441,7 +3443,7 @@
       if(els.adminResultsTab) els.adminResultsTab.hidden = !state.isAdmin;
       if(els.settingsTab) els.settingsTab.hidden = !state.isAdmin;
       if(!state.isAdmin && (state.view === "admin-results" || state.view === "settings")){
-        setView("leaderboard");
+        setView("leaderboard", { historyMode:"replace" });
       }
       renderQualifierTables();
       renderAdminResults();
@@ -3453,17 +3455,52 @@
       syncTournamentColumnWidth(els.adminResultsTable);
     }
 
-    function setQualifierView(view){
+    function isValidView(view){
+      return ["leaderboard", "bracket", "admin-results", "settings"].includes(view);
+    }
+
+    function isValidQualifierView(view){
+      return QUALIFIER_TABS.some(tab => tab.value === view);
+    }
+
+    function requestedViewFromUrl(){
+      const view = new URLSearchParams(window.location.search).get(VIEW_QUERY_PARAM);
+      return isValidView(view) ? view : "leaderboard";
+    }
+
+    function requestedQualifierViewFromUrl(){
+      const qualifier = new URLSearchParams(window.location.search).get(QUALIFIER_QUERY_PARAM);
+      return isValidQualifierView(qualifier) ? qualifier : "tournaments";
+    }
+
+    function writeViewUrlState(historyMode = "push"){
+      const url = new URL(window.location.href);
+      url.searchParams.set(VIEW_QUERY_PARAM, isValidView(state.view) ? state.view : "leaderboard");
+      url.searchParams.set(QUALIFIER_QUERY_PARAM, isValidQualifierView(state.qualifierView) ? state.qualifierView : "tournaments");
+      const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+      if(nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
+      const method = historyMode === "replace" ? "replaceState" : "pushState";
+      window.history[method]({}, "", nextUrl);
+    }
+
+    function applyViewUrlState({ updateUrl = false, historyMode = "replace" } = {}){
+      setQualifierView(requestedQualifierViewFromUrl(), { updateUrl:false });
+      setView(requestedViewFromUrl(), { updateUrl:false });
+      if(updateUrl) writeViewUrlState(historyMode);
+    }
+
+    function setQualifierView(view, { updateUrl = true, historyMode = "push" } = {}){
       const nextView = QUALIFIER_TABS.some(tab => tab.value === view) ? view : "tournaments";
       state.qualifierView = nextView;
       document.querySelectorAll("[data-qualifier-panel]").forEach((panel) => {
         panel.hidden = panel.dataset.qualifierPanel !== state.qualifierView;
       });
       if(state.qualifierTabs) state.qualifierTabs.render(state.qualifierView);
+      if(updateUrl) writeViewUrlState(historyMode);
       requestAnimationFrame(syncTableWidths);
     }
 
-    function setView(view){
+    function setView(view, { updateUrl = true, historyMode = "push" } = {}){
       if((view === "admin-results" || view === "settings") && !state.isAdmin) view = "leaderboard";
       state.view = view;
       document.querySelectorAll("[data-view]").forEach((button) => {
@@ -3476,6 +3513,7 @@
       els.bracketPanel.hidden = state.view !== "bracket";
       els.adminResultsPanel.hidden = state.view !== "admin-results";
       els.settingsPanel.hidden = state.view !== "settings";
+      if(updateUrl) writeViewUrlState(historyMode);
       requestAnimationFrame(() => {
         syncTableWidths();
       });
@@ -3532,7 +3570,7 @@
         initialTab:state.qualifierView,
         onTabChange:setQualifierView,
       });
-      setQualifierView(state.qualifierView);
+      setQualifierView(state.qualifierView, { updateUrl:false });
       document.querySelectorAll("[data-view]").forEach((button) => {
         button.addEventListener("click", () => setView(button.dataset.view));
       });
@@ -3613,24 +3651,23 @@
       window.addEventListener("resize", () => {
         syncTableWidths();
       });
-    }
-
-    function requestedViewFromUrl(){
-      const view = new URLSearchParams(window.location.search).get("view");
-      return ["leaderboard", "bracket", "admin-results", "settings"].includes(view) ? view : "leaderboard";
+      window.addEventListener("popstate", () => {
+        applyViewUrlState({ updateUrl:false });
+      });
     }
 
     async function boot(){
       renderSourceStatuses();
+      state.qualifierView = requestedQualifierViewFromUrl();
       bindEvents();
       await loadChampionshipSettings();
       renderSettings();
-      setView("leaderboard");
+      applyViewUrlState({ updateUrl:false });
       await Promise.all([
         loadChampionship(),
         refreshAdminState(),
       ]);
-      setView(requestedViewFromUrl());
+      applyViewUrlState({ updateUrl:true, historyMode:"replace" });
     }
 
     boot().catch((error) => {
