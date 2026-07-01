@@ -261,13 +261,20 @@ async function fetchSeason(season, options, waitForTurn) {
     throw new Error(`Season ${season}: timestamp order check failed:\n${orderProblems.join("\n")}`);
   }
 
-  if (totalMatches != null && matches.length !== totalMatches && !options.allowIncomplete) {
+  const { valid, duplicates } = dedupeMatches(season, matches);
+
+  if (totalMatches != null && matches.length < totalMatches && !options.allowIncomplete) {
     throw new Error(
       `Season ${season}: fetched ${matches.length} match groups, but TeamUp total_matches is ${totalMatches}. Use --allow-incomplete only for testing.`
     );
   }
 
-  const { valid, duplicates } = dedupeMatches(season, matches);
+  if (totalMatches != null && matches.length > totalMatches) {
+    console.warn(
+      `Season ${season}: fetched ${matches.length} match groups, which is ${matches.length - totalMatches} more than TeamUp total_matches (${totalMatches}). Continuing because cursor pagination reached the end.`
+    );
+  }
+
   console.log(
     `Season ${season}: fetched ${matches.length}; valid after dedupe ${valid.length}; skipped duplicates ${duplicates.length}.`
   );
