@@ -26,6 +26,7 @@ on:
         type: choice
         options:
           - test
+          - test-fetch
           - fetch
           - sync
       seasons:
@@ -75,6 +76,35 @@ jobs:
           node --check bot/internal-ranked-core.js
 
   fetch:
+    name: Test internal Ranked League fetch
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'test-fetch'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run internal Ranked League tests
+        run: npm run test:internal-ranked
+
+      - name: Fetch first 5 TeamUp pages and write Supabase
+        run: npm run internal-ranked:fetch -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}" --max-pages 5 --allow-incomplete
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  full-fetch:
     name: Full internal Ranked League fetch
     runs-on: ubuntu-latest
     environment: github-pages
