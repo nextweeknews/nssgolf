@@ -185,13 +185,34 @@ function createRateLimiter(delayMs) {
 
 function teamUpUrlForSeason(season, { cursor = "", limit = defaultLimit } = {}) {
   const baseUrl = String(process.env.TEAMUP_API_BASE_URL || defaultTeamUpApiBaseUrl).replace(/\/+$/, "");
-  const clientId = process.env.TEAMUP_CLIENT_ID || defaultTeamUpClientId;
+  const clientId = teamUpClientId();
   const url = new URL(
     `${baseUrl}/client/${encodeURIComponent(clientId)}/matches/Season_${season}`
   );
   url.searchParams.set("limit", String(limit));
   if (cursor) url.searchParams.set("cursor", cursor);
   return url;
+}
+
+function teamUpClientId() {
+  return process.env.TEAMUP_CLIENT_ID || defaultTeamUpClientId;
+}
+
+function timestampFromMatch(match) {
+  const timestamp = Number(match?.timestamp);
+  return Number.isInteger(timestamp) && timestamp > 0 ? timestamp : null;
+}
+
+function syntheticCursorForSeason(season, match) {
+  const timestamp = timestampFromMatch(match);
+  if (timestamp == null) return "";
+
+  return Buffer.from(
+    JSON.stringify({
+      pk: `${teamUpClientId()}|Season_${season}`,
+      ts: timestamp,
+    })
+  ).toString("base64");
 }
 
 async function fetchJson(url) {
@@ -263,6 +284,19 @@ async function fetchSeason(season, options, waitForTurn) {
       console.warn(
         `Season ${season}: page ${pageCount} returned ${pageMatches.length} matches instead of ${options.limit}, but TeamUp returned another cursor; continuing.`
       );
+    }
+    if (
+      !cursor &&
+      totalMatches != null &&
+      matches.length < totalMatches &&
+      pageMatches.length > 0
+    ) {
+      cursor = syntheticCursorForSeason(season, pageMatches[pageMatches.length - 1]);
+      if (cursor) {
+        console.warn(
+          `Season ${season}: TeamUp omitted a cursor after ${matches.length}/${totalMatches} matches; continuing with a timestamp cursor from the last match on page ${pageCount}.`
+        );
+      }
     }
     if (!cursor) break;
   }
