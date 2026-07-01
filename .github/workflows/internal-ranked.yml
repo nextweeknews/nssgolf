@@ -28,9 +28,10 @@ on:
           - test
           - test-fetch
           - fetch
+          - replay
           - sync
       seasons:
-        description: "Ranked League seasons for fetch/sync"
+        description: "Ranked League seasons for fetch/replay/sync"
         required: true
         default: "7-12"
         type: string
@@ -126,6 +127,32 @@ jobs:
 
       - name: Fetch TeamUp matches and write Supabase
         run: npm run internal-ranked:fetch -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  replay:
+    name: Internal Ranked League Elo replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'replay'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Replay Elo from stored matches
+        run: npm run internal-ranked:replay -- --seasons "${{ github.event.inputs.seasons }}"
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
