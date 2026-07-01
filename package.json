@@ -12,11 +12,15 @@
     "check:player-shell": "node scripts/sync-player-shell.js",
     "discord:scan-members": "node bot/scan-members.js",
     "discord:global-ranks": "node bot/global-ranks-bot.js",
+    "internal-ranked:fetch": "node bot/internal-ranked.js fetch",
+    "internal-ranked:replay": "node bot/internal-ranked.js replay",
+    "internal-ranked:sync": "node bot/internal-ranked.js sync",
     "proleague:aliases:suggest": "node bot/proleague-player-aliases.js suggest",
     "proleague:aliases:export-sql": "node bot/proleague-player-aliases.js export-sql",
     "proleague:aliases:import": "node bot/proleague-player-aliases.js import",
     "sync:player-shell": "node scripts/sync-player-shell.js --write",
     "test:global-ranks": "node bot/global-ranks-core.test.js",
+    "test:internal-ranked": "node bot/internal-ranked-core.test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
