@@ -1,0 +1,127 @@
+name: Internal Ranked League
+
+on:
+  pull_request:
+    paths:
+      - "bot/internal-ranked*.js"
+      - "bot/internal-ranked*.sql"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/internal-ranked.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "bot/internal-ranked*.js"
+      - "bot/internal-ranked*.sql"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/internal-ranked.yml"
+  workflow_dispatch:
+    inputs:
+      run:
+        description: "What should this workflow run?"
+        required: true
+        default: "test"
+        type: choice
+        options:
+          - test
+          - fetch
+          - sync
+      seasons:
+        description: "Ranked League seasons for fetch/sync"
+        required: true
+        default: "7-12"
+        type: string
+      delay_ms:
+        description: "Delay between TeamUp requests for fetch/sync"
+        required: true
+        default: "30000"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: internal-ranked-league
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test internal Ranked League scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.run == 'test'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run internal Ranked League tests
+        run: npm run test:internal-ranked
+
+      - name: Check internal Ranked League CLI syntax
+        run: |
+          node --check bot/internal-ranked.js
+          node --check bot/internal-ranked-core.js
+
+  fetch:
+    name: Full internal Ranked League fetch
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 360
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'fetch'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch TeamUp matches and write Supabase
+        run: npm run internal-ranked:fetch -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  sync:
+    name: Full internal Ranked League fetch and Elo replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 360
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'sync'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch TeamUp matches, write Supabase, and replay Elo
+        run: npm run internal-ranked:sync -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
