@@ -127,6 +127,7 @@ on public.internal_ranked_elo_ratings;
 alter table public.internal_ranked_elo_runs disable row level security;
 alter table public.internal_ranked_elo_ratings disable row level security;
 
+grant usage on schema public to anon, authenticated;
 grant select on public.internal_ranked_elo_runs to anon, authenticated;
 grant select on public.internal_ranked_elo_ratings to anon, authenticated;
 
