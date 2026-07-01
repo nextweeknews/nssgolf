@@ -25,6 +25,7 @@ export const RESERVED_PLAYER_URL_SLUGS = [
   "node_modules",
   "noptational",
   "noptational-tabs",
+  "nssgpi",
   "package",
   "player",
   "player-profile",

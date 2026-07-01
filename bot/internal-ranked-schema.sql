@@ -1,7 +1,8 @@
 -- Internal Ranked League match history and Elo replay tables.
 --
--- These tables are for service-role scripts only. They intentionally do not
--- power the public Ranked League display on nssgolf.com.
+-- These tables are private internal data for writes. Service-role scripts write
+-- them, and the lightweight NSS GPI page reads Elo run/rating summaries.
+-- They intentionally do not power the public Ranked League display on nssgolf.com.
 
 create table if not exists public.internal_ranked_matches (
   match_hash text primary key,
@@ -104,8 +105,6 @@ for each row
 execute function public.set_internal_ranked_matches_updated_at();
 
 alter table public.internal_ranked_matches enable row level security;
-alter table public.internal_ranked_elo_runs enable row level security;
-alter table public.internal_ranked_elo_ratings enable row level security;
 alter table public.internal_ranked_elo_match_results enable row level security;
 
 revoke all on public.internal_ranked_matches from anon, authenticated;
@@ -119,5 +118,16 @@ grant select, insert, update, delete on public.internal_ranked_elo_ratings to se
 grant select, insert, update, delete on public.internal_ranked_elo_match_results to service_role;
 
 grant usage, select on sequence public.internal_ranked_elo_runs_id_seq to service_role;
+
+drop policy if exists "rank admins can read internal ranked elo runs"
+on public.internal_ranked_elo_runs;
+drop policy if exists "rank admins can read internal ranked elo ratings"
+on public.internal_ranked_elo_ratings;
+
+alter table public.internal_ranked_elo_runs disable row level security;
+alter table public.internal_ranked_elo_ratings disable row level security;
+
+grant select on public.internal_ranked_elo_runs to anon, authenticated;
+grant select on public.internal_ranked_elo_ratings to anon, authenticated;
 
 notify pgrst, 'reload schema';
