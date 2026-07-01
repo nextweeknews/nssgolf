@@ -2316,6 +2316,22 @@
       return EVENT_DEFS.reduce((sum, event) => sum + (Number(player.events[event.key]?.points) || 0), 0);
     }
 
+    function playerTournamentTiebreakScores(player){
+      return EVENT_DEFS
+        .map(event => Number(player.events[event.key]?.points) || 0)
+        .sort((left, right) => right - left);
+    }
+
+    function compareTournamentTiebreakScores(leftScores = [], rightScores = []){
+      const length = Math.max(leftScores.length, rightScores.length);
+      for(let index = 0; index < length; index += 1){
+        const left = Number(leftScores[index]) || 0;
+        const right = Number(rightScores[index]) || 0;
+        if(left !== right) return right - left;
+      }
+      return 0;
+    }
+
     function buildRows({ includeHidden = false } = {}){
       const rows = [...state.players.values()]
         .filter(player => includeHidden || !state.hiddenPlayerKeys.has(player.key))
@@ -2323,20 +2339,28 @@
           player,
           name:playerPreferredName(player),
           total:playerTotal(player),
+          tiebreakScores:playerTournamentTiebreakScores(player),
           hidden:state.hiddenPlayerKeys.has(player.key),
         }))
         .filter(row => row.total > 0 || (includeHidden && row.hidden))
         .sort((left, right) => {
           if(right.total !== left.total) return right.total - left.total;
+          const tiebreak = compareTournamentTiebreakScores(left.tiebreakScores, right.tiebreakScores);
+          if(tiebreak !== 0) return tiebreak;
           return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
         });
 
       let previousTotal = null;
+      let previousTiebreakScores = [];
       let previousRank = 0;
       rows.forEach((row, index) => {
-        row.rank = row.total === previousTotal ? previousRank : index + 1;
+        const sameTournamentRank =
+          row.total === previousTotal &&
+          compareTournamentTiebreakScores(row.tiebreakScores, previousTiebreakScores) === 0;
+        row.rank = sameTournamentRank ? previousRank : index + 1;
         row.rankLabel = String(row.rank);
         previousTotal = row.total;
+        previousTiebreakScores = row.tiebreakScores;
         previousRank = row.rank;
       });
       return rows;
@@ -2365,12 +2389,9 @@
 
     function tournamentQualifiedRows(){
       const rows = buildRows();
-      const cutoff = rows.length >= TOURNAMENT_QUALIFIER_TARGET
-        ? rows[TOURNAMENT_QUALIFIER_TARGET - 1].total
-        : (rows[rows.length - 1]?.total ?? null);
       return rows.map((row) => ({
         ...row,
-        qualified:cutoff != null && row.total >= cutoff,
+        qualified:row.rank <= TOURNAMENT_QUALIFIER_TARGET,
         source:"Tournaments",
         detail:`${row.total} pts`,
       }));
@@ -3232,6 +3253,10 @@
         const leftValue = key === "total" ? left.total : Number(left.player.events[key]?.points) || 0;
         const rightValue = key === "total" ? right.total : Number(right.player.events[key]?.points) || 0;
         if(leftValue !== rightValue) return (leftValue - rightValue) * multiplier;
+        if(key === "total"){
+          const tiebreak = compareTournamentTiebreakScores(left.tiebreakScores, right.tiebreakScores);
+          if(tiebreak !== 0) return state.adminSort.direction === "desc" ? tiebreak : -tiebreak;
+        }
         return left.name.localeCompare(right.name, undefined, { sensitivity:"base" });
       });
       els.adminResultsTable.innerHTML = `
