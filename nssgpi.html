@@ -84,16 +84,22 @@
 
     .status.error{ color:var(--danger); }
 
-    .button{
+    .button,
+    .sort-button,
+    .player-button,
+    .modal-close{
       appearance:none;
+      color:var(--text);
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .button{
       border:1px solid rgba(110,231,183,.42);
       background:#0f2a22;
-      color:var(--text);
       border-radius:8px;
       padding:10px 14px;
-      font:inherit;
       font-weight:700;
-      cursor:pointer;
     }
 
     .table-shell{
@@ -106,7 +112,7 @@
 
     table{
       width:100%;
-      min-width:720px;
+      min-width:860px;
       border-collapse:collapse;
     }
 
@@ -130,6 +136,48 @@
       text-align:left;
     }
 
+    .sort-button{
+      display:inline-flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:5px;
+      width:100%;
+      min-height:20px;
+      border:0;
+      background:transparent;
+      padding:0;
+      color:inherit;
+      font-size:inherit;
+      line-height:inherit;
+      text-transform:inherit;
+      letter-spacing:inherit;
+    }
+
+    th:not(.right) .sort-button{
+      justify-content:flex-start;
+    }
+
+    .sort-button::after{
+      content:"";
+      width:0;
+      height:0;
+      border-left:4px solid transparent;
+      border-right:4px solid transparent;
+      border-top:5px solid transparent;
+      opacity:.55;
+    }
+
+    .sort-button[aria-sort="ascending"]::after{
+      border-top:0;
+      border-bottom:5px solid var(--accent);
+      opacity:1;
+    }
+
+    .sort-button[aria-sort="descending"]::after{
+      border-top:5px solid var(--accent);
+      opacity:1;
+    }
+
     tbody tr:last-child td{ border-bottom:0; }
     tbody tr:nth-child(even) td{ background:rgba(255,255,255,.018); }
 
@@ -149,6 +197,25 @@
       align-items:center;
       gap:12px;
       min-width:0;
+    }
+
+    .player-button{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+      width:100%;
+      border:0;
+      background:transparent;
+      padding:0;
+      text-align:left;
+    }
+
+    .player-button:hover .player-name,
+    .player-button:focus-visible .player-name{
+      color:var(--accent);
+      text-decoration:underline;
+      text-underline-offset:3px;
     }
 
     .avatar{
@@ -190,7 +257,142 @@
       width:112px;
     }
 
+    .outcome-cell{
+      color:var(--muted);
+      font-variant-numeric:tabular-nums;
+      text-align:right;
+      white-space:nowrap;
+      width:132px;
+    }
+
+    .win-text{ color:#86efac; }
+    .loss-text{ color:#fca5a5; }
+    .tie-text,
+    .dash-text{ color:var(--muted); }
+
     .right{ text-align:right; }
+
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      display:grid;
+      place-items:center;
+      padding:22px;
+      background:rgba(0,0,0,.66);
+    }
+
+    .modal{
+      width:min(940px, 100%);
+      max-height:min(86vh, 820px);
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+    }
+
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      padding:18px;
+      border-bottom:1px solid var(--line);
+      background:var(--panel-2);
+    }
+
+    .modal-player{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .modal-title{
+      margin:0;
+      font-size:20px;
+      line-height:1.1;
+      letter-spacing:0;
+    }
+
+    .modal-close{
+      width:34px;
+      height:34px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--panel);
+      font-size:22px;
+      line-height:1;
+    }
+
+    .modal-body{
+      padding:18px;
+    }
+
+    .detail-grid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      border:1px solid var(--line);
+      border-radius:8px;
+      overflow:hidden;
+      margin-bottom:18px;
+    }
+
+    .detail-cell{
+      min-width:0;
+      padding:12px;
+      border-right:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.018);
+    }
+
+    .detail-cell:nth-child(4n){ border-right:0; }
+    .detail-cell:nth-last-child(-n+4){ border-bottom:0; }
+
+    .detail-label{
+      display:block;
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      margin-bottom:6px;
+    }
+
+    .detail-value{
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+      overflow-wrap:anywhere;
+    }
+
+    .chart-shell{
+      border:1px solid var(--line);
+      border-radius:8px;
+      overflow:hidden;
+      background:#121417;
+    }
+
+    .chart-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .chart{
+      display:block;
+      width:100%;
+      height:auto;
+      min-height:260px;
+    }
+
+    .chart-empty{
+      padding:18px;
+      color:var(--muted);
+    }
 
     [hidden]{ display:none !important; }
 
@@ -208,6 +410,15 @@
         justify-content:flex-start;
         margin-top:14px;
       }
+
+      .detail-grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .detail-cell:nth-child(4n){ border-right:1px solid var(--line); }
+      .detail-cell:nth-child(2n){ border-right:0; }
+      .detail-cell:nth-last-child(-n+4){ border-bottom:1px solid var(--line); }
+      .detail-cell:nth-last-child(-n+2){ border-bottom:0; }
     }
   </style>
 </head>
@@ -227,19 +438,29 @@
       <table>
         <thead>
           <tr>
-            <th class="rank-cell">Rank</th>
+            <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
             <th>Player</th>
-            <th class="rating-cell right">Rating</th>
-            <th class="number-cell">Matches</th>
-            <th class="number-cell">W</th>
-            <th class="number-cell">L</th>
-            <th class="number-cell">T</th>
+            <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
+            <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
+            <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
+            <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
+            <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
           </tr>
         </thead>
         <tbody id="leaderboardBody"></tbody>
       </table>
     </section>
   </main>
+
+  <div id="playerModal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <header class="modal-head">
+        <div id="modalPlayerHead" class="modal-player"></div>
+        <button id="modalClose" class="modal-close" type="button" aria-label="Close">×</button>
+      </header>
+      <div id="modalBody" class="modal-body"></div>
+    </section>
+  </div>
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
@@ -249,6 +470,12 @@
     const leaderboardEl = document.getElementById("leaderboard");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const runMetaEl = document.getElementById("runMeta");
+    const playerModalEl = document.getElementById("playerModal");
+    const modalPlayerHeadEl = document.getElementById("modalPlayerHead");
+    const modalBodyEl = document.getElementById("modalBody");
+    const modalCloseEl = document.getElementById("modalClose");
+    let leaderboardRows = [];
+    let sortState = { key:"rank", direction:"asc" };
 
     function normalizeText(value){
       return String(value || "").trim();
@@ -301,6 +528,27 @@
       }).format(date);
     }
 
+    function formatShortDate(value){
+      if(!value) return "";
+      const date = new Date(value);
+      if(Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat("en-US", {
+        month:"short",
+        day:"numeric",
+        year:"numeric",
+      }).format(date);
+    }
+
+    function formatPercent(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "";
+      return new Intl.NumberFormat("en-US", {
+        style:"percent",
+        minimumFractionDigits:1,
+        maximumFractionDigits:1,
+      }).format(number);
+    }
+
     async function loadLatestRun(){
       const { data, error } = await supabase
         .from("internal_ranked_elo_runs")
@@ -320,6 +568,27 @@
         .order("rank", { ascending:true });
       if(error) throw error;
       return data || [];
+    }
+
+    async function loadMatchResults(runId){
+      const rows = [];
+      const pageSize = 1000;
+      let from = 0;
+
+      while(true){
+        const { data, error } = await supabase
+          .from("internal_ranked_elo_match_results")
+          .select("discord_user_id,played_at,timestamp_ms,place,rating_after")
+          .eq("run_id", runId)
+          .order("timestamp_ms", { ascending:true })
+          .range(from, from + pageSize - 1);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return rows;
     }
 
     async function loadMembers(discordIds){
@@ -366,34 +635,206 @@
       return normalizeText(member?.server_avatar_url) || normalizeText(member?.avatar_url) || "/logos/golf.png";
     }
 
-    function renderLeaderboard(rows, membersById){
-      leaderboardBodyEl.innerHTML = rows.map((row) => {
+    function outcomeHtml(row){
+      return `
+        <span class="win-text">${escapeHtml(row.pairwise_wins ?? 0)}</span><span class="dash-text">-</span><span class="loss-text">${escapeHtml(row.pairwise_losses ?? 0)}</span><span class="dash-text">-</span><span class="tie-text">${escapeHtml(row.pairwise_ties ?? 0)}</span>
+      `;
+    }
+
+    function buildLeaderboardRows(ratings, membersById, historiesById){
+      return ratings.map((row) => {
         const discordId = normalizeDiscordId(row.discord_user_id);
         const member = membersById.get(discordId);
-        const displayName = memberDisplayName(row, member);
-        const avatarUrl = memberAvatarUrl(member);
+        const history = historiesById.get(discordId) || [];
+        const firstPlaceFinishes = history.filter(result => Number(result.place) === 1).length;
+        const matches = Number(row.matches_played) || history.length || 0;
+        const wins = Number(row.pairwise_wins) || 0;
+        const losses = Number(row.pairwise_losses) || 0;
+        const ties = Number(row.pairwise_ties) || 0;
+        const outcomes = wins + losses + ties;
+        return {
+          ...row,
+          discord_user_id: discordId,
+          member,
+          displayName: memberDisplayName(row, member),
+          avatarUrl: memberAvatarUrl(member),
+          rankNumber: Number(row.rank) || 0,
+          ratingNumber: Number(row.rating) || 0,
+          matchesNumber: matches,
+          winsNumber: wins,
+          lossesNumber: losses,
+          tiesNumber: ties,
+          outcomeWinPct: outcomes > 0 ? wins / outcomes : 0,
+          firstPlaceFinishes,
+          matchWinPct: matches > 0 ? firstPlaceFinishes / matches : 0,
+          history,
+        };
+      });
+    }
+
+    function compareRows(left, right, key){
+      const textCompare = left.displayName.localeCompare(right.displayName, undefined, { sensitivity:"base", numeric:true });
+      if(key === "rank") return left.rankNumber - right.rankNumber || textCompare;
+      if(key === "rating") return left.ratingNumber - right.ratingNumber || left.rankNumber - right.rankNumber;
+      if(key === "matches") return left.matchesNumber - right.matchesNumber || left.rankNumber - right.rankNumber;
+      if(key === "wins") return left.winsNumber - right.winsNumber || left.rankNumber - right.rankNumber;
+      if(key === "outcomeWinPct") return left.outcomeWinPct - right.outcomeWinPct || left.rankNumber - right.rankNumber;
+      if(key === "matchWinPct") return left.matchWinPct - right.matchWinPct || left.rankNumber - right.rankNumber;
+      return left.rankNumber - right.rankNumber || textCompare;
+    }
+
+    function sortedLeaderboardRows(){
+      const directionMultiplier = sortState.direction === "asc" ? 1 : -1;
+      return [...leaderboardRows].sort((left, right) => compareRows(left, right, sortState.key) * directionMultiplier);
+    }
+
+    function updateSortButtons(){
+      document.querySelectorAll(".sort-button[data-sort]").forEach((button) => {
+        const active = button.dataset.sort === sortState.key;
+        button.setAttribute("aria-sort", active ? (sortState.direction === "asc" ? "ascending" : "descending") : "none");
+      });
+    }
+
+    function renderLeaderboard(){
+      const rows = sortedLeaderboardRows();
+      updateSortButtons();
+      leaderboardBodyEl.innerHTML = rows.map((row) => {
         return `
           <tr>
             <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
             <td class="player-cell">
-              <div class="player">
-                <img class="avatar" src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" decoding="async" />
+              <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
+                <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
                 <span>
-                  <span class="player-name">${escapeHtml(displayName)}</span>
-                  <span class="player-id">${escapeHtml(discordId)}</span>
+                  <span class="player-name">${escapeHtml(row.displayName)}</span>
+                  <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
                 </span>
-              </div>
+              </button>
             </td>
             <td class="rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
-            <td class="number-cell">${escapeHtml(row.matches_played ?? "")}</td>
-            <td class="number-cell">${escapeHtml(row.pairwise_wins ?? "")}</td>
-            <td class="number-cell">${escapeHtml(row.pairwise_losses ?? "")}</td>
-            <td class="number-cell">${escapeHtml(row.pairwise_ties ?? "")}</td>
+            <td class="number-cell">${escapeHtml(row.matchesNumber)}</td>
+            <td class="outcome-cell">${outcomeHtml(row)}</td>
+            <td class="number-cell">${escapeHtml(formatPercent(row.outcomeWinPct))}</td>
+            <td class="number-cell">${escapeHtml(formatPercent(row.matchWinPct))}</td>
           </tr>
         `;
       }).join("");
 
       leaderboardEl.hidden = false;
+    }
+
+    function historyByDiscordId(matchResults){
+      const histories = new Map();
+      for(const result of matchResults){
+        const discordId = normalizeDiscordId(result.discord_user_id);
+        if(!discordId) continue;
+        if(!histories.has(discordId)) histories.set(discordId, []);
+        histories.get(discordId).push({
+          played_at: result.played_at,
+          timestamp_ms: Number(result.timestamp_ms) || new Date(result.played_at).getTime(),
+          rating_after: Number(result.rating_after),
+          place: Number(result.place),
+        });
+      }
+      for(const history of histories.values()){
+        history.sort((left, right) => left.timestamp_ms - right.timestamp_ms);
+      }
+      return histories;
+    }
+
+    function chartSvgFor(row){
+      const points = row.history
+        .filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.rating_after))
+        .sort((left, right) => left.timestamp_ms - right.timestamp_ms);
+      if(!points.length){
+        return `<div class="chart-empty">No rating history is available for this player.</div>`;
+      }
+
+      const width = 840;
+      const height = 300;
+      const padLeft = 58;
+      const padRight = 18;
+      const padTop = 22;
+      const padBottom = 42;
+      const chartWidth = width - padLeft - padRight;
+      const chartHeight = height - padTop - padBottom;
+      const minTime = points[0].timestamp_ms;
+      const maxTime = Math.max(Date.now(), points[points.length - 1].timestamp_ms + 1);
+      const ratings = points.map(point => point.rating_after);
+      const minRatingRaw = Math.min(...ratings);
+      const maxRatingRaw = Math.max(...ratings);
+      const spread = Math.max(10, maxRatingRaw - minRatingRaw);
+      const minRating = Math.floor((minRatingRaw - spread * 0.12) / 10) * 10;
+      const maxRating = Math.ceil((maxRatingRaw + spread * 0.12) / 10) * 10;
+      const ratingRange = Math.max(1, maxRating - minRating);
+      const xFor = (timestamp) => padLeft + ((timestamp - minTime) / Math.max(1, maxTime - minTime)) * chartWidth;
+      const yFor = (rating) => padTop + (1 - ((rating - minRating) / ratingRange)) * chartHeight;
+      const polylinePoints = points.map(point => `${xFor(point.timestamp_ms).toFixed(2)},${yFor(point.rating_after).toFixed(2)}`).join(" ");
+      const firstDate = formatShortDate(minTime);
+      const lastDate = formatShortDate(maxTime);
+      const yTicks = [minRating, Math.round((minRating + maxRating) / 2), maxRating];
+      const circles = points.map((point) => `
+        <circle cx="${xFor(point.timestamp_ms).toFixed(2)}" cy="${yFor(point.rating_after).toFixed(2)}" r="3.2" fill="#6ee7b7" opacity=".84">
+          <title>${escapeHtml(`${formatDateTime(point.played_at || point.timestamp_ms)}: ${formatRating(point.rating_after)}`)}</title>
+        </circle>
+      `).join("");
+
+      return `
+        <div class="chart-shell">
+          <div class="chart-head">
+            <span>${escapeHtml(firstDate)}</span>
+            <span>${escapeHtml(points.length)} rating points</span>
+            <span>${escapeHtml(lastDate)}</span>
+          </div>
+          <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Rating over time for ${escapeHtml(row.displayName)}">
+            <rect x="0" y="0" width="${width}" height="${height}" fill="#121417"></rect>
+            ${yTicks.map((tick) => `
+              <line x1="${padLeft}" y1="${yFor(tick).toFixed(2)}" x2="${width - padRight}" y2="${yFor(tick).toFixed(2)}" stroke="#303641" stroke-width="1"></line>
+              <text x="${padLeft - 10}" y="${(yFor(tick) + 4).toFixed(2)}" text-anchor="end" fill="#a9b0bb" font-size="12">${escapeHtml(formatRating(tick))}</text>
+            `).join("")}
+            <line x1="${padLeft}" y1="${padTop}" x2="${padLeft}" y2="${height - padBottom}" stroke="#46505f" stroke-width="1"></line>
+            <line x1="${padLeft}" y1="${height - padBottom}" x2="${width - padRight}" y2="${height - padBottom}" stroke="#46505f" stroke-width="1"></line>
+            <text x="${padLeft}" y="${height - 14}" fill="#a9b0bb" font-size="12">${escapeHtml(firstDate)}</text>
+            <text x="${width - padRight}" y="${height - 14}" text-anchor="end" fill="#a9b0bb" font-size="12">Present</text>
+            <polyline points="${polylinePoints}" fill="none" stroke="#6ee7b7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            ${circles}
+          </svg>
+        </div>
+      `;
+    }
+
+    function openPlayerModal(discordId){
+      const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
+      if(!row) return;
+
+      modalPlayerHeadEl.innerHTML = `
+        <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
+        <span>
+          <h2 id="modalTitle" class="modal-title">${escapeHtml(row.displayName)}</h2>
+          <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
+        </span>
+      `;
+      modalBodyEl.innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
+          <div class="detail-cell"><span class="detail-label">Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
+          <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
+          <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Match Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.matchWinPct))}</span></div>
+          <div class="detail-cell"><span class="detail-label">1st Place</span><span class="detail-value">${escapeHtml(row.firstPlaceFinishes)}</span></div>
+          <div class="detail-cell"><span class="detail-label">Last Match</span><span class="detail-value">${escapeHtml(formatDateTime(row.history.at(-1)?.played_at))}</span></div>
+        </div>
+        ${chartSvgFor(row)}
+      `;
+      playerModalEl.hidden = false;
+      modalCloseEl.focus();
+    }
+
+    function closePlayerModal(){
+      playerModalEl.hidden = true;
+      modalPlayerHeadEl.innerHTML = "";
+      modalBodyEl.innerHTML = "";
     }
 
     async function loadPage(){
@@ -403,12 +844,47 @@
         return;
       }
 
-      const ratings = await loadRatings(run.id);
+      const [ratings, matchResults] = await Promise.all([
+        loadRatings(run.id),
+        loadMatchResults(run.id),
+      ]);
       const membersById = await loadMembers(ratings.map(row => row.discord_user_id));
+      const historiesById = historyByDiscordId(matchResults);
+      leaderboardRows = buildLeaderboardRows(ratings, membersById, historiesById);
       renderRunMeta(run);
-      renderLeaderboard(ratings, membersById);
+      renderLeaderboard();
       hideStatus();
     }
+
+    document.querySelectorAll(".sort-button[data-sort]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const key = button.dataset.sort;
+        const defaultDirection = key === "rank" ? "asc" : "desc";
+        if(sortState.key === key){
+          sortState = {
+            key,
+            direction: sortState.direction === "asc" ? "desc" : "asc",
+          };
+        }else{
+          sortState = { key, direction: defaultDirection };
+        }
+        renderLeaderboard();
+      });
+    });
+
+    leaderboardBodyEl.addEventListener("click", (event) => {
+      const button = event.target.closest(".player-button[data-player-id]");
+      if(!button) return;
+      openPlayerModal(button.dataset.playerId);
+    });
+
+    modalCloseEl.addEventListener("click", closePlayerModal);
+    playerModalEl.addEventListener("click", (event) => {
+      if(event.target === playerModalEl) closePlayerModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if(event.key === "Escape" && !playerModalEl.hidden) closePlayerModal();
+    });
 
     loadPage().catch((error) => {
       console.error(error);

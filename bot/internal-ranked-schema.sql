@@ -105,7 +105,6 @@ for each row
 execute function public.set_internal_ranked_matches_updated_at();
 
 alter table public.internal_ranked_matches enable row level security;
-alter table public.internal_ranked_elo_match_results enable row level security;
 
 revoke all on public.internal_ranked_matches from anon, authenticated;
 revoke all on public.internal_ranked_elo_runs from anon, authenticated;
@@ -126,9 +125,11 @@ on public.internal_ranked_elo_ratings;
 
 alter table public.internal_ranked_elo_runs disable row level security;
 alter table public.internal_ranked_elo_ratings disable row level security;
+alter table public.internal_ranked_elo_match_results disable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.internal_ranked_elo_runs to anon, authenticated;
 grant select on public.internal_ranked_elo_ratings to anon, authenticated;
+grant select on public.internal_ranked_elo_match_results to anon, authenticated;
 
 notify pgrst, 'reload schema';
