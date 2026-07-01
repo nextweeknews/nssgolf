@@ -39,8 +39,7 @@ Options:
   --limit <number>       TeamUp page size. Default: ${defaultLimit}
   --delay-ms <number>    Delay between TeamUp requests. Default: ${defaultDelayMs}
   --max-pages <number>   Testing only: stop after this many pages per season.
-  --allow-incomplete     Allow upserting when total_matches does not match the
-                         number of fetched match groups. Not recommended.
+  --allow-incomplete     Testing only: never fail on total_matches under-fetch.
   --base-rating <number> Elo starting rating. Default: ${DEFAULT_BASE_RATING}
   --k-factor <number>    Elo K-factor. Default: ${DEFAULT_K_FACTOR}
 
@@ -211,6 +210,7 @@ async function fetchSeason(season, options, waitForTurn) {
   let totalMatches = null;
   let pageCount = 0;
   const matches = [];
+  const seenCursors = new Set();
 
   while (true) {
     if (options.maxPages && pageCount >= options.maxPages) {
@@ -221,6 +221,12 @@ async function fetchSeason(season, options, waitForTurn) {
     }
 
     await waitForTurn();
+    if (cursor) {
+      if (seenCursors.has(cursor)) {
+        throw new Error(`Season ${season}: TeamUp returned a repeated cursor; stopping to avoid an infinite fetch loop.`);
+      }
+      seenCursors.add(cursor);
+    }
 
     const url = teamUpUrlForSeason(season, {
       cursor,
@@ -253,6 +259,11 @@ async function fetchSeason(season, options, waitForTurn) {
     );
 
     cursor = String(payload.cursor || "");
+    if (cursor && pageMatches.length !== options.limit) {
+      console.warn(
+        `Season ${season}: page ${pageCount} returned ${pageMatches.length} matches instead of ${options.limit}, but TeamUp returned another cursor; continuing.`
+      );
+    }
     if (!cursor) break;
   }
 
@@ -263,9 +274,19 @@ async function fetchSeason(season, options, waitForTurn) {
 
   const { valid, duplicates } = dedupeMatches(season, matches);
 
-  if (totalMatches != null && matches.length < totalMatches && !options.allowIncomplete) {
-    throw new Error(
-      `Season ${season}: fetched ${matches.length} match groups, but TeamUp total_matches is ${totalMatches}. Use --allow-incomplete only for testing.`
+  if (totalMatches != null && matches.length < totalMatches) {
+    const deficit = totalMatches - matches.length;
+    const fetchedRatio = totalMatches === 0 ? 1 : matches.length / totalMatches;
+    const underFetchMessage = `Season ${season}: fetched ${matches.length} match groups, which is ${deficit} fewer than TeamUp total_matches (${totalMatches}).`;
+
+    if (!options.allowIncomplete && fetchedRatio < 0.95) {
+      throw new Error(
+        `${underFetchMessage} This is below the 95% completeness threshold, so the fetch is probably incomplete.`
+      );
+    }
+
+    console.warn(
+      `${underFetchMessage} Continuing because fetched results are within the 5% tolerance${options.allowIncomplete ? " or --allow-incomplete was set" : ""}.`
     );
   }
 
