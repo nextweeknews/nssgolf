@@ -1027,6 +1027,7 @@
         { key:"eighteen", name:"18 Holes", minimum:-22, columns:[8, 9] },
       ],
     };
+    const NOPTATIONAL_CUT_COURSES = [...NOPTATIONAL.courses].reverse();
 
     const SUPER_LEAGUE_BASE = {
       sheetId:"1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY",
@@ -2205,7 +2206,7 @@
       const contenders = withScores
         .filter(player => !player.cutCourse)
         .sort(compareNoptationalPlayers);
-      const cutRows = NOPTATIONAL.courses.flatMap((course) => {
+      const cutRows = NOPTATIONAL_CUT_COURSES.flatMap((course) => {
         return withScores
           .filter(player => player.cutCourse?.key === course.key)
           .sort(compareNoptationalPlayers);

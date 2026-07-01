@@ -815,6 +815,7 @@
       { key:"specials", name:"Specials", minimum:-3, columns:[5, 6, 7] },
       { key:"eighteen", name:"18 Holes", minimum:-22, columns:[8, 9] },
     ];
+    const CUT_COURSES = [...COURSES].reverse();
 
     const SCORE_COLUMNS = [
       { course:"classic", label:"C1", title:"Classic R1", column:1 },
@@ -1114,7 +1115,7 @@
       const playersWithScores = players.filter(player => player.countedCount > 0);
       const noScorePlayers = players.filter(player => player.countedCount === 0).sort(comparePlayers);
       const contenders = rankContenders(playersWithScores.filter(player => !player.cutCourse));
-      const cutGroups = COURSES.map(course => ({
+      const cutGroups = CUT_COURSES.map(course => ({
         course,
         players:playersWithScores.filter(player => player.cutCourse?.key === course.key).sort(comparePlayers),
       })).filter(group => group.players.length > 0);
