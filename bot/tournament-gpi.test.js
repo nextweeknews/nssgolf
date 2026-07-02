@@ -75,6 +75,41 @@ const identityMap = {
 }
 
 {
+  const parsed = parseSuperLeagueScheduleRows(
+    [[
+      "1",
+      "Division 1",
+      "",
+      "Alice",
+      "",
+      "",
+      "",
+      "2",
+      "",
+      "",
+      "W",
+      "",
+      "Unmapped Player",
+      "",
+      "",
+      "",
+      "1",
+      "",
+      "",
+      "L",
+    ]],
+    { key: "super_league_s5", name: "Super League Season 5" },
+    0,
+    identityMap,
+    0
+  );
+
+  assert.equal(parsed.matches.length, 0);
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0].reason, /unresolved player identity/);
+}
+
+{
   const matches = buildLightningMatchesFromRows([
     ["id", "round", "region", "top seed", "top", "top score", "bottom seed", "bottom", "bottom score", "winner"],
     [1, "R64", 1, 1, "Alice", "2", 64, "Bob", "0", "Alice"],

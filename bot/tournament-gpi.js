@@ -54,7 +54,7 @@ Commands:
   sync    Run fetch, then replay.
 
 Options:
-  --allow-unresolved       Skip matches whose players cannot be mapped to Discord IDs.
+  --fail-on-unresolved     Fail if any matchup cannot be mapped to Discord IDs.
   --base-rating <number>   PL base rating. Default: ${DEFAULT_BASE_RATING}
   --rating-scale <number>  PL log-skill to rating scale. Default: ${DEFAULT_PL_RATING_SCALE.toFixed(6)}
   --pl-prior <number>      PL population-average prior strength. Default: ${DEFAULT_PL_PRIOR_STRENGTH}
@@ -712,9 +712,9 @@ async function fetchAndUpsert(options) {
   for (const warning of warnings) {
     console.warn(`${warning.event_key} ${warning.source_match_id}: ${warning.reason}`);
   }
-  if (warnings.length && !options.allowUnresolved) {
+  if (warnings.length && options.failOnUnresolved) {
     throw new Error(
-      `Tournament fetch found ${warnings.length} unresolved or incomplete matchups. Add aliases/Discord IDs or rerun with --allow-unresolved to skip them.`
+      `Tournament fetch found ${warnings.length} unresolved or incomplete matchups. Add aliases/Discord IDs or rerun without --fail-on-unresolved to skip them.`
     );
   }
 
@@ -858,7 +858,7 @@ async function replayStoredTournamentMatches(options) {
 
 function parseOptions() {
   return {
-    allowUnresolved: hasFlag("--allow-unresolved"),
+    failOnUnresolved: hasFlag("--fail-on-unresolved"),
     baseRating: getNumberArg("--base-rating", DEFAULT_BASE_RATING),
     ratingScale: getNumberArg("--rating-scale", DEFAULT_PL_RATING_SCALE),
     plPrior: getNumberArg("--pl-prior", DEFAULT_PL_PRIOR_STRENGTH),
