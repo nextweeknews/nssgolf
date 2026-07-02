@@ -819,6 +819,7 @@
             <span class="formula-label">Recent Form</span>
             <code>recent_form_pl = opponent-aware weighted pairwise Plackett-Luce from each player's last 100 Ranked League matches</code>
             <code>recent_form_shrinkage_matches = 0</code>
+            <code>recent_form_pl = z_score_normalize(recent_form_pl, recent_distribution, full_history_distribution)</code>
             <code>if ranked_matches &lt; 100: recent_form_pl = full_history_pl</code>
           </li>
           <li>

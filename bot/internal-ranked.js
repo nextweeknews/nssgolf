@@ -771,6 +771,7 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
         sample: "each_player_last_100_ranked_matches",
         match_limit: replay.recentFormMatchLimit,
         shrinkage_matches: replay.recentFormShrinkageMatches,
+        normalization: replay.recentFormNormalization,
         fallback: replay.recentFormFallback,
       },
     },

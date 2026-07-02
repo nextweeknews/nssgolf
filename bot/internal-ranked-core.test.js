@@ -427,6 +427,10 @@ function match(timestamp, results, versus = "1v1v1") {
   assertAlmostEqual(byPlayer.get("100").recent_form_rating, byPlayer.get("100").full_history_rating);
   assert.equal(replay.recencyMode, "none");
   assert.equal(replay.recentFormShrinkageMatches, 0);
+  assert.equal(
+    replay.recentFormNormalization.mode,
+    "z_score_recent_pl_to_full_history_pl_distribution"
+  );
   assert.equal(replay.recentFormFallback, "players_below_recent_match_limit_use_full_history_pl");
 }
 
@@ -464,10 +468,22 @@ function match(timestamp, results, versus = "1v1v1") {
     maxIterations: 200,
   });
   const player = replay.finalRatings.find((row) => row.discord_user_id === "100");
-  assert(player.recent_form_rating > player.full_history_rating);
+  const eligibleRows = replay.finalRatings.filter(
+    (row) => row.matches_played >= replay.recentFormMatchLimit
+  );
+  const mean = (rows, key) =>
+    rows.reduce((sum, row) => sum + row[key], 0) / Math.max(1, rows.length);
   assert(player.recent_form_rating > 1200);
   assert.equal(replay.recentFormMatchLimit, 100);
   assert.equal(replay.recentFormShrinkageMatches, 0);
+  assert.equal(
+    replay.recentFormNormalization.mode,
+    "z_score_recent_pl_to_full_history_pl_distribution"
+  );
+  assertAlmostEqual(
+    mean(eligibleRows, "recent_form_rating"),
+    mean(eligibleRows, "full_history_rating")
+  );
 }
 
 {

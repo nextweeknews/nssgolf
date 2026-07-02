@@ -375,6 +375,38 @@ function priorStrengthForMatches(matchesPlayed, fullReliabilityMatches, priorStr
   return priorFloor + (maxPrior - priorFloor) * (1 - reliability);
 }
 
+function distributionStats(values) {
+  const numbers = values.map(Number).filter(Number.isFinite);
+  const count = numbers.length;
+  if (count === 0) return { count: 0, mean: 0, standardDeviation: 0 };
+  const mean = numbers.reduce((sum, value) => sum + value, 0) / count;
+  const variance =
+    numbers.reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.max(1, count);
+  return {
+    count,
+    mean,
+    standardDeviation: Math.sqrt(variance),
+  };
+}
+
+function normalizeRatingToDistribution(value, sourceStats, targetStats) {
+  const rating = Number(value);
+  if (!Number.isFinite(rating)) return value;
+  if (
+    sourceStats.count < 2 ||
+    targetStats.count < 2 ||
+    sourceStats.standardDeviation <= 0 ||
+    targetStats.standardDeviation <= 0
+  ) {
+    return rating;
+  }
+  return (
+    targetStats.mean +
+    ((rating - sourceStats.mean) / sourceStats.standardDeviation) *
+      targetStats.standardDeviation
+  );
+}
+
 function pairWeightForMatchSize(playerCount, options = {}) {
   const cleanPlayerCount = Number(playerCount);
   if (!Number.isFinite(cleanPlayerCount) || cleanPlayerCount <= 1) return 0;
@@ -1351,6 +1383,27 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     shrinkageMatches,
     weightingOptions,
   });
+  const recentFormEligiblePlayerIds = playerIds.filter(
+    (discordUserId) => statsByPlayer.get(discordUserId).matches_played >= recentFormMatchLimit
+  );
+  const recentFormSourceStats = distributionStats(
+    recentFormEligiblePlayerIds.map(
+      (discordUserId) => recentFormFit.ratings.get(discordUserId)?.rating
+    )
+  );
+  const recentFormTargetStats = distributionStats(
+    recentFormEligiblePlayerIds.map(
+      (discordUserId) => fullHistoryFit.ratings.get(discordUserId)?.rating
+    )
+  );
+  const recentFormNormalization = {
+    mode: "z_score_recent_pl_to_full_history_pl_distribution",
+    eligible_player_count: recentFormEligiblePlayerIds.length,
+    source_recent_mean: recentFormSourceStats.mean,
+    source_recent_standard_deviation: recentFormSourceStats.standardDeviation,
+    target_full_history_mean: recentFormTargetStats.mean,
+    target_full_history_standard_deviation: recentFormTargetStats.standardDeviation,
+  };
 
   const finalRatings = playerIds
     .map((discordUserId) => {
@@ -1359,7 +1412,21 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
       const potential = potentialRatings.get(discordUserId);
       const recentFitRating = recentFormFit.ratings.get(discordUserId);
       const recentForm =
-        state.matches_played < recentFormMatchLimit ? fullHistory : recentFitRating;
+        state.matches_played < recentFormMatchLimit
+          ? fullHistory
+          : {
+              ...recentFitRating,
+              rating: normalizeRatingToDistribution(
+                recentFitRating.rating,
+                recentFormSourceStats,
+                recentFormTargetStats
+              ),
+              raw_rating: normalizeRatingToDistribution(
+                recentFitRating.raw_rating,
+                recentFormSourceStats,
+                recentFormTargetStats
+              ),
+            };
       const rawRating =
         (fullHistoryWeight * fullHistory.raw_rating +
           potentialWeight * potential.raw_rating +
@@ -1430,6 +1497,7 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     recencyMode: "none",
     recentFormMatchLimit,
     recentFormShrinkageMatches,
+    recentFormNormalization,
     recentFormFallback: "players_below_recent_match_limit_use_full_history_pl",
     componentWeights: {
       fullHistory: fullHistoryWeight / componentWeightTotal,
