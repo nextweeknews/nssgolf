@@ -12,7 +12,7 @@ const DEFAULT_PL_PRIOR_STRENGTH = 20;
 const DEFAULT_PL_SHRINKAGE_MATCHES = 10;
 const DEFAULT_PL_MAX_ITERATIONS = 500;
 const DEFAULT_PL_TOLERANCE = 0.000001;
-const DEFAULT_PL_RECENCY_MODE = "match";
+const DEFAULT_PL_RECENCY_MODE = "player";
 const DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE = 0.35;
 const DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT = 2;
 const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
@@ -273,7 +273,60 @@ function matchRecencyWeightForIndex(index, totalMatches) {
 }
 
 function recencyWeightForMatch(matchRow, latestTimestampMs, index, totalMatches, mode) {
+  if (mode === "none") return 1;
   return matchRecencyWeightForIndex(index, totalMatches);
+}
+
+function playerMatchRecencyWeights(matchRows, recencyMode) {
+  const playerMatchIndexes = new Map();
+  for (let matchIndex = 0; matchIndex < matchRows.length; matchIndex += 1) {
+    const players = playersFromMatch(matchRows[matchIndex]);
+    for (const player of players) {
+      if (!playerMatchIndexes.has(player.discord_user_id)) {
+        playerMatchIndexes.set(player.discord_user_id, []);
+      }
+      playerMatchIndexes.get(player.discord_user_id).push(matchIndex);
+    }
+  }
+
+  const weightsByMatchAndPlayer = new Map();
+  for (const [discordUserId, indexes] of playerMatchIndexes.entries()) {
+    for (let playerMatchIndex = 0; playerMatchIndex < indexes.length; playerMatchIndex += 1) {
+      const matchIndex = indexes[playerMatchIndex];
+      if (!weightsByMatchAndPlayer.has(matchIndex)) weightsByMatchAndPlayer.set(matchIndex, new Map());
+      weightsByMatchAndPlayer
+        .get(matchIndex)
+        .set(
+          discordUserId,
+          recencyMode === "none" ? 1 : matchRecencyWeightForIndex(playerMatchIndex, indexes.length)
+        );
+    }
+  }
+
+  return weightsByMatchAndPlayer;
+}
+
+function plWeightForPlayer(matchIndex, player, context) {
+  if (context.recencyMode === "none") return 1;
+  if (context.recencyMode === "global") {
+    return recencyWeightForMatch(
+      context.matchRows[matchIndex],
+      context.latestTimestampMs,
+      matchIndex,
+      context.matchRows.length,
+      context.recencyMode
+    );
+  }
+  return context.playerWeights.get(matchIndex)?.get(player.discord_user_id) ?? 1;
+}
+
+function averagePlWeightForPlayers(matchIndex, players, context) {
+  if (!players.length) return 1;
+  const total = players.reduce(
+    (sum, player) => sum + plWeightForPlayer(matchIndex, player, context),
+    0
+  );
+  return total / players.length;
 }
 
 function placementScore(place, playerCount) {
@@ -315,7 +368,7 @@ function expectedFieldScore(player, players, beforeRatings) {
   return total / (players.length - 1);
 }
 
-function summarizeMatchStats(matchRows, latestTimestampMs, recencyMode) {
+function summarizeMatchStats(matchRows, recencyContext) {
   const states = new Map();
 
   function stateFor(player) {
@@ -343,13 +396,6 @@ function summarizeMatchStats(matchRows, latestTimestampMs, recencyMode) {
     const players = playersFromMatch(matchRow);
     if (players.length < 2) continue;
 
-    const weight = recencyWeightForMatch(
-      matchRow,
-      latestTimestampMs,
-      matchIndex,
-      matchRows.length,
-      recencyMode
-    );
     const playedAt = matchRow.played_at || playedAtFromTimestamp(matchRow.timestamp_ms);
     const perMatchStats = new Map(
       players.map((player) => [player.discord_user_id, { wins: 0, losses: 0, ties: 0 }])
@@ -379,6 +425,7 @@ function summarizeMatchStats(matchRows, latestTimestampMs, recencyMode) {
       const state = stateFor(player);
       const stats = perMatchStats.get(player.discord_user_id);
       const normalizedPlacement = placementScore(player.place, players.length);
+      const weight = plWeightForPlayer(matchIndex, player, recencyContext);
 
       state.matches_played += 1;
       state.weighted_matches += weight;
@@ -740,8 +787,8 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   if (!Number.isFinite(tolerance) || tolerance <= 0) {
     throw new Error("tolerance must be a positive finite number.");
   }
-  if (recencyMode !== "match") {
-    throw new Error("recencyMode must be match.");
+  if (!["player", "global", "none"].includes(recencyMode)) {
+    throw new Error("recencyMode must be one of: player, global, none.");
   }
 
   const sortedMatches = [...matchRows]
@@ -755,7 +802,13 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     (latest, matchRow) => Math.max(latest, asInteger(matchRow.timestamp_ms) || 0),
     0
   );
-  const statsByPlayer = summarizeMatchStats(sortedMatches, latestTimestampMs, recencyMode);
+  const recencyContext = {
+    recencyMode,
+    matchRows: sortedMatches,
+    latestTimestampMs,
+    playerWeights: playerMatchRecencyWeights(sortedMatches, recencyMode),
+  };
+  const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
   const playerIds = [...statsByPlayer.keys()].sort();
   const abilities = new Map(playerIds.map((discordUserId) => [discordUserId, 1]));
 
@@ -772,13 +825,6 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
       const groups = groupedPlayersFromMatch(matchRow);
       if (groups.length < 2) continue;
 
-      const weight = recencyWeightForMatch(
-        matchRow,
-        latestTimestampMs,
-        matchIndex,
-        sortedMatches.length,
-        recencyMode
-      );
       let remainingIds = groups.flat().map((player) => player.discord_user_id);
 
       for (const group of groups) {
@@ -790,14 +836,17 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
         );
         if (denominator <= 0) break;
 
-        const stageMultiplier = weight * group.length;
+        const stageWeight = averagePlWeightForPlayers(matchIndex, group, recencyContext);
         for (const player of group) {
-          numerators.set(player.discord_user_id, numerators.get(player.discord_user_id) + weight);
+          numerators.set(
+            player.discord_user_id,
+            numerators.get(player.discord_user_id) + plWeightForPlayer(matchIndex, player, recencyContext)
+          );
         }
         for (const discordUserId of remainingIds) {
           denominators.set(
             discordUserId,
-            denominators.get(discordUserId) + stageMultiplier / denominator
+            denominators.get(discordUserId) + (stageWeight * group.length) / denominator
           );
         }
 

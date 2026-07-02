@@ -106,7 +106,11 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(matchRecencyWeightForIndex(9, 10), 1);
   assert(matchRecencyWeightForIndex(0, 10) < matchRecencyWeightForIndex(9, 10));
   assert.equal(
-    recencyWeightForMatch({ timestamp_ms: 1_000 }, 1_000 + 1200 * 24 * 60 * 60 * 1000, 9, 10, "match"),
+    recencyWeightForMatch({ timestamp_ms: 1_000 }, 1_000 + 1200 * 24 * 60 * 60 * 1000, 9, 10, "global"),
+    1
+  );
+  assert.equal(
+    recencyWeightForMatch({ timestamp_ms: 1_000 }, 1_000 + 1200 * 24 * 60 * 60 * 1000, 0, 10, "none"),
     1
   );
 }
@@ -170,6 +174,53 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(winner.reliability, 100 / 110);
   assert(winner.weighted_matches < winner.matches_played);
   assert(winner.rating > 1200);
+}
+
+{
+  const rows = [];
+  rows.push({
+    match_hash: "inactive-elite",
+    season: 7,
+    timestamp_ms: 1_000,
+    played_at: new Date(1_000).toISOString(),
+    raw_match: match(1_000, [
+      { place: 1, players: ["300"] },
+      { place: 2, players: ["100"] },
+    ], "1v1"),
+  });
+  for (let index = 0; index < 20; index += 1) {
+    const timestamp = 10_000 + index;
+    rows.push({
+      match_hash: `active-${index}`,
+      season: 7,
+      timestamp_ms: timestamp,
+      played_at: new Date(timestamp).toISOString(),
+      raw_match: match(timestamp, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    });
+  }
+
+  const playerWeighted = replayPlackettLuceGpi(rows, {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+    recencyMode: "player",
+  });
+  const globalWeighted = replayPlackettLuceGpi(rows, {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+    recencyMode: "global",
+  });
+
+  const playerModeInactive = playerWeighted.finalRatings.find((row) => row.discord_user_id === "300");
+  const globalModeInactive = globalWeighted.finalRatings.find((row) => row.discord_user_id === "300");
+
+  assert(playerModeInactive.weighted_matches > globalModeInactive.weighted_matches);
 }
 
 {

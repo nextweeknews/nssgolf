@@ -51,8 +51,8 @@ Commands:
            Recalculate NSS GPI from stored matches using normalized placement
            score Elo and write a new GPI run.
   replay-pl
-           Recalculate NSS GPI from stored matches using a match-recency-weighted
-           batch Plackett-Luce model and write a new GPI run.
+           Recalculate NSS GPI from stored matches using a player-normalized
+           recency weighted batch Plackett-Luce model and write a new GPI run.
   sync     Run fetch, then replay.
   sync-nps Run fetch, then replay-nps.
   sync-pl  Run fetch, then replay-pl.
@@ -81,7 +81,7 @@ Options:
                          Total matches needed before raw PL skill is mostly
                          trusted. Default: ${DEFAULT_PL_SHRINKAGE_MATCHES}
   --pl-recency-mode <mode>
-                         Recency weighting mode. Only match is supported.
+                         PL recency weighting mode: player, global, or none.
                          Default: ${DEFAULT_PL_RECENCY_MODE}
   --pl-iterations <number>
                          Max Plackett-Luce fit iterations. Default: ${DEFAULT_PL_MAX_ITERATIONS}
@@ -604,11 +604,15 @@ async function replayStoredMatchesPlackettLuce(options) {
     tie_handling: "same_place_players_share_a_rank_group",
     recency_weighting: {
       mode: options.plRecencyMode,
-      basis: "match_order_only",
-      newest_20_percent_of_matches: 1,
-      next_20_percent_of_matches: "linear_0.85_to_0.70",
-      next_30_percent_of_matches: "linear_0.65_to_0.40",
-      oldest_30_percent_of_matches: "linear_0.35_to_0.15",
+      basis: options.plRecencyMode === "player"
+        ? "each_player_own_match_order"
+        : options.plRecencyMode === "global"
+          ? "global_match_order"
+          : "flat_all_history",
+      newest_20_percent: 1,
+      next_20_percent: "linear_0.85_to_0.70",
+      next_30_percent: "linear_0.65_to_0.40",
+      oldest_30_percent: "linear_0.35_to_0.15",
     },
     prior_strength: options.plPrior,
     shrinkage_matches: options.plShrinkageMatches,
