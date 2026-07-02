@@ -25,6 +25,13 @@
       --gold:#facc15;
       --green:#86efac;
       --red:#fca5a5;
+      --region-accent-rgb:134,239,172;
+      --qualifier-round-column-width:360px;
+      --qualifier-match-height:64px;
+      --qualifier-seed-col-width:14px;
+      --qualifier-score-col-width:14px;
+      --qualifier-final-score-width:24px;
+      --qualifier-scorepack-width:186px;
     }
 
     *{ box-sizing:border-box; }
@@ -517,6 +524,228 @@
       color:#bfdbfe;
       text-decoration:underline;
     }
+    .qualifier-bracket-scroll{
+      width:100%;
+      overflow-x:auto;
+      overflow-y:hidden;
+      padding-bottom:4px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:rgba(2,6,23,.28);
+    }
+    .qualifier-bracket-grid{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:var(--qualifier-round-column-width);
+      gap:18px;
+      align-items:start;
+      width:max-content;
+      min-width:100%;
+      justify-content:center;
+      padding:14px;
+    }
+    .qualifier-round-column{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width:0;
+    }
+    .qualifier-round-title{
+      margin:0;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.09em;
+      text-align:center;
+      text-transform:uppercase;
+    }
+    .qualifier-round-stack{
+      display:flex;
+      flex-direction:column;
+      gap:var(--qualifier-round-gap, 8px);
+    }
+    .qualifier-round-stack .qualifier-bracket-match:first-child{
+      padding-top:var(--qualifier-round-padding-top, 0px);
+    }
+    .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{
+      padding-top:var(--qualifier-round-gap, 8px);
+    }
+    .qualifier-bracket-match{
+      display:grid;
+      grid-template-columns:22px minmax(0, 1fr);
+      column-gap:6px;
+      align-items:center;
+      width:100%;
+      min-height:var(--qualifier-match-height);
+    }
+    .qualifier-match-info{
+      width:22px;
+      height:22px;
+      border-radius:999px;
+      border:1px solid var(--btn-border);
+      background:var(--btn-bg);
+      color:rgba(233,238,248,.86);
+      display:grid;
+      place-items:center;
+      font-family:Georgia, "Times New Roman", serif;
+      font-size:11px;
+      font-style:italic;
+      font-weight:700;
+      line-height:1;
+    }
+    .qualifier-match-card{
+      position:relative;
+      width:100%;
+      min-width:0;
+      border-radius:10px;
+      overflow:hidden;
+      background:rgba(255,255,255,.05);
+      isolation:isolate;
+    }
+    .qualifier-match-card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:3;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:inherit;
+      pointer-events:none;
+    }
+    .qualifier-match-row{
+      width:100%;
+      min-height:24px;
+      position:relative;
+      z-index:1;
+      display:grid;
+      grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr) var(--qualifier-scorepack-width);
+      align-items:center;
+      gap:8px;
+      padding:3px 5px 3px 6px;
+      border:0;
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:10px;
+      text-align:left;
+    }
+    .qualifier-match-row.no-score{
+      grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr);
+    }
+    .qualifier-match-row:first-child{
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+    }
+    .qualifier-match-row:last-child{
+      border-bottom-left-radius:10px;
+      border-bottom-right-radius:10px;
+    }
+    .qualifier-match-row:nth-child(2){
+      background:rgba(255,255,255,.045);
+    }
+    .qualifier-match-row + .qualifier-match-row{
+      border-top:1px solid rgba(148,163,184,.38);
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner{
+      background:rgba(var(--region-accent-rgb), .12);
+      border-color:rgba(var(--region-accent-rgb), .55);
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner + .qualifier-match-row{
+      border-top-color:rgba(var(--region-accent-rgb), .44);
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner:first-child::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-top:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
+      border-top-left-radius:inherit;
+      border-top-right-radius:inherit;
+      pointer-events:none;
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner:last-child::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-bottom:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
+      border-bottom-left-radius:inherit;
+      border-bottom-right-radius:inherit;
+      pointer-events:none;
+    }
+    .qualifier-player-seed{
+      width:100%;
+      color:#93c5fd;
+      font-weight:800;
+      font-variant-numeric:tabular-nums;
+      text-align:center;
+    }
+    .qualifier-player-name,
+    .qualifier-player-name-link{
+      min-width:0;
+      overflow:hidden;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.02em;
+      text-overflow:ellipsis;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .qualifier-player-name-link{
+      text-decoration:none;
+    }
+    .qualifier-player-name-link:hover{
+      color:#bfdbfe;
+      text-decoration:underline;
+    }
+    .qualifier-player-scorepack{
+      display:grid;
+      grid-template-columns:repeat(9, var(--qualifier-score-col-width)) var(--qualifier-final-score-width);
+      align-items:stretch;
+      justify-content:end;
+      justify-items:stretch;
+      gap:4px;
+      width:var(--qualifier-scorepack-width);
+      min-width:var(--qualifier-scorepack-width);
+    }
+    .qualifier-player-set-score{
+      width:100%;
+      min-height:16px;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:.02em;
+      text-align:center;
+    }
+    .qualifier-player-final-score{
+      width:var(--qualifier-final-score-width);
+      height:16px;
+      border:1px solid #fff;
+      border-radius:6px;
+      background:#fff;
+      color:#000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      justify-self:stretch;
+      padding:0;
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+      line-height:1;
+      text-align:center;
+      white-space:nowrap;
+    }
+    .bracket-empty-state{
+      margin:0;
+      padding:18px;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:850;
+      text-align:center;
+    }
     .player-avatar{
       width:34px;
       height:34px;
@@ -696,6 +925,23 @@
       table{ min-width:820px; }
       tbody td,
       thead th{ padding:9px 10px; }
+      .qualifier-bracket-scroll{
+        scroll-snap-type:x mandatory;
+        scroll-behavior:smooth;
+        scroll-padding-inline:14px;
+        overscroll-behavior-x:contain;
+        -webkit-overflow-scrolling:touch;
+      }
+      .qualifier-bracket-grid{
+        grid-auto-columns:336px;
+        gap:14px;
+        justify-content:flex-start;
+        padding-right:34px;
+      }
+      .qualifier-round-column{
+        scroll-snap-align:start;
+        scroll-snap-stop:always;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css" />
@@ -789,7 +1035,13 @@
       </section>
 
       <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab" hidden>
-        <div class="coming-soon">Coming soon</div>
+        <div class="table-toolbar">
+          <h2 class="toolbar-title">Bracket</h2>
+          <span class="toolbar-meta" id="bracketMeta">Loading bracket...</span>
+        </div>
+        <div class="qualifier-bracket-scroll">
+          <div class="qualifier-bracket-grid" id="championshipBracketGrid"></div>
+        </div>
       </section>
 
       <section class="panel" id="adminResultsPanel" aria-label="Admin tournament results" hidden>
@@ -855,6 +1107,21 @@
       { name:"Quintin", discordId:"1298424321353584690" },
       { name:"M shake", discordId:"1077940286816256040" },
     ];
+    const CHAMPIONSHIP_BRACKET = {
+      sheetId:"10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q",
+      fieldRange:"'Field'!B:C",
+      bracketRange:"'Bracket'!A:Z",
+      roundOrder:["R64", "R32", "R16", "R8", "R4", "Final", "3rd"],
+    };
+    const CHAMPIONSHIP_ROUND_LABELS = {
+      R64:"Round of 64",
+      R32:"Round of 32",
+      R16:"Round of 16",
+      R8:"Quarterfinals",
+      R4:"Semifinals",
+      Final:"Final",
+      "3rd":"3rd Place",
+    };
     const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
     const VIEW_QUERY_PARAM = "view";
     const QUALIFIER_QUERY_PARAM = "qualifier";
@@ -1081,6 +1348,9 @@
         field:[],
       },
       qualifiersLoading:true,
+      bracketMatches:[],
+      bracketLoading:true,
+      bracketError:"",
       proLeagueAliasDiscordByKey:new Map(),
       rankedSeasonPayloads:new Map(),
       adminSort:{ key:"total", direction:"desc" },
@@ -1098,6 +1368,8 @@
       proLeagueTable:document.getElementById("proLeagueTable"),
       rankedLeagueTable:document.getElementById("rankedLeagueTable"),
       fieldTable:document.getElementById("fieldTable"),
+      championshipBracketGrid:document.getElementById("championshipBracketGrid"),
+      bracketMeta:document.getElementById("bracketMeta"),
       adminResultsTable:document.getElementById("adminResultsTable"),
       adminLoginBtn:document.getElementById("adminLoginBtn"),
       adminResultsTab:document.getElementById("adminResultsTab"),
@@ -1270,6 +1542,118 @@
 
     function sheetRange(sheetName, a1){
       return `'${sheetName}'!${a1}`;
+    }
+
+    function normalizeChampionshipRound(value){
+      const text = normalizeText(value);
+      const normalized = text.toLowerCase().replace(/[\s_-]+/g, "");
+      if(["r64", "roundof64", "64"].includes(normalized)) return "R64";
+      if(["r32", "roundof32", "32"].includes(normalized)) return "R32";
+      if(["r16", "roundof16", "16"].includes(normalized)) return "R16";
+      if(["r8", "roundof8", "quarterfinal", "quarterfinals", "qf", "8"].includes(normalized)) return "R8";
+      if(["r4", "roundof4", "semifinal", "semifinals", "sf", "4"].includes(normalized)) return "R4";
+      if(["f", "final", "finals", "championship"].includes(normalized)) return "Final";
+      if(["3rd", "third", "thirdplace", "3rdplace", "bronze"].includes(normalized)) return "3rd";
+      return text;
+    }
+
+    function bracketSeed(value){
+      const text = normalizeText(value);
+      if(!text) return null;
+      const number = Number(text);
+      return Number.isFinite(number) ? number : text;
+    }
+
+    function bracketScore(value){
+      const text = normalizeText(value);
+      if(!text) return "";
+      const number = Number(text);
+      return Number.isFinite(number) ? String(number) : text;
+    }
+
+    function championshipBracketGameScores(row, startIndex){
+      return Array.from({ length:9 }, (_, offset) => normalizeText(row?.[startIndex + offset]));
+    }
+
+    function parseChampionshipFieldDiscordIds(rows){
+      const discordIdsByName = new Map();
+      rows.forEach((row, index) => {
+        const name = normalizeText(row?.[0]);
+        const discordId = normalizeDiscordId(row?.[1]);
+        if(index < 2 && /^player/i.test(name)) return;
+        if(!name || !discordId) return;
+        discordIdsByName.set(normalizeNameKey(name), discordId);
+        ensureParticipant({ name, discordId });
+      });
+      return discordIdsByName;
+    }
+
+    function championshipBracketSlot(row, { seedIndex, nameIndex, scoreIndex, gameScoreStartIndex }, discordIdsByName){
+      const name = normalizeText(row?.[nameIndex]);
+      const discordId = discordIdsByName.get(normalizeNameKey(name)) || "";
+      return {
+        seed:bracketSeed(row?.[seedIndex]),
+        name,
+        discordId,
+        score:bracketScore(row?.[scoreIndex]),
+        gameScores:championshipBracketGameScores(row, gameScoreStartIndex),
+        player:ensureParticipant({ name, discordId }),
+      };
+    }
+
+    function championshipBracketWinner(match){
+      const topScore = Number(match?.top?.score);
+      const bottomScore = Number(match?.bottom?.score);
+      if(!Number.isFinite(topScore) || !Number.isFinite(bottomScore) || topScore === bottomScore) return "";
+      return topScore > bottomScore ? normalizeText(match.top.name) : normalizeText(match.bottom.name);
+    }
+
+    function parseChampionshipBracketMatches(rows, discordIdsByName){
+      return rows.map((row) => {
+        const match = {
+          id:Number(row?.[0]),
+          round:normalizeChampionshipRound(row?.[1]),
+          top:championshipBracketSlot(row, {
+            seedIndex:2,
+            nameIndex:3,
+            scoreIndex:4,
+            gameScoreStartIndex:5,
+          }, discordIdsByName),
+          bottom:championshipBracketSlot(row, {
+            seedIndex:14,
+            nameIndex:15,
+            scoreIndex:16,
+            gameScoreStartIndex:17,
+          }, discordIdsByName),
+          winner:"",
+        };
+        match.winner = championshipBracketWinner(match);
+        return match;
+      }).filter(match => (
+        Number.isFinite(match.id) &&
+        CHAMPIONSHIP_BRACKET.roundOrder.includes(match.round)
+      )).sort((left, right) => left.id - right.id);
+    }
+
+    async function loadChampionshipBracket(){
+      state.bracketLoading = true;
+      state.bracketError = "";
+      renderBracket();
+      try{
+        const [fieldRows, bracketRows] = await Promise.all([
+          fetchSheetRange(CHAMPIONSHIP_BRACKET.sheetId, CHAMPIONSHIP_BRACKET.fieldRange),
+          fetchSheetRange(CHAMPIONSHIP_BRACKET.sheetId, CHAMPIONSHIP_BRACKET.bracketRange),
+        ]);
+        const discordIdsByName = parseChampionshipFieldDiscordIds(fieldRows);
+        state.bracketMatches = parseChampionshipBracketMatches(bracketRows, discordIdsByName);
+      }catch(error){
+        console.error("Unable to load World Championship bracket.", error);
+        state.bracketMatches = [];
+        state.bracketError = error?.message || "Unable to load bracket.";
+      }finally{
+        state.bracketLoading = false;
+        renderBracket();
+      }
     }
 
     function proLeagueSheetName(season, stage){
@@ -3213,6 +3597,109 @@
       `;
     }
 
+    function championshipBracketGroups(matches){
+      return CHAMPIONSHIP_BRACKET.roundOrder
+        .map(round => ({ round, matches:matches.filter(match => match.round === round) }))
+        .filter(group => group.matches.length);
+    }
+
+    function renderChampionshipBracketPlayerName(slot){
+      const name = normalizeText(slot?.name);
+      const safeName = escapeHtml(name);
+      const discordId = normalizeDiscordId(slot?.discordId || slot?.player?.discordId);
+      if(!discordId) return `<span class="qualifier-player-name">${safeName}</span>`;
+      return `<a class="qualifier-player-name-link" href="/player.html?id=${encodeURIComponent(discordId)}">${safeName}</a>`;
+    }
+
+    function renderChampionshipBracketScorepack(slot){
+      const hasScore = normalizeText(slot?.score) || (Array.isArray(slot?.gameScores) && slot.gameScores.some(score => normalizeText(score)));
+      if(!hasScore) return "";
+      const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.slice(0, 9) : [];
+      while(gameScores.length < 9) gameScores.push("");
+      return `<span class="qualifier-player-scorepack">${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(slot?.score || "-")}</span></span>`;
+    }
+
+    function renderChampionshipBracketRow(match, slot){
+      const isWinner = normalizeText(match.winner) && normalizeNameKey(match.winner) === normalizeNameKey(slot?.name);
+      const hasScore = normalizeText(slot?.score) || (Array.isArray(slot?.gameScores) && slot.gameScores.some(score => normalizeText(score)));
+      const rowClasses = [
+        "qualifier-match-row",
+        hasScore ? "" : "no-score",
+        isWinner ? "winner" : "",
+      ].filter(Boolean).join(" ");
+      return `
+        <div class="${rowClasses}" data-match-id="${escapeHtml(match.id)}" data-name="${escapeHtml(slot?.name || "")}" data-seed="${escapeHtml(slot?.seed ?? "")}">
+          <span class="qualifier-player-seed">${escapeHtml(slot?.seed ?? "")}</span>
+          ${renderChampionshipBracketPlayerName(slot)}
+          ${renderChampionshipBracketScorepack(slot)}
+        </div>
+      `;
+    }
+
+    function renderBracket(){
+      if(!els.championshipBracketGrid) return;
+      if(state.bracketLoading){
+        els.championshipBracketGrid.dataset.bracketMode = "actual";
+        els.championshipBracketGrid.innerHTML = `<p class="bracket-empty-state">Loading bracket...</p>`;
+        if(els.bracketMeta) els.bracketMeta.textContent = "Loading bracket...";
+        return;
+      }
+      if(state.bracketError){
+        els.championshipBracketGrid.innerHTML = `<p class="bracket-empty-state">${escapeHtml(state.bracketError)}</p>`;
+        if(els.bracketMeta) els.bracketMeta.textContent = "Unable to load bracket";
+        return;
+      }
+      const matches = state.bracketMatches || [];
+      if(!matches.length){
+        els.championshipBracketGrid.innerHTML = `<p class="bracket-empty-state">No bracket matches available yet.</p>`;
+        if(els.bracketMeta) els.bracketMeta.textContent = "No matches available";
+        return;
+      }
+
+      const groups = championshipBracketGroups(matches);
+      const baseRoundGap = 8;
+      const matchBlockHeight = 64;
+      const baseRoundStep = matchBlockHeight + (baseRoundGap * 2);
+      const roundTopPaddingAdjustments = {
+        R32:8,
+        R16:0,
+        R8:-16,
+        Final:8,
+        "3rd":88,
+      };
+      const roundGapAdjustments = {
+        R16:-8,
+      };
+
+      els.championshipBracketGrid.dataset.bracketMode = "actual";
+      els.championshipBracketGrid.innerHTML = groups.map((group, roundIndex) => {
+        const effectiveRoundIndex = group.round === "3rd" ? Math.max(0, roundIndex - 1) : roundIndex;
+        const roundMultiplier = 2 ** effectiveRoundIndex;
+        const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2) + (roundGapAdjustments[group.round] || 0);
+        const baseRoundTopPadding = effectiveRoundIndex === 0
+          ? 0
+          : Math.round((baseRoundStep * (roundMultiplier - 1)) / 2);
+        const roundTopPadding = baseRoundTopPadding + (roundTopPaddingAdjustments[group.round] || 0);
+        return `
+          <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGap}px;--qualifier-round-padding-top:${roundTopPadding}px;">
+            <h3 class="qualifier-round-title">${escapeHtml(CHAMPIONSHIP_ROUND_LABELS[group.round] || group.round)}</h3>
+            <div class="qualifier-round-stack">
+              ${group.matches.map(match => `
+                <div class="qualifier-bracket-match">
+                  <span class="qualifier-match-info" aria-label="Match ${escapeHtml(match.id)}">${escapeHtml(match.id)}</span>
+                  <div class="qualifier-match-card">
+                    ${renderChampionshipBracketRow(match, match.top)}
+                    ${renderChampionshipBracketRow(match, match.bottom)}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      }).join("");
+      if(els.bracketMeta) els.bracketMeta.textContent = `${matches.length} matches`;
+    }
+
     function renderQualifierTables(){
       renderLeaderboard();
       renderProLeagueQualifiers();
@@ -3583,8 +4070,12 @@
         field:[],
       };
       state.qualifiersLoading = true;
+      state.bracketMatches = [];
+      state.bracketLoading = true;
+      state.bracketError = "";
       EVENT_DEFS.forEach(event => formatSourceStatus(event.key, "pending", "Loading..."));
       renderQualifierTables();
+      renderBracket();
 
       const initialLoaders = [
         ["lightningCup2026", scoreLightningCup],
@@ -3603,6 +4094,7 @@
         }
       });
 
+      await loadChampionshipBracket();
       await buildQualifierRows();
       ensureHiddenPlayersForAdminRestore();
       state.qualifiersLoading = false;

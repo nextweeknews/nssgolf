@@ -5,6 +5,7 @@ on:
     paths:
       - "bot/internal-ranked*.js"
       - "bot/internal-ranked*.sql"
+      - "bot/tournament-gpi*.js"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/internal-ranked.yml"
@@ -14,6 +15,7 @@ on:
     paths:
       - "bot/internal-ranked*.js"
       - "bot/internal-ranked*.sql"
+      - "bot/tournament-gpi*.js"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/internal-ranked.yml"
@@ -36,6 +38,10 @@ on:
           - sync-nps
           - sync-oawp
           - sync-pl
+          - tournament-test
+          - tournament-fetch
+          - tournament-replay
+          - tournament-sync
       seasons:
         description: "Ranked League seasons for fetch/replay/sync"
         required: true
@@ -75,12 +81,15 @@ jobs:
         run: npm ci
 
       - name: Run internal Ranked League tests
-        run: npm run test:internal-ranked
+        run: |
+          npm run test:internal-ranked
+          npm run test:tournament-gpi
 
       - name: Check internal Ranked League CLI syntax
         run: |
           node --check bot/internal-ranked.js
           node --check bot/internal-ranked-core.js
+          node --check bot/tournament-gpi.js
 
   fetch:
     name: Test internal Ranked League fetch
@@ -341,6 +350,115 @@ jobs:
 
       - name: Fetch TeamUp matches, write Supabase, and replay Opponent-Aware Weighted Pairwise GPI
         run: npm run internal-ranked:sync-oawp -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  tournament-test:
+    name: Test Tournament GPI scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'tournament-test'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tournament GPI tests
+        run: npm run test:tournament-gpi
+
+      - name: Check Tournament GPI CLI syntax
+        run: node --check bot/tournament-gpi.js
+
+  tournament-fetch:
+    name: Tournament GPI fetch
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'tournament-fetch'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tournament GPI tests
+        run: npm run test:tournament-gpi
+
+      - name: Fetch tournament matches and write Supabase
+        run: npm run tournament-gpi:fetch
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  tournament-replay:
+    name: Tournament GPI flat PL replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'tournament-replay'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Replay Tournament GPI from stored matches
+        run: npm run tournament-gpi:replay
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  tournament-sync:
+    name: Tournament GPI fetch and flat PL replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 120
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'tournament-sync'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tournament GPI tests
+        run: npm run test:tournament-gpi
+
+      - name: Fetch tournament matches, write Supabase, and replay Tournament GPI
+        run: npm run tournament-gpi:sync
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
