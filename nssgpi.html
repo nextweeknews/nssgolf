@@ -142,6 +142,68 @@
 
     .status.error{ color:var(--danger); }
 
+    .about-panel{
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .about-section{
+      padding:20px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .about-section:last-child{
+      border-bottom:0;
+    }
+
+    .about-section h2{
+      margin:0 0 10px;
+      font-size:18px;
+      line-height:1.2;
+      letter-spacing:0;
+    }
+
+    .about-section p{
+      max-width:78ch;
+      margin:0 0 12px;
+      color:var(--muted);
+      line-height:1.55;
+    }
+
+    .formula-list{
+      display:grid;
+      gap:8px;
+      margin:14px 0 0;
+      padding:0;
+      list-style:none;
+    }
+
+    .formula-list li{
+      display:grid;
+      gap:5px;
+      padding:10px 0;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+
+    .formula-label{
+      color:var(--text);
+      font-size:12px;
+      font-weight:850;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+    }
+
+    code{
+      color:#d1fae5;
+      font-family:"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size:13px;
+      line-height:1.5;
+      overflow-wrap:anywhere;
+    }
+
     .button,
     .sort-button,
     .player-button,
@@ -476,6 +538,7 @@
       <button class="gpi-tab" type="button" role="tab" data-view="gpi" aria-selected="true">GPI</button>
       <button class="gpi-tab" type="button" role="tab" data-view="ranked" aria-selected="false">Ranked League</button>
       <button class="gpi-tab" type="button" role="tab" data-view="tournament" aria-selected="false">Tournaments</button>
+      <button class="gpi-tab" type="button" role="tab" data-view="about" aria-selected="false">About GPI</button>
     </div>
 
     <div id="status" class="status">Loading...</div>
@@ -495,6 +558,95 @@
           </thead>
           <tbody id="leaderboardBody"></tbody>
         </table>
+      </div>
+    </section>
+
+    <section id="aboutPanel" class="about-panel" hidden aria-label="About NSS GPI">
+      <div class="about-section">
+        <h2>Overall GPI</h2>
+        <p>
+          Overall GPI uses the Ranked League rating as the baseline, then applies a reliability-weighted tournament adjustment after translating tournament performance onto the Ranked League scale.
+        </p>
+        <ul class="formula-list">
+          <li>
+            <span class="formula-label">Eligibility</span>
+            <code>if tournament_matches &lt; 3: total_gpi = ranked_rating</code>
+          </li>
+          <li>
+            <span class="formula-label">Standardization</span>
+            <code>ranked_z = (ranked_rating - ranked_mean) / ranked_std</code>
+            <code>tournament_z = (tournament_rating - tournament_mean) / tournament_std</code>
+            <code>tournament_delta_z = tournament_z - ranked_z</code>
+          </li>
+          <li>
+            <span class="formula-label">Reliability</span>
+            <code>tournament_reliability = min(1, tournament_weighted_matches / 20)</code>
+          </li>
+          <li>
+            <span class="formula-label">Adjustment</span>
+            <code>if tournament_delta_z &gt;= 0: tournament_delta = reliability * 120 * tanh(tournament_delta_z / 1.5)</code>
+            <code>if tournament_delta_z &lt; 0: tournament_delta = reliability * 60 * tanh(tournament_delta_z / 1.5)</code>
+          </li>
+          <li>
+            <span class="formula-label">Total</span>
+            <code>total_gpi = ranked_rating + tournament_delta</code>
+          </li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h2>Ranked League Rating</h2>
+        <p>
+          Ranked League GPI is an opponent-aware composite built from the full ranked sample, peak performance, and recent player-aware form.
+        </p>
+        <ul class="formula-list">
+          <li>
+            <span class="formula-label">Composite</span>
+            <code>ranked_rating = 0.50 * full_history_pl + 0.25 * peak_pairwise_elo + 0.25 * recent_form_pl</code>
+          </li>
+          <li>
+            <span class="formula-label">Full History</span>
+            <code>full_history_pl = opponent-aware weighted pairwise Plackett-Luce over all tracked Ranked League matches</code>
+          </li>
+          <li>
+            <span class="formula-label">Potential</span>
+            <code>peak_pairwise_elo = highest weighted pairwise Elo reached during the ranked replay</code>
+          </li>
+          <li>
+            <span class="formula-label">Recent Form</span>
+            <code>recent_form_pl = opponent-aware weighted pairwise Plackett-Luce from each player's last 100 Ranked League matches</code>
+          </li>
+          <li>
+            <span class="formula-label">Lobby Weight</span>
+            <code>match_weight = min(3, 1 + 0.7 * log2(player_count - 1))</code>
+            <code>pair_weight = match_weight / (player_count - 1)</code>
+          </li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h2>Tournament Rating</h2>
+        <p>
+          Tournament GPI is independent from the Ranked League model. It uses flat Plackett-Luce ratings from solo 1v1 tournament results, with each tournament match counted as twice the weight of a Ranked League match.
+        </p>
+        <ul class="formula-list">
+          <li>
+            <span class="formula-label">Model</span>
+            <code>tournament_rating = flat Plackett-Luce rating from tracked solo 1v1 tournament matches</code>
+          </li>
+          <li>
+            <span class="formula-label">Match Weight</span>
+            <code>tournament_weighted_matches = tournament_matches * 2</code>
+          </li>
+          <li>
+            <span class="formula-label">Reliability</span>
+            <code>tournament_reliability = min(1, tournament_weighted_matches / 20)</code>
+          </li>
+          <li>
+            <span class="formula-label">Recency</span>
+            <code>recency_weight = none</code>
+          </li>
+        </ul>
       </div>
     </section>
   </main>
@@ -518,6 +670,7 @@
     const leaderboardEl = document.getElementById("leaderboard");
     const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
+    const aboutPanelEl = document.getElementById("aboutPanel");
     const runMetaEl = document.getElementById("runMeta");
     const pageInfoEl = document.getElementById("pageInfo");
     const prevPageEl = document.getElementById("prevPage");
@@ -540,16 +693,13 @@
         noRunMessage: "No combined NSS GPI is available yet. Run the Ranked OAWP replay and Tournament GPI replay first.",
         meta(run){
           return [
-            "NSS GPI",
-            "Ranked baseline",
-            "Tournament normalized delta",
-            `Min ${this.minMatches} ranked matches`,
-            `Min ${COMBINED_MIN_TOURNAMENT_MATCHES} tournament matches for adjustment`,
-            "Current Discord members",
-            `Ranked Run #${run.ranked.id}`,
-            `Tournament Run #${run.tournament.id}`,
+            `${formatInteger((Number(run.ranked.match_count) || 0) + (Number(run.tournament.match_count) || 0))} Matches Tracked`,
           ];
         },
+      },
+      about: {
+        kind: "about",
+        subtitle: "How NSS GPI is calculated",
       },
       ranked: {
         kind: "standard",
@@ -563,18 +713,7 @@
         ratingsSelect: "discord_user_id,display_name,rating,raw_rating,full_history_rating,potential_rating,recent_form_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank",
         meta(run){
           return [
-            "NSS GPI",
-            "Opponent-Aware",
-            "50% Full History",
-            "25% Potential",
-            "25% Recent Form",
-            "8p~3x Lobby Weight",
-            `Min ${this.minMatches} matches`,
-            "Current Discord members",
-            `Seasons ${run.season_start}-${run.season_end}`,
-            `${run.match_count} matches`,
-            `Run #${run.id}`,
-            formatDateTime(run.created_at),
+            `${formatInteger(run.match_count)} Matches Tracked`,
           ];
         },
       },
@@ -590,31 +729,43 @@
         ratingsSelect: "discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank",
         meta(run){
           return [
-            "Tournament GPI",
-            "Flat PL",
-            "Solo 1v1",
-            "No recency",
-            "No lobby weighting",
-            `Min ${this.minMatches} match`,
-            "Current Discord members",
-            "SL S5 -> World Open -> Lightning Cup -> SL S6",
-            `${run.match_count} matches`,
-            `Run #${run.id}`,
-            formatDateTime(run.created_at),
+            `${formatInteger(run.match_count)} Matches Tracked`,
           ];
         },
       },
     };
-    let currentView = "gpi";
+    let currentView = viewFromUrl();
     let latestRun = null;
     let allLeaderboardRows = [];
     let leaderboardRows = [];
     let totalRatings = 0;
     let currentPage = 0;
     let sortState = { key:"rank", direction:"asc" };
+    let loadRequestId = 0;
 
     function activeConfig(){
       return VIEW_CONFIG[currentView] || VIEW_CONFIG.ranked;
+    }
+
+    function viewFromUrl(){
+      const requestedView = new URLSearchParams(window.location.search).get("view") || "gpi";
+      return VIEW_CONFIG[requestedView] ? requestedView : "gpi";
+    }
+
+    function updateTabSelection(){
+      document.querySelectorAll(".gpi-tab[data-view]").forEach((button) => {
+        button.setAttribute("aria-selected", button.dataset.view === currentView ? "true" : "false");
+      });
+    }
+
+    function updateUrlForView(view){
+      const url = new URL(window.location.href);
+      if(view === "gpi"){
+        url.searchParams.delete("view");
+      }else{
+        url.searchParams.set("view", view);
+      }
+      window.history.pushState({ view }, "", url);
     }
 
     function normalizeText(value){
@@ -644,6 +795,14 @@
 
     function hideStatus(){
       statusEl.hidden = true;
+    }
+
+    function formatInteger(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "0";
+      return new Intl.NumberFormat("en-US", {
+        maximumFractionDigits:0,
+      }).format(number);
     }
 
     function formatRating(value){
@@ -1108,16 +1267,23 @@
     }
 
     async function loadPage(){
+      const requestId = ++loadRequestId;
       const config = activeConfig();
+      aboutPanelEl.hidden = true;
       renderTableHeader();
       pageSubtitleEl.textContent = config.subtitle;
+      if(config.kind === "about"){
+        renderAboutPage();
+        return;
+      }
       if(config.kind === "combined"){
-        const loaded = await loadCombinedPage();
+        const loaded = await loadCombinedPage(requestId);
         if(loaded) hideStatus();
         return;
       }
 
       latestRun = await loadLatestRunByModel(config.model, config);
+      if(requestId !== loadRequestId) return;
       if(!latestRun){
         leaderboardEl.hidden = true;
         runMetaEl.hidden = true;
@@ -1126,18 +1292,21 @@
       }
 
       await loadLeaderboardData();
+      if(requestId !== loadRequestId) return;
       await loadLeaderboardPage(0);
+      if(requestId !== loadRequestId) return;
       renderRunMeta(latestRun);
       hideStatus();
     }
 
-    async function loadCombinedPage(){
+    async function loadCombinedPage(requestId){
       const rankedConfig = VIEW_CONFIG.ranked;
       const tournamentConfig = VIEW_CONFIG.tournament;
       const [rankedRun, tournamentRun] = await Promise.all([
         loadLatestRunByModel(rankedConfig.model, rankedConfig),
         loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
       ]);
+      if(requestId !== loadRequestId) return false;
 
       if(!rankedRun || !tournamentRun){
         leaderboardEl.hidden = true;
@@ -1151,20 +1320,32 @@
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
       ]);
+      if(requestId !== loadRequestId) return false;
       const ids = rankedRatings.map(row => row.discord_user_id);
       const membersById = await loadMembers(ids);
+      if(requestId !== loadRequestId) return false;
       allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
       totalRatings = allLeaderboardRows.length;
       await loadLeaderboardPage(0);
+      if(requestId !== loadRequestId) return false;
       renderRunMeta(latestRun);
       return true;
     }
 
-    function setActiveTab(view){
-      currentView = VIEW_CONFIG[view] ? view : "ranked";
-      document.querySelectorAll(".gpi-tab[data-view]").forEach((button) => {
-        button.setAttribute("aria-selected", button.dataset.view === currentView ? "true" : "false");
-      });
+    function renderAboutPage(){
+      latestRun = null;
+      leaderboardEl.hidden = true;
+      leaderboardBodyEl.innerHTML = "";
+      runMetaEl.hidden = true;
+      runMetaEl.innerHTML = "";
+      hideStatus();
+      aboutPanelEl.hidden = false;
+    }
+
+    function setActiveTab(view, { updateUrl = true } = {}){
+      currentView = VIEW_CONFIG[view] ? view : "gpi";
+      updateTabSelection();
+      if(updateUrl) updateUrlForView(currentView);
       latestRun = null;
       allLeaderboardRows = [];
       leaderboardRows = [];
@@ -1173,7 +1354,9 @@
       sortState = { key:"rank", direction:"asc" };
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
+      aboutPanelEl.hidden = true;
       runMetaEl.hidden = true;
+      runMetaEl.innerHTML = "";
       setStatus("Loading...");
       closePlayerModal();
       loadPage().catch((error) => {
@@ -1230,6 +1413,12 @@
       });
     });
 
+    window.addEventListener("popstate", () => {
+      const nextView = viewFromUrl();
+      if(nextView === currentView) return;
+      setActiveTab(nextView, { updateUrl:false });
+    });
+
     leaderboardBodyEl.addEventListener("click", (event) => {
       const button = event.target.closest(".player-button[data-player-id]");
       if(!button) return;
@@ -1263,6 +1452,7 @@
       if(event.key === "Escape" && !playerModalEl.hidden) closePlayerModal();
     });
 
+    updateTabSelection();
     loadPage().catch((error) => {
       console.error(error);
       setStatus(`Unable to load NSS GPI: ${error?.message || "Unknown error"}`, "error");
