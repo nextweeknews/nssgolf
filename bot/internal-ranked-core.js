@@ -21,6 +21,7 @@ const DEFAULT_RECENT_FORM_MATCH_LIMIT = 100;
 const DEFAULT_OAWP_FULL_HISTORY_WEIGHT = 0.5;
 const DEFAULT_OAWP_POTENTIAL_WEIGHT = 0.25;
 const DEFAULT_OAWP_RECENT_FORM_WEIGHT = 0.25;
+const DEFAULT_RECENT_FORM_SHRINKAGE_MATCHES = 0;
 const DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE = 0.35;
 const DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT = 2;
 const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
@@ -1252,6 +1253,10 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     1,
     Math.trunc(Number(options.recentFormMatchLimit ?? DEFAULT_RECENT_FORM_MATCH_LIMIT))
   );
+  const recentFormShrinkageMatches = Math.max(
+    0,
+    Number(options.recentFormShrinkageMatches ?? DEFAULT_RECENT_FORM_SHRINKAGE_MATCHES)
+  );
   const fullHistoryWeight = Number(options.fullHistoryWeight ?? DEFAULT_OAWP_FULL_HISTORY_WEIGHT);
   const potentialWeight = Number(options.potentialWeight ?? DEFAULT_OAWP_POTENTIAL_WEIGHT);
   const recentFormWeight = Number(options.recentFormWeight ?? DEFAULT_OAWP_RECENT_FORM_WEIGHT);
@@ -1337,6 +1342,7 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
   const fullHistoryFit = fitOpponentAwarePairwiseAbilities(sortedMatches, statsByPlayer, fitOptions);
   const recentFormFit = fitOpponentAwarePairwiseAbilities(sortedMatches, statsByPlayer, {
     ...fitOptions,
+    shrinkageMatches: recentFormShrinkageMatches,
     eligibleMatchIndexesByPlayer: lastMatchIndexesByPlayer(sortedMatches, recentFormMatchLimit),
   });
   const potentialRatings = replayPeakWeightedPairwiseElo(sortedMatches, statsByPlayer, {
@@ -1351,7 +1357,9 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
       const state = statsByPlayer.get(discordUserId);
       const fullHistory = fullHistoryFit.ratings.get(discordUserId);
       const potential = potentialRatings.get(discordUserId);
-      const recentForm = recentFormFit.ratings.get(discordUserId);
+      const recentFitRating = recentFormFit.ratings.get(discordUserId);
+      const recentForm =
+        state.matches_played < recentFormMatchLimit ? fullHistory : recentFitRating;
       const rawRating =
         (fullHistoryWeight * fullHistory.raw_rating +
           potentialWeight * potential.raw_rating +
@@ -1421,6 +1429,8 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     recentMaxChange: recentFormFit.maxChange,
     recencyMode: "none",
     recentFormMatchLimit,
+    recentFormShrinkageMatches,
+    recentFormFallback: "players_below_recent_match_limit_use_full_history_pl",
     componentWeights: {
       fullHistory: fullHistoryWeight / componentWeightTotal,
       potential: potentialWeight / componentWeightTotal,
@@ -1448,6 +1458,7 @@ module.exports = {
   DEFAULT_OAWP_FULL_HISTORY_WEIGHT,
   DEFAULT_OAWP_POTENTIAL_WEIGHT,
   DEFAULT_OAWP_RECENT_FORM_WEIGHT,
+  DEFAULT_RECENT_FORM_SHRINKAGE_MATCHES,
   DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT,
   DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE,
   DUPLICATE_WINDOW_MS,

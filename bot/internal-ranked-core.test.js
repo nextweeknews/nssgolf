@@ -424,7 +424,10 @@ function match(timestamp, results, versus = "1v1v1") {
   assert(Number.isFinite(byPlayer.get("100").full_history_rating));
   assert(Number.isFinite(byPlayer.get("100").potential_rating));
   assert(Number.isFinite(byPlayer.get("100").recent_form_rating));
+  assertAlmostEqual(byPlayer.get("100").recent_form_rating, byPlayer.get("100").full_history_rating);
   assert.equal(replay.recencyMode, "none");
+  assert.equal(replay.recentFormShrinkageMatches, 0);
+  assert.equal(replay.recentFormFallback, "players_below_recent_match_limit_use_full_history_pl");
 }
 
 {
@@ -464,6 +467,7 @@ function match(timestamp, results, versus = "1v1v1") {
   assert(player.recent_form_rating > player.full_history_rating);
   assert(player.recent_form_rating > 1200);
   assert.equal(replay.recentFormMatchLimit, 100);
+  assert.equal(replay.recentFormShrinkageMatches, 0);
 }
 
 {

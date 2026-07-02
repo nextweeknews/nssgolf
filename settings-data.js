@@ -15,6 +15,7 @@ export const RESERVED_PLAYER_URL_SLUGS = [
   "discord",
   "export",
   "functions",
+  "gpi",
   "home",
   "index",
   "js",
