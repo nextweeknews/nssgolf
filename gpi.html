@@ -719,13 +719,15 @@
       }
 
       .detail-grid{
-        grid-template-columns:repeat(5, minmax(0, 1fr));
+        display:flex;
+        flex-wrap:nowrap;
         gap:5px;
-        justify-content:stretch;
+        justify-content:center;
         margin-bottom:12px;
       }
 
       .detail-cell{
+        flex:0 0 66px;
         min-height:58px;
         padding:7px 3px;
       }
@@ -751,11 +753,25 @@
         padding-bottom:10px;
       }
 
+      .tournament-match-list{
+        max-height:min(320px, 32vh);
+      }
+
+      .tournament-match-list table{
+        min-width:520px;
+        font-size:11px;
+      }
+
+      .tournament-match-list th,
+      .tournament-match-list td{
+        padding:6px 8px;
+      }
+
       .desktop-label{ display:none; }
       .mobile-label{ display:inline; }
 
       .leaderboard-table{
-        font-size:11px;
+        font-size:10px;
       }
 
       .leaderboard-table.is-ranked{
@@ -774,6 +790,11 @@
       .leaderboard-table td{
         overflow:hidden;
         padding:8px 4px;
+      }
+
+      .leaderboard-table th{
+        font-size:9px;
+        letter-spacing:.035em;
       }
 
       .leaderboard-table .rank-cell{
@@ -816,10 +837,10 @@
       }
 
       .leaderboard-table .sort-button{
-        align-items:flex-start;
-        min-height:26px;
+        align-items:center;
+        min-height:30px;
         overflow:hidden;
-        padding:0 8px 0 0;
+        padding:0 0 8px;
         white-space:normal;
         overflow-wrap:anywhere;
         line-height:1.05;
@@ -828,19 +849,20 @@
       #leaderboard .leaderboard-table th:not(:nth-child(2)) .sort-button{
         justify-content:center;
         padding-left:0;
-        padding-right:8px;
+        padding-right:0;
       }
 
       #leaderboard .leaderboard-table th:nth-child(2) .sort-button{
         justify-content:flex-start;
         padding-left:0;
-        padding-right:8px;
+        padding-right:0;
       }
 
       #leaderboard .leaderboard-table .sort-button::after{
-        top:0;
-        right:0;
-        transform:none;
+        top:auto;
+        right:50%;
+        bottom:0;
+        transform:translateX(50%);
         border-left-width:3px;
         border-right-width:3px;
         border-top-width:4px;
@@ -848,10 +870,12 @@
 
       #leaderboard .leaderboard-table .sort-button[aria-sort="ascending"]::after{
         border-bottom-width:4px;
+        transform:translateX(50%);
       }
 
       #leaderboard .leaderboard-table .sort-button[aria-sort="descending"]::after{
         border-top-width:4px;
+        transform:translateX(50%);
       }
 
     }
