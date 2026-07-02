@@ -305,17 +305,23 @@ function match(timestamp, results, versus = "1v1v1") {
   });
 
   const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
-  assertAlmostEqual(winner.weighted_matches, participantWeightForMatchSize(3));
+  assertAlmostEqual(winner.weighted_matches, participantWeightForMatchSize(3, {
+    participantWeightScale: 0.7,
+    maxParticipantWeight: 3,
+  }));
 }
 
 {
+  const strongerWeighting = {
+    participantWeightScale: 0.7,
+    maxParticipantWeight: 3,
+  };
   assert.equal(participantWeightForMatchSize(2), 1);
   assertAlmostEqual(participantWeightForMatchSize(3), 1.35);
-  assertAlmostEqual(participantWeightForMatchSize(4), 1 + 0.35 * Math.log2(3));
-  assertAlmostEqual(participantWeightForMatchSize(8), 1 + 0.35 * Math.log2(7));
+  assertAlmostEqual(participantWeightForMatchSize(8, strongerWeighting), 1 + 0.7 * Math.log2(7));
   assertAlmostEqual(pairWeightForMatchSize(2), 1);
-  assertAlmostEqual(pairWeightForMatchSize(3), 1.35 / 2);
-  assertAlmostEqual(pairWeightForMatchSize(8), (1 + 0.35 * Math.log2(7)) / 7);
+  assertAlmostEqual(pairWeightForMatchSize(3, strongerWeighting), 1.7 / 2);
+  assertAlmostEqual(pairWeightForMatchSize(8, strongerWeighting), (1 + 0.7 * Math.log2(7)) / 7);
 }
 
 {
@@ -342,8 +348,59 @@ function match(timestamp, results, versus = "1v1v1") {
 
   assert(byPlayer.get("100").rating > byPlayer.get("200").rating);
   assert(byPlayer.get("200").rating > byPlayer.get("300").rating);
-  assertAlmostEqual(byPlayer.get("100").weighted_matches, participantWeightForMatchSize(3));
+  assertAlmostEqual(byPlayer.get("100").weighted_matches, participantWeightForMatchSize(3, {
+    participantWeightScale: 0.7,
+    maxParticipantWeight: 3,
+  }));
+  assertAlmostEqual(
+    byPlayer.get("100").rating,
+    0.5 * byPlayer.get("100").full_history_rating +
+      0.25 * byPlayer.get("100").potential_rating +
+      0.25 * byPlayer.get("100").recent_form_rating
+  );
+  assert(Number.isFinite(byPlayer.get("100").full_history_rating));
+  assert(Number.isFinite(byPlayer.get("100").potential_rating));
+  assert(Number.isFinite(byPlayer.get("100").recent_form_rating));
   assert.equal(replay.recencyMode, "none");
+}
+
+{
+  const rows = [];
+  for (let index = 0; index < 120; index += 1) {
+    rows.push({
+      match_hash: `recent-${index}`,
+      season: 7,
+      timestamp_ms: 1_000 + index,
+      played_at: new Date(1_000 + index).toISOString(),
+      raw_match: match(1_000 + index, [
+        { place: index < 20 ? 2 : 1, players: ["100"] },
+        { place: index < 20 ? 1 : 2, players: ["200"] },
+      ], "1v1"),
+    });
+  }
+  for (let index = 0; index < 150; index += 1) {
+    rows.push({
+      match_hash: `unrelated-${index}`,
+      season: 7,
+      timestamp_ms: 2_000 + index,
+      played_at: new Date(2_000 + index).toISOString(),
+      raw_match: match(2_000 + index, [
+        { place: index % 2 === 0 ? 1 : 2, players: ["300"] },
+        { place: index % 2 === 0 ? 2 : 1, players: ["400"] },
+      ], "1v1"),
+    });
+  }
+
+  const replay = replayOpponentAwareWeightedPairwiseGpi(rows, {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+  });
+  const player = replay.finalRatings.find((row) => row.discord_user_id === "100");
+  assert(player.recent_form_rating > player.full_history_rating);
+  assert(player.recent_form_rating > 1200);
+  assert.equal(replay.recentFormMatchLimit, 100);
 }
 
 {

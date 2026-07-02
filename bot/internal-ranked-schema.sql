@@ -144,6 +144,9 @@ create table if not exists public.internal_ranked_gpi_ratings (
   display_name text,
   rating numeric(12, 4) not null,
   raw_rating numeric(12, 4) not null,
+  full_history_rating numeric(12, 4),
+  potential_rating numeric(12, 4),
+  recent_form_rating numeric(12, 4),
   ability numeric(18, 8) not null,
   skill_log numeric(18, 8) not null,
   reliability numeric(10, 6) not null default 0,
@@ -164,6 +167,15 @@ create table if not exists public.internal_ranked_gpi_ratings (
   rank integer,
   primary key (run_id, discord_user_id)
 );
+
+alter table public.internal_ranked_gpi_ratings
+add column if not exists full_history_rating numeric(12, 4);
+
+alter table public.internal_ranked_gpi_ratings
+add column if not exists potential_rating numeric(12, 4);
+
+alter table public.internal_ranked_gpi_ratings
+add column if not exists recent_form_rating numeric(12, 4);
 
 create index if not exists internal_ranked_gpi_ratings_run_rating_idx
 on public.internal_ranked_gpi_ratings (run_id, rating desc, discord_user_id);

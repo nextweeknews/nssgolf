@@ -15,8 +15,12 @@ const DEFAULT_PL_SHRINKAGE_MATCHES = 50;
 const DEFAULT_PL_MAX_ITERATIONS = 500;
 const DEFAULT_PL_TOLERANCE = 0.000001;
 const DEFAULT_PL_RECENCY_MODE = "none";
-const DEFAULT_PL_PARTICIPANT_WEIGHT_SCALE = 0.35;
-const DEFAULT_PL_MAX_PARTICIPANT_WEIGHT = 2;
+const DEFAULT_PL_PARTICIPANT_WEIGHT_SCALE = 0.7;
+const DEFAULT_PL_MAX_PARTICIPANT_WEIGHT = 3;
+const DEFAULT_RECENT_FORM_MATCH_LIMIT = 100;
+const DEFAULT_OAWP_FULL_HISTORY_WEIGHT = 0.5;
+const DEFAULT_OAWP_POTENTIAL_WEIGHT = 0.25;
+const DEFAULT_OAWP_RECENT_FORM_WEIGHT = 0.25;
 const DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE = 0.35;
 const DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT = 2;
 const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
@@ -1001,65 +1005,36 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   };
 }
 
-function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
-  const baseRating = Number(options.baseRating ?? DEFAULT_BASE_RATING);
-  const ratingScale = Number(options.ratingScale ?? DEFAULT_PL_RATING_SCALE);
-  const priorStrength = Number(options.priorStrength ?? DEFAULT_PL_PRIOR_STRENGTH);
-  const shrinkageMatches = Number(options.shrinkageMatches ?? DEFAULT_PL_SHRINKAGE_MATCHES);
-  const maxIterations = Math.max(
-    1,
-    Math.trunc(Number(options.maxIterations ?? DEFAULT_PL_MAX_ITERATIONS))
-  );
-  const tolerance = Number(options.tolerance ?? DEFAULT_PL_TOLERANCE);
-  const participantWeightScale = Number(
-    options.participantWeightScale ?? DEFAULT_PL_PARTICIPANT_WEIGHT_SCALE
-  );
-  const maxParticipantWeight = Number(
-    options.maxParticipantWeight ?? DEFAULT_PL_MAX_PARTICIPANT_WEIGHT
-  );
-
-  if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
-  if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
-    throw new Error("ratingScale must be a positive finite number.");
-  }
-  if (!Number.isFinite(priorStrength) || priorStrength < 0) {
-    throw new Error("priorStrength must be a non-negative finite number.");
-  }
-  if (!Number.isFinite(shrinkageMatches) || shrinkageMatches < 0) {
-    throw new Error("shrinkageMatches must be a non-negative finite number.");
-  }
-  if (!Number.isFinite(tolerance) || tolerance <= 0) {
-    throw new Error("tolerance must be a positive finite number.");
-  }
-  if (!Number.isFinite(participantWeightScale) || participantWeightScale < 0) {
-    throw new Error("participantWeightScale must be a non-negative finite number.");
-  }
-  if (!Number.isFinite(maxParticipantWeight) || maxParticipantWeight < 1) {
-    throw new Error("maxParticipantWeight must be a finite number greater than or equal to 1.");
+function lastMatchIndexesByPlayer(matchRows, limit) {
+  const indexesByPlayer = new Map();
+  for (let matchIndex = 0; matchIndex < matchRows.length; matchIndex += 1) {
+    const players = playersFromMatch(matchRows[matchIndex]);
+    for (const player of players) {
+      if (!indexesByPlayer.has(player.discord_user_id)) {
+        indexesByPlayer.set(player.discord_user_id, []);
+      }
+      indexesByPlayer.get(player.discord_user_id).push(matchIndex);
+    }
   }
 
-  const sortedMatches = [...matchRows]
-    .sort((left, right) => {
-      if (left.timestamp_ms !== right.timestamp_ms) return left.timestamp_ms - right.timestamp_ms;
-      return String(left.match_hash).localeCompare(String(right.match_hash));
-    })
-    .filter((matchRow) => playersFromMatch(matchRow).length >= 2);
+  const limitedIndexesByPlayer = new Map();
+  for (const [discordUserId, indexes] of indexesByPlayer.entries()) {
+    limitedIndexesByPlayer.set(discordUserId, new Set(indexes.slice(-limit)));
+  }
+  return limitedIndexesByPlayer;
+}
 
-  const latestTimestampMs = sortedMatches.reduce(
-    (latest, matchRow) => Math.max(latest, asInteger(matchRow.timestamp_ms) || 0),
-    0
-  );
-  const weightingOptions = { participantWeightScale, maxParticipantWeight };
-  const recencyContext = {
-    recencyMode: "none",
-    matchRows: sortedMatches,
-    latestTimestampMs,
-    playerWeights: new Map(),
-    participantWeights: sortedMatches.map((matchRow) =>
-      participantWeightForMatchSize(playersFromMatch(matchRow).length, weightingOptions)
-    ),
-  };
-  const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
+function fitOpponentAwarePairwiseAbilities(matchRows, statsByPlayer, options) {
+  const {
+    baseRating,
+    ratingScale,
+    priorStrength,
+    shrinkageMatches,
+    maxIterations,
+    tolerance,
+    weightingOptions,
+    eligibleMatchIndexesByPlayer = null,
+  } = options;
   const playerIds = [...statsByPlayer.keys()].sort();
   const abilities = new Map(playerIds.map((discordUserId) => [discordUserId, 1]));
   const priorStrengths = new Map(
@@ -1084,8 +1059,8 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
       playerIds.map((discordUserId) => [discordUserId, priorStrengths.get(discordUserId)])
     );
 
-    for (const matchRow of sortedMatches) {
-      const players = playersFromMatch(matchRow);
+    for (let matchIndex = 0; matchIndex < matchRows.length; matchIndex += 1) {
+      const players = playersFromMatch(matchRows[matchIndex]);
       if (players.length < 2) continue;
 
       const pairWeight = pairWeightForMatchSize(players.length, weightingOptions);
@@ -1093,28 +1068,40 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
         for (let rightIndex = leftIndex + 1; rightIndex < players.length; rightIndex += 1) {
           const left = players[leftIndex];
           const right = players[rightIndex];
+          const leftEligible =
+            !eligibleMatchIndexesByPlayer ||
+            eligibleMatchIndexesByPlayer.get(left.discord_user_id)?.has(matchIndex) === true;
+          const rightEligible =
+            !eligibleMatchIndexesByPlayer ||
+            eligibleMatchIndexesByPlayer.get(right.discord_user_id)?.has(matchIndex) === true;
+          if (!leftEligible && !rightEligible) continue;
+
           const leftActual = actualScore(left.place, right.place);
           const leftAbility = abilities.get(left.discord_user_id);
           const rightAbility = abilities.get(right.discord_user_id);
           const denominator = leftAbility + rightAbility;
           if (denominator <= 0) continue;
 
-          numerators.set(
-            left.discord_user_id,
-            numerators.get(left.discord_user_id) + pairWeight * leftActual
-          );
-          numerators.set(
-            right.discord_user_id,
-            numerators.get(right.discord_user_id) + pairWeight * (1 - leftActual)
-          );
-          denominators.set(
-            left.discord_user_id,
-            denominators.get(left.discord_user_id) + pairWeight / denominator
-          );
-          denominators.set(
-            right.discord_user_id,
-            denominators.get(right.discord_user_id) + pairWeight / denominator
-          );
+          if (leftEligible) {
+            numerators.set(
+              left.discord_user_id,
+              numerators.get(left.discord_user_id) + pairWeight * leftActual
+            );
+            denominators.set(
+              left.discord_user_id,
+              denominators.get(left.discord_user_id) + pairWeight / denominator
+            );
+          }
+          if (rightEligible) {
+            numerators.set(
+              right.discord_user_id,
+              numerators.get(right.discord_user_id) + pairWeight * (1 - leftActual)
+            );
+            denominators.set(
+              right.discord_user_id,
+              denominators.get(right.discord_user_id) + pairWeight / denominator
+            );
+          }
         }
       }
     }
@@ -1145,14 +1132,224 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     }
   }
 
-  const finalRatings = playerIds
-    .map((discordUserId) => {
+  const ratings = new Map(
+    playerIds.map((discordUserId) => {
       const state = statsByPlayer.get(discordUserId);
       const ability = abilities.get(discordUserId);
       const skillLog = Math.log(ability);
       const rawRating = baseRating + ratingScale * skillLog;
       const reliability = reliabilityForMatches(state.matches_played, shrinkageMatches);
       const rating = baseRating + reliability * (rawRating - baseRating);
+      return [
+        discordUserId,
+        {
+          rating,
+          raw_rating: rawRating,
+          ability,
+          skill_log: skillLog,
+          reliability,
+        },
+      ];
+    })
+  );
+
+  return { ratings, iterations, converged, maxChange };
+}
+
+function replayPeakWeightedPairwiseElo(matchRows, statsByPlayer, options) {
+  const {
+    baseRating,
+    kFactor,
+    shrinkageMatches,
+    weightingOptions,
+  } = options;
+  const ratings = new Map();
+
+  for (const discordUserId of statsByPlayer.keys()) {
+    ratings.set(discordUserId, {
+      rating: baseRating,
+      peakRating: baseRating,
+    });
+  }
+
+  for (const matchRow of matchRows) {
+    const players = playersFromMatch(matchRow);
+    if (players.length < 2) continue;
+
+    const beforeRatings = new Map();
+    const deltas = new Map();
+    for (const player of players) {
+      const state = ratings.get(player.discord_user_id);
+      beforeRatings.set(player.discord_user_id, state.rating);
+      deltas.set(player.discord_user_id, 0);
+    }
+
+    const pairWeight = pairWeightForMatchSize(players.length, weightingOptions);
+    for (let leftIndex = 0; leftIndex < players.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < players.length; rightIndex += 1) {
+        const left = players[leftIndex];
+        const right = players[rightIndex];
+        const leftRating = beforeRatings.get(left.discord_user_id);
+        const rightRating = beforeRatings.get(right.discord_user_id);
+        const leftActual = actualScore(left.place, right.place);
+        const rightActual = 1 - leftActual;
+        const leftExpected = expectedScore(leftRating, rightRating);
+        const rightExpected = expectedScore(rightRating, leftRating);
+
+        deltas.set(
+          left.discord_user_id,
+          deltas.get(left.discord_user_id) + kFactor * pairWeight * (leftActual - leftExpected)
+        );
+        deltas.set(
+          right.discord_user_id,
+          deltas.get(right.discord_user_id) + kFactor * pairWeight * (rightActual - rightExpected)
+        );
+      }
+    }
+
+    for (const player of players) {
+      const state = ratings.get(player.discord_user_id);
+      state.rating = beforeRatings.get(player.discord_user_id) + deltas.get(player.discord_user_id);
+      state.peakRating = Math.max(state.peakRating, state.rating);
+    }
+  }
+
+  return new Map(
+    [...ratings.entries()].map(([discordUserId, state]) => {
+      const playerStats = statsByPlayer.get(discordUserId);
+      const reliability = reliabilityForMatches(playerStats.matches_played, shrinkageMatches);
+      return [
+        discordUserId,
+        {
+          rating: baseRating + reliability * (state.peakRating - baseRating),
+          raw_rating: state.peakRating,
+        },
+      ];
+    })
+  );
+}
+
+function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
+  const baseRating = Number(options.baseRating ?? DEFAULT_BASE_RATING);
+  const kFactor = Number(options.kFactor ?? DEFAULT_K_FACTOR);
+  const ratingScale = Number(options.ratingScale ?? DEFAULT_PL_RATING_SCALE);
+  const priorStrength = Number(options.priorStrength ?? DEFAULT_PL_PRIOR_STRENGTH);
+  const shrinkageMatches = Number(options.shrinkageMatches ?? DEFAULT_PL_SHRINKAGE_MATCHES);
+  const recentFormMatchLimit = Math.max(
+    1,
+    Math.trunc(Number(options.recentFormMatchLimit ?? DEFAULT_RECENT_FORM_MATCH_LIMIT))
+  );
+  const fullHistoryWeight = Number(options.fullHistoryWeight ?? DEFAULT_OAWP_FULL_HISTORY_WEIGHT);
+  const potentialWeight = Number(options.potentialWeight ?? DEFAULT_OAWP_POTENTIAL_WEIGHT);
+  const recentFormWeight = Number(options.recentFormWeight ?? DEFAULT_OAWP_RECENT_FORM_WEIGHT);
+  const maxIterations = Math.max(
+    1,
+    Math.trunc(Number(options.maxIterations ?? DEFAULT_PL_MAX_ITERATIONS))
+  );
+  const tolerance = Number(options.tolerance ?? DEFAULT_PL_TOLERANCE);
+  const participantWeightScale = Number(
+    options.participantWeightScale ?? DEFAULT_PL_PARTICIPANT_WEIGHT_SCALE
+  );
+  const maxParticipantWeight = Number(
+    options.maxParticipantWeight ?? DEFAULT_PL_MAX_PARTICIPANT_WEIGHT
+  );
+
+  if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
+  if (!Number.isFinite(kFactor)) throw new Error("kFactor must be a finite number.");
+  if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
+    throw new Error("ratingScale must be a positive finite number.");
+  }
+  if (!Number.isFinite(priorStrength) || priorStrength < 0) {
+    throw new Error("priorStrength must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(shrinkageMatches) || shrinkageMatches < 0) {
+    throw new Error("shrinkageMatches must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new Error("tolerance must be a positive finite number.");
+  }
+  if (!Number.isFinite(participantWeightScale) || participantWeightScale < 0) {
+    throw new Error("participantWeightScale must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(maxParticipantWeight) || maxParticipantWeight < 1) {
+    throw new Error("maxParticipantWeight must be a finite number greater than or equal to 1.");
+  }
+  if (
+    !Number.isFinite(fullHistoryWeight) ||
+    !Number.isFinite(potentialWeight) ||
+    !Number.isFinite(recentFormWeight) ||
+    fullHistoryWeight < 0 ||
+    potentialWeight < 0 ||
+    recentFormWeight < 0
+  ) {
+    throw new Error("OAWP component weights must be non-negative finite numbers.");
+  }
+  const componentWeightTotal = fullHistoryWeight + potentialWeight + recentFormWeight;
+  if (componentWeightTotal <= 0) {
+    throw new Error("At least one OAWP component weight must be greater than 0.");
+  }
+
+  const sortedMatches = [...matchRows]
+    .sort((left, right) => {
+      if (left.timestamp_ms !== right.timestamp_ms) return left.timestamp_ms - right.timestamp_ms;
+      return String(left.match_hash).localeCompare(String(right.match_hash));
+    })
+    .filter((matchRow) => playersFromMatch(matchRow).length >= 2);
+
+  const latestTimestampMs = sortedMatches.reduce(
+    (latest, matchRow) => Math.max(latest, asInteger(matchRow.timestamp_ms) || 0),
+    0
+  );
+  const weightingOptions = { participantWeightScale, maxParticipantWeight };
+  const recencyContext = {
+    recencyMode: "none",
+    matchRows: sortedMatches,
+    latestTimestampMs,
+    playerWeights: new Map(),
+    participantWeights: sortedMatches.map((matchRow) =>
+      participantWeightForMatchSize(playersFromMatch(matchRow).length, weightingOptions)
+    ),
+  };
+  const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
+  const playerIds = [...statsByPlayer.keys()].sort();
+  const fitOptions = {
+    baseRating,
+    ratingScale,
+    priorStrength,
+    shrinkageMatches,
+    maxIterations,
+    tolerance,
+    weightingOptions,
+  };
+  const fullHistoryFit = fitOpponentAwarePairwiseAbilities(sortedMatches, statsByPlayer, fitOptions);
+  const recentFormFit = fitOpponentAwarePairwiseAbilities(sortedMatches, statsByPlayer, {
+    ...fitOptions,
+    eligibleMatchIndexesByPlayer: lastMatchIndexesByPlayer(sortedMatches, recentFormMatchLimit),
+  });
+  const potentialRatings = replayPeakWeightedPairwiseElo(sortedMatches, statsByPlayer, {
+    baseRating,
+    kFactor,
+    shrinkageMatches,
+    weightingOptions,
+  });
+
+  const finalRatings = playerIds
+    .map((discordUserId) => {
+      const state = statsByPlayer.get(discordUserId);
+      const fullHistory = fullHistoryFit.ratings.get(discordUserId);
+      const potential = potentialRatings.get(discordUserId);
+      const recentForm = recentFormFit.ratings.get(discordUserId);
+      const rawRating =
+        (fullHistoryWeight * fullHistory.raw_rating +
+          potentialWeight * potential.raw_rating +
+          recentFormWeight * recentForm.raw_rating) /
+        componentWeightTotal;
+      const rating =
+        (fullHistoryWeight * fullHistory.rating +
+          potentialWeight * potential.rating +
+          recentFormWeight * recentForm.rating) /
+        componentWeightTotal;
+      const reliability = reliabilityForMatches(state.matches_played, shrinkageMatches);
       const outcomeWinPercentage =
         state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
       const matchWinPercentage =
@@ -1167,8 +1364,11 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
         display_name: state.display_name,
         rating,
         raw_rating: rawRating,
-        ability,
-        skill_log: skillLog,
+        full_history_rating: fullHistory.rating,
+        potential_rating: potential.rating,
+        recent_form_rating: recentForm.rating,
+        ability: fullHistory.ability,
+        skill_log: fullHistory.skill_log,
         reliability,
         matches_played: state.matches_played,
         weighted_matches: state.weighted_matches,
@@ -1200,10 +1400,19 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     finalRatings,
     matchCount: sortedMatches.length,
     latestTimestampMs,
-    iterations,
-    converged,
-    maxChange,
+    iterations: fullHistoryFit.iterations,
+    converged: fullHistoryFit.converged,
+    maxChange: fullHistoryFit.maxChange,
+    recentIterations: recentFormFit.iterations,
+    recentConverged: recentFormFit.converged,
+    recentMaxChange: recentFormFit.maxChange,
     recencyMode: "none",
+    recentFormMatchLimit,
+    componentWeights: {
+      fullHistory: fullHistoryWeight / componentWeightTotal,
+      potential: potentialWeight / componentWeightTotal,
+      recentForm: recentFormWeight / componentWeightTotal,
+    },
   };
 }
 
@@ -1222,6 +1431,10 @@ module.exports = {
   DEFAULT_PL_TOLERANCE,
   DEFAULT_PL_MAX_PARTICIPANT_WEIGHT,
   DEFAULT_PL_PARTICIPANT_WEIGHT_SCALE,
+  DEFAULT_RECENT_FORM_MATCH_LIMIT,
+  DEFAULT_OAWP_FULL_HISTORY_WEIGHT,
+  DEFAULT_OAWP_POTENTIAL_WEIGHT,
+  DEFAULT_OAWP_RECENT_FORM_WEIGHT,
   DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT,
   DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE,
   DUPLICATE_WINDOW_MS,

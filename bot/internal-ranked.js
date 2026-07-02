@@ -15,6 +15,10 @@ const {
   DEFAULT_PL_RECENCY_MODE,
   DEFAULT_PL_SHRINKAGE_MATCHES,
   DEFAULT_PL_TOLERANCE,
+  DEFAULT_RECENT_FORM_MATCH_LIMIT,
+  DEFAULT_OAWP_FULL_HISTORY_WEIGHT,
+  DEFAULT_OAWP_POTENTIAL_WEIGHT,
+  DEFAULT_OAWP_RECENT_FORM_WEIGHT,
   GPI_CALCULATION_VERSION,
   NPS_ELO_CALCULATION_VERSION,
   OAWP_GPI_CALCULATION_VERSION,
@@ -726,6 +730,7 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
 
   const replay = replayOpponentAwareWeightedPairwiseGpi(storedMatches, {
     baseRating: options.baseRating,
+    kFactor: options.kFactor,
     ratingScale: options.ratingScale,
     priorStrength: options.plPrior,
     shrinkageMatches: options.plShrinkageMatches,
@@ -733,13 +738,38 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
     tolerance: options.plTolerance,
     participantWeightScale: options.participantWeightScale,
     maxParticipantWeight: options.maxParticipantWeight,
+    recentFormMatchLimit: DEFAULT_RECENT_FORM_MATCH_LIMIT,
+    fullHistoryWeight: DEFAULT_OAWP_FULL_HISTORY_WEIGHT,
+    potentialWeight: DEFAULT_OAWP_POTENTIAL_WEIGHT,
+    recentFormWeight: DEFAULT_OAWP_RECENT_FORM_WEIGHT,
   });
 
   const runConfig = {
     model: "opponent_aware_weighted_pairwise",
-    fit_type: "batch_bradley_terry_pairwise",
-    rating_formula: "sample-size-shrunk opponent-aware weighted pairwise ability rating",
+    fit_type: "composite_pairwise_rating",
+    rating_formula:
+      "50% full-history opponent-aware weighted pairwise PL + 25% peak weighted pairwise Elo + 25% player last-100-match opponent-aware weighted pairwise PL",
     pairwise_model: "all_players_in_match_compared_directly",
+    component_weights: replay.componentWeights,
+    components: {
+      full_history: {
+        weight: replay.componentWeights.fullHistory,
+        model: "opponent_aware_weighted_pairwise_pl",
+        sample: "all_ranked_matches_in_selected_seasons",
+      },
+      potential: {
+        weight: replay.componentWeights.potential,
+        model: "peak_pairwise_elo",
+        sample: "all_ranked_matches_in_selected_seasons",
+        k_factor: options.kFactor,
+      },
+      recent_form: {
+        weight: replay.componentWeights.recentForm,
+        model: "opponent_aware_weighted_pairwise_pl",
+        sample: "each_player_last_100_ranked_matches",
+        match_limit: replay.recentFormMatchLimit,
+      },
+    },
     same_place_score: 0.5,
     win_score: 1,
     loss_score: 0,
@@ -752,6 +782,7 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
     shrinkage_basis: "raw_matches_played_reaches_full_reliability_at_threshold",
     prior_basis: "prior_strength_tapers_to_floor_at_shrinkage_match_threshold",
     rating_scale: options.ratingScale,
+    k_factor: options.kFactor,
     participant_weighting: {
       match_formula: "min(max_weight, 1 + scale * log2(player_count - 1))",
       pair_formula: "match_weight / (player_count - 1)",
@@ -782,6 +813,9 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
       iterations: replay.iterations,
       converged: replay.converged,
       max_change: replay.maxChange,
+      recent_iterations: replay.recentIterations,
+      recent_converged: replay.recentConverged,
+      recent_max_change: replay.recentMaxChange,
     },
     duplicate_policy: "exact_result_signature_within_2_minutes_skipped_before_insert",
   };
@@ -793,6 +827,7 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
       model: "opponent_aware_weighted_pairwise",
       base_rating: options.baseRating,
       rating_scale: options.ratingScale,
+      k_factor: options.kFactor,
       season_start: Math.min(...options.seasons),
       season_end: Math.max(...options.seasons),
       match_count: replay.matchCount,
@@ -814,6 +849,9 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
     display_name: row.display_name,
     rating: roundRating(row.rating),
     raw_rating: roundRating(row.raw_rating),
+    full_history_rating: roundRating(row.full_history_rating),
+    potential_rating: roundRating(row.potential_rating),
+    recent_form_rating: roundRating(row.recent_form_rating),
     ability: roundMetric(row.ability),
     skill_log: roundMetric(row.skill_log),
     reliability: roundPercentage(row.reliability),

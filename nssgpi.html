@@ -573,7 +573,7 @@
       while(true){
         const { data, error } = await supabase
           .from("internal_ranked_gpi_ratings")
-          .select("discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank")
+          .select("discord_user_id,display_name,rating,raw_rating,full_history_rating,potential_rating,recent_form_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank")
           .eq("run_id", runId)
           .order("rank", { ascending:true })
           .range(from, from + pageSize - 1);
@@ -609,9 +609,10 @@
       runMetaEl.innerHTML = [
         "NSS GPI",
         "Opponent-Aware",
-        "Weighted Pairwise",
-        "No recency",
-        "Lobby-size weighted",
+        "50% Full History",
+        "25% Potential",
+        "25% Recent Form",
+        "8p~3x Lobby Weight",
         `Min ${MIN_MATCHES} matches`,
         "Current Discord members",
         `Seasons ${run.season_start}-${run.season_end}`,
@@ -669,6 +670,9 @@
           rating,
           ratingNumber: rating,
           rawRating: Number(row.raw_rating) || rating,
+          fullHistoryRating: Number(row.full_history_rating) || rating,
+          potentialRating: Number(row.potential_rating) || rating,
+          recentFormRating: Number(row.recent_form_rating) || rating,
           matchesNumber: matches,
           winsNumber: wins,
           lossesNumber: losses,
@@ -783,7 +787,9 @@
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
           <div class="detail-cell"><span class="detail-label">GPI Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Raw GPI</span><span class="detail-value">${escapeHtml(formatRating(row.rawRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Full History</span><span class="detail-value">${escapeHtml(formatRating(row.fullHistoryRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Potential</span><span class="detail-value">${escapeHtml(formatRating(row.potentialRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Recent Form</span><span class="detail-value">${escapeHtml(formatRating(row.recentFormRating))}</span></div>
           <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
           <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
           <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
