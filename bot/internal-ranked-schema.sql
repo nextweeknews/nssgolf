@@ -118,7 +118,8 @@ create table if not exists public.internal_ranked_gpi_runs (
   calculation_version text not null,
   model text not null,
   base_rating numeric(12, 4) not null,
-  rating_scale numeric(12, 6) not null,
+  rating_scale numeric(12, 6),
+  k_factor numeric(12, 4),
   season_start integer not null,
   season_end integer not null,
   match_count integer not null default 0,
@@ -130,6 +131,12 @@ create table if not exists public.internal_ranked_gpi_runs (
 
 create index if not exists internal_ranked_gpi_runs_created_at_idx
 on public.internal_ranked_gpi_runs (created_at desc);
+
+alter table public.internal_ranked_gpi_runs
+alter column rating_scale drop not null;
+
+alter table public.internal_ranked_gpi_runs
+add column if not exists k_factor numeric(12, 4);
 
 create table if not exists public.internal_ranked_gpi_ratings (
   run_id bigint not null references public.internal_ranked_gpi_runs(id) on delete cascade,

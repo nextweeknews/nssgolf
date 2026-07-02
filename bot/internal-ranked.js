@@ -7,6 +7,8 @@ const {
   CALCULATION_VERSION,
   DEFAULT_BASE_RATING,
   DEFAULT_K_FACTOR,
+  DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT,
+  DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE,
   DEFAULT_PL_MAX_ITERATIONS,
   DEFAULT_PL_PRIOR_STRENGTH,
   DEFAULT_PL_RATING_SCALE,
@@ -14,8 +16,10 @@ const {
   DEFAULT_PL_SHRINKAGE_MATCHES,
   DEFAULT_PL_TOLERANCE,
   GPI_CALCULATION_VERSION,
+  NPS_ELO_CALCULATION_VERSION,
   dedupeMatches,
   replayPlackettLuceGpi,
+  replayNormalizedPlacementElo,
   replayElo,
   validateDescendingMatches,
 } = require("./internal-ranked-core");
@@ -32,8 +36,10 @@ function usage() {
 Usage:
   node bot/internal-ranked.js fetch [options]
   node bot/internal-ranked.js replay [options]
+  node bot/internal-ranked.js replay-nps [options]
   node bot/internal-ranked.js replay-pl [options]
   node bot/internal-ranked.js sync [options]
+  node bot/internal-ranked.js sync-nps [options]
   node bot/internal-ranked.js sync-pl [options]
 
 Commands:
@@ -41,10 +47,14 @@ Commands:
            dedupe, and upsert valid matches into Supabase.
   replay   Recalculate internal Ranked League Elo from stored matches and
            write a new Elo run with final ratings and per-match history.
+  replay-nps
+           Recalculate NSS GPI from stored matches using normalized placement
+           score Elo and write a new GPI run.
   replay-pl
            Recalculate NSS GPI from stored matches using a match-recency-weighted
            batch Plackett-Luce model and write a new GPI run.
   sync     Run fetch, then replay.
+  sync-nps Run fetch, then replay-nps.
   sync-pl  Run fetch, then replay-pl.
 
 Options:
@@ -56,6 +66,12 @@ Options:
   --allow-incomplete     Testing only: never fail on total_matches under-fetch.
   --base-rating <number> Elo starting rating. Default: ${DEFAULT_BASE_RATING}
   --k-factor <number>    Elo K-factor. Default: ${DEFAULT_K_FACTOR}
+  --nps-participant-weight-scale <number>
+                         NPS Elo lobby-size log weight scale.
+                         Default: ${DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE}
+  --nps-max-participant-weight <number>
+                         NPS Elo maximum lobby-size weight.
+                         Default: ${DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT}
   --rating-scale <number>
                          Plackett-Luce log-skill to rating scale.
                          Default: ${DEFAULT_PL_RATING_SCALE.toFixed(6)}
@@ -676,6 +692,123 @@ async function replayStoredMatchesPlackettLuce(options) {
   return runId;
 }
 
+async function replayStoredMatchesNormalizedPlacementElo(options) {
+  const supabase = createSupabaseServiceClient();
+  const storedMatches = await loadStoredMatches(supabase, options.seasons);
+  if (!storedMatches.length) {
+    throw new Error(
+      `No stored internal Ranked League matches found for seasons ${options.seasons.join(", ")}. Run fetch first.`
+    );
+  }
+
+  const replay = replayNormalizedPlacementElo(storedMatches, {
+    baseRating: options.baseRating,
+    kFactor: options.kFactor,
+    participantWeightScale: options.npsParticipantWeightScale,
+    maxParticipantWeight: options.npsMaxParticipantWeight,
+  });
+  const latestTimestampMs = storedMatches.reduce(
+    (latest, matchRow) => Math.max(latest, Number(matchRow.timestamp_ms) || 0),
+    0
+  );
+
+  const runConfig = {
+    model: "normalized_placement_elo",
+    fit_type: "sequential",
+    actual_score: "average_pairwise_result_for_one_match_normalized_0_to_1",
+    expected_score: "average_pre_match_elo_expectation_against_lobby",
+    same_place_score: 0.5,
+    win_score: 1,
+    loss_score: 0,
+    pre_match_ratings: true,
+    k_factor: options.kFactor,
+    participant_weighting: {
+      formula: "min(max_weight, 1 + scale * log2(player_count - 1))",
+      scale: options.npsParticipantWeightScale,
+      max_weight: options.npsMaxParticipantWeight,
+      examples: {
+        players_2: 1,
+        players_3: Number(
+          (1 + options.npsParticipantWeightScale * Math.log2(2)).toFixed(6)
+        ),
+        players_4: Number(
+          (1 + options.npsParticipantWeightScale * Math.log2(3)).toFixed(6)
+        ),
+        players_8: Math.min(
+          options.npsMaxParticipantWeight,
+          Number((1 + options.npsParticipantWeightScale * Math.log2(7)).toFixed(6))
+        ),
+      },
+    },
+    duplicate_policy: "exact_result_signature_within_2_minutes_skipped_before_insert",
+  };
+
+  const { data: runRow, error: runError } = await supabase
+    .from("internal_ranked_gpi_runs")
+    .insert({
+      calculation_version: NPS_ELO_CALCULATION_VERSION,
+      model: "normalized_placement_elo",
+      base_rating: options.baseRating,
+      k_factor: options.kFactor,
+      season_start: Math.min(...options.seasons),
+      season_end: Math.max(...options.seasons),
+      match_count: replay.matchCount,
+      player_count: replay.finalRatings.length,
+      latest_match_at: latestTimestampMs ? new Date(latestTimestampMs).toISOString() : null,
+      config: runConfig,
+    })
+    .select("id")
+    .single();
+
+  if (runError) throw new Error(`NPS Elo GPI run insert failed: ${runError.message}`);
+  const runId = runRow.id;
+
+  const ratingRows = replay.finalRatings.map((row) => ({
+    run_id: runId,
+    discord_user_id: row.discord_user_id,
+    display_name: row.display_name,
+    rating: roundRating(row.rating),
+    raw_rating: roundRating(row.raw_rating),
+    ability: roundMetric(row.ability),
+    skill_log: roundMetric(row.skill_log),
+    reliability: roundPercentage(row.reliability),
+    matches_played: row.matches_played,
+    weighted_matches: roundMetric(row.weighted_matches),
+    average_match_weight: roundPercentage(row.average_match_weight),
+    pairwise_wins: row.pairwise_wins,
+    pairwise_losses: row.pairwise_losses,
+    pairwise_ties: row.pairwise_ties,
+    pairwise_games: row.pairwise_games,
+    first_place_finishes: row.first_place_finishes,
+    outcome_win_percentage: roundPercentage(row.outcome_win_percentage),
+    match_win_percentage: roundPercentage(row.match_win_percentage),
+    placement_score_average: roundPercentage(row.placement_score_average),
+    weighted_placement_score: roundPercentage(row.weighted_placement_score),
+    first_played_at: row.first_played_at,
+    last_played_at: row.last_played_at,
+    rank: row.rank,
+  }));
+
+  await insertReplayRows(
+    supabase,
+    "internal_ranked_gpi_ratings",
+    ratingRows,
+    "Final NPS Elo GPI rating insert failed"
+  );
+
+  console.log(
+    `NPS Elo GPI replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players.`
+  );
+  console.log("Top 10:");
+  for (const row of ratingRows.slice(0, 10)) {
+    console.log(
+      `${row.rank}. ${row.display_name || row.discord_user_id} (${row.discord_user_id}) ${row.rating}`
+    );
+  }
+
+  return runId;
+}
+
 function parseOptions() {
   return {
     seasons: parseSeasons(getArg("--seasons", "7-12")),
@@ -685,6 +818,14 @@ function parseOptions() {
     allowIncomplete: hasFlag("--allow-incomplete"),
     baseRating: getNumberArg("--base-rating", DEFAULT_BASE_RATING),
     kFactor: getNumberArg("--k-factor", DEFAULT_K_FACTOR),
+    npsParticipantWeightScale: getNumberArg(
+      "--nps-participant-weight-scale",
+      DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE
+    ),
+    npsMaxParticipantWeight: getNumberArg(
+      "--nps-max-participant-weight",
+      DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT
+    ),
     ratingScale: getNumberArg("--rating-scale", DEFAULT_PL_RATING_SCALE),
     plPrior: getNumberArg("--pl-prior", DEFAULT_PL_PRIOR_STRENGTH),
     plShrinkageMatches: getNumberArg(
@@ -710,11 +851,16 @@ async function main() {
     await fetchAndUpsert(options);
   } else if (command === "replay") {
     await replayStoredMatches(options);
+  } else if (command === "replay-nps") {
+    await replayStoredMatchesNormalizedPlacementElo(options);
   } else if (command === "replay-pl") {
     await replayStoredMatchesPlackettLuce(options);
   } else if (command === "sync") {
     await fetchAndUpsert(options);
     await replayStoredMatches(options);
+  } else if (command === "sync-nps") {
+    await fetchAndUpsert(options);
+    await replayStoredMatchesNormalizedPlacementElo(options);
   } else if (command === "sync-pl") {
     await fetchAndUpsert(options);
     await replayStoredMatchesPlackettLuce(options);

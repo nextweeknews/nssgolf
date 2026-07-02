@@ -601,7 +601,7 @@
     async function loadLatestRun(){
       const { data, error } = await supabase
         .from("internal_ranked_gpi_runs")
-        .select("id,calculation_version,model,base_rating,rating_scale,season_start,season_end,match_count,player_count,latest_match_at,created_at")
+        .select("id,calculation_version,model,base_rating,rating_scale,k_factor,season_start,season_end,match_count,player_count,latest_match_at,created_at")
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
@@ -664,14 +664,21 @@
     }
 
     function renderRunMeta(run){
+      const modelLabel = {
+        plackett_luce: "Plackett-Luce",
+        normalized_placement_elo: "NPS Elo",
+      }[run.model] || run.model;
+      const tuningLabel = Number.isFinite(Number(run.k_factor))
+        ? `K ${Number(run.k_factor).toFixed(0)}`
+        : `Scale ${Number(run.rating_scale).toFixed(1)}`;
       runMetaEl.hidden = false;
       runMetaEl.innerHTML = [
         `GPI Run #${run.id}`,
-        run.model === "plackett_luce" ? "Plackett-Luce" : run.model,
+        modelLabel,
         `Seasons ${run.season_start}-${run.season_end}`,
         `${run.match_count} matches`,
         `${run.player_count} players`,
-        `Scale ${Number(run.rating_scale).toFixed(1)}`,
+        tuningLabel,
         formatDateTime(run.created_at),
       ].map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
     }
@@ -788,7 +795,7 @@
         .filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.rating_after))
         .sort((left, right) => left.timestamp_ms - right.timestamp_ms);
       if(!points.length){
-        return `<div class="chart-empty">Per-match rating history is not available for batch Plackett-Luce GPI runs.</div>`;
+        return `<div class="chart-empty">Per-match rating history is not available for this GPI run.</div>`;
       }
 
       const width = 840;

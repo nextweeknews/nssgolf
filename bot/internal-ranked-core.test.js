@@ -5,10 +5,17 @@ const {
   dedupeMatches,
   matchRecencyWeightForIndex,
   recencyWeightForMatch,
+  normalizedOutcomeScore,
+  participantWeightForMatchSize,
   replayElo,
+  replayNormalizedPlacementElo,
   replayPlackettLuceGpi,
   resultSignature,
 } = require("./internal-ranked-core");
+
+function assertAlmostEqual(actual, expected, tolerance = 0.0000001) {
+  assert(Math.abs(actual - expected) <= tolerance, `${actual} !== ${expected}`);
+}
 
 function match(timestamp, results, versus = "1v1v1") {
   return {
@@ -163,6 +170,96 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(winner.reliability, 100 / 110);
   assert(winner.weighted_matches < winner.matches_played);
   assert(winner.rating > 1200);
+}
+
+{
+  assert.equal(participantWeightForMatchSize(2), 1);
+  assertAlmostEqual(participantWeightForMatchSize(3), 1.35);
+  assertAlmostEqual(participantWeightForMatchSize(4), 1 + 0.35 * Math.log2(3));
+  assertAlmostEqual(participantWeightForMatchSize(8), 1 + 0.35 * Math.log2(7));
+}
+
+{
+  const replay = replayNormalizedPlacementElo([
+    {
+      match_hash: "m1",
+      season: 7,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: match(1_000, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    },
+  ], { baseRating: 1200, kFactor: 20 });
+
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+  const loser = replay.finalRatings.find((row) => row.discord_user_id === "200");
+
+  assert.equal(winner.rating, 1210);
+  assert.equal(loser.rating, 1190);
+  assert.equal(winner.placement_score_average, 1);
+  assert.equal(loser.placement_score_average, 0);
+}
+
+{
+  const replay = replayNormalizedPlacementElo([
+    {
+      match_hash: "m1",
+      season: 7,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: match(1_000, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+        { place: 3, players: ["300"] },
+      ]),
+    },
+  ], { baseRating: 1200, kFactor: 20 });
+
+  const byPlayer = new Map(replay.finalRatings.map((row) => [row.discord_user_id, row]));
+
+  assert.equal(byPlayer.get("100").rating, 1213.5);
+  assert.equal(byPlayer.get("200").rating, 1200);
+  assert.equal(byPlayer.get("300").rating, 1186.5);
+  assert.equal(byPlayer.get("100").placement_score_average, 1);
+  assert.equal(byPlayer.get("200").placement_score_average, 0.5);
+  assert.equal(byPlayer.get("300").placement_score_average, 0);
+}
+
+{
+  const replay = replayNormalizedPlacementElo([
+    {
+      match_hash: "m1",
+      season: 7,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: match(1_000, [
+        { place: 1, players: ["100", "200"] },
+        { place: 2, players: ["300"] },
+      ]),
+    },
+  ], { baseRating: 1200, kFactor: 20 });
+
+  const tiedFirst = replay.finalRatings
+    .filter((row) => row.discord_user_id === "100" || row.discord_user_id === "200")
+    .sort((left, right) => left.discord_user_id.localeCompare(right.discord_user_id));
+  const third = replay.finalRatings.find((row) => row.discord_user_id === "300");
+
+  assert.deepEqual(tiedFirst.map((row) => row.rating), [1206.75, 1206.75]);
+  assert.deepEqual(tiedFirst.map((row) => row.placement_score_average), [0.75, 0.75]);
+  assert.equal(third.rating, 1186.5);
+}
+
+{
+  const players = [
+    { discord_user_id: "100", place: 1 },
+    { discord_user_id: "200", place: 1 },
+    { discord_user_id: "300", place: 2 },
+  ];
+
+  assert.equal(normalizedOutcomeScore(players[0], players), 0.75);
+  assert.equal(normalizedOutcomeScore(players[2], players), 0);
 }
 
 {
