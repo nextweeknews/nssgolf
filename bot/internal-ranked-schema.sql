@@ -27,6 +27,57 @@ on public.internal_ranked_matches (played_at, match_hash);
 create index if not exists internal_ranked_matches_result_signature_idx
 on public.internal_ranked_matches (season, result_signature);
 
+create or replace function public.get_internal_ranked_head_to_head_matches(
+  player_a_id text,
+  player_b_id text
+)
+returns table (
+  match_hash text,
+  season integer,
+  timestamp_ms bigint,
+  played_at timestamptz,
+  player_a_place integer,
+  player_b_place integer
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with match_players as (
+    select
+      matches.match_hash,
+      matches.season,
+      matches.timestamp_ms,
+      matches.played_at,
+      player.value ->> 'player_id' as discord_user_id,
+      (result.value ->> 'place')::integer as place
+    from public.internal_ranked_matches as matches
+    cross join lateral jsonb_array_elements(matches.raw_match -> 'results') as result(value)
+    cross join lateral jsonb_array_elements(result.value -> 'players') as player(value)
+    where
+      player_a_id ~ '^[0-9]+$'
+      and player_b_id ~ '^[0-9]+$'
+      and player_a_id <> player_b_id
+      and player.value ->> 'player_id' in (player_a_id, player_b_id)
+      and result.value ->> 'place' ~ '^[0-9]+$'
+  )
+  select
+    player_a.match_hash,
+    player_a.season,
+    player_a.timestamp_ms,
+    player_a.played_at,
+    player_a.place as player_a_place,
+    player_b.place as player_b_place
+  from match_players as player_a
+  join match_players as player_b
+    on player_b.match_hash = player_a.match_hash
+  where
+    player_a.discord_user_id = player_a_id
+    and player_b.discord_user_id = player_b_id
+  order by player_a.timestamp_ms, player_a.match_hash;
+$$;
+
 create table if not exists public.internal_ranked_elo_runs (
   id bigserial primary key,
   calculation_version text not null,
@@ -267,6 +318,10 @@ grant select, insert, update, delete on public.internal_ranked_elo_match_results
 grant select, insert, update, delete on public.internal_ranked_gpi_runs to service_role;
 grant select, insert, update, delete on public.internal_ranked_gpi_ratings to service_role;
 grant select, insert, update, delete on public.internal_ranked_gpi_match_results to service_role;
+
+revoke all on function public.get_internal_ranked_head_to_head_matches(text, text) from public;
+grant execute on function public.get_internal_ranked_head_to_head_matches(text, text) to anon, authenticated;
+grant execute on function public.get_internal_ranked_head_to_head_matches(text, text) to service_role;
 
 grant usage, select on sequence public.internal_ranked_elo_runs_id_seq to service_role;
 grant usage, select on sequence public.internal_ranked_gpi_runs_id_seq to service_role;

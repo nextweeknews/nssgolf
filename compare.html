@@ -19,7 +19,7 @@
       --muted:#9ca3c7;
       --line:rgba(148,163,184,.20);
       --line-strong:rgba(148,163,184,.32);
-      --accent:#6ee7b7;
+      --accent:#cbd5e1;
       --danger:#fca5a5;
       --tie:#cbd5e1;
       --shadow:0 26px 42px rgba(0,0,0,.34);
@@ -136,8 +136,8 @@
     }
 
     .player-search-input:focus{
-      border-color:rgba(110,231,183,.72);
-      box-shadow:0 0 0 3px rgba(110,231,183,.12);
+      border-color:rgba(203,213,225,.72);
+      box-shadow:0 0 0 3px rgba(203,213,225,.12);
     }
 
     .player-search-results{
@@ -177,12 +177,11 @@
 
     .player-search-result:hover,
     .player-search-result:focus-visible{
-      background:rgba(110,231,183,.12);
+      background:rgba(148,163,184,.12);
       outline:none;
     }
 
-    .player-search-avatar,
-    .selected-avatar{
+    .player-search-avatar{
       width:34px;
       height:34px;
       border-radius:50%;
@@ -190,15 +189,13 @@
       background:rgba(148,163,184,.16);
     }
 
-    .player-search-copy,
-    .selected-copy{
+    .player-search-copy{
       display:grid;
       gap:2px;
       min-width:0;
     }
 
-    .player-search-display,
-    .selected-name{
+    .player-search-display{
       overflow:hidden;
       color:var(--text);
       font-size:14px;
@@ -207,8 +204,7 @@
       white-space:nowrap;
     }
 
-    .player-search-username,
-    .selected-id{
+    .player-search-username{
       overflow:hidden;
       color:var(--muted);
       font-size:12px;
@@ -219,17 +215,6 @@
     .player-search-empty{
       margin:0;
       padding:12px 10px;
-      color:var(--muted);
-      font-size:13px;
-    }
-
-    .selected-player{
-      display:grid;
-      grid-template-columns:34px minmax(0, 1fr);
-      gap:10px;
-      align-items:center;
-      margin-top:10px;
-      min-height:42px;
       color:var(--muted);
       font-size:13px;
     }
@@ -249,7 +234,7 @@
 
     .swap-button:hover,
     .swap-button:focus-visible{
-      border-color:rgba(110,231,183,.72);
+      border-color:rgba(203,213,225,.72);
       color:var(--accent);
       outline:none;
     }
@@ -273,24 +258,10 @@
       display:none;
     }
 
-    .results-head{
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:14px;
-    }
-
     h2{
       margin:0;
       font-size:18px;
       letter-spacing:0;
-    }
-
-    .record-note{
-      margin:5px 0 0;
-      color:var(--muted);
-      font-size:13px;
     }
 
     .matchup-card{
@@ -315,20 +286,12 @@
       text-align:center;
     }
 
-    .matchup-player-left{
-      --player-accent:96,165,250;
-    }
-
-    .matchup-player-right{
-      --player-accent:34,197,94;
-    }
-
     .matchup-player::after{
       content:"";
       width:100%;
       height:3px;
       border-radius:999px;
-      background:rgba(var(--player-accent), .82);
+      background:rgba(203,213,225,.52);
     }
 
     .matchup-avatar{
@@ -400,14 +363,6 @@
       font-variant-numeric:tabular-nums;
     }
 
-    .matchup-stat-left .dash-text{
-      color:rgba(96,165,250,.72);
-    }
-
-    .matchup-stat-right .dash-text{
-      color:rgba(34,197,94,.72);
-    }
-
     .matchup-label{
       display:grid;
       align-content:center;
@@ -419,9 +374,9 @@
       text-transform:uppercase;
     }
 
-    .win-text{ color:var(--accent); }
-    .loss-text{ color:var(--danger); }
-    .tie-text,
+    .win-text,
+    .loss-text,
+    .tie-text{ color:var(--text); }
     .dash-text{ color:var(--tie); }
 
     .section{
@@ -530,7 +485,6 @@
         padding:12px;
       }
 
-      .results-head,
       .section-head{
         align-items:flex-start;
         flex-direction:column;
@@ -598,7 +552,6 @@
             <input class="player-search-input" id="playerSearchA" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search first player" aria-expanded="false" />
             <div class="player-search-results" id="playerSearchResultsA" hidden></div>
           </div>
-          <div class="selected-player" id="selectedPlayerA">No player selected.</div>
         </div>
 
         <button class="swap-button" id="swapPlayers" type="button" aria-label="Swap players">
@@ -613,20 +566,12 @@
             <input class="player-search-input" id="playerSearchB" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search second player" aria-expanded="false" />
             <div class="player-search-results" id="playerSearchResultsB" hidden></div>
           </div>
-          <div class="selected-player" id="selectedPlayerB">No player selected.</div>
         </div>
       </div>
 
       <div class="status" id="status">Select two current Discord members to compare.</div>
 
       <div class="results" id="results" hidden>
-        <div class="results-head">
-          <div>
-            <h2 id="comparisonTitle">Head-to-Head</h2>
-            <p class="record-note" id="recordNote"></p>
-          </div>
-        </div>
-
         <article class="matchup-card" aria-label="Head-to-head comparison summary">
           <div class="matchup-player matchup-player-left" id="matchupPlayerA"></div>
           <div class="matchup-vs" aria-hidden="true">vs.</div>
@@ -686,12 +631,9 @@
     const supabase = createBrowserSupabaseClient();
     const MEMBER_PAGE_SIZE = 1000;
     const PLAYER_SEARCH_LIMIT = 8;
-    const MATCH_ROW_PAGE_SIZE = 1000;
     const state = {
       memberSearchRows: [],
       memberSearchPromise: null,
-      rankedRun: null,
-      rankedRunPromise: null,
       selected: { a:null, b:null },
       comparisonToken: 0,
     };
@@ -700,19 +642,15 @@
       a: {
         input: document.getElementById("playerSearchA"),
         results: document.getElementById("playerSearchResultsA"),
-        selected: document.getElementById("selectedPlayerA"),
       },
       b: {
         input: document.getElementById("playerSearchB"),
         results: document.getElementById("playerSearchResultsB"),
-        selected: document.getElementById("selectedPlayerB"),
       },
     };
 
     const statusEl = document.getElementById("status");
     const resultsEl = document.getElementById("results");
-    const comparisonTitleEl = document.getElementById("comparisonTitle");
-    const recordNoteEl = document.getElementById("recordNote");
     const matchupPlayerAEl = document.getElementById("matchupPlayerA");
     const matchupPlayerBEl = document.getElementById("matchupPlayerB");
     const rankedRecordAEl = document.getElementById("rankedRecordA");
@@ -953,23 +891,15 @@
       }
     }
 
-    function renderSelectedPlayer(key){
+    function renderSelectedInput(key){
       const member = state.selected[key];
       const picker = pickers[key];
       if(!member){
-        picker.selected.textContent = "No player selected.";
         picker.input.value = "";
         return;
       }
 
       picker.input.value = displayNameForMember(member);
-      picker.selected.innerHTML = `
-        <img class="selected-avatar" src="${escapeHtml(avatarUrlForMember(member))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
-        <span class="selected-copy">
-          <span class="selected-name">${escapeHtml(displayNameForMember(member))}</span>
-          <span class="selected-id">${escapeHtml(usernameForMember(member))}</span>
-        </span>
-      `;
     }
 
     function updateUrl(){
@@ -985,7 +915,7 @@
 
     function selectPlayer(key, member){
       state.selected[key] = member;
-      renderSelectedPlayer(key);
+      renderSelectedInput(key);
       hidePickerResults(key);
       updateUrl();
       void runComparison();
@@ -1003,89 +933,40 @@
         const playerB = byId.get(normalizeDiscordId(params.get("b")));
         if(playerA) state.selected.a = playerA;
         if(playerB) state.selected.b = playerB;
-        renderSelectedPlayer("a");
-        renderSelectedPlayer("b");
+        renderSelectedInput("a");
+        renderSelectedInput("b");
       }catch(error){
         console.error(error);
       }
     }
 
-    async function loadLatestRankedRun(){
-      if(state.rankedRun) return state.rankedRun;
-      if(state.rankedRunPromise) return state.rankedRunPromise;
-
-      state.rankedRunPromise = (async () => {
-        const { data, error } = await supabase
-          .from("internal_ranked_gpi_runs")
-          .select("id,model,created_at")
-          .eq("model", "opponent_aware_weighted_pairwise")
-          .order("created_at", { ascending:false })
-          .limit(1)
-          .maybeSingle();
-
-        if(error) throw error;
-        if(!data?.id) throw new Error("No Ranked League GPI replay is available yet.");
-        state.rankedRun = data;
-        return state.rankedRun;
-      })().finally(() => {
-        state.rankedRunPromise = null;
+    async function loadRankedHeadToHeadMatches(playerAId, playerBId){
+      const { data, error } = await supabase.rpc("get_internal_ranked_head_to_head_matches", {
+        player_a_id: playerAId,
+        player_b_id: playerBId,
       });
-
-      return state.rankedRunPromise;
+      if(error) throw error;
+      return (data || []).sort((left, right) => {
+        const leftTimestamp = Number(left.timestamp_ms) || 0;
+        const rightTimestamp = Number(right.timestamp_ms) || 0;
+        if(leftTimestamp !== rightTimestamp) return leftTimestamp - rightTimestamp;
+        return normalizeText(left.match_hash).localeCompare(normalizeText(right.match_hash));
+      });
     }
 
-    async function loadRankedPlayerRows(playerIds){
-      const run = await loadLatestRankedRun();
-      const rows = [];
-      for(let from = 0;; from += MATCH_ROW_PAGE_SIZE){
-        const to = from + MATCH_ROW_PAGE_SIZE - 1;
-        const { data, error } = await supabase
-          .from("internal_ranked_gpi_match_results")
-          .select("match_hash,season,timestamp_ms,played_at,discord_user_id,display_name,place")
-          .eq("run_id", run.id)
-          .in("discord_user_id", playerIds)
-          .order("timestamp_ms", { ascending:true })
-          .range(from, to);
-        if(error) throw error;
-        rows.push(...(data || []));
-        if(!data || data.length < MATCH_ROW_PAGE_SIZE) break;
-      }
-      return rows;
-    }
-
-    function summarizeRankedRows(playerAId, playerBId, rows){
-      const groups = new Map();
-      for(const row of rows){
-        const matchHash = normalizeText(row.match_hash);
-        if(!matchHash) continue;
-        if(!groups.has(matchHash)){
-          groups.set(matchHash, {
-            season:Number(row.season),
-            timestampMs:Number(row.timestamp_ms) || 0,
-            playedAt:row.played_at,
-            players:new Map(),
-          });
-        }
-        groups.get(matchHash).players.set(normalizeDiscordId(row.discord_user_id), row);
-      }
-
+    function summarizeRankedMatches(rows){
       const total = emptyRecord();
       const seasons = new Map();
-      const matchups = [...groups.values()]
-        .filter(group => group.players.has(playerAId) && group.players.has(playerBId))
-        .sort((left, right) => left.timestampMs - right.timestampMs);
 
-      for(const group of matchups){
-        const playerA = group.players.get(playerAId);
-        const playerB = group.players.get(playerBId);
-        const placeA = Number(playerA.place);
-        const placeB = Number(playerB.place);
+      for(const row of rows){
+        const placeA = Number(row.player_a_place);
+        const placeB = Number(row.player_b_place);
         if(!Number.isFinite(placeA) || !Number.isFinite(placeB)) continue;
 
         const outcome = placeA < placeB ? "win" : placeA > placeB ? "loss" : "tie";
         addOutcome(total, outcome);
 
-        const season = Number(group.season);
+        const season = Number(row.season);
         if(!seasons.has(season)) seasons.set(season, emptyRecord());
         addOutcome(seasons.get(season), outcome);
       }
@@ -1168,12 +1049,8 @@
     }
 
     function renderComparison(playerA, playerB, ranked, tournament){
-      const playerAName = displayNameForMember(playerA);
-      const playerBName = displayNameForMember(playerB);
       const rankedTotal = recordTotal(ranked.total);
       const tournamentTotal = recordTotal(tournament.total);
-      comparisonTitleEl.textContent = `${playerAName} vs ${playerBName}`;
-      recordNoteEl.textContent = "Each side shows that player's head-to-head record.";
       matchupPlayerAEl.innerHTML = matchupPlayerHtml(playerA);
       matchupPlayerBEl.innerHTML = matchupPlayerHtml(playerB);
       rankedRecordAEl.innerHTML = recordHtml(ranked.total);
@@ -1207,8 +1084,8 @@
       showStatus("Loading head-to-head records...");
 
       try{
-        const [rankedRows, tournamentMatches] = await Promise.all([
-          loadRankedPlayerRows([playerAId, playerBId]),
+        const [rankedMatches, tournamentMatches] = await Promise.all([
+          loadRankedHeadToHeadMatches(playerAId, playerBId),
           loadTournamentMatches(playerAId, playerBId),
         ]);
 
@@ -1217,7 +1094,7 @@
         renderComparison(
           playerA,
           playerB,
-          summarizeRankedRows(playerAId, playerBId, rankedRows),
+          summarizeRankedMatches(rankedMatches),
           summarizeTournamentMatches(playerAId, playerBId, tournamentMatches)
         );
       }catch(error){
@@ -1255,14 +1132,14 @@
       const previousA = state.selected.a;
       state.selected.a = state.selected.b;
       state.selected.b = previousA;
-      renderSelectedPlayer("a");
-      renderSelectedPlayer("b");
+      renderSelectedInput("a");
+      renderSelectedInput("b");
       updateUrl();
       void runComparison();
     });
 
-    renderSelectedPlayer("a");
-    renderSelectedPlayer("b");
+    renderSelectedInput("a");
+    renderSelectedInput("b");
     await loadPlayersFromUrl();
     void runComparison();
   </script>
