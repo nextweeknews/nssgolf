@@ -495,13 +495,14 @@
       border-radius:8px;
       overflow:hidden;
       margin-bottom:18px;
-      background:var(--line);
+      background:transparent;
     }
 
     .detail-cell{
       min-width:0;
       padding:12px;
       background:#181b20;
+      box-shadow:0 0 0 1px var(--line);
     }
 
     .detail-label{
@@ -517,6 +518,66 @@
       font-weight:850;
       font-variant-numeric:tabular-nums;
       overflow-wrap:anywhere;
+    }
+
+    .modal-section{
+      margin-bottom:18px;
+    }
+
+    .modal-section:last-child{
+      margin-bottom:0;
+    }
+
+    .modal-section-title{
+      margin:0 0 10px;
+      font-size:14px;
+      line-height:1.2;
+      letter-spacing:0;
+    }
+
+    .tournament-match-list{
+      max-height:280px;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+    }
+
+    .tournament-match-list table{
+      min-width:620px;
+      box-shadow:none;
+      border:0;
+    }
+
+    .tournament-match-list th,
+    .tournament-match-list td{
+      padding:10px 12px;
+    }
+
+    .tournament-match-list th{
+      position:sticky;
+      top:0;
+    }
+
+    .modal-details{
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+      overflow:hidden;
+    }
+
+    .modal-details summary{
+      cursor:pointer;
+      padding:12px;
+      font-weight:850;
+    }
+
+    .modal-details-body{
+      padding:0 12px 12px;
+    }
+
+    .match-outcome{
+      font-weight:900;
     }
 
     [hidden]{ display:none !important; }
@@ -764,6 +825,7 @@
     let currentPage = 0;
     let sortState = { key:"rank", direction:"asc" };
     let loadRequestId = 0;
+    let combinedRowsById = new Map();
 
     function activeConfig(){
       return VIEW_CONFIG[currentView] || VIEW_CONFIG.ranked;
@@ -1123,7 +1185,12 @@
           ratingNumber: rating,
           rankedRating: row.rankedRating,
           rankedRatingNumber: row.rankedRating,
+          rankedRank: Number(row.rankedRow.rank) || 0,
+          lifetimeRating: Number(row.rankedRow.full_history_rating) || row.rankedRating,
+          potentialRating: Number(row.rankedRow.potential_rating) || row.rankedRating,
+          recentRating: Number(row.rankedRow.recent_form_rating) || row.rankedRating,
           tournamentRating,
+          tournamentRank: Number(tournamentRow?.rank) || 0,
           tournamentDelta,
           tournamentDeltaNumber: tournamentDelta,
           tournamentDeltaZ,
@@ -1146,6 +1213,10 @@
       });
 
       return rows;
+    }
+
+    function cacheCombinedRows(rows){
+      combinedRowsById = new Map(rows.map((row) => [row.discord_user_id, row]));
     }
 
     function sortValueForRow(row, key){
@@ -1187,10 +1258,10 @@
             <tr>
               <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
               <td class="player-cell">
-                <div class="player">
+                <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
                   <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
                   <span class="player-name">${escapeHtml(row.displayName)}</span>
-                </div>
+                </button>
               </td>
               <td class="rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
               <td class="rating-cell right">${escapeHtml(formatRating(row.rankedRating))}</td>
@@ -1239,45 +1310,167 @@
       nextPageEl.disabled = to >= totalRatings;
     }
 
+    function blankValue(value = "—"){
+      return `<span class="delta-neutral">${escapeHtml(value)}</span>`;
+    }
+
+    function finiteValue(value){
+      if(value == null || value === "") return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function ratingValue(value){
+      const number = finiteValue(value);
+      return number == null ? blankValue() : escapeHtml(formatRating(number));
+    }
+
+    function signedRatingValue(value){
+      const number = finiteValue(value);
+      if(number == null) return blankValue();
+      return `<span class="${escapeHtml(deltaClass(number))}">${escapeHtml(formatSignedRating(number))}</span>`;
+    }
+
+    function rankValue(value){
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? escapeHtml(number) : blankValue();
+    }
+
+    async function ensureCombinedRowsForModal(){
+      if(combinedRowsById.size > 0) return;
+
+      const rankedConfig = VIEW_CONFIG.ranked;
+      const tournamentConfig = VIEW_CONFIG.tournament;
+      const [rankedRun, tournamentRun] = await Promise.all([
+        loadLatestRunByModel(rankedConfig.model, rankedConfig),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
+      ]);
+      if(!rankedRun || !tournamentRun) return;
+
+      const [rankedRatings, tournamentRatings] = await Promise.all([
+        loadRatingsForRun(rankedRun.id, rankedConfig),
+        loadRatingsForRun(tournamentRun.id, tournamentConfig),
+      ]);
+      const membersById = await loadMembers(rankedRatings.map(row => row.discord_user_id));
+      cacheCombinedRows(buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById));
+    }
+
+    function fallbackModalRow(row){
+      return {
+        ...row,
+        rating: currentView === "ranked" && Number.isFinite(Number(row?.ratingNumber)) ? Number(row.ratingNumber) : null,
+        rankedRating: currentView === "ranked" ? Number(row?.ratingNumber) : null,
+        rankedRank: currentView === "ranked" ? Number(row?.rankNumber) : null,
+        lifetimeRating: Number(row?.fullHistoryRating),
+        potentialRating: Number(row?.potentialRating),
+        recentRating: Number(row?.recentFormRating),
+        tournamentRating: currentView === "tournament" ? Number(row?.ratingNumber) : null,
+        tournamentRank: currentView === "tournament" ? Number(row?.rankNumber) : null,
+        tournamentDelta: null,
+      };
+    }
+
+    async function profileRowForModal(discordId, fallbackRow){
+      if(activeConfig().kind !== "combined") {
+        await ensureCombinedRowsForModal();
+      }
+      return combinedRowsById.get(discordId) || fallbackModalRow(fallbackRow);
+    }
+
     async function openPlayerModal(discordId){
-      if(activeConfig().kind === "combined") return;
       const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
       if(!row) return;
+      const profileRow = await profileRowForModal(discordId, row);
+      const recentDelta = Number(profileRow.recentRating) - Number(profileRow.lifetimeRating);
 
       modalPlayerHeadEl.innerHTML = `
-        <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
+        <img class="avatar" src="${escapeHtml(profileRow.avatarUrl || row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
         <span>
-          <h2 id="modalTitle" class="modal-title">${escapeHtml(row.displayName)}</h2>
+          <h2 id="modalTitle" class="modal-title">${escapeHtml(profileRow.displayName || row.displayName)}</h2>
         </span>
       `;
       playerModalEl.hidden = false;
       modalCloseEl.focus();
 
-      const componentCells = currentView === "ranked"
-        ? `
-          <div class="detail-cell"><span class="detail-label">Full History</span><span class="detail-value">${escapeHtml(formatRating(row.fullHistoryRating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Potential</span><span class="detail-value">${escapeHtml(formatRating(row.potentialRating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Recent Form</span><span class="detail-value">${escapeHtml(formatRating(row.recentFormRating))}</span></div>
-        `
-        : `<div class="detail-cell"><span class="detail-label">Raw GPI</span><span class="detail-value">${escapeHtml(formatRating(row.rawRating))}</span></div>`;
-
       modalBodyEl.innerHTML = `
-        <div class="detail-grid">
-          <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
-          <div class="detail-cell"><span class="detail-label">GPI Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
-          ${componentCells}
-          <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
-          <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
-          <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Match Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.matchWinPct))}</span></div>
-          <div class="detail-cell"><span class="detail-label">1st Place</span><span class="detail-value">${escapeHtml(row.firstPlaceFinishes)}</span></div>
-          <div class="detail-cell"><span class="detail-label">Reliability</span><span class="detail-value">${escapeHtml(formatPercent(row.reliability))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Weighted Matches</span><span class="detail-value">${escapeHtml(formatRating(row.weightedMatches))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Avg Match Weight</span><span class="detail-value">${escapeHtml(formatRating(row.averageMatchWeight))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Placement</span><span class="detail-value">${escapeHtml(formatPercent(row.placementScoreAverage))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Weighted Placement</span><span class="detail-value">${escapeHtml(formatPercent(row.weightedPlacementScore))}</span></div>
-          <div class="detail-cell"><span class="detail-label">First Match</span><span class="detail-value">${escapeHtml(formatDateTime(row.first_played_at))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Last Match</span><span class="detail-value">${escapeHtml(formatDateTime(row.last_played_at))}</span></div>
+        <section class="modal-section">
+          <h3 class="modal-section-title">GPI</h3>
+          <div class="detail-grid">
+            <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${rankValue(profileRow.rankNumber)}</span></div>
+            <div class="detail-cell"><span class="detail-label">GPI</span><span class="detail-value">${ratingValue(profileRow.rating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Ranked Rating</span><span class="detail-value">${ratingValue(profileRow.rankedRating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Tournament Delta</span><span class="detail-value">${signedRatingValue(profileRow.tournamentDelta)}</span></div>
+          </div>
+        </section>
+
+        <section class="modal-section">
+          <h3 class="modal-section-title">Ranked League</h3>
+          <div class="detail-grid">
+            <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${rankValue(profileRow.rankedRank)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Lifetime - 50% (PL)</span><span class="detail-value">${ratingValue(profileRow.lifetimeRating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Potential - 25% (Peak Elo)</span><span class="detail-value">${ratingValue(profileRow.potentialRating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Recent - 25% (Last 100 PL)</span><span class="detail-value">${ratingValue(profileRow.recentRating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Recent Delta</span><span class="detail-value">${signedRatingValue(recentDelta)}</span></div>
+          </div>
+        </section>
+
+        <section class="modal-section">
+          <h3 class="modal-section-title">Tournaments</h3>
+          <div class="detail-grid">
+            <div class="detail-cell"><span class="detail-label">Tournament GPI</span><span class="detail-value">${ratingValue(profileRow.tournamentRating)}</span></div>
+          </div>
+          <details id="tournamentMatchDetails" class="modal-details" data-player-id="${escapeHtml(discordId)}">
+            <summary>Show tournament matches</summary>
+            <div id="tournamentMatchList" class="modal-details-body">Loading...</div>
+          </details>
+        </section>
+      `;
+    }
+
+    async function loadTournamentMatchesForPlayer(discordId){
+      const { data, error } = await supabase
+        .from("internal_tournament_matches")
+        .select("event_name,round_label,played_at,event_order,match_order,player_a_discord_user_id,player_a_name,player_a_score,player_b_discord_user_id,player_b_name,player_b_score,winner_discord_user_id")
+        .or(`player_a_discord_user_id.eq.${discordId},player_b_discord_user_id.eq.${discordId}`)
+        .order("event_order", { ascending:true })
+        .order("match_order", { ascending:true });
+      if(error) throw error;
+      return data || [];
+    }
+
+    function renderTournamentMatchRows(discordId, matches){
+      if(!matches.length){
+        return `<div class="modal-details-body">No tracked tournament matches.</div>`;
+      }
+
+      return `
+        <div class="tournament-match-list">
+          <table>
+            <thead>
+              <tr>
+                <th>Result</th>
+                <th>Tournament</th>
+                <th>Round</th>
+                <th>Opponent</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${matches.map((match) => {
+                const isPlayerA = match.player_a_discord_user_id === discordId;
+                const opponentName = isPlayerA ? match.player_b_name : match.player_a_name;
+                const outcome = match.winner_discord_user_id === discordId ? "W" : "L";
+                const outcomeClass = outcome === "W" ? "win-text" : "loss-text";
+                return `
+                  <tr>
+                    <td><span class="match-outcome ${outcomeClass}">${outcome}</span></td>
+                    <td>${escapeHtml(match.event_name || "")}</td>
+                    <td>${escapeHtml(match.round_label || "")}</td>
+                    <td>${escapeHtml(opponentName || "")}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
         </div>
       `;
     }
@@ -1347,6 +1540,7 @@
       const membersById = await loadMembers(ids);
       if(requestId !== loadRequestId) return false;
       allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
+      cacheCombinedRows(allLeaderboardRows);
       totalRatings = allLeaderboardRows.length;
       await loadLeaderboardPage(0);
       if(requestId !== loadRequestId) return false;
@@ -1449,6 +1643,24 @@
         setStatus(`Unable to load player rating history: ${error?.message || "Unknown error"}`, "error");
       });
     });
+
+    modalBodyEl.addEventListener("toggle", (event) => {
+      const details = event.target;
+      if(details?.id !== "tournamentMatchDetails" || !details.open || details.dataset.loaded === "true") return;
+      const discordId = details.dataset.playerId;
+      const listEl = document.getElementById("tournamentMatchList");
+      if(!discordId || !listEl) return;
+
+      loadTournamentMatchesForPlayer(discordId)
+        .then((matches) => {
+          details.dataset.loaded = "true";
+          listEl.innerHTML = renderTournamentMatchRows(discordId, matches);
+        })
+        .catch((error) => {
+          console.error(error);
+          listEl.textContent = `Unable to load tournament matches: ${error?.message || "Unknown error"}`;
+        });
+    }, true);
 
     prevPageEl.addEventListener("click", () => {
       if(currentPage <= 0) return;
