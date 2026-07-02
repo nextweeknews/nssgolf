@@ -245,8 +245,20 @@
 
     table{
       width:100%;
-      min-width:1120px;
+      min-width:860px;
       border-collapse:collapse;
+    }
+
+    .leaderboard-table.is-ranked{
+      min-width:1120px;
+    }
+
+    .leaderboard-table.is-gpi{
+      width:860px;
+      max-width:100%;
+      min-width:0;
+      margin:0 auto;
+      table-layout:fixed;
     }
 
     th,
@@ -326,7 +338,12 @@
     }
 
     .player-cell{
+      width:280px;
       min-width:280px;
+    }
+
+    .leaderboard-table.is-gpi .player-cell{
+      max-width:280px;
     }
 
     .player{
@@ -383,13 +400,22 @@
 
     .rating-cell{
       width:140px;
-      font-weight:900;
       font-variant-numeric:tabular-nums;
     }
 
     .delta-positive{ color:#86efac; }
     .delta-negative{ color:#fca5a5; }
     .delta-neutral{ color:var(--muted); }
+
+    .main-rating-cell{
+      color:var(--text);
+      font-weight:900;
+    }
+
+    .secondary-rating-cell{
+      color:var(--muted);
+      font-weight:650;
+    }
 
     .number-cell{
       color:var(--muted);
@@ -442,7 +468,9 @@
     .modal{
       width:min(940px, 100%);
       max-height:min(86vh, 820px);
-      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
       border:1px solid var(--line);
       border-radius:8px;
       background:var(--panel);
@@ -476,20 +504,30 @@
     .modal-close{
       width:34px;
       height:34px;
+      display:grid;
+      place-items:center;
       border:1px solid var(--line);
       border-radius:8px;
       background:var(--panel);
-      font-size:22px;
-      line-height:1;
+      color:var(--text);
+    }
+
+    .modal-close svg{
+      width:18px;
+      height:18px;
+      display:block;
     }
 
     .modal-body{
       padding:18px;
+      min-height:0;
+      overflow:hidden;
     }
 
     .detail-grid{
       display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns:repeat(auto-fit, minmax(140px, 174px));
+      justify-content:center;
       gap:8px;
       margin-bottom:18px;
       background:transparent;
@@ -546,7 +584,7 @@
     }
 
     .tournament-match-list{
-      max-height:280px;
+      max-height:min(280px, 24vh);
       overflow:auto;
       border:1px solid var(--line);
       border-radius:8px;
@@ -570,20 +608,29 @@
     }
 
     .modal-details{
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#181b20;
-      overflow:hidden;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      overflow:visible;
     }
 
     .modal-details summary{
+      display:inline-flex;
+      align-items:center;
+      width:auto;
       cursor:pointer;
-      padding:12px;
+      padding:0 0 12px;
+      border-radius:6px;
       font-weight:850;
     }
 
+    .modal-details summary:focus-visible{
+      outline:2px solid rgba(107, 226, 181, .72);
+      outline-offset:2px;
+    }
+
     .modal-details-body{
-      padding:0 12px 18px;
+      padding:0 0 18px;
     }
 
     .match-outcome{
@@ -608,7 +655,13 @@
       }
 
       .detail-grid{
-        grid-template-columns:repeat(2, minmax(0, 1fr));
+        grid-template-columns:repeat(2, minmax(0, 174px));
+      }
+
+      .leaderboard-table.is-gpi{
+        width:860px;
+        max-width:none;
+        min-width:860px;
       }
 
     }
@@ -645,7 +698,7 @@
         </div>
       </div>
       <div class="table-shell">
-        <table>
+        <table id="leaderboardTable" class="leaderboard-table">
           <thead>
             <tr id="leaderboardHeader"></tr>
           </thead>
@@ -748,7 +801,11 @@
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <header class="modal-head">
         <div id="modalPlayerHead" class="modal-player"></div>
-        <button id="modalClose" class="modal-close" type="button" aria-label="Close">×</button>
+        <button id="modalClose" class="modal-close" type="button" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+        </button>
       </header>
       <div id="modalBody" class="modal-body"></div>
     </section>
@@ -761,6 +818,7 @@
     const statusEl = document.getElementById("status");
     const pageSubtitleEl = document.getElementById("pageSubtitle");
     const leaderboardEl = document.getElementById("leaderboard");
+    const leaderboardTableEl = document.getElementById("leaderboardTable");
     const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const aboutPanelEl = document.getElementById("aboutPanel");
@@ -903,6 +961,7 @@
       const number = Number(value);
       if(!Number.isFinite(number)) return "";
       return new Intl.NumberFormat("en-US", {
+        useGrouping: false,
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       }).format(number);
@@ -1043,6 +1102,8 @@
     }
 
     function renderTableHeader(){
+      leaderboardTableEl.className = `leaderboard-table is-${currentView}`;
+
       if(activeConfig().kind === "combined"){
         leaderboardHeaderEl.innerHTML = `
           <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
@@ -1298,9 +1359,9 @@
                   <span class="player-name">${escapeHtml(row.displayName)}</span>
                 </button>
               </td>
-              <td class="rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
-              <td class="rating-cell right">${escapeHtml(formatRating(row.rankedRating))}</td>
-              <td class="rating-cell right ${escapeHtml(deltaClass(row.tournamentDelta))}">${escapeHtml(formatSignedRating(row.tournamentDelta))}</td>
+              <td class="rating-cell main-rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.rankedRating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatSignedRating(row.tournamentDelta))}</td>
             </tr>
           `;
         }).join("");
@@ -1323,11 +1384,11 @@
                   </span>
                 </button>
               </td>
-              <td class="rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
-              <td class="rating-cell right">${escapeHtml(formatRating(row.fullHistoryRating))}</td>
-              <td class="rating-cell right">${escapeHtml(formatRating(row.potentialRating))}</td>
-              <td class="rating-cell right">${escapeHtml(formatRating(row.recentFormRating))}</td>
-              <td class="rating-cell right">${signedRatingValue(row.recentDelta)}</td>
+              <td class="rating-cell main-rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.fullHistoryRating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.potentialRating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.recentFormRating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatSignedRating(row.recentDelta))}</td>
               <td class="number-cell">${escapeHtml(row.matchesNumber)}</td>
               <td class="outcome-cell">${outcomeHtml(row)}</td>
               <td class="number-cell">${escapeHtml(formatPercent(row.outcomeWinPct))}</td>
@@ -1353,7 +1414,7 @@
                 </span>
               </button>
             </td>
-            <td class="rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
+            <td class="rating-cell main-rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
             <td class="number-cell">${escapeHtml(row.matchesNumber)}</td>
             <td class="outcome-cell">${outcomeHtml(row)}</td>
             <td class="number-cell">${escapeHtml(formatPercent(row.outcomeWinPct))}</td>
@@ -1515,10 +1576,10 @@
           <table>
             <thead>
               <tr>
+                <th>Opponent</th>
                 <th>Result</th>
                 <th>Tournament</th>
                 <th>Round</th>
-                <th>Opponent</th>
               </tr>
             </thead>
             <tbody>
@@ -1529,10 +1590,10 @@
                 const outcomeClass = outcome === "W" ? "win-text" : "loss-text";
                 return `
                   <tr>
+                    <td>${escapeHtml(opponentName || "")}</td>
                     <td><span class="match-outcome ${outcomeClass}">${outcome}</span></td>
                     <td>${escapeHtml(match.event_name || "")}</td>
                     <td>${escapeHtml(match.round_label || "")}</td>
-                    <td>${escapeHtml(opponentName || "")}</td>
                   </tr>
                 `;
               }).join("")}
