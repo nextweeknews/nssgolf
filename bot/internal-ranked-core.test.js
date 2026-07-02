@@ -200,6 +200,20 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(loser.rating, 1190);
   assert.equal(winner.placement_score_average, 1);
   assert.equal(loser.placement_score_average, 0);
+  assert.equal(replay.matchResults.length, 2);
+  assert.deepEqual(
+    replay.matchResults
+      .filter((row) => row.discord_user_id === "100")
+      .map((row) => [
+        row.rating_before,
+        row.rating_delta,
+        row.rating_after,
+        row.normalized_score,
+        row.expected_score,
+        row.participant_weight,
+      ]),
+    [[1200, 10, 1210, 1, 0.5, 1]]
+  );
 }
 
 {

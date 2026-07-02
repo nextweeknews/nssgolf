@@ -601,7 +601,7 @@
     async function loadLatestRun(){
       const { data, error } = await supabase
         .from("internal_ranked_gpi_runs")
-        .select("id,calculation_version,model,base_rating,rating_scale,k_factor,season_start,season_end,match_count,player_count,latest_match_at,created_at")
+        .select("id,calculation_version,model,base_rating,rating_scale,season_start,season_end,match_count,player_count,latest_match_at,config,created_at")
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
@@ -663,13 +663,40 @@
       return new Map(members.map(member => [normalizeDiscordId(member.discord_user_id), member]));
     }
 
+    function runSupportsPerMatchHistory(run){
+      return run?.model === "normalized_placement_elo";
+    }
+
+    async function loadPlayerGpiMatchResults(runId, discordId){
+      const rows = [];
+      const pageSize = 1000;
+      let from = 0;
+
+      while(true){
+        const { data, error } = await supabase
+          .from("internal_ranked_gpi_match_results")
+          .select("discord_user_id,played_at,timestamp_ms,place,rating_after,normalized_score,expected_score,participant_weight")
+          .eq("run_id", runId)
+          .eq("discord_user_id", discordId)
+          .order("timestamp_ms", { ascending:true })
+          .range(from, from + pageSize - 1);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return rows;
+    }
+
     function renderRunMeta(run){
       const modelLabel = {
         plackett_luce: "Plackett-Luce",
         normalized_placement_elo: "NPS Elo",
       }[run.model] || run.model;
-      const tuningLabel = Number.isFinite(Number(run.k_factor))
-        ? `K ${Number(run.k_factor).toFixed(0)}`
+      const configKFactor = Number(run.config?.k_factor);
+      const tuningLabel = Number.isFinite(configKFactor)
+        ? `K ${configKFactor.toFixed(0)}`
         : `Scale ${Number(run.rating_scale).toFixed(1)}`;
       runMetaEl.hidden = false;
       runMetaEl.innerHTML = [
@@ -787,6 +814,9 @@
         timestamp_ms: Number(result.timestamp_ms) || new Date(result.played_at).getTime(),
         rating_after: Number(result.rating_after),
         place: Number(result.place),
+        normalized_score: Number(result.normalized_score),
+        expected_score: Number(result.expected_score),
+        participant_weight: Number(result.participant_weight),
       })).sort((left, right) => left.timestamp_ms - right.timestamp_ms);
     }
 
@@ -795,7 +825,7 @@
         .filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.rating_after))
         .sort((left, right) => left.timestamp_ms - right.timestamp_ms);
       if(!points.length){
-        return `<div class="chart-empty">Per-match rating history is not available for this GPI run.</div>`;
+        return `<div class="chart-empty">${runSupportsPerMatchHistory(latestRun) ? "No rating history is available for this player yet." : "Per-match rating history is not available for this GPI run."}</div>`;
       }
 
       const width = 840;
@@ -851,7 +881,7 @@
       `;
     }
 
-    function openPlayerModal(discordId){
+    async function openPlayerModal(discordId){
       const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
       if(!row) return;
 
@@ -862,7 +892,16 @@
           <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
         </span>
       `;
-      row.history = row.history || [];
+      modalBodyEl.innerHTML = `<div class="status">Loading rating history...</div>`;
+      playerModalEl.hidden = false;
+      modalCloseEl.focus();
+
+      if(row.history == null){
+        row.history = runSupportsPerMatchHistory(latestRun)
+          ? normalizeHistory(await loadPlayerGpiMatchResults(latestRun.id, discordId))
+          : [];
+      }
+
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
@@ -879,8 +918,6 @@
         </div>
         ${chartSvgFor(row)}
       `;
-      playerModalEl.hidden = false;
-      modalCloseEl.focus();
     }
 
     function closePlayerModal(){
@@ -940,7 +977,10 @@
     leaderboardBodyEl.addEventListener("click", (event) => {
       const button = event.target.closest(".player-button[data-player-id]");
       if(!button) return;
-      openPlayerModal(button.dataset.playerId);
+      openPlayerModal(button.dataset.playerId).catch((error) => {
+        console.error(error);
+        setStatus(`Unable to load player rating history: ${error?.message || "Unknown error"}`, "error");
+      });
     });
 
     prevPageEl.addEventListener("click", () => {

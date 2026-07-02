@@ -192,6 +192,34 @@ on public.internal_ranked_gpi_ratings (run_id, reliability desc, rank, discord_u
 create index if not exists internal_ranked_gpi_ratings_run_weighted_placement_idx
 on public.internal_ranked_gpi_ratings (run_id, weighted_placement_score desc, rank, discord_user_id);
 
+create table if not exists public.internal_ranked_gpi_match_results (
+  run_id bigint not null references public.internal_ranked_gpi_runs(id) on delete cascade,
+  match_hash text not null references public.internal_ranked_matches(match_hash) on delete cascade,
+  season integer not null,
+  timestamp_ms bigint not null,
+  played_at timestamptz not null,
+  discord_user_id text not null check (discord_user_id ~ '^[0-9]+$'),
+  display_name text,
+  place integer not null,
+  player_count integer not null,
+  participant_weight numeric(10, 6) not null default 1,
+  normalized_score numeric(10, 6) not null,
+  expected_score numeric(10, 6) not null,
+  rating_before numeric(12, 4) not null,
+  rating_delta numeric(12, 4) not null,
+  rating_after numeric(12, 4) not null,
+  pairwise_wins integer not null default 0,
+  pairwise_losses integer not null default 0,
+  pairwise_ties integer not null default 0,
+  primary key (run_id, match_hash, discord_user_id)
+);
+
+create index if not exists internal_ranked_gpi_match_results_player_idx
+on public.internal_ranked_gpi_match_results (run_id, discord_user_id, played_at);
+
+create index if not exists internal_ranked_gpi_match_results_match_idx
+on public.internal_ranked_gpi_match_results (run_id, played_at, match_hash);
+
 create or replace function public.set_internal_ranked_matches_updated_at()
 returns trigger
 language plpgsql
@@ -218,6 +246,7 @@ revoke all on public.internal_ranked_elo_ratings from anon, authenticated;
 revoke all on public.internal_ranked_elo_match_results from anon, authenticated;
 revoke all on public.internal_ranked_gpi_runs from anon, authenticated;
 revoke all on public.internal_ranked_gpi_ratings from anon, authenticated;
+revoke all on public.internal_ranked_gpi_match_results from anon, authenticated;
 
 grant select, insert, update, delete on public.internal_ranked_matches to service_role;
 grant select, insert, update, delete on public.internal_ranked_elo_runs to service_role;
@@ -225,6 +254,7 @@ grant select, insert, update, delete on public.internal_ranked_elo_ratings to se
 grant select, insert, update, delete on public.internal_ranked_elo_match_results to service_role;
 grant select, insert, update, delete on public.internal_ranked_gpi_runs to service_role;
 grant select, insert, update, delete on public.internal_ranked_gpi_ratings to service_role;
+grant select, insert, update, delete on public.internal_ranked_gpi_match_results to service_role;
 
 grant usage, select on sequence public.internal_ranked_elo_runs_id_seq to service_role;
 grant usage, select on sequence public.internal_ranked_gpi_runs_id_seq to service_role;
@@ -239,6 +269,7 @@ alter table public.internal_ranked_elo_ratings disable row level security;
 alter table public.internal_ranked_elo_match_results disable row level security;
 alter table public.internal_ranked_gpi_runs disable row level security;
 alter table public.internal_ranked_gpi_ratings disable row level security;
+alter table public.internal_ranked_gpi_match_results disable row level security;
 
 grant usage on schema public to anon, authenticated;
 grant select on public.internal_ranked_elo_runs to anon, authenticated;
@@ -246,5 +277,6 @@ grant select on public.internal_ranked_elo_ratings to anon, authenticated;
 grant select on public.internal_ranked_elo_match_results to anon, authenticated;
 grant select on public.internal_ranked_gpi_runs to anon, authenticated;
 grant select on public.internal_ranked_gpi_ratings to anon, authenticated;
+grant select on public.internal_ranked_gpi_match_results to anon, authenticated;
 
 notify pgrst, 'reload schema';

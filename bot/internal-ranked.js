@@ -749,7 +749,7 @@ async function replayStoredMatchesNormalizedPlacementElo(options) {
       calculation_version: NPS_ELO_CALCULATION_VERSION,
       model: "normalized_placement_elo",
       base_rating: options.baseRating,
-      k_factor: options.kFactor,
+      rating_scale: 0,
       season_start: Math.min(...options.seasons),
       season_end: Math.max(...options.seasons),
       match_count: replay.matchCount,
@@ -789,15 +789,42 @@ async function replayStoredMatchesNormalizedPlacementElo(options) {
     rank: row.rank,
   }));
 
+  const matchResultRows = replay.matchResults.map((row) => ({
+    run_id: runId,
+    match_hash: row.match_hash,
+    season: row.season,
+    timestamp_ms: row.timestamp_ms,
+    played_at: row.played_at,
+    discord_user_id: row.discord_user_id,
+    display_name: row.display_name,
+    place: row.place,
+    player_count: row.player_count,
+    participant_weight: roundPercentage(row.participant_weight),
+    normalized_score: roundPercentage(row.normalized_score),
+    expected_score: roundPercentage(row.expected_score),
+    rating_before: roundRating(row.rating_before),
+    rating_delta: roundRating(row.rating_delta),
+    rating_after: roundRating(row.rating_after),
+    pairwise_wins: row.pairwise_wins,
+    pairwise_losses: row.pairwise_losses,
+    pairwise_ties: row.pairwise_ties,
+  }));
+
   await insertReplayRows(
     supabase,
     "internal_ranked_gpi_ratings",
     ratingRows,
     "Final NPS Elo GPI rating insert failed"
   );
+  await insertReplayRows(
+    supabase,
+    "internal_ranked_gpi_match_results",
+    matchResultRows,
+    "Per-match NPS Elo GPI result insert failed"
+  );
 
   console.log(
-    `NPS Elo GPI replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players.`
+    `NPS Elo GPI replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players, ${matchResultRows.length} player-match rows.`
   );
   console.log("Top 10:");
   for (const row of ratingRows.slice(0, 10)) {
