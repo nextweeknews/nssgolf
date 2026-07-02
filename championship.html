@@ -571,27 +571,9 @@
       padding-top:var(--qualifier-round-gap, 8px);
     }
     .qualifier-bracket-match{
-      display:grid;
-      grid-template-columns:22px minmax(0, 1fr);
-      column-gap:6px;
-      align-items:center;
+      display:block;
       width:100%;
       min-height:var(--qualifier-match-height);
-    }
-    .qualifier-match-info{
-      width:22px;
-      height:22px;
-      border-radius:999px;
-      border:1px solid var(--btn-border);
-      background:var(--btn-bg);
-      color:rgba(233,238,248,.86);
-      display:grid;
-      place-items:center;
-      font-family:Georgia, "Times New Roman", serif;
-      font-size:11px;
-      font-style:italic;
-      font-weight:700;
-      line-height:1;
     }
     .qualifier-match-card{
       position:relative;
@@ -3684,7 +3666,6 @@
             <div class="qualifier-round-stack">
               ${group.matches.map(match => `
                 <div class="qualifier-bracket-match">
-                  <span class="qualifier-match-info" aria-label="Match ${escapeHtml(match.id)}">${escapeHtml(match.id)}</span>
                   <div class="qualifier-match-card">
                     ${renderChampionshipBracketRow(match, match.top)}
                     ${renderChampionshipBracketRow(match, match.bottom)}
