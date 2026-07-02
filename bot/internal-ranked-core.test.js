@@ -312,6 +312,35 @@ function match(timestamp, results, versus = "1v1v1") {
 }
 
 {
+  const replay = replayPlackettLuceGpi([
+    {
+      match_hash: "double-weight-1",
+      season: 1,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: match(1_000, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    },
+  ], {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+    recencyMode: "none",
+    participantWeightScale: 0,
+    maxParticipantWeight: 1,
+    matchWeightMultiplier: 2,
+  });
+
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+  assert.equal(replay.matchWeightMultiplier, 2);
+  assertAlmostEqual(winner.weighted_matches, 2);
+  assertAlmostEqual(winner.average_match_weight, 2);
+}
+
+{
   const strongerWeighting = {
     participantWeightScale: 0.7,
     maxParticipantWeight: 3,

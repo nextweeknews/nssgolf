@@ -810,6 +810,7 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   const maxParticipantWeight = Number(
     options.maxParticipantWeight ?? DEFAULT_PL_MAX_PARTICIPANT_WEIGHT
   );
+  const matchWeightMultiplier = Number(options.matchWeightMultiplier ?? 1);
 
   if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
   if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
@@ -829,6 +830,9 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   }
   if (!Number.isFinite(maxParticipantWeight) || maxParticipantWeight < 1) {
     throw new Error("maxParticipantWeight must be a finite number greater than or equal to 1.");
+  }
+  if (!Number.isFinite(matchWeightMultiplier) || matchWeightMultiplier <= 0) {
+    throw new Error("matchWeightMultiplier must be a positive finite number.");
   }
   if (!["player", "global", "none"].includes(recencyMode)) {
     throw new Error("recencyMode must be one of: player, global, none.");
@@ -851,10 +855,11 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     latestTimestampMs,
     playerWeights: playerMatchRecencyWeights(sortedMatches, recencyMode),
     participantWeights: sortedMatches.map((matchRow) =>
-      participantWeightForMatchSize(playersFromMatch(matchRow).length, {
-        participantWeightScale,
-        maxParticipantWeight,
-      })
+      matchWeightMultiplier *
+        participantWeightForMatchSize(playersFromMatch(matchRow).length, {
+          participantWeightScale,
+          maxParticipantWeight,
+        })
     ),
   };
   const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
@@ -1002,6 +1007,7 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     converged,
     maxChange,
     recencyMode,
+    matchWeightMultiplier,
   };
 }
 

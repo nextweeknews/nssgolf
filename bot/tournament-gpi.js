@@ -9,7 +9,6 @@ const {
   DEFAULT_PL_MAX_ITERATIONS,
   DEFAULT_PL_PRIOR_STRENGTH,
   DEFAULT_PL_RATING_SCALE,
-  DEFAULT_PL_SHRINKAGE_MATCHES,
   DEFAULT_PL_TOLERANCE,
   replayPlackettLuceGpi,
 } = require("./internal-ranked-core");
@@ -21,6 +20,8 @@ const superLeagueSheetId = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
 const worldOpenSheetId = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
 const lightningCupSheetId = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
 const syntheticStartMs = Date.UTC(2026, 0, 1, 0, 0, 0);
+const tournamentMatchWeightMultiplier = 2;
+const defaultTournamentPlShrinkageMatches = 25;
 
 const eventOrder = [
   { key: "super_league_s5", name: "Super League Season 5" },
@@ -59,7 +60,7 @@ Options:
   --rating-scale <number>  PL log-skill to rating scale. Default: ${DEFAULT_PL_RATING_SCALE.toFixed(6)}
   --pl-prior <number>      PL population-average prior strength. Default: ${DEFAULT_PL_PRIOR_STRENGTH}
   --pl-shrinkage-matches <number>
-                           Raw match count for full PL reliability. Default: ${DEFAULT_PL_SHRINKAGE_MATCHES}
+                           Raw match count for full PL reliability. Default: ${defaultTournamentPlShrinkageMatches}
   --pl-iterations <number> Max PL fit iterations. Default: ${DEFAULT_PL_MAX_ITERATIONS}
   --pl-tolerance <number>  PL convergence tolerance. Default: ${DEFAULT_PL_TOLERANCE}
 
@@ -774,6 +775,7 @@ async function replayStoredTournamentMatches(options) {
     recencyMode: "none",
     participantWeightScale: 0,
     maxParticipantWeight: 1,
+    matchWeightMultiplier: tournamentMatchWeightMultiplier,
   });
 
   const { data: runRow, error: runError } = await supabase
@@ -795,9 +797,16 @@ async function replayStoredTournamentMatches(options) {
         event_order: eventOrder,
         rating_formula: "flat-weighted full-history Plackett-Luce tournament rating",
         recency_weighting: { mode: "none", basis: "flat_all_tournament_history" },
-        participant_weighting: { mode: "none", reason: "solo_1v1_tournament_matches_only" },
+        match_weight_multiplier: tournamentMatchWeightMultiplier,
+        participant_weighting: {
+          mode: "fixed",
+          weight_per_match: tournamentMatchWeightMultiplier,
+          reason: "solo_1v1_tournament_matches_count_twice_as_much_as_ranked_league_matches",
+        },
         prior_strength: options.plPrior,
         shrinkage_matches: options.plShrinkageMatches,
+        shrinkage_basis:
+          "raw_tournament_matches_reaches_full_reliability_at_25_because_tournament_matches_have_2x_weight",
         rating_scale: options.ratingScale,
         convergence: {
           max_iterations: options.plIterations,
@@ -862,7 +871,7 @@ function parseOptions() {
     baseRating: getNumberArg("--base-rating", DEFAULT_BASE_RATING),
     ratingScale: getNumberArg("--rating-scale", DEFAULT_PL_RATING_SCALE),
     plPrior: getNumberArg("--pl-prior", DEFAULT_PL_PRIOR_STRENGTH),
-    plShrinkageMatches: getNumberArg("--pl-shrinkage-matches", DEFAULT_PL_SHRINKAGE_MATCHES),
+    plShrinkageMatches: getNumberArg("--pl-shrinkage-matches", defaultTournamentPlShrinkageMatches),
     plIterations: getNumberArg("--pl-iterations", DEFAULT_PL_MAX_ITERATIONS),
     plTolerance: getNumberArg("--pl-tolerance", DEFAULT_PL_TOLERANCE),
   };
