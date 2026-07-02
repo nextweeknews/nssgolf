@@ -11,6 +11,7 @@ export const RESERVED_PLAYER_URL_SLUGS = [
   "bot",
   "build",
   "championship",
+  "compare",
   "css",
   "discord",
   "export",
