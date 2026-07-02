@@ -366,22 +366,19 @@
     .detail-grid{
       display:grid;
       grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:1px;
       border:1px solid var(--line);
       border-radius:8px;
       overflow:hidden;
       margin-bottom:18px;
+      background:var(--line);
     }
 
     .detail-cell{
       min-width:0;
       padding:12px;
-      border-right:1px solid var(--line);
-      border-bottom:1px solid var(--line);
-      background:rgba(255,255,255,.018);
+      background:#181b20;
     }
-
-    .detail-cell:nth-child(4n){ border-right:0; }
-    .detail-cell:nth-last-child(-n+4){ border-bottom:0; }
 
     .detail-label{
       display:block;
@@ -448,10 +445,6 @@
         grid-template-columns:repeat(2, minmax(0, 1fr));
       }
 
-      .detail-cell:nth-child(4n){ border-right:1px solid var(--line); }
-      .detail-cell:nth-child(2n){ border-right:0; }
-      .detail-cell:nth-last-child(-n+4){ border-bottom:1px solid var(--line); }
-      .detail-cell:nth-last-child(-n+2){ border-bottom:0; }
     }
   </style>
 </head>
@@ -520,7 +513,11 @@
     const modalBodyEl = document.getElementById("modalBody");
     const modalCloseEl = document.getElementById("modalClose");
     const PAGE_SIZE = 100;
-    let latestRun = null;
+    const MIN_MATCHES = 25;
+    const PL_WEIGHT = 0.7;
+    const NPS_WEIGHT = 0.3;
+    let latestRuns = { pl:null, nps:null };
+    let allLeaderboardRows = [];
     let leaderboardRows = [];
     let totalRatings = 0;
     let currentPage = 0;
@@ -598,10 +595,11 @@
       }).format(number);
     }
 
-    async function loadLatestRun(){
+    async function loadLatestRunByModel(model){
       const { data, error } = await supabase
         .from("internal_ranked_gpi_runs")
         .select("id,calculation_version,model,base_rating,rating_scale,season_start,season_end,match_count,player_count,latest_match_at,config,created_at")
+        .eq("model", model)
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
@@ -609,40 +607,25 @@
       return data || null;
     }
 
-    function sortColumnForKey(key){
-      return {
-        rank:"rank",
-        rating:"rating",
-        matches:"matches_played",
-        wins:"pairwise_wins",
-        outcomeWinPct:"outcome_win_percentage",
-        matchWinPct:"match_win_percentage",
-      }[key] || "rank";
-    }
+    async function loadRatingsForRun(runId){
+      const rows = [];
+      const pageSize = 1000;
+      let from = 0;
 
-    async function loadRatingsPage(runId, { page = 0, sort = sortState } = {}){
-      const from = page * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-      const sortColumn = sortColumnForKey(sort.key);
-      const ascending = sort.direction === "asc";
-      let query = supabase
-        .from("internal_ranked_gpi_ratings")
-        .select("discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank", { count:"exact" })
-        .eq("run_id", runId);
-
-      if(sortColumn === "rank"){
-        query = query.order("rank", { ascending });
-      }else{
-        query = query
-          .order(sortColumn, { ascending })
+      while(true){
+        const { data, error } = await supabase
+          .from("internal_ranked_gpi_ratings")
+          .select("discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank")
+          .eq("run_id", runId)
           .order("rank", { ascending:true })
-          .order("discord_user_id", { ascending:true });
+          .range(from, from + pageSize - 1);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < pageSize) break;
+        from += pageSize;
       }
 
-      query = query.range(from, to);
-      const { data, error, count } = await query;
-      if(error) throw error;
-      return { rows:data || [], count:count || 0 };
+      return rows;
     }
 
     async function loadMembers(discordIds){
@@ -661,6 +644,10 @@
       }
 
       return new Map(members.map(member => [normalizeDiscordId(member.discord_user_id), member]));
+    }
+
+    function activeHistoryRun(){
+      return latestRuns.nps || null;
     }
 
     function runSupportsPerMatchHistory(run){
@@ -689,24 +676,19 @@
       return rows;
     }
 
-    function renderRunMeta(run){
-      const modelLabel = {
-        plackett_luce: "Plackett-Luce",
-        normalized_placement_elo: "NPS Elo",
-      }[run.model] || run.model;
-      const configKFactor = Number(run.config?.k_factor);
-      const tuningLabel = Number.isFinite(configKFactor)
-        ? `K ${configKFactor.toFixed(0)}`
-        : `Scale ${Number(run.rating_scale).toFixed(1)}`;
+    function renderRunMeta(plRun, npsRun){
       runMetaEl.hidden = false;
       runMetaEl.innerHTML = [
-        `GPI Run #${run.id}`,
-        modelLabel,
-        `Seasons ${run.season_start}-${run.season_end}`,
-        `${run.match_count} matches`,
-        `${run.player_count} players`,
-        tuningLabel,
-        formatDateTime(run.created_at),
+        "Composite GPI",
+        `${Math.round(PL_WEIGHT * 100)}% PL`,
+        `${Math.round(NPS_WEIGHT * 100)}% NPS Elo`,
+        `Min ${MIN_MATCHES} matches`,
+        "Current Discord members",
+        `Seasons ${plRun.season_start}-${plRun.season_end}`,
+        `${plRun.match_count} matches`,
+        `PL Run #${plRun.id}`,
+        `NPS Run #${npsRun.id}`,
+        formatDateTime(new Date(Math.max(new Date(plRun.created_at).getTime(), new Date(npsRun.created_at).getTime()))),
       ].map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
     }
 
@@ -730,36 +712,87 @@
       `;
     }
 
-    function buildLeaderboardRows(ratings, membersById){
-      return ratings.map((row) => {
-        const discordId = normalizeDiscordId(row.discord_user_id);
+    function buildLeaderboardRows(plRatings, npsRatings, membersById){
+      const npsById = new Map(npsRatings.map(row => [normalizeDiscordId(row.discord_user_id), row]));
+      const rows = [];
+
+      for(const plRow of plRatings){
+        const discordId = normalizeDiscordId(plRow.discord_user_id);
+        const npsRow = npsById.get(discordId);
         const member = membersById.get(discordId);
-        const firstPlaceFinishes = Number(row.first_place_finishes) || 0;
-        const matches = Number(row.matches_played) || 0;
-        const wins = Number(row.pairwise_wins) || 0;
-        const losses = Number(row.pairwise_losses) || 0;
-        const ties = Number(row.pairwise_ties) || 0;
+        if(!discordId || !npsRow || member?.is_current_member !== true) continue;
+
+        const matches = Math.max(Number(plRow.matches_played) || 0, Number(npsRow.matches_played) || 0);
+        if(matches < MIN_MATCHES) continue;
+
+        const plRating = Number(plRow.rating) || 0;
+        const npsRating = Number(npsRow.rating) || 0;
+        const rating = PL_WEIGHT * plRating + NPS_WEIGHT * npsRating;
+        const statsRow = npsRow;
+        const firstPlaceFinishes = Number(statsRow.first_place_finishes) || 0;
+        const wins = Number(statsRow.pairwise_wins) || 0;
+        const losses = Number(statsRow.pairwise_losses) || 0;
+        const ties = Number(statsRow.pairwise_ties) || 0;
         const outcomes = wins + losses + ties;
-        return {
-          ...row,
+        rows.push({
+          ...statsRow,
           discord_user_id: discordId,
           member,
-          displayName: memberDisplayName(row, member),
+          displayName: memberDisplayName(statsRow, member),
           avatarUrl: memberAvatarUrl(member),
-          rankNumber: Number(row.rank) || 0,
-          ratingNumber: Number(row.rating) || 0,
+          rankNumber: 0,
+          rank:"",
+          rating,
+          ratingNumber: rating,
+          plRating,
+          npsRating,
           matchesNumber: matches,
           winsNumber: wins,
           lossesNumber: losses,
           tiesNumber: ties,
-          outcomeWinPct: Number(row.outcome_win_percentage) || (outcomes > 0 ? wins / outcomes : 0),
+          outcomeWinPct: Number(statsRow.outcome_win_percentage) || (outcomes > 0 ? wins / outcomes : 0),
           firstPlaceFinishes,
-          matchWinPct: Number(row.match_win_percentage) || (matches > 0 ? firstPlaceFinishes / matches : 0),
-          reliability: Number(row.reliability) || 0,
-          weightedMatches: Number(row.weighted_matches) || 0,
-          weightedPlacementScore: Number(row.weighted_placement_score) || 0,
+          matchWinPct: Number(statsRow.match_win_percentage) || (matches > 0 ? firstPlaceFinishes / matches : 0),
+          reliability: Number(statsRow.reliability) || 0,
+          weightedMatches: Number(statsRow.weighted_matches) || 0,
+          weightedPlacementScore: Number(statsRow.weighted_placement_score) || 0,
           history: null,
-        };
+        });
+      }
+
+      rows.sort((left, right) =>
+        right.ratingNumber - left.ratingNumber ||
+        right.matchesNumber - left.matchesNumber ||
+        left.displayName.localeCompare(right.displayName)
+      );
+
+      rows.forEach((row, index) => {
+        row.rankNumber = index + 1;
+        row.rank = index + 1;
+      });
+
+      return rows;
+    }
+
+    function sortValueForRow(row, key){
+      return {
+        rank: row.rankNumber,
+        rating: row.ratingNumber,
+        matches: row.matchesNumber,
+        wins: row.winsNumber,
+        outcomeWinPct: row.outcomeWinPct,
+        matchWinPct: row.matchWinPct,
+      }[key] ?? row.rankNumber;
+    }
+
+    function sortedLeaderboardRows(){
+      const direction = sortState.direction === "asc" ? 1 : -1;
+      return [...allLeaderboardRows].sort((left, right) => {
+        const leftValue = sortValueForRow(left, sortState.key);
+        const rightValue = sortValueForRow(right, sortState.key);
+        if(leftValue < rightValue) return -1 * direction;
+        if(leftValue > rightValue) return 1 * direction;
+        return left.rankNumber - right.rankNumber || left.displayName.localeCompare(right.displayName);
       });
     }
 
@@ -825,7 +858,7 @@
         .filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.rating_after))
         .sort((left, right) => left.timestamp_ms - right.timestamp_ms);
       if(!points.length){
-        return `<div class="chart-empty">${runSupportsPerMatchHistory(latestRun) ? "No rating history is available for this player yet." : "Per-match rating history is not available for this GPI run."}</div>`;
+        return `<div class="chart-empty">${runSupportsPerMatchHistory(activeHistoryRun()) ? "No rating history is available for this player yet." : "Per-match rating history is not available for this GPI run."}</div>`;
       }
 
       const width = 840;
@@ -897,15 +930,18 @@
       modalCloseEl.focus();
 
       if(row.history == null){
-        row.history = runSupportsPerMatchHistory(latestRun)
-          ? normalizeHistory(await loadPlayerGpiMatchResults(latestRun.id, discordId))
+        const historyRun = activeHistoryRun();
+        row.history = runSupportsPerMatchHistory(historyRun)
+          ? normalizeHistory(await loadPlayerGpiMatchResults(historyRun.id, discordId))
           : [];
       }
 
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
-          <div class="detail-cell"><span class="detail-label">Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Composite Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">PL Rating</span><span class="detail-value">${escapeHtml(formatRating(row.plRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">NPS Elo</span><span class="detail-value">${escapeHtml(formatRating(row.npsRating))}</span></div>
           <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
           <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
           <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
@@ -927,31 +963,51 @@
     }
 
     async function loadPage(){
-      latestRun = await loadLatestRun();
-      if(!latestRun){
-        setStatus("No internal Ranked League GPI run is available yet. Run the Plackett-Luce replay first.");
+      const [plRun, npsRun] = await Promise.all([
+        loadLatestRunByModel("plackett_luce"),
+        loadLatestRunByModel("normalized_placement_elo"),
+      ]);
+      latestRuns = { pl:plRun, nps:npsRun };
+      if(!plRun || !npsRun){
+        const missing = [
+          !plRun ? "Plackett-Luce" : "",
+          !npsRun ? "NPS Elo" : "",
+        ].filter(Boolean).join(" and ");
+        setStatus(`No complete composite GPI is available yet. Run the missing ${missing} replay first.`);
         return;
       }
 
+      await loadLeaderboardData();
       await loadLeaderboardPage(0);
-      renderRunMeta(latestRun);
+      renderRunMeta(plRun, npsRun);
       hideStatus();
     }
 
+    async function loadLeaderboardData(){
+      const [plRatings, npsRatings] = await Promise.all([
+        loadRatingsForRun(latestRuns.pl.id),
+        loadRatingsForRun(latestRuns.nps.id),
+      ]);
+      const ids = [
+        ...plRatings.map(row => row.discord_user_id),
+        ...npsRatings.map(row => row.discord_user_id),
+      ];
+      const membersById = await loadMembers(ids);
+      allLeaderboardRows = buildLeaderboardRows(plRatings, npsRatings, membersById);
+      totalRatings = allLeaderboardRows.length;
+    }
+
     async function loadLeaderboardPage(page){
-      if(!latestRun) return;
+      if(!latestRuns.pl || !latestRuns.nps) return;
       currentPage = Math.max(0, page);
       leaderboardEl.hidden = false;
       pageInfoEl.textContent = "Loading rankings...";
       prevPageEl.disabled = true;
       nextPageEl.disabled = true;
-      const { rows:ratings, count } = await loadRatingsPage(latestRun.id, {
-        page:currentPage,
-        sort:sortState,
-      });
-      const membersById = await loadMembers(ratings.map(row => row.discord_user_id));
-      totalRatings = count;
-      leaderboardRows = buildLeaderboardRows(ratings, membersById);
+      const sortedRows = sortedLeaderboardRows();
+      totalRatings = sortedRows.length;
+      const from = currentPage * PAGE_SIZE;
+      leaderboardRows = sortedRows.slice(from, from + PAGE_SIZE);
       renderLeaderboard();
     }
 
