@@ -305,6 +305,20 @@
 
     .right{ text-align:right; }
 
+    #leaderboard th:not(:nth-child(2)),
+    #leaderboard td:not(.player-cell){
+      text-align:center;
+    }
+
+    #leaderboard th:not(:nth-child(2)) .sort-button{
+      justify-content:center;
+    }
+
+    #leaderboard th:nth-child(2),
+    #leaderboard .player-cell{
+      text-align:left;
+    }
+
     .modal-backdrop{
       position:fixed;
       inset:0;
