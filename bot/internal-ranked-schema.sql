@@ -291,4 +291,104 @@ grant select on public.internal_ranked_gpi_runs to anon, authenticated;
 grant select on public.internal_ranked_gpi_ratings to anon, authenticated;
 grant select on public.internal_ranked_gpi_match_results to anon, authenticated;
 
+create table if not exists public.internal_tournament_matches (
+  match_hash text primary key,
+  event_key text not null check (length(trim(event_key)) > 0),
+  event_name text not null check (length(trim(event_name)) > 0),
+  event_order integer not null check (event_order > 0),
+  match_order integer not null check (match_order > 0),
+  source_match_id text not null,
+  round_label text,
+  timestamp_ms bigint not null check (timestamp_ms > 0),
+  played_at timestamptz not null,
+  player_a_discord_user_id text not null check (player_a_discord_user_id ~ '^[0-9]+$'),
+  player_a_name text not null,
+  player_a_score text,
+  player_b_discord_user_id text not null check (player_b_discord_user_id ~ '^[0-9]+$'),
+  player_b_name text not null,
+  player_b_score text,
+  winner_discord_user_id text not null check (winner_discord_user_id ~ '^[0-9]+$'),
+  raw_match jsonb not null,
+  raw_source jsonb not null default '{}'::jsonb,
+  imported_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (event_key, source_match_id)
+);
+
+create index if not exists internal_tournament_matches_order_idx
+on public.internal_tournament_matches (event_order, match_order, match_hash);
+
+create index if not exists internal_tournament_matches_player_a_idx
+on public.internal_tournament_matches (player_a_discord_user_id, event_order, match_order);
+
+create index if not exists internal_tournament_matches_player_b_idx
+on public.internal_tournament_matches (player_b_discord_user_id, event_order, match_order);
+
+create table if not exists public.internal_tournament_gpi_runs (
+  id bigserial primary key,
+  calculation_version text not null,
+  model text not null,
+  base_rating numeric(12, 4) not null,
+  rating_scale numeric(12, 6),
+  event_start text not null,
+  event_end text not null,
+  match_count integer not null default 0,
+  player_count integer not null default 0,
+  latest_match_at timestamptz,
+  config jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists internal_tournament_gpi_runs_created_at_idx
+on public.internal_tournament_gpi_runs (created_at desc);
+
+create table if not exists public.internal_tournament_gpi_ratings (
+  run_id bigint not null references public.internal_tournament_gpi_runs(id) on delete cascade,
+  discord_user_id text not null check (discord_user_id ~ '^[0-9]+$'),
+  display_name text,
+  rating numeric(12, 4) not null,
+  raw_rating numeric(12, 4) not null,
+  ability numeric(18, 8) not null,
+  skill_log numeric(18, 8) not null,
+  reliability numeric(10, 6) not null default 0,
+  matches_played integer not null default 0,
+  weighted_matches numeric(14, 8) not null default 0,
+  average_match_weight numeric(10, 6) not null default 0,
+  pairwise_wins integer not null default 0,
+  pairwise_losses integer not null default 0,
+  pairwise_ties integer not null default 0,
+  pairwise_games integer not null default 0,
+  first_place_finishes integer not null default 0,
+  outcome_win_percentage numeric(10, 6) not null default 0,
+  match_win_percentage numeric(10, 6) not null default 0,
+  placement_score_average numeric(10, 6) not null default 0,
+  weighted_placement_score numeric(10, 6) not null default 0,
+  first_played_at timestamptz,
+  last_played_at timestamptz,
+  rank integer,
+  primary key (run_id, discord_user_id)
+);
+
+create index if not exists internal_tournament_gpi_ratings_run_rating_idx
+on public.internal_tournament_gpi_ratings (run_id, rating desc, discord_user_id);
+
+create index if not exists internal_tournament_gpi_ratings_run_rank_idx
+on public.internal_tournament_gpi_ratings (run_id, rank, discord_user_id);
+
+create index if not exists internal_tournament_gpi_ratings_run_matches_idx
+on public.internal_tournament_gpi_ratings (run_id, matches_played desc, rank, discord_user_id);
+
+grant select, insert, update, delete on public.internal_tournament_matches to service_role;
+grant select, insert, update, delete on public.internal_tournament_gpi_runs to service_role;
+grant select, insert, update, delete on public.internal_tournament_gpi_ratings to service_role;
+grant usage, select on sequence public.internal_tournament_gpi_runs_id_seq to service_role;
+
+alter table public.internal_tournament_matches disable row level security;
+alter table public.internal_tournament_gpi_runs disable row level security;
+alter table public.internal_tournament_gpi_ratings disable row level security;
+
+grant select on public.internal_tournament_matches to anon, authenticated;
+grant select on public.internal_tournament_gpi_runs to anon, authenticated;
+grant select on public.internal_tournament_gpi_ratings to anon, authenticated;
+
 notify pgrst, 'reload schema';

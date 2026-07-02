@@ -21,12 +21,16 @@
     "internal-ranked:sync-nps": "node bot/internal-ranked.js sync-nps",
     "internal-ranked:sync-oawp": "node bot/internal-ranked.js sync-oawp",
     "internal-ranked:sync-pl": "node bot/internal-ranked.js sync-pl",
+    "tournament-gpi:fetch": "node bot/tournament-gpi.js fetch",
+    "tournament-gpi:replay": "node bot/tournament-gpi.js replay",
+    "tournament-gpi:sync": "node bot/tournament-gpi.js sync",
     "proleague:aliases:suggest": "node bot/proleague-player-aliases.js suggest",
     "proleague:aliases:export-sql": "node bot/proleague-player-aliases.js export-sql",
     "proleague:aliases:import": "node bot/proleague-player-aliases.js import",
     "sync:player-shell": "node scripts/sync-player-shell.js --write",
     "test:global-ranks": "node bot/global-ranks-core.test.js",
     "test:internal-ranked": "node bot/internal-ranked-core.test.js",
+    "test:tournament-gpi": "node bot/tournament-gpi.test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

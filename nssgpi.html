@@ -75,6 +75,31 @@
       font-size:13px;
     }
 
+    .gpi-tabs{
+      display:flex;
+      gap:8px;
+      margin:0 0 14px;
+      border-bottom:1px solid var(--line);
+    }
+
+    .gpi-tab{
+      appearance:none;
+      border:0;
+      border-bottom:2px solid transparent;
+      background:transparent;
+      color:var(--muted);
+      padding:10px 2px 12px;
+      font:inherit;
+      font-size:13px;
+      font-weight:850;
+      cursor:pointer;
+    }
+
+    .gpi-tab[aria-selected="true"]{
+      color:var(--text);
+      border-bottom-color:var(--accent);
+    }
+
     .pager{
       display:flex;
       align-items:center;
@@ -438,10 +463,15 @@
     <header class="page-head">
       <div>
         <h1>NSS GPI</h1>
-        <p class="subtitle">Internal Ranked League rating</p>
+        <p id="pageSubtitle" class="subtitle">Internal Ranked League rating</p>
       </div>
       <div id="runMeta" class="run-meta" hidden></div>
     </header>
+
+    <div class="gpi-tabs" role="tablist" aria-label="NSS GPI leaderboards">
+      <button class="gpi-tab" type="button" role="tab" data-view="ranked" aria-selected="true">Ranked League</button>
+      <button class="gpi-tab" type="button" role="tab" data-view="tournament" aria-selected="false">Tournaments</button>
+    </div>
 
     <div id="status" class="status">Loading...</div>
 
@@ -487,6 +517,7 @@
 
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("status");
+    const pageSubtitleEl = document.getElementById("pageSubtitle");
     const leaderboardEl = document.getElementById("leaderboard");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const runMetaEl = document.getElementById("runMeta");
@@ -498,13 +529,70 @@
     const modalBodyEl = document.getElementById("modalBody");
     const modalCloseEl = document.getElementById("modalClose");
     const PAGE_SIZE = 100;
-    const MIN_MATCHES = 25;
+    const VIEW_CONFIG = {
+      ranked: {
+        subtitle: "Internal Ranked League rating",
+        runTable: "internal_ranked_gpi_runs",
+        ratingTable: "internal_ranked_gpi_ratings",
+        model: "opponent_aware_weighted_pairwise",
+        minMatches: 25,
+        noRunMessage: "No Opponent-Aware Weighted Pairwise NSS GPI run is available yet. Run the OAWP GPI replay first.",
+        runSelect: "id,calculation_version,model,base_rating,rating_scale,season_start,season_end,match_count,player_count,latest_match_at,config,created_at",
+        ratingsSelect: "discord_user_id,display_name,rating,raw_rating,full_history_rating,potential_rating,recent_form_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank",
+        meta(run){
+          return [
+            "NSS GPI",
+            "Opponent-Aware",
+            "50% Full History",
+            "25% Potential",
+            "25% Recent Form",
+            "8p~3x Lobby Weight",
+            `Min ${this.minMatches} matches`,
+            "Current Discord members",
+            `Seasons ${run.season_start}-${run.season_end}`,
+            `${run.match_count} matches`,
+            `Run #${run.id}`,
+            formatDateTime(run.created_at),
+          ];
+        },
+      },
+      tournament: {
+        subtitle: "Tournament-only rating",
+        runTable: "internal_tournament_gpi_runs",
+        ratingTable: "internal_tournament_gpi_ratings",
+        model: "flat_pl",
+        minMatches: 1,
+        noRunMessage: "No Tournament NSS GPI run is available yet. Run the tournament GPI replay first.",
+        runSelect: "id,calculation_version,model,base_rating,rating_scale,event_start,event_end,match_count,player_count,latest_match_at,config,created_at",
+        ratingsSelect: "discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank",
+        meta(run){
+          return [
+            "Tournament GPI",
+            "Flat PL",
+            "Solo 1v1",
+            "No recency",
+            "No lobby weighting",
+            `Min ${this.minMatches} match`,
+            "Current Discord members",
+            "SL S5 -> World Open -> Lightning Cup -> SL S6",
+            `${run.match_count} matches`,
+            `Run #${run.id}`,
+            formatDateTime(run.created_at),
+          ];
+        },
+      },
+    };
+    let currentView = "ranked";
     let latestRun = null;
     let allLeaderboardRows = [];
     let leaderboardRows = [];
     let totalRatings = 0;
     let currentPage = 0;
     let sortState = { key:"rank", direction:"asc" };
+
+    function activeConfig(){
+      return VIEW_CONFIG[currentView] || VIEW_CONFIG.ranked;
+    }
 
     function normalizeText(value){
       return String(value || "").trim();
@@ -568,9 +656,10 @@
     }
 
     async function loadLatestRunByModel(model){
+      const config = activeConfig();
       const { data, error } = await supabase
-        .from("internal_ranked_gpi_runs")
-        .select("id,calculation_version,model,base_rating,rating_scale,season_start,season_end,match_count,player_count,latest_match_at,config,created_at")
+        .from(config.runTable)
+        .select(config.runSelect)
         .eq("model", model)
         .order("created_at", { ascending:false })
         .limit(1)
@@ -580,14 +669,15 @@
     }
 
     async function loadRatingsForRun(runId){
+      const config = activeConfig();
       const rows = [];
       const pageSize = 1000;
       let from = 0;
 
       while(true){
         const { data, error } = await supabase
-          .from("internal_ranked_gpi_ratings")
-          .select("discord_user_id,display_name,rating,raw_rating,full_history_rating,potential_rating,recent_form_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank")
+          .from(config.ratingTable)
+          .select(config.ratingsSelect)
           .eq("run_id", runId)
           .order("rank", { ascending:true })
           .range(from, from + pageSize - 1);
@@ -619,21 +709,9 @@
     }
 
     function renderRunMeta(run){
+      const config = activeConfig();
       runMetaEl.hidden = false;
-      runMetaEl.innerHTML = [
-        "NSS GPI",
-        "Opponent-Aware",
-        "50% Full History",
-        "25% Potential",
-        "25% Recent Form",
-        "8p~3x Lobby Weight",
-        `Min ${MIN_MATCHES} matches`,
-        "Current Discord members",
-        `Seasons ${run.season_start}-${run.season_end}`,
-        `${run.match_count} matches`,
-        `Run #${run.id}`,
-        formatDateTime(run.created_at),
-      ].map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
+      runMetaEl.innerHTML = config.meta(run).map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
     }
 
     function memberDisplayName(row, member){
@@ -657,6 +735,7 @@
     }
 
     function buildLeaderboardRows(ratings, membersById){
+      const config = activeConfig();
       const rows = [];
 
       for(const row of ratings){
@@ -665,7 +744,7 @@
         if(!discordId || member?.is_current_member !== true) continue;
 
         const matches = Number(row.matches_played) || 0;
-        if(matches < MIN_MATCHES) continue;
+        if(matches < config.minMatches) continue;
 
         const rating = Number(row.rating) || 0;
         const firstPlaceFinishes = Number(row.first_place_finishes) || 0;
@@ -797,13 +876,19 @@
       playerModalEl.hidden = false;
       modalCloseEl.focus();
 
+      const componentCells = currentView === "ranked"
+        ? `
+          <div class="detail-cell"><span class="detail-label">Full History</span><span class="detail-value">${escapeHtml(formatRating(row.fullHistoryRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Potential</span><span class="detail-value">${escapeHtml(formatRating(row.potentialRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Recent Form</span><span class="detail-value">${escapeHtml(formatRating(row.recentFormRating))}</span></div>
+        `
+        : `<div class="detail-cell"><span class="detail-label">Raw GPI</span><span class="detail-value">${escapeHtml(formatRating(row.rawRating))}</span></div>`;
+
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
           <div class="detail-cell"><span class="detail-label">GPI Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Full History</span><span class="detail-value">${escapeHtml(formatRating(row.fullHistoryRating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Potential</span><span class="detail-value">${escapeHtml(formatRating(row.potentialRating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Recent Form</span><span class="detail-value">${escapeHtml(formatRating(row.recentFormRating))}</span></div>
+          ${componentCells}
           <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
           <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
           <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
@@ -827,9 +912,13 @@
     }
 
     async function loadPage(){
-      latestRun = await loadLatestRunByModel("opponent_aware_weighted_pairwise");
+      const config = activeConfig();
+      pageSubtitleEl.textContent = config.subtitle;
+      latestRun = await loadLatestRunByModel(config.model);
       if(!latestRun){
-        setStatus("No Opponent-Aware Weighted Pairwise NSS GPI run is available yet. Run the OAWP GPI replay first.");
+        leaderboardEl.hidden = true;
+        runMetaEl.hidden = true;
+        setStatus(config.noRunMessage);
         return;
       }
 
@@ -837,6 +926,27 @@
       await loadLeaderboardPage(0);
       renderRunMeta(latestRun);
       hideStatus();
+    }
+
+    function setActiveTab(view){
+      currentView = VIEW_CONFIG[view] ? view : "ranked";
+      document.querySelectorAll(".gpi-tab[data-view]").forEach((button) => {
+        button.setAttribute("aria-selected", button.dataset.view === currentView ? "true" : "false");
+      });
+      latestRun = null;
+      allLeaderboardRows = [];
+      leaderboardRows = [];
+      totalRatings = 0;
+      currentPage = 0;
+      sortState = { key:"rank", direction:"asc" };
+      leaderboardEl.hidden = true;
+      runMetaEl.hidden = true;
+      setStatus("Loading...");
+      closePlayerModal();
+      loadPage().catch((error) => {
+        console.error(error);
+        setStatus(`Unable to load NSS GPI: ${error?.message || "Unknown error"}`, "error");
+      });
     }
 
     async function loadLeaderboardData(){
@@ -877,6 +987,13 @@
           console.error(error);
           setStatus(`Unable to sort NSS GPI: ${error?.message || "Unknown error"}`, "error");
         });
+      });
+    });
+
+    document.querySelectorAll(".gpi-tab[data-view]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if(button.dataset.view === currentView) return;
+        setActiveTab(button.dataset.view);
       });
     });
 
