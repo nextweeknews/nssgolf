@@ -224,6 +224,31 @@ function match(timestamp, results, versus = "1v1v1") {
 }
 
 {
+  const replay = replayPlackettLuceGpi([
+    {
+      match_hash: "m1",
+      season: 7,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: match(1_000, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+        { place: 3, players: ["300"] },
+      ]),
+    },
+  ], {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+    recencyMode: "none",
+  });
+
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+  assertAlmostEqual(winner.weighted_matches, participantWeightForMatchSize(3));
+}
+
+{
   assert.equal(participantWeightForMatchSize(2), 1);
   assertAlmostEqual(participantWeightForMatchSize(3), 1.35);
   assertAlmostEqual(participantWeightForMatchSize(4), 1 + 0.35 * Math.log2(3));

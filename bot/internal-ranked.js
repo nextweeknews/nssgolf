@@ -66,11 +66,11 @@ Options:
   --allow-incomplete     Testing only: never fail on total_matches under-fetch.
   --base-rating <number> Elo starting rating. Default: ${DEFAULT_BASE_RATING}
   --k-factor <number>    Elo K-factor. Default: ${DEFAULT_K_FACTOR}
-  --nps-participant-weight-scale <number>
-                         NPS Elo lobby-size log weight scale.
+  --participant-weight-scale <number>
+                         GPI lobby-size log weight scale for PL and NPS Elo.
                          Default: ${DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE}
-  --nps-max-participant-weight <number>
-                         NPS Elo maximum lobby-size weight.
+  --max-participant-weight <number>
+                         GPI maximum lobby-size weight for PL and NPS Elo.
                          Default: ${DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT}
   --rating-scale <number>
                          Plackett-Luce log-skill to rating scale.
@@ -596,6 +596,8 @@ async function replayStoredMatchesPlackettLuce(options) {
     maxIterations: options.plIterations,
     tolerance: options.plTolerance,
     recencyMode: options.plRecencyMode,
+    participantWeightScale: options.participantWeightScale,
+    maxParticipantWeight: options.maxParticipantWeight,
   });
 
   const runConfig = {
@@ -618,6 +620,20 @@ async function replayStoredMatchesPlackettLuce(options) {
     shrinkage_matches: options.plShrinkageMatches,
     shrinkage_basis: "total_matches_played_not_time_weighted_matches",
     rating_scale: options.ratingScale,
+    participant_weighting: {
+      formula: "min(max_weight, 1 + scale * log2(player_count - 1))",
+      scale: options.participantWeightScale,
+      max_weight: options.maxParticipantWeight,
+      examples: {
+        players_2: 1,
+        players_3: Number((1 + options.participantWeightScale * Math.log2(2)).toFixed(6)),
+        players_4: Number((1 + options.participantWeightScale * Math.log2(3)).toFixed(6)),
+        players_8: Math.min(
+          options.maxParticipantWeight,
+          Number((1 + options.participantWeightScale * Math.log2(7)).toFixed(6))
+        ),
+      },
+    },
     convergence: {
       max_iterations: options.plIterations,
       tolerance: options.plTolerance,
@@ -708,8 +724,8 @@ async function replayStoredMatchesNormalizedPlacementElo(options) {
   const replay = replayNormalizedPlacementElo(storedMatches, {
     baseRating: options.baseRating,
     kFactor: options.kFactor,
-    participantWeightScale: options.npsParticipantWeightScale,
-    maxParticipantWeight: options.npsMaxParticipantWeight,
+    participantWeightScale: options.participantWeightScale,
+    maxParticipantWeight: options.maxParticipantWeight,
   });
   const latestTimestampMs = storedMatches.reduce(
     (latest, matchRow) => Math.max(latest, Number(matchRow.timestamp_ms) || 0),
@@ -728,19 +744,19 @@ async function replayStoredMatchesNormalizedPlacementElo(options) {
     k_factor: options.kFactor,
     participant_weighting: {
       formula: "min(max_weight, 1 + scale * log2(player_count - 1))",
-      scale: options.npsParticipantWeightScale,
-      max_weight: options.npsMaxParticipantWeight,
+      scale: options.participantWeightScale,
+      max_weight: options.maxParticipantWeight,
       examples: {
         players_2: 1,
         players_3: Number(
-          (1 + options.npsParticipantWeightScale * Math.log2(2)).toFixed(6)
+          (1 + options.participantWeightScale * Math.log2(2)).toFixed(6)
         ),
         players_4: Number(
-          (1 + options.npsParticipantWeightScale * Math.log2(3)).toFixed(6)
+          (1 + options.participantWeightScale * Math.log2(3)).toFixed(6)
         ),
         players_8: Math.min(
-          options.npsMaxParticipantWeight,
-          Number((1 + options.npsParticipantWeightScale * Math.log2(7)).toFixed(6))
+          options.maxParticipantWeight,
+          Number((1 + options.participantWeightScale * Math.log2(7)).toFixed(6))
         ),
       },
     },
@@ -849,13 +865,13 @@ function parseOptions() {
     allowIncomplete: hasFlag("--allow-incomplete"),
     baseRating: getNumberArg("--base-rating", DEFAULT_BASE_RATING),
     kFactor: getNumberArg("--k-factor", DEFAULT_K_FACTOR),
-    npsParticipantWeightScale: getNumberArg(
-      "--nps-participant-weight-scale",
-      DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE
+    participantWeightScale: getNumberArg(
+      "--participant-weight-scale",
+      getNumberArg("--nps-participant-weight-scale", DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE)
     ),
-    npsMaxParticipantWeight: getNumberArg(
-      "--nps-max-participant-weight",
-      DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT
+    maxParticipantWeight: getNumberArg(
+      "--max-participant-weight",
+      getNumberArg("--nps-max-participant-weight", DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT)
     ),
     ratingScale: getNumberArg("--rating-scale", DEFAULT_PL_RATING_SCALE),
     plPrior: getNumberArg("--pl-prior", DEFAULT_PL_PRIOR_STRENGTH),

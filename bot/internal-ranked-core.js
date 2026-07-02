@@ -307,9 +307,10 @@ function playerMatchRecencyWeights(matchRows, recencyMode) {
 }
 
 function plWeightForPlayer(matchIndex, player, context) {
-  if (context.recencyMode === "none") return 1;
+  const participantWeight = context.participantWeights?.[matchIndex] ?? 1;
+  if (context.recencyMode === "none") return participantWeight;
   if (context.recencyMode === "global") {
-    return recencyWeightForMatch(
+    return participantWeight * recencyWeightForMatch(
       context.matchRows[matchIndex],
       context.latestTimestampMs,
       matchIndex,
@@ -317,7 +318,7 @@ function plWeightForPlayer(matchIndex, player, context) {
       context.recencyMode
     );
   }
-  return context.playerWeights.get(matchIndex)?.get(player.discord_user_id) ?? 1;
+  return participantWeight * (context.playerWeights.get(matchIndex)?.get(player.discord_user_id) ?? 1);
 }
 
 function averagePlWeightForPlayers(matchIndex, players, context) {
@@ -773,6 +774,12 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   );
   const tolerance = Number(options.tolerance ?? DEFAULT_PL_TOLERANCE);
   const recencyMode = String(options.recencyMode || DEFAULT_PL_RECENCY_MODE).trim();
+  const participantWeightScale = Number(
+    options.participantWeightScale ?? DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE
+  );
+  const maxParticipantWeight = Number(
+    options.maxParticipantWeight ?? DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT
+  );
 
   if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
   if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
@@ -786,6 +793,12 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   }
   if (!Number.isFinite(tolerance) || tolerance <= 0) {
     throw new Error("tolerance must be a positive finite number.");
+  }
+  if (!Number.isFinite(participantWeightScale) || participantWeightScale < 0) {
+    throw new Error("participantWeightScale must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(maxParticipantWeight) || maxParticipantWeight < 1) {
+    throw new Error("maxParticipantWeight must be a finite number greater than or equal to 1.");
   }
   if (!["player", "global", "none"].includes(recencyMode)) {
     throw new Error("recencyMode must be one of: player, global, none.");
@@ -807,6 +820,12 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     matchRows: sortedMatches,
     latestTimestampMs,
     playerWeights: playerMatchRecencyWeights(sortedMatches, recencyMode),
+    participantWeights: sortedMatches.map((matchRow) =>
+      participantWeightForMatchSize(playersFromMatch(matchRow).length, {
+        participantWeightScale,
+        maxParticipantWeight,
+      })
+    ),
   };
   const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
   const playerIds = [...statsByPlayer.keys()].sort();
