@@ -6,9 +6,11 @@ const {
   matchRecencyWeightForIndex,
   recencyWeightForMatch,
   normalizedOutcomeScore,
+  pairWeightForMatchSize,
   participantWeightForMatchSize,
   replayElo,
   replayNormalizedPlacementElo,
+  replayOpponentAwareWeightedPairwiseGpi,
   replayPlackettLuceGpi,
   resultSignature,
 } = require("./internal-ranked-core");
@@ -311,6 +313,37 @@ function match(timestamp, results, versus = "1v1v1") {
   assertAlmostEqual(participantWeightForMatchSize(3), 1.35);
   assertAlmostEqual(participantWeightForMatchSize(4), 1 + 0.35 * Math.log2(3));
   assertAlmostEqual(participantWeightForMatchSize(8), 1 + 0.35 * Math.log2(7));
+  assertAlmostEqual(pairWeightForMatchSize(2), 1);
+  assertAlmostEqual(pairWeightForMatchSize(3), 1.35 / 2);
+  assertAlmostEqual(pairWeightForMatchSize(8), (1 + 0.35 * Math.log2(7)) / 7);
+}
+
+{
+  const replay = replayOpponentAwareWeightedPairwiseGpi([
+    {
+      match_hash: "oawp-1",
+      season: 7,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: match(1_000, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+        { place: 3, players: ["300"] },
+      ]),
+    },
+  ], {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+  });
+
+  const byPlayer = new Map(replay.finalRatings.map((row) => [row.discord_user_id, row]));
+
+  assert(byPlayer.get("100").rating > byPlayer.get("200").rating);
+  assert(byPlayer.get("200").rating > byPlayer.get("300").rating);
+  assertAlmostEqual(byPlayer.get("100").weighted_matches, participantWeightForMatchSize(3));
+  assert.equal(replay.recencyMode, "none");
 }
 
 {

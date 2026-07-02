@@ -4,6 +4,7 @@ const crypto = require("node:crypto");
 
 const CALCULATION_VERSION = "ranked-pairwise-elo-v1";
 const GPI_CALCULATION_VERSION = "ranked-flat-pl-gpi-v1";
+const OAWP_GPI_CALCULATION_VERSION = "ranked-opponent-aware-weighted-pairwise-gpi-v1";
 const NPS_ELO_CALCULATION_VERSION = "ranked-normalized-placement-elo-v1";
 const DEFAULT_BASE_RATING = 1200;
 const DEFAULT_K_FACTOR = 20;
@@ -367,6 +368,12 @@ function priorStrengthForMatches(matchesPlayed, fullReliabilityMatches, priorStr
   const reliability = reliabilityForMatches(matchesPlayed, fullReliabilityMatches);
   const priorFloor = Math.min(maxPrior, DEFAULT_PL_MIN_PRIOR_STRENGTH);
   return priorFloor + (maxPrior - priorFloor) * (1 - reliability);
+}
+
+function pairWeightForMatchSize(playerCount, options = {}) {
+  const cleanPlayerCount = Number(playerCount);
+  if (!Number.isFinite(cleanPlayerCount) || cleanPlayerCount <= 1) return 0;
+  return participantWeightForMatchSize(cleanPlayerCount, options) / (cleanPlayerCount - 1);
 }
 
 function normalizedOutcomeScore(player, players) {
@@ -994,9 +1001,216 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   };
 }
 
+function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
+  const baseRating = Number(options.baseRating ?? DEFAULT_BASE_RATING);
+  const ratingScale = Number(options.ratingScale ?? DEFAULT_PL_RATING_SCALE);
+  const priorStrength = Number(options.priorStrength ?? DEFAULT_PL_PRIOR_STRENGTH);
+  const shrinkageMatches = Number(options.shrinkageMatches ?? DEFAULT_PL_SHRINKAGE_MATCHES);
+  const maxIterations = Math.max(
+    1,
+    Math.trunc(Number(options.maxIterations ?? DEFAULT_PL_MAX_ITERATIONS))
+  );
+  const tolerance = Number(options.tolerance ?? DEFAULT_PL_TOLERANCE);
+  const participantWeightScale = Number(
+    options.participantWeightScale ?? DEFAULT_PL_PARTICIPANT_WEIGHT_SCALE
+  );
+  const maxParticipantWeight = Number(
+    options.maxParticipantWeight ?? DEFAULT_PL_MAX_PARTICIPANT_WEIGHT
+  );
+
+  if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
+  if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
+    throw new Error("ratingScale must be a positive finite number.");
+  }
+  if (!Number.isFinite(priorStrength) || priorStrength < 0) {
+    throw new Error("priorStrength must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(shrinkageMatches) || shrinkageMatches < 0) {
+    throw new Error("shrinkageMatches must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new Error("tolerance must be a positive finite number.");
+  }
+  if (!Number.isFinite(participantWeightScale) || participantWeightScale < 0) {
+    throw new Error("participantWeightScale must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(maxParticipantWeight) || maxParticipantWeight < 1) {
+    throw new Error("maxParticipantWeight must be a finite number greater than or equal to 1.");
+  }
+
+  const sortedMatches = [...matchRows]
+    .sort((left, right) => {
+      if (left.timestamp_ms !== right.timestamp_ms) return left.timestamp_ms - right.timestamp_ms;
+      return String(left.match_hash).localeCompare(String(right.match_hash));
+    })
+    .filter((matchRow) => playersFromMatch(matchRow).length >= 2);
+
+  const latestTimestampMs = sortedMatches.reduce(
+    (latest, matchRow) => Math.max(latest, asInteger(matchRow.timestamp_ms) || 0),
+    0
+  );
+  const weightingOptions = { participantWeightScale, maxParticipantWeight };
+  const recencyContext = {
+    recencyMode: "none",
+    matchRows: sortedMatches,
+    latestTimestampMs,
+    playerWeights: new Map(),
+    participantWeights: sortedMatches.map((matchRow) =>
+      participantWeightForMatchSize(playersFromMatch(matchRow).length, weightingOptions)
+    ),
+  };
+  const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
+  const playerIds = [...statsByPlayer.keys()].sort();
+  const abilities = new Map(playerIds.map((discordUserId) => [discordUserId, 1]));
+  const priorStrengths = new Map(
+    playerIds.map((discordUserId) => {
+      const state = statsByPlayer.get(discordUserId);
+      return [
+        discordUserId,
+        priorStrengthForMatches(state.matches_played, shrinkageMatches, priorStrength),
+      ];
+    })
+  );
+
+  let iterations = 0;
+  let converged = false;
+  let maxChange = Infinity;
+
+  for (iterations = 1; iterations <= maxIterations; iterations += 1) {
+    const numerators = new Map(
+      playerIds.map((discordUserId) => [discordUserId, priorStrengths.get(discordUserId)])
+    );
+    const denominators = new Map(
+      playerIds.map((discordUserId) => [discordUserId, priorStrengths.get(discordUserId)])
+    );
+
+    for (const matchRow of sortedMatches) {
+      const players = playersFromMatch(matchRow);
+      if (players.length < 2) continue;
+
+      const pairWeight = pairWeightForMatchSize(players.length, weightingOptions);
+      for (let leftIndex = 0; leftIndex < players.length; leftIndex += 1) {
+        for (let rightIndex = leftIndex + 1; rightIndex < players.length; rightIndex += 1) {
+          const left = players[leftIndex];
+          const right = players[rightIndex];
+          const leftActual = actualScore(left.place, right.place);
+          const leftAbility = abilities.get(left.discord_user_id);
+          const rightAbility = abilities.get(right.discord_user_id);
+          const denominator = leftAbility + rightAbility;
+          if (denominator <= 0) continue;
+
+          numerators.set(
+            left.discord_user_id,
+            numerators.get(left.discord_user_id) + pairWeight * leftActual
+          );
+          numerators.set(
+            right.discord_user_id,
+            numerators.get(right.discord_user_id) + pairWeight * (1 - leftActual)
+          );
+          denominators.set(
+            left.discord_user_id,
+            denominators.get(left.discord_user_id) + pairWeight / denominator
+          );
+          denominators.set(
+            right.discord_user_id,
+            denominators.get(right.discord_user_id) + pairWeight / denominator
+          );
+        }
+      }
+    }
+
+    const nextAbilities = new Map();
+    let logTotal = 0;
+    for (const discordUserId of playerIds) {
+      const nextAbility = numerators.get(discordUserId) / denominators.get(discordUserId);
+      nextAbilities.set(discordUserId, nextAbility);
+      logTotal += Math.log(nextAbility);
+    }
+
+    const geometricMean = Math.exp(logTotal / Math.max(1, playerIds.length));
+    maxChange = 0;
+    for (const discordUserId of playerIds) {
+      const normalizedAbility = nextAbilities.get(discordUserId) / geometricMean;
+      const previousAbility = abilities.get(discordUserId);
+      maxChange = Math.max(
+        maxChange,
+        Math.abs(Math.log(normalizedAbility) - Math.log(previousAbility))
+      );
+      abilities.set(discordUserId, normalizedAbility);
+    }
+
+    if (maxChange < tolerance) {
+      converged = true;
+      break;
+    }
+  }
+
+  const finalRatings = playerIds
+    .map((discordUserId) => {
+      const state = statsByPlayer.get(discordUserId);
+      const ability = abilities.get(discordUserId);
+      const skillLog = Math.log(ability);
+      const rawRating = baseRating + ratingScale * skillLog;
+      const reliability = reliabilityForMatches(state.matches_played, shrinkageMatches);
+      const rating = baseRating + reliability * (rawRating - baseRating);
+      const outcomeWinPercentage =
+        state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
+      const matchWinPercentage =
+        state.matches_played > 0 ? state.first_place_finishes / state.matches_played : 0;
+      const placementScoreAverage =
+        state.matches_played > 0 ? state.placement_score_sum / state.matches_played : 0;
+      const weightedPlacementScore =
+        state.weighted_matches > 0 ? state.weighted_placement_score_sum / state.weighted_matches : 0;
+
+      return {
+        discord_user_id: discordUserId,
+        display_name: state.display_name,
+        rating,
+        raw_rating: rawRating,
+        ability,
+        skill_log: skillLog,
+        reliability,
+        matches_played: state.matches_played,
+        weighted_matches: state.weighted_matches,
+        average_match_weight:
+          state.matches_played > 0 ? state.weighted_matches / state.matches_played : 0,
+        pairwise_wins: state.pairwise_wins,
+        pairwise_losses: state.pairwise_losses,
+        pairwise_ties: state.pairwise_ties,
+        pairwise_games: state.pairwise_games,
+        first_place_finishes: state.first_place_finishes,
+        outcome_win_percentage: outcomeWinPercentage,
+        match_win_percentage: matchWinPercentage,
+        placement_score_average: placementScoreAverage,
+        weighted_placement_score: weightedPlacementScore,
+        first_played_at: state.first_played_at,
+        last_played_at: state.last_played_at,
+      };
+    })
+    .sort((left, right) => {
+      if (right.rating !== left.rating) return right.rating - left.rating;
+      return left.discord_user_id.localeCompare(right.discord_user_id);
+    })
+    .map((row, index) => ({
+      ...row,
+      rank: index + 1,
+    }));
+
+  return {
+    finalRatings,
+    matchCount: sortedMatches.length,
+    latestTimestampMs,
+    iterations,
+    converged,
+    maxChange,
+    recencyMode: "none",
+  };
+}
+
 module.exports = {
   CALCULATION_VERSION,
   GPI_CALCULATION_VERSION,
+  OAWP_GPI_CALCULATION_VERSION,
   NPS_ELO_CALCULATION_VERSION,
   DEFAULT_BASE_RATING,
   DEFAULT_K_FACTOR,
@@ -1018,9 +1232,11 @@ module.exports = {
   normalizedOutcomeScore,
   expectedFieldScore,
   participantWeightForMatchSize,
+  pairWeightForMatchSize,
   matchRecencyWeightForIndex,
   recencyWeightForMatch,
   replayPlackettLuceGpi,
+  replayOpponentAwareWeightedPairwiseGpi,
   replayNormalizedPlacementElo,
   playersFromMatch,
   replayElo,

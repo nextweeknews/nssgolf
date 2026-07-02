@@ -608,7 +608,8 @@
       runMetaEl.hidden = false;
       runMetaEl.innerHTML = [
         "NSS GPI",
-        "Flat PL",
+        "Opponent-Aware",
+        "Weighted Pairwise",
         "No recency",
         "Lobby-size weighted",
         `Min ${MIN_MATCHES} matches`,
@@ -781,8 +782,8 @@
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
-          <div class="detail-cell"><span class="detail-label">PL Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">Raw PL</span><span class="detail-value">${escapeHtml(formatRating(row.rawRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">GPI Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Raw GPI</span><span class="detail-value">${escapeHtml(formatRating(row.rawRating))}</span></div>
           <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
           <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
           <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
@@ -806,9 +807,9 @@
     }
 
     async function loadPage(){
-      latestRun = await loadLatestRunByModel("flat_pl");
+      latestRun = await loadLatestRunByModel("opponent_aware_weighted_pairwise");
       if(!latestRun){
-        setStatus("No flat Plackett-Luce NSS GPI run is available yet. Run the Plackett-Luce GPI replay first.");
+        setStatus("No Opponent-Aware Weighted Pairwise NSS GPI run is available yet. Run the OAWP GPI replay first.");
         return;
       }
 

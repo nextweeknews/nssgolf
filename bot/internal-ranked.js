@@ -17,8 +17,10 @@ const {
   DEFAULT_PL_TOLERANCE,
   GPI_CALCULATION_VERSION,
   NPS_ELO_CALCULATION_VERSION,
+  OAWP_GPI_CALCULATION_VERSION,
   dedupeMatches,
   replayPlackettLuceGpi,
+  replayOpponentAwareWeightedPairwiseGpi,
   replayNormalizedPlacementElo,
   replayElo,
   validateDescendingMatches,
@@ -37,9 +39,11 @@ Usage:
   node bot/internal-ranked.js fetch [options]
   node bot/internal-ranked.js replay [options]
   node bot/internal-ranked.js replay-nps [options]
+  node bot/internal-ranked.js replay-oawp [options]
   node bot/internal-ranked.js replay-pl [options]
   node bot/internal-ranked.js sync [options]
   node bot/internal-ranked.js sync-nps [options]
+  node bot/internal-ranked.js sync-oawp [options]
   node bot/internal-ranked.js sync-pl [options]
 
 Commands:
@@ -50,11 +54,16 @@ Commands:
   replay-nps
            Recalculate NSS GPI from stored matches using normalized placement
            score Elo and write a new GPI run.
+  replay-oawp
+           Recalculate NSS GPI from stored matches using Opponent-Aware
+           Weighted Pairwise GPI and write a new GPI run.
   replay-pl
            Recalculate NSS GPI from stored matches using full-history
            Plackett-Luce ratings with lobby-size weighting.
   sync     Run fetch, then replay.
   sync-nps Run fetch, then replay-nps.
+  sync-oawp
+           Run fetch, then replay-oawp.
   sync-pl  Run fetch, then replay-pl.
 
 Options:
@@ -706,6 +715,145 @@ async function replayStoredMatchesPlackettLuce(options) {
   return runId;
 }
 
+async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
+  const supabase = createSupabaseServiceClient();
+  const storedMatches = await loadStoredMatches(supabase, options.seasons);
+  if (!storedMatches.length) {
+    throw new Error(
+      `No stored internal Ranked League matches found for seasons ${options.seasons.join(", ")}. Run fetch first.`
+    );
+  }
+
+  const replay = replayOpponentAwareWeightedPairwiseGpi(storedMatches, {
+    baseRating: options.baseRating,
+    ratingScale: options.ratingScale,
+    priorStrength: options.plPrior,
+    shrinkageMatches: options.plShrinkageMatches,
+    maxIterations: options.plIterations,
+    tolerance: options.plTolerance,
+    participantWeightScale: options.participantWeightScale,
+    maxParticipantWeight: options.maxParticipantWeight,
+  });
+
+  const runConfig = {
+    model: "opponent_aware_weighted_pairwise",
+    fit_type: "batch_bradley_terry_pairwise",
+    rating_formula: "sample-size-shrunk opponent-aware weighted pairwise ability rating",
+    pairwise_model: "all_players_in_match_compared_directly",
+    same_place_score: 0.5,
+    win_score: 1,
+    loss_score: 0,
+    recency_weighting: {
+      mode: "none",
+      basis: "flat_all_history",
+    },
+    prior_strength: options.plPrior,
+    shrinkage_matches: options.plShrinkageMatches,
+    shrinkage_basis: "raw_matches_played_reaches_full_reliability_at_threshold",
+    prior_basis: "prior_strength_tapers_to_floor_at_shrinkage_match_threshold",
+    rating_scale: options.ratingScale,
+    participant_weighting: {
+      match_formula: "min(max_weight, 1 + scale * log2(player_count - 1))",
+      pair_formula: "match_weight / (player_count - 1)",
+      scale: options.participantWeightScale,
+      max_weight: options.maxParticipantWeight,
+      examples: {
+        players_2_match: 1,
+        players_2_pair: 1,
+        players_3_match: Number((1 + options.participantWeightScale * Math.log2(2)).toFixed(6)),
+        players_3_pair: Number(((1 + options.participantWeightScale * Math.log2(2)) / 2).toFixed(6)),
+        players_8_match: Math.min(
+          options.maxParticipantWeight,
+          Number((1 + options.participantWeightScale * Math.log2(7)).toFixed(6))
+        ),
+        players_8_pair: Number(
+          (
+            Math.min(
+              options.maxParticipantWeight,
+              1 + options.participantWeightScale * Math.log2(7)
+            ) / 7
+          ).toFixed(6)
+        ),
+      },
+    },
+    convergence: {
+      max_iterations: options.plIterations,
+      tolerance: options.plTolerance,
+      iterations: replay.iterations,
+      converged: replay.converged,
+      max_change: replay.maxChange,
+    },
+    duplicate_policy: "exact_result_signature_within_2_minutes_skipped_before_insert",
+  };
+
+  const { data: runRow, error: runError } = await supabase
+    .from("internal_ranked_gpi_runs")
+    .insert({
+      calculation_version: OAWP_GPI_CALCULATION_VERSION,
+      model: "opponent_aware_weighted_pairwise",
+      base_rating: options.baseRating,
+      rating_scale: options.ratingScale,
+      season_start: Math.min(...options.seasons),
+      season_end: Math.max(...options.seasons),
+      match_count: replay.matchCount,
+      player_count: replay.finalRatings.length,
+      latest_match_at: replay.latestTimestampMs
+        ? new Date(replay.latestTimestampMs).toISOString()
+        : null,
+      config: runConfig,
+    })
+    .select("id")
+    .single();
+
+  if (runError) throw new Error(`Opponent-Aware Weighted Pairwise GPI run insert failed: ${runError.message}`);
+  const runId = runRow.id;
+
+  const ratingRows = replay.finalRatings.map((row) => ({
+    run_id: runId,
+    discord_user_id: row.discord_user_id,
+    display_name: row.display_name,
+    rating: roundRating(row.rating),
+    raw_rating: roundRating(row.raw_rating),
+    ability: roundMetric(row.ability),
+    skill_log: roundMetric(row.skill_log),
+    reliability: roundPercentage(row.reliability),
+    matches_played: row.matches_played,
+    weighted_matches: roundMetric(row.weighted_matches),
+    average_match_weight: roundPercentage(row.average_match_weight),
+    pairwise_wins: row.pairwise_wins,
+    pairwise_losses: row.pairwise_losses,
+    pairwise_ties: row.pairwise_ties,
+    pairwise_games: row.pairwise_games,
+    first_place_finishes: row.first_place_finishes,
+    outcome_win_percentage: roundPercentage(row.outcome_win_percentage),
+    match_win_percentage: roundPercentage(row.match_win_percentage),
+    placement_score_average: roundPercentage(row.placement_score_average),
+    weighted_placement_score: roundPercentage(row.weighted_placement_score),
+    first_played_at: row.first_played_at,
+    last_played_at: row.last_played_at,
+    rank: row.rank,
+  }));
+
+  await insertReplayRows(
+    supabase,
+    "internal_ranked_gpi_ratings",
+    ratingRows,
+    "Final Opponent-Aware Weighted Pairwise GPI rating insert failed"
+  );
+
+  console.log(
+    `Opponent-Aware Weighted Pairwise GPI replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players, ${replay.iterations} iterations, converged=${replay.converged}.`
+  );
+  console.log("Top 10:");
+  for (const row of ratingRows.slice(0, 10)) {
+    console.log(
+      `${row.rank}. ${row.display_name || row.discord_user_id} (${row.discord_user_id}) ${row.rating} reliability=${row.reliability}`
+    );
+  }
+
+  return runId;
+}
+
 async function replayStoredMatchesNormalizedPlacementElo(options) {
   const supabase = createSupabaseServiceClient();
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
@@ -894,6 +1042,8 @@ async function main() {
     await replayStoredMatches(options);
   } else if (command === "replay-nps") {
     await replayStoredMatchesNormalizedPlacementElo(options);
+  } else if (command === "replay-oawp") {
+    await replayStoredMatchesOpponentAwareWeightedPairwise(options);
   } else if (command === "replay-pl") {
     await replayStoredMatchesPlackettLuce(options);
   } else if (command === "sync") {
@@ -902,6 +1052,9 @@ async function main() {
   } else if (command === "sync-nps") {
     await fetchAndUpsert(options);
     await replayStoredMatchesNormalizedPlacementElo(options);
+  } else if (command === "sync-oawp") {
+    await fetchAndUpsert(options);
+    await replayStoredMatchesOpponentAwareWeightedPairwise(options);
   } else if (command === "sync-pl") {
     await fetchAndUpsert(options);
     await replayStoredMatchesPlackettLuce(options);

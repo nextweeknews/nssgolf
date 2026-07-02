@@ -30,9 +30,11 @@ on:
           - fetch
           - replay
           - replay-nps
+          - replay-oawp
           - replay-pl
           - sync
           - sync-nps
+          - sync-oawp
           - sync-pl
       seasons:
         description: "Ranked League seasons for fetch/replay/sync"
@@ -213,6 +215,32 @@ jobs:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
 
+  replay-oawp:
+    name: Internal Ranked League Opponent-Aware Weighted Pairwise GPI replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'replay-oawp'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Replay Opponent-Aware Weighted Pairwise GPI from stored matches
+        run: npm run internal-ranked:replay-oawp -- --seasons "${{ github.event.inputs.seasons }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
   sync:
     name: Full internal Ranked League fetch and Elo replay
     runs-on: ubuntu-latest
@@ -287,6 +315,32 @@ jobs:
 
       - name: Fetch TeamUp matches, write Supabase, and replay GPI NPS Elo
         run: npm run internal-ranked:sync-nps -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  sync-oawp:
+    name: Full internal Ranked League fetch and Opponent-Aware Weighted Pairwise GPI replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 360
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'sync-oawp'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch TeamUp matches, write Supabase, and replay Opponent-Aware Weighted Pairwise GPI
+        run: npm run internal-ranked:sync-oawp -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
