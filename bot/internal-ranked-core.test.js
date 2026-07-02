@@ -177,6 +177,7 @@ function match(timestamp, results, versus = "1v1v1") {
     priorStrength: 20,
     shrinkageMatches: 10,
     maxIterations: 200,
+    recencyMode: "player",
   });
   const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
 
@@ -184,6 +185,33 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(winner.reliability, 100 / 110);
   assert(winner.weighted_matches < winner.matches_played);
   assert(winner.rating > 1200);
+}
+
+{
+  const rows = [];
+  for (let index = 0; index < 20; index += 1) {
+    rows.push({
+      match_hash: `flat-default-${index}`,
+      season: 7,
+      timestamp_ms: 1_000 + index,
+      played_at: new Date(1_000 + index).toISOString(),
+      raw_match: match(1_000 + index, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    });
+  }
+
+  const replay = replayPlackettLuceGpi(rows, {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 10,
+    maxIterations: 200,
+  });
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+
+  assert.equal(replay.recencyMode, "none");
+  assert.equal(winner.weighted_matches, winner.matches_played);
 }
 
 {
