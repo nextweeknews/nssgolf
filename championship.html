@@ -698,6 +698,10 @@
       color:#bfdbfe;
       text-decoration:underline;
     }
+    .qualifier-player-name.is-placeholder{
+      color:rgba(156,163,199,.72);
+      font-weight:650;
+    }
     .qualifier-player-scorepack{
       display:grid;
       grid-template-columns:repeat(9, var(--qualifier-score-col-width)) var(--qualifier-final-score-width);
@@ -3606,6 +3610,8 @@
     function renderChampionshipBracketPlayerName(slot){
       const name = normalizeText(slot?.name);
       const safeName = escapeHtml(name);
+      const isPlaceholder = /^seed\b/i.test(name);
+      if(isPlaceholder) return `<span class="qualifier-player-name is-placeholder">${safeName}</span>`;
       const discordId = normalizeDiscordId(slot?.discordId || slot?.player?.discordId);
       if(!discordId) return `<span class="qualifier-player-name">${safeName}</span>`;
       return `<a class="qualifier-player-name-link" href="/player.html?id=${encodeURIComponent(discordId)}">${safeName}</a>`;
