@@ -143,6 +143,16 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(winner.rank, 1);
   assert.equal(winner.reliability, 1 / 11);
   assert.equal(winner.weighted_matches, 1);
+  assert(Number.isFinite(winner.predictive_rating));
+  assert(Number.isFinite(winner.performance_rating));
+  assert(Number.isFinite(winner.resume_rating));
+  assert(Number.isFinite(winner.expected_placement_score));
+  assert(Number.isFinite(winner.performance_above_expected));
+  assert(Number.isFinite(winner.schedule_strength));
+  assertAlmostEqual(
+    winner.rating,
+    0.7 * winner.predictive_rating + 0.2 * winner.performance_rating + 0.1 * winner.resume_rating
+  );
 }
 
 {

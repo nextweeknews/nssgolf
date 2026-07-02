@@ -3,7 +3,7 @@
 const crypto = require("node:crypto");
 
 const CALCULATION_VERSION = "ranked-pairwise-elo-v1";
-const GPI_CALCULATION_VERSION = "ranked-pl-gpi-v1";
+const GPI_CALCULATION_VERSION = "ranked-sports-gpi-v1";
 const NPS_ELO_CALCULATION_VERSION = "ranked-normalized-placement-elo-v1";
 const DEFAULT_BASE_RATING = 1200;
 const DEFAULT_K_FACTOR = 20;
@@ -15,6 +15,12 @@ const DEFAULT_PL_TOLERANCE = 0.000001;
 const DEFAULT_PL_RECENCY_MODE = "player";
 const DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE = 0.35;
 const DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT = 2;
+const DEFAULT_GPI_PREDICTIVE_WEIGHT = 0.7;
+const DEFAULT_GPI_PERFORMANCE_WEIGHT = 0.2;
+const DEFAULT_GPI_RESUME_WEIGHT = 0.1;
+const DEFAULT_GPI_PERFORMANCE_SCALE = 400;
+const DEFAULT_GPI_RESUME_PLACEMENT_SCALE = 400;
+const DEFAULT_GPI_RESUME_SCHEDULE_SCALE = 0.35;
 const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
 
 function asInteger(value) {
@@ -367,6 +373,32 @@ function expectedFieldScore(player, players, beforeRatings) {
     return sum + expectedScore(playerRating, beforeRatings.get(opponent.discord_user_id));
   }, 0);
   return total / (players.length - 1);
+}
+
+function expectedAbilityFieldScore(player, players, abilities) {
+  if (players.length <= 1) return 0;
+  const playerAbility = abilities.get(player.discord_user_id);
+  const total = players.reduce((sum, opponent) => {
+    if (opponent.discord_user_id === player.discord_user_id) return sum;
+    const opponentAbility = abilities.get(opponent.discord_user_id);
+    const denominator = playerAbility + opponentAbility;
+    if (!Number.isFinite(denominator) || denominator <= 0) return sum + 0.5;
+    return sum + playerAbility / denominator;
+  }, 0);
+  return total / (players.length - 1);
+}
+
+function averageOpponentRating(player, players, ratingsByPlayer) {
+  if (players.length <= 1) return 0;
+  const total = players.reduce((sum, opponent) => {
+    if (opponent.discord_user_id === player.discord_user_id) return sum;
+    return sum + (ratingsByPlayer.get(opponent.discord_user_id) ?? 0);
+  }, 0);
+  return total / (players.length - 1);
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function summarizeMatchStats(matchRows, recencyContext) {
@@ -780,6 +812,16 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   const maxParticipantWeight = Number(
     options.maxParticipantWeight ?? DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT
   );
+  const predictiveWeight = Number(options.predictiveWeight ?? DEFAULT_GPI_PREDICTIVE_WEIGHT);
+  const performanceWeight = Number(options.performanceWeight ?? DEFAULT_GPI_PERFORMANCE_WEIGHT);
+  const resumeWeight = Number(options.resumeWeight ?? DEFAULT_GPI_RESUME_WEIGHT);
+  const performanceScale = Number(options.performanceScale ?? DEFAULT_GPI_PERFORMANCE_SCALE);
+  const resumePlacementScale = Number(
+    options.resumePlacementScale ?? DEFAULT_GPI_RESUME_PLACEMENT_SCALE
+  );
+  const resumeScheduleScale = Number(
+    options.resumeScheduleScale ?? DEFAULT_GPI_RESUME_SCHEDULE_SCALE
+  );
 
   if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
   if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
@@ -799,6 +841,26 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   }
   if (!Number.isFinite(maxParticipantWeight) || maxParticipantWeight < 1) {
     throw new Error("maxParticipantWeight must be a finite number greater than or equal to 1.");
+  }
+  if (
+    !Number.isFinite(predictiveWeight) ||
+    !Number.isFinite(performanceWeight) ||
+    !Number.isFinite(resumeWeight) ||
+    predictiveWeight < 0 ||
+    performanceWeight < 0 ||
+    resumeWeight < 0 ||
+    predictiveWeight + performanceWeight + resumeWeight <= 0
+  ) {
+    throw new Error("GPI component weights must be non-negative finite numbers with a positive sum.");
+  }
+  if (!Number.isFinite(performanceScale) || performanceScale <= 0) {
+    throw new Error("performanceScale must be a positive finite number.");
+  }
+  if (!Number.isFinite(resumePlacementScale) || resumePlacementScale <= 0) {
+    throw new Error("resumePlacementScale must be a positive finite number.");
+  }
+  if (!Number.isFinite(resumeScheduleScale) || resumeScheduleScale < 0) {
+    throw new Error("resumeScheduleScale must be a non-negative finite number.");
   }
   if (!["player", "global", "none"].includes(recencyMode)) {
     throw new Error("recencyMode must be one of: player, global, none.");
@@ -900,51 +962,121 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     }
   }
 
-  const finalRatings = playerIds
-    .map((discordUserId) => {
-      const state = statsByPlayer.get(discordUserId);
-      const ability = abilities.get(discordUserId);
-      const skillLog = Math.log(ability);
-      const rawRating = baseRating + ratingScale * skillLog;
-      const reliability =
-        state.matches_played > 0
-          ? state.matches_played / (state.matches_played + shrinkageMatches)
-          : 0;
-      const rating = baseRating + reliability * (rawRating - baseRating);
-      const outcomeWinPercentage =
-        state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
-      const matchWinPercentage =
-        state.matches_played > 0 ? state.first_place_finishes / state.matches_played : 0;
-      const placementScoreAverage =
-        state.matches_played > 0 ? state.placement_score_sum / state.matches_played : 0;
-      const weightedPlacementScore =
-        state.weighted_matches > 0
-          ? state.weighted_placement_score_sum / state.weighted_matches
-          : 0;
+  const componentWeightTotal = predictiveWeight + performanceWeight + resumeWeight;
+  const preliminaryRows = playerIds.map((discordUserId) => {
+    const state = statsByPlayer.get(discordUserId);
+    const ability = abilities.get(discordUserId);
+    const skillLog = Math.log(ability);
+    const rawRating = baseRating + ratingScale * skillLog;
+    const reliability =
+      state.matches_played > 0
+        ? state.matches_played / (state.matches_played + shrinkageMatches)
+        : 0;
+    const predictiveRating = baseRating + reliability * (rawRating - baseRating);
+    const outcomeWinPercentage =
+      state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
+    const matchWinPercentage =
+      state.matches_played > 0 ? state.first_place_finishes / state.matches_played : 0;
+    const placementScoreAverage =
+      state.matches_played > 0 ? state.placement_score_sum / state.matches_played : 0;
+    const weightedPlacementScore =
+      state.weighted_matches > 0 ? state.weighted_placement_score_sum / state.weighted_matches : 0;
+
+    return {
+      discord_user_id: discordUserId,
+      display_name: state.display_name,
+      predictive_rating: predictiveRating,
+      raw_rating: rawRating,
+      ability,
+      skill_log: skillLog,
+      reliability,
+      matches_played: state.matches_played,
+      weighted_matches: state.weighted_matches,
+      average_match_weight:
+        state.matches_played > 0 ? state.weighted_matches / state.matches_played : 0,
+      pairwise_wins: state.pairwise_wins,
+      pairwise_losses: state.pairwise_losses,
+      pairwise_ties: state.pairwise_ties,
+      pairwise_games: state.pairwise_games,
+      first_place_finishes: state.first_place_finishes,
+      outcome_win_percentage: outcomeWinPercentage,
+      match_win_percentage: matchWinPercentage,
+      placement_score_average: placementScoreAverage,
+      weighted_placement_score: weightedPlacementScore,
+      first_played_at: state.first_played_at,
+      last_played_at: state.last_played_at,
+    };
+  });
+
+  const predictiveRatingsByPlayer = new Map(
+    preliminaryRows.map((row) => [row.discord_user_id, row.predictive_rating])
+  );
+  const componentMetricsByPlayer = new Map(
+    playerIds.map((discordUserId) => [
+      discordUserId,
+      {
+        weight: 0,
+        actual_score_sum: 0,
+        expected_score_sum: 0,
+        schedule_strength_sum: 0,
+      },
+    ])
+  );
+
+  for (let matchIndex = 0; matchIndex < sortedMatches.length; matchIndex += 1) {
+    const matchRow = sortedMatches[matchIndex];
+    const players = playersFromMatch(matchRow);
+    if (players.length < 2) continue;
+
+    for (const player of players) {
+      const metrics = componentMetricsByPlayer.get(player.discord_user_id);
+      const weight = plWeightForPlayer(matchIndex, player, recencyContext);
+      const actual = normalizedOutcomeScore(player, players);
+      const expected = expectedAbilityFieldScore(player, players, abilities);
+      const scheduleStrength = averageOpponentRating(player, players, predictiveRatingsByPlayer);
+
+      metrics.weight += weight;
+      metrics.actual_score_sum += actual * weight;
+      metrics.expected_score_sum += expected * weight;
+      metrics.schedule_strength_sum += scheduleStrength * weight;
+    }
+  }
+
+  const finalRatings = preliminaryRows
+    .map((row) => {
+      const metrics = componentMetricsByPlayer.get(row.discord_user_id);
+      const weightedActualScore =
+        metrics.weight > 0
+          ? metrics.actual_score_sum / metrics.weight
+          : row.weighted_placement_score;
+      const expectedPlacementScore =
+        metrics.weight > 0 ? metrics.expected_score_sum / metrics.weight : 0.5;
+      const performanceAboveExpected = weightedActualScore - expectedPlacementScore;
+      const scheduleStrength =
+        metrics.weight > 0 ? metrics.schedule_strength_sum / metrics.weight : baseRating;
+      const performanceRating =
+        row.predictive_rating + performanceScale * performanceAboveExpected;
+      const resumeRating =
+        baseRating +
+        resumePlacementScale * (weightedActualScore - 0.5) +
+        resumeScheduleScale * (scheduleStrength - baseRating);
+      const resumeScore =
+        0.5 + (resumeRating - baseRating) / Math.max(1, resumePlacementScale);
+      const rating =
+        (predictiveWeight * row.predictive_rating +
+          performanceWeight * performanceRating +
+          resumeWeight * resumeRating) /
+        componentWeightTotal;
 
       return {
-        discord_user_id: discordUserId,
-        display_name: state.display_name,
+        ...row,
         rating,
-        raw_rating: rawRating,
-        ability,
-        skill_log: skillLog,
-        reliability,
-        matches_played: state.matches_played,
-        weighted_matches: state.weighted_matches,
-        average_match_weight:
-          state.matches_played > 0 ? state.weighted_matches / state.matches_played : 0,
-        pairwise_wins: state.pairwise_wins,
-        pairwise_losses: state.pairwise_losses,
-        pairwise_ties: state.pairwise_ties,
-        pairwise_games: state.pairwise_games,
-        first_place_finishes: state.first_place_finishes,
-        outcome_win_percentage: outcomeWinPercentage,
-        match_win_percentage: matchWinPercentage,
-        placement_score_average: placementScoreAverage,
-        weighted_placement_score: weightedPlacementScore,
-        first_played_at: state.first_played_at,
-        last_played_at: state.last_played_at,
+        performance_rating: performanceRating,
+        resume_rating: resumeRating,
+        expected_placement_score: expectedPlacementScore,
+        performance_above_expected: performanceAboveExpected,
+        schedule_strength: scheduleStrength,
+        resume_score: resumeScore,
       };
     })
     .sort((left, right) => {
@@ -981,9 +1113,16 @@ module.exports = {
   DEFAULT_PL_TOLERANCE,
   DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT,
   DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE,
+  DEFAULT_GPI_PREDICTIVE_WEIGHT,
+  DEFAULT_GPI_PERFORMANCE_WEIGHT,
+  DEFAULT_GPI_RESUME_WEIGHT,
+  DEFAULT_GPI_PERFORMANCE_SCALE,
+  DEFAULT_GPI_RESUME_PLACEMENT_SCALE,
+  DEFAULT_GPI_RESUME_SCHEDULE_SCALE,
   DUPLICATE_WINDOW_MS,
   dedupeMatches,
   expectedScore,
+  expectedAbilityFieldScore,
   matchHash,
   normalizeMatchForStorage,
   normalizedOutcomeScore,

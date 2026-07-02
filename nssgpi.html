@@ -514,9 +514,8 @@
     const modalCloseEl = document.getElementById("modalClose");
     const PAGE_SIZE = 100;
     const MIN_MATCHES = 25;
-    const PL_WEIGHT = 0.7;
-    const NPS_WEIGHT = 0.3;
-    let latestRuns = { pl:null, nps:null };
+    let latestRun = null;
+    let latestHistoryRun = null;
     let allLeaderboardRows = [];
     let leaderboardRows = [];
     let totalRatings = 0;
@@ -615,7 +614,7 @@
       while(true){
         const { data, error } = await supabase
           .from("internal_ranked_gpi_ratings")
-          .select("discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank")
+          .select("discord_user_id,display_name,rating,raw_rating,predictive_rating,performance_rating,resume_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,expected_placement_score,performance_above_expected,schedule_strength,resume_score,first_played_at,last_played_at,rank")
           .eq("run_id", runId)
           .order("rank", { ascending:true })
           .range(from, from + pageSize - 1);
@@ -647,7 +646,7 @@
     }
 
     function activeHistoryRun(){
-      return latestRuns.nps || null;
+      return latestHistoryRun || null;
     }
 
     function runSupportsPerMatchHistory(run){
@@ -676,19 +675,19 @@
       return rows;
     }
 
-    function renderRunMeta(plRun, npsRun){
+    function renderRunMeta(run){
       runMetaEl.hidden = false;
       runMetaEl.innerHTML = [
-        "Composite GPI",
-        `${Math.round(PL_WEIGHT * 100)}% PL`,
-        `${Math.round(NPS_WEIGHT * 100)}% NPS Elo`,
+        "NSS GPI",
+        "70% Predictive",
+        "20% Performance",
+        "10% Resume",
         `Min ${MIN_MATCHES} matches`,
         "Current Discord members",
-        `Seasons ${plRun.season_start}-${plRun.season_end}`,
-        `${plRun.match_count} matches`,
-        `PL Run #${plRun.id}`,
-        `NPS Run #${npsRun.id}`,
-        formatDateTime(new Date(Math.max(new Date(plRun.created_at).getTime(), new Date(npsRun.created_at).getTime()))),
+        `Seasons ${run.season_start}-${run.season_end}`,
+        `${run.match_count} matches`,
+        `Run #${run.id}`,
+        formatDateTime(run.created_at),
       ].map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
     }
 
@@ -712,50 +711,50 @@
       `;
     }
 
-    function buildLeaderboardRows(plRatings, npsRatings, membersById){
-      const npsById = new Map(npsRatings.map(row => [normalizeDiscordId(row.discord_user_id), row]));
+    function buildLeaderboardRows(ratings, membersById){
       const rows = [];
 
-      for(const plRow of plRatings){
-        const discordId = normalizeDiscordId(plRow.discord_user_id);
-        const npsRow = npsById.get(discordId);
+      for(const row of ratings){
+        const discordId = normalizeDiscordId(row.discord_user_id);
         const member = membersById.get(discordId);
-        if(!discordId || !npsRow || member?.is_current_member !== true) continue;
+        if(!discordId || member?.is_current_member !== true) continue;
 
-        const matches = Math.max(Number(plRow.matches_played) || 0, Number(npsRow.matches_played) || 0);
+        const matches = Number(row.matches_played) || 0;
         if(matches < MIN_MATCHES) continue;
 
-        const plRating = Number(plRow.rating) || 0;
-        const npsRating = Number(npsRow.rating) || 0;
-        const rating = PL_WEIGHT * plRating + NPS_WEIGHT * npsRating;
-        const statsRow = npsRow;
-        const firstPlaceFinishes = Number(statsRow.first_place_finishes) || 0;
-        const wins = Number(statsRow.pairwise_wins) || 0;
-        const losses = Number(statsRow.pairwise_losses) || 0;
-        const ties = Number(statsRow.pairwise_ties) || 0;
+        const rating = Number(row.rating) || 0;
+        const firstPlaceFinishes = Number(row.first_place_finishes) || 0;
+        const wins = Number(row.pairwise_wins) || 0;
+        const losses = Number(row.pairwise_losses) || 0;
+        const ties = Number(row.pairwise_ties) || 0;
         const outcomes = wins + losses + ties;
         rows.push({
-          ...statsRow,
+          ...row,
           discord_user_id: discordId,
           member,
-          displayName: memberDisplayName(statsRow, member),
+          displayName: memberDisplayName(row, member),
           avatarUrl: memberAvatarUrl(member),
           rankNumber: 0,
           rank:"",
           rating,
           ratingNumber: rating,
-          plRating,
-          npsRating,
+          predictiveRating: Number(row.predictive_rating) || rating,
+          performanceRating: Number(row.performance_rating) || rating,
+          resumeRating: Number(row.resume_rating) || rating,
           matchesNumber: matches,
           winsNumber: wins,
           lossesNumber: losses,
           tiesNumber: ties,
-          outcomeWinPct: Number(statsRow.outcome_win_percentage) || (outcomes > 0 ? wins / outcomes : 0),
+          outcomeWinPct: Number(row.outcome_win_percentage) || (outcomes > 0 ? wins / outcomes : 0),
           firstPlaceFinishes,
-          matchWinPct: Number(statsRow.match_win_percentage) || (matches > 0 ? firstPlaceFinishes / matches : 0),
-          reliability: Number(statsRow.reliability) || 0,
-          weightedMatches: Number(statsRow.weighted_matches) || 0,
-          weightedPlacementScore: Number(statsRow.weighted_placement_score) || 0,
+          matchWinPct: Number(row.match_win_percentage) || (matches > 0 ? firstPlaceFinishes / matches : 0),
+          reliability: Number(row.reliability) || 0,
+          weightedMatches: Number(row.weighted_matches) || 0,
+          weightedPlacementScore: Number(row.weighted_placement_score) || 0,
+          expectedPlacementScore: Number(row.expected_placement_score),
+          performanceAboveExpected: Number(row.performance_above_expected),
+          scheduleStrength: Number(row.schedule_strength),
+          resumeScore: Number(row.resume_score),
           history: null,
         });
       }
@@ -939,13 +938,18 @@
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
-          <div class="detail-cell"><span class="detail-label">Composite Rating</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">PL Rating</span><span class="detail-value">${escapeHtml(formatRating(row.plRating))}</span></div>
-          <div class="detail-cell"><span class="detail-label">NPS Elo</span><span class="detail-value">${escapeHtml(formatRating(row.npsRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">NSS GPI</span><span class="detail-value">${escapeHtml(formatRating(row.rating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Predictive</span><span class="detail-value">${escapeHtml(formatRating(row.predictiveRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Performance</span><span class="detail-value">${escapeHtml(formatRating(row.performanceRating))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Resume</span><span class="detail-value">${escapeHtml(formatRating(row.resumeRating))}</span></div>
           <div class="detail-cell"><span class="detail-label">Matches</span><span class="detail-value">${escapeHtml(row.matchesNumber)}</span></div>
           <div class="detail-cell"><span class="detail-label">W-L-T</span><span class="detail-value">${outcomeHtml(row)}</span></div>
           <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
           <div class="detail-cell"><span class="detail-label">Match Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.matchWinPct))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Expected Finish</span><span class="detail-value">${escapeHtml(formatPercent(row.expectedPlacementScore))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Above Expected</span><span class="detail-value">${escapeHtml(formatPercent(row.performanceAboveExpected))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Schedule</span><span class="detail-value">${escapeHtml(formatRating(row.scheduleStrength))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Resume Score</span><span class="detail-value">${escapeHtml(formatPercent(row.resumeScore))}</span></div>
           <div class="detail-cell"><span class="detail-label">1st Place</span><span class="detail-value">${escapeHtml(row.firstPlaceFinishes)}</span></div>
           <div class="detail-cell"><span class="detail-label">Reliability</span><span class="detail-value">${escapeHtml(formatPercent(row.reliability))}</span></div>
           <div class="detail-cell"><span class="detail-label">Weighted Matches</span><span class="detail-value">${escapeHtml(formatRating(row.weightedMatches))}</span></div>
@@ -963,42 +967,33 @@
     }
 
     async function loadPage(){
-      const [plRun, npsRun] = await Promise.all([
-        loadLatestRunByModel("plackett_luce"),
+      const [sportsRun, npsRun] = await Promise.all([
+        loadLatestRunByModel("sports_gpi"),
         loadLatestRunByModel("normalized_placement_elo"),
       ]);
-      latestRuns = { pl:plRun, nps:npsRun };
-      if(!plRun || !npsRun){
-        const missing = [
-          !plRun ? "Plackett-Luce" : "",
-          !npsRun ? "NPS Elo" : "",
-        ].filter(Boolean).join(" and ");
-        setStatus(`No complete composite GPI is available yet. Run the missing ${missing} replay first.`);
+      latestRun = sportsRun;
+      latestHistoryRun = npsRun;
+      if(!latestRun){
+        setStatus("No NSS GPI sports-model run is available yet. Run the Plackett-Luce GPI replay first.");
         return;
       }
 
       await loadLeaderboardData();
       await loadLeaderboardPage(0);
-      renderRunMeta(plRun, npsRun);
+      renderRunMeta(latestRun);
       hideStatus();
     }
 
     async function loadLeaderboardData(){
-      const [plRatings, npsRatings] = await Promise.all([
-        loadRatingsForRun(latestRuns.pl.id),
-        loadRatingsForRun(latestRuns.nps.id),
-      ]);
-      const ids = [
-        ...plRatings.map(row => row.discord_user_id),
-        ...npsRatings.map(row => row.discord_user_id),
-      ];
+      const ratings = await loadRatingsForRun(latestRun.id);
+      const ids = ratings.map(row => row.discord_user_id);
       const membersById = await loadMembers(ids);
-      allLeaderboardRows = buildLeaderboardRows(plRatings, npsRatings, membersById);
+      allLeaderboardRows = buildLeaderboardRows(ratings, membersById);
       totalRatings = allLeaderboardRows.length;
     }
 
     async function loadLeaderboardPage(page){
-      if(!latestRuns.pl || !latestRuns.nps) return;
+      if(!latestRun) return;
       currentPage = Math.max(0, page);
       leaderboardEl.hidden = false;
       pageInfoEl.textContent = "Loading rankings...";

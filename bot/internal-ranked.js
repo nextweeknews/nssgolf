@@ -6,6 +6,12 @@ const { createClient } = require("@supabase/supabase-js");
 const {
   CALCULATION_VERSION,
   DEFAULT_BASE_RATING,
+  DEFAULT_GPI_PERFORMANCE_SCALE,
+  DEFAULT_GPI_PERFORMANCE_WEIGHT,
+  DEFAULT_GPI_PREDICTIVE_WEIGHT,
+  DEFAULT_GPI_RESUME_PLACEMENT_SCALE,
+  DEFAULT_GPI_RESUME_SCHEDULE_SCALE,
+  DEFAULT_GPI_RESUME_WEIGHT,
   DEFAULT_K_FACTOR,
   DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT,
   DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE,
@@ -51,8 +57,8 @@ Commands:
            Recalculate NSS GPI from stored matches using normalized placement
            score Elo and write a new GPI run.
   replay-pl
-           Recalculate NSS GPI from stored matches using a player-normalized
-           recency weighted batch Plackett-Luce model and write a new GPI run.
+           Recalculate sports-model NSS GPI from stored matches using PL
+           predictive strength, performance above expected, and resume/SOS.
   sync     Run fetch, then replay.
   sync-nps Run fetch, then replay-nps.
   sync-pl  Run fetch, then replay-pl.
@@ -67,10 +73,10 @@ Options:
   --base-rating <number> Elo starting rating. Default: ${DEFAULT_BASE_RATING}
   --k-factor <number>    Elo K-factor. Default: ${DEFAULT_K_FACTOR}
   --participant-weight-scale <number>
-                         GPI lobby-size log weight scale for PL and NPS Elo.
+                         GPI lobby-size log weight scale for sports GPI and NPS Elo.
                          Default: ${DEFAULT_NPS_PARTICIPANT_WEIGHT_SCALE}
   --max-participant-weight <number>
-                         GPI maximum lobby-size weight for PL and NPS Elo.
+                         GPI maximum lobby-size weight for sports GPI and NPS Elo.
                          Default: ${DEFAULT_NPS_MAX_PARTICIPANT_WEIGHT}
   --rating-scale <number>
                          Plackett-Luce log-skill to rating scale.
@@ -601,8 +607,27 @@ async function replayStoredMatchesPlackettLuce(options) {
   });
 
   const runConfig = {
-    model: "plackett_luce",
-    fit_type: "batch",
+    model: "sports_gpi",
+    fit_type: "batch_plackett_luce",
+    rating_formula:
+      "0.70 * predictive_pl_rating + 0.20 * performance_above_expected_rating + 0.10 * resume_strength_of_schedule_rating",
+    components: {
+      predictive_pl_rating: {
+        weight: DEFAULT_GPI_PREDICTIVE_WEIGHT,
+        basis: "batch_plackett_luce_skill_with_sample_size_reliability",
+      },
+      performance_above_expected_rating: {
+        weight: DEFAULT_GPI_PERFORMANCE_WEIGHT,
+        basis: "predictive_pl_rating_plus_weighted_actual_normalized_finish_minus_expected_finish",
+        scale: DEFAULT_GPI_PERFORMANCE_SCALE,
+      },
+      resume_strength_of_schedule_rating: {
+        weight: DEFAULT_GPI_RESUME_WEIGHT,
+        basis: "weighted_actual_normalized_finish_plus_average_opponent_predictive_rating",
+        placement_scale: DEFAULT_GPI_RESUME_PLACEMENT_SCALE,
+        schedule_scale: DEFAULT_GPI_RESUME_SCHEDULE_SCALE,
+      },
+    },
     tie_handling: "same_place_players_share_a_rank_group",
     recency_weighting: {
       mode: options.plRecencyMode,
@@ -648,7 +673,7 @@ async function replayStoredMatchesPlackettLuce(options) {
     .from("internal_ranked_gpi_runs")
     .insert({
       calculation_version: GPI_CALCULATION_VERSION,
-      model: "plackett_luce",
+      model: "sports_gpi",
       base_rating: options.baseRating,
       rating_scale: options.ratingScale,
       season_start: Math.min(...options.seasons),
@@ -672,6 +697,9 @@ async function replayStoredMatchesPlackettLuce(options) {
     display_name: row.display_name,
     rating: roundRating(row.rating),
     raw_rating: roundRating(row.raw_rating),
+    predictive_rating: roundRating(row.predictive_rating),
+    performance_rating: roundRating(row.performance_rating),
+    resume_rating: roundRating(row.resume_rating),
     ability: roundMetric(row.ability),
     skill_log: roundMetric(row.skill_log),
     reliability: roundPercentage(row.reliability),
@@ -687,6 +715,10 @@ async function replayStoredMatchesPlackettLuce(options) {
     match_win_percentage: roundPercentage(row.match_win_percentage),
     placement_score_average: roundPercentage(row.placement_score_average),
     weighted_placement_score: roundPercentage(row.weighted_placement_score),
+    expected_placement_score: roundPercentage(row.expected_placement_score),
+    performance_above_expected: roundPercentage(row.performance_above_expected),
+    schedule_strength: roundRating(row.schedule_strength),
+    resume_score: roundPercentage(row.resume_score),
     first_played_at: row.first_played_at,
     last_played_at: row.last_played_at,
     rank: row.rank,
