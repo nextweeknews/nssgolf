@@ -849,6 +849,12 @@
     const RANKED_LEAGUE_PRIORITY_SEASONS = [9, 10, 11, 12];
     const RANKED_LEAGUE_PER_SEASON = 5;
     const RANKED_LEAGUE_HUNT_COUNT = 5;
+    const WILDCARD_QUALIFIERS = [
+      { name:"Sensei", discordId:"1074748370746343434" },
+      { name:"Noptotch1s", discordId:"1070771859362156574" },
+      { name:"Quintin", discordId:"1298424321353584690" },
+      { name:"M shake", discordId:"1077940286816256040" },
+    ];
     const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
     const VIEW_QUERY_PARAM = "view";
     const QUALIFIER_QUERY_PARAM = "qualifier";
@@ -2851,6 +2857,12 @@
           name:row.name,
           source:"Ranked League",
           detail:seasonLabel(row.season),
+        })),
+        ...WILDCARD_QUALIFIERS.map(({ name, discordId }) => ({
+          player:ensureParticipant({ name, discordId }),
+          name,
+          source:"Wildcards",
+          detail:"Wildcard selection",
         })),
       ];
 
