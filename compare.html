@@ -23,6 +23,8 @@
       --danger:#fca5a5;
       --tie:#cbd5e1;
       --shadow:0 26px 42px rgba(0,0,0,.34);
+      --player-a-color:#e2e8f0;
+      --player-b-color:#94a3b8;
     }
 
     *{ box-sizing:border-box; }
@@ -110,6 +112,7 @@
       color:var(--muted);
       font-size:12px;
       font-weight:850;
+      line-height:1;
       letter-spacing:.06em;
       text-transform:uppercase;
     }
@@ -138,6 +141,52 @@
     .player-search-input:focus{
       border-color:rgba(203,213,225,.72);
       box-shadow:0 0 0 3px rgba(203,213,225,.12);
+    }
+
+    .player-color-control{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:9px;
+      min-height:34px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:rgba(2,8,23,.34);
+      padding:6px 8px 6px 10px;
+    }
+
+    .player-color-label{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .player-color-input{
+      width:40px;
+      height:24px;
+      flex:0 0 auto;
+      border:0;
+      border-radius:999px;
+      background:transparent;
+      padding:0;
+      cursor:pointer;
+    }
+
+    .player-color-input::-webkit-color-swatch-wrapper{
+      padding:0;
+    }
+
+    .player-color-input::-webkit-color-swatch{
+      border:1px solid rgba(255,255,255,.20);
+      border-radius:999px;
+    }
+
+    .player-color-input::-moz-color-swatch{
+      border:1px solid rgba(255,255,255,.20);
+      border-radius:999px;
     }
 
     .player-search-results{
@@ -222,7 +271,7 @@
     .swap-button{
       width:44px;
       height:44px;
-      margin-top:27px;
+      margin-top:calc(12px + 8px);
       border:1px solid var(--line-strong);
       border-radius:8px;
       background:rgba(2,8,23,.58);
@@ -267,7 +316,7 @@
     .matchup-card{
       display:grid;
       grid-template-columns:minmax(0, 1fr) minmax(78px, 112px) minmax(0, 1fr);
-      gap:8px 12px;
+      gap:10px 12px;
       align-items:center;
       margin-bottom:16px;
       border:1px solid var(--line);
@@ -291,7 +340,14 @@
       width:100%;
       height:3px;
       border-radius:999px;
-      background:rgba(203,213,225,.52);
+      background:var(--player-a-color);
+      opacity:.88;
+      box-shadow:0 0 18px color-mix(in srgb, var(--player-a-color) 32%, transparent);
+    }
+
+    .matchup-player-right::after{
+      background:var(--player-b-color);
+      box-shadow:0 0 18px color-mix(in srgb, var(--player-b-color) 32%, transparent);
     }
 
     .matchup-avatar{
@@ -345,39 +401,129 @@
       background:rgba(148,163,184,.36);
     }
 
-    .matchup-stat,
-    .matchup-label{
-      min-height:34px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:5px 4px;
-      line-height:1.2;
-      text-align:center;
-    }
-
-    .matchup-stat{
-      color:#f8fafc;
-      font-size:17px;
-      font-weight:860;
-      font-variant-numeric:tabular-nums;
-    }
-
-    .matchup-label{
+    .h2h-summary{
+      grid-column:1 / -1;
       display:grid;
-      align-content:center;
-      gap:2px;
+      gap:8px;
+      padding:3px 2px 5px;
+    }
+
+    .h2h-summary-overall{
+      gap:10px;
+      padding-top:4px;
+      padding-bottom:8px;
+    }
+
+    .h2h-summary-season{
+      width:min(520px, 100%);
+      justify-self:center;
+      gap:5px;
+      padding:0;
+    }
+
+    .h2h-summary-title{
       color:var(--muted);
       font-size:11px;
       font-weight:850;
+      letter-spacing:.09em;
+      text-align:center;
+      text-transform:uppercase;
+    }
+
+    .h2h-summary-overall .h2h-summary-title{
+      color:rgba(241,245,249,.95);
+      font-size:13px;
+      letter-spacing:.10em;
+    }
+
+    .h2h-summary-season .h2h-summary-title{
+      font-size:9px;
       letter-spacing:.08em;
+    }
+
+    .h2h-progress{
+      width:100%;
+      height:14px;
+      display:flex;
+      overflow:hidden;
+      border-radius:999px;
+      background:rgba(148,163,184,.16);
+      box-shadow:inset 0 0 0 1px rgba(148,163,184,.16);
+    }
+
+    .h2h-progress[data-empty="true"]{
+      background:rgba(148,163,184,.12);
+    }
+
+    .h2h-summary-overall .h2h-progress{
+      height:18px;
+    }
+
+    .h2h-summary-season .h2h-progress{
+      height:9px;
+    }
+
+    .h2h-fill{
+      height:100%;
+      flex:0 0 auto;
+    }
+
+    .h2h-fill-a{ background:var(--player-a-color); }
+    .h2h-fill-ties{ background:rgba(148,163,184,.64); }
+    .h2h-fill-b{ background:var(--player-b-color); }
+
+    .h2h-counts{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap:8px;
+      align-items:center;
+      color:rgba(226,232,240,.92);
+      font-size:10px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+    }
+
+    .h2h-summary-overall .h2h-counts{
+      font-size:12px;
+      letter-spacing:.07em;
+    }
+
+    .h2h-summary-season .h2h-counts{
+      font-size:8px;
+      letter-spacing:.04em;
+    }
+
+    .h2h-count-a{
+      justify-self:start;
+      text-align:left;
+    }
+
+    .h2h-count-ties{
+      justify-self:center;
+      text-align:center;
+      color:rgba(203,213,225,.86);
+    }
+
+    .h2h-count-b{
+      justify-self:end;
+      text-align:right;
+    }
+
+    .h2h-empty-label{
+      color:rgba(148,163,184,.86);
+      font-size:10px;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-align:center;
       text-transform:uppercase;
     }
 
     .win-text,
     .loss-text,
     .tie-text{ color:var(--text); }
-    .dash-text{ color:var(--tie); }
 
     .section{
       margin-top:16px;
@@ -389,6 +535,20 @@
       justify-content:space-between;
       gap:10px;
       margin-bottom:8px;
+    }
+
+    .season-summary-list{
+      grid-column:1 / -1;
+      display:grid;
+      gap:9px;
+    }
+
+    .season-summary-row{
+      display:grid;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:rgba(2,8,23,.30);
+      padding:9px 10px;
     }
 
     .table-wrap{
@@ -436,21 +596,10 @@
       text-align:left;
     }
 
-    .record-cell{
-      display:inline-flex;
-      align-items:center;
-      gap:3px;
-      font-weight:850;
-    }
-
     .empty-row{
       color:var(--muted);
       text-align:center !important;
       white-space:normal;
-    }
-
-    .muted{
-      color:var(--muted);
     }
 
     @media (max-width:720px){
@@ -509,15 +658,34 @@
         font-size:11px;
       }
 
-      .matchup-stat{
-        min-height:30px;
-        font-size:13px;
+      .h2h-summary-title{
+        font-size:9px;
       }
 
-      .matchup-label{
-        min-height:30px;
-        font-size:9px;
-        letter-spacing:.06em;
+      .h2h-summary-overall .h2h-summary-title{
+        font-size:11px;
+      }
+
+      .h2h-progress{
+        height:12px;
+      }
+
+      .h2h-summary-overall .h2h-progress{
+        height:15px;
+      }
+
+      .h2h-counts{
+        gap:4px;
+        font-size:8px;
+        letter-spacing:.04em;
+      }
+
+      .h2h-summary-overall .h2h-counts{
+        font-size:10px;
+      }
+
+      .season-summary-row{
+        padding:10px;
       }
 
       th,
@@ -540,7 +708,6 @@
           <img class="title-logo" src="/logos/golf.png" alt="" />
           <h1>Player Compare</h1>
         </div>
-        <p class="subtitle">Head-to-head records from tracked Ranked League and tournament matches.</p>
       </div>
     </header>
 
@@ -552,6 +719,10 @@
             <input class="player-search-input" id="playerSearchA" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search first player" aria-expanded="false" />
             <div class="player-search-results" id="playerSearchResultsA" hidden></div>
           </div>
+          <label class="player-color-control" for="playerColorA">
+            <span class="player-color-label">Color</span>
+            <input class="player-color-input" id="playerColorA" type="color" value="#e2e8f0" aria-label="Player 1 underline and bar color" />
+          </label>
         </div>
 
         <button class="swap-button" id="swapPlayers" type="button" aria-label="Swap players">
@@ -566,6 +737,10 @@
             <input class="player-search-input" id="playerSearchB" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search second player" aria-expanded="false" />
             <div class="player-search-results" id="playerSearchResultsB" hidden></div>
           </div>
+          <label class="player-color-control" for="playerColorB">
+            <span class="player-color-label">Color</span>
+            <input class="player-color-input" id="playerColorB" type="color" value="#94a3b8" aria-label="Player 2 underline and bar color" />
+          </label>
         </div>
       </div>
 
@@ -576,45 +751,25 @@
           <div class="matchup-player matchup-player-left" id="matchupPlayerA"></div>
           <div class="matchup-vs" aria-hidden="true">vs.</div>
           <div class="matchup-player matchup-player-right" id="matchupPlayerB"></div>
-          <div class="matchup-section-head">Head-to-Head</div>
-          <div class="matchup-stat matchup-stat-left" id="rankedRecordA"></div>
-          <div class="matchup-label" id="rankedMatchLabel">Ranked League</div>
-          <div class="matchup-stat matchup-stat-right" id="rankedRecordB"></div>
-          <div class="matchup-stat matchup-stat-left" id="tournamentRecordA"></div>
-          <div class="matchup-label" id="tournamentMatchLabel">Tournaments</div>
-          <div class="matchup-stat matchup-stat-right" id="tournamentRecordB"></div>
+          <div class="matchup-section-head">Ranked League</div>
+          <div class="h2h-summary" id="rankedSummary"></div>
+          <div class="season-summary-list" id="seasonBody"></div>
+          <div class="matchup-section-head">Tournaments</div>
+          <div class="h2h-summary" id="tournamentSummary"></div>
         </article>
-
-        <section class="section">
-          <div class="section-head">
-            <h2>Ranked League By Season</h2>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Season</th>
-                  <th>W-L-T</th>
-                  <th>Matches</th>
-                </tr>
-              </thead>
-              <tbody id="seasonBody"></tbody>
-            </table>
-          </div>
-        </section>
 
         <section class="section">
           <div class="section-head">
             <h2>Tournament Matchups</h2>
           </div>
-          <div class="table-wrap">
+          <div class="table-wrap tournament-match-list">
             <table>
               <thead>
                 <tr>
+                  <th>Opponent</th>
+                  <th>Result</th>
                   <th>Tournament</th>
                   <th>Round</th>
-                  <th>Result</th>
-                  <th>Date</th>
                 </tr>
               </thead>
               <tbody id="tournamentBody"></tbody>
@@ -631,10 +786,12 @@
     const supabase = createBrowserSupabaseClient();
     const MEMBER_PAGE_SIZE = 1000;
     const PLAYER_SEARCH_LIMIT = 8;
+    const DEFAULT_PLAYER_COLORS = { a:"#e2e8f0", b:"#94a3b8" };
     const state = {
       memberSearchRows: [],
       memberSearchPromise: null,
       selected: { a:null, b:null },
+      colors: { ...DEFAULT_PLAYER_COLORS },
       comparisonToken: 0,
     };
 
@@ -642,10 +799,12 @@
       a: {
         input: document.getElementById("playerSearchA"),
         results: document.getElementById("playerSearchResultsA"),
+        colorInput: document.getElementById("playerColorA"),
       },
       b: {
         input: document.getElementById("playerSearchB"),
         results: document.getElementById("playerSearchResultsB"),
+        colorInput: document.getElementById("playerColorB"),
       },
     };
 
@@ -653,12 +812,8 @@
     const resultsEl = document.getElementById("results");
     const matchupPlayerAEl = document.getElementById("matchupPlayerA");
     const matchupPlayerBEl = document.getElementById("matchupPlayerB");
-    const rankedRecordAEl = document.getElementById("rankedRecordA");
-    const rankedRecordBEl = document.getElementById("rankedRecordB");
-    const rankedMatchLabelEl = document.getElementById("rankedMatchLabel");
-    const tournamentRecordAEl = document.getElementById("tournamentRecordA");
-    const tournamentRecordBEl = document.getElementById("tournamentRecordB");
-    const tournamentMatchLabelEl = document.getElementById("tournamentMatchLabel");
+    const rankedSummaryEl = document.getElementById("rankedSummary");
+    const tournamentSummaryEl = document.getElementById("tournamentSummary");
     const seasonBodyEl = document.getElementById("seasonBody");
     const tournamentBodyEl = document.getElementById("tournamentBody");
     const swapPlayersEl = document.getElementById("swapPlayers");
@@ -674,6 +829,19 @@
 
     function normalizeSearchKey(value){
       return normalizeText(value).toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function normalizeHexColor(value, fallback){
+      const clean = normalizeText(value);
+      const match = clean.match(/^#?([0-9a-f]{6})$/i);
+      return match ? `#${match[1].toLowerCase()}` : fallback;
+    }
+
+    function applyPlayerColors(){
+      document.documentElement.style.setProperty("--player-a-color", state.colors.a);
+      document.documentElement.style.setProperty("--player-b-color", state.colors.b);
+      pickers.a.colorInput.value = state.colors.a;
+      pickers.b.colorInput.value = state.colors.b;
     }
 
     function escapeHtml(value){
@@ -711,13 +879,41 @@
       return record.wins + record.losses + record.ties;
     }
 
-    function inverseRecord(record){
-      return { wins:record.losses, losses:record.wins, ties:record.ties };
+    function h2hPercentages(record){
+      const total = recordTotal(record);
+      if(total <= 0) return { wins:0, losses:0, ties:0 };
+      return {
+        wins:(record.wins / total) * 100,
+        ties:(record.ties / total) * 100,
+        losses:(record.losses / total) * 100,
+      };
     }
 
-    function recordHtml(record){
+    function winLabel(count){
+      return `${count} ${count === 1 ? "WIN" : "WINS"}`;
+    }
+
+    function tieLabel(count){
+      return `${count} ${count === 1 ? "TIE" : "TIES"}`;
+    }
+
+    function h2hSummaryHtml(label, record, options = {}){
+      const total = recordTotal(record);
+      const percentages = h2hPercentages(record);
+      const shouldShowTitle = options.showTitle !== false;
+      const emptyText = total === 0 ? normalizeText(options.emptyText) : "";
       return `
-        <span class="win-text">${escapeHtml(record.wins)}</span><span class="dash-text">-</span><span class="loss-text">${escapeHtml(record.losses)}</span><span class="dash-text">-</span><span class="tie-text">${escapeHtml(record.ties)}</span>
+        ${shouldShowTitle ? `<div class="h2h-summary-title">${escapeHtml(label)}</div>` : ""}
+        <div class="h2h-progress" data-empty="${total === 0 ? "true" : "false"}" aria-label="${escapeHtml(label)} head-to-head win distribution">
+          <span class="h2h-fill h2h-fill-a" style="width:${percentages.wins}%"></span>
+          <span class="h2h-fill h2h-fill-ties" style="width:${percentages.ties}%"></span>
+          <span class="h2h-fill h2h-fill-b" style="width:${percentages.losses}%"></span>
+        </div>
+        ${emptyText ? `<div class="h2h-empty-label">${escapeHtml(emptyText)}</div>` : `<div class="h2h-counts">
+          <span class="h2h-count-a">${escapeHtml(winLabel(record.wins))}</span>
+          <span class="h2h-count-ties">${escapeHtml(tieLabel(record.ties))}</span>
+          <span class="h2h-count-b">${escapeHtml(winLabel(record.losses))}</span>
+        </div>`}
       `;
     }
 
@@ -728,21 +924,10 @@
       `;
     }
 
-    function matchupLabel(label, total){
-      return `${label}<br><span class="muted">${escapeHtml(total)} ${total === 1 ? "match" : "matches"}</span>`;
-    }
-
     function outcomeLabel(outcome){
       if(outcome === "win") return `<span class="win-text">W</span>`;
       if(outcome === "loss") return `<span class="loss-text">L</span>`;
       return `<span class="tie-text">T</span>`;
-    }
-
-    function formatDate(value){
-      if(!value) return "";
-      const date = new Date(value);
-      if(Number.isNaN(date.getTime())) return "";
-      return new Intl.DateTimeFormat("en-US", { month:"short", day:"numeric", year:"numeric" }).format(date);
     }
 
     function showStatus(message, isError = false){
@@ -910,6 +1095,10 @@
       else url.searchParams.delete("a");
       if(playerB) url.searchParams.set("b", playerB);
       else url.searchParams.delete("b");
+      if(state.colors.a !== DEFAULT_PLAYER_COLORS.a) url.searchParams.set("ca", state.colors.a.slice(1));
+      else url.searchParams.delete("ca");
+      if(state.colors.b !== DEFAULT_PLAYER_COLORS.b) url.searchParams.set("cb", state.colors.b.slice(1));
+      else url.searchParams.delete("cb");
       window.history.replaceState({}, "", url);
     }
 
@@ -923,6 +1112,9 @@
 
     async function loadPlayersFromUrl(){
       const params = new URLSearchParams(window.location.search);
+      state.colors.a = normalizeHexColor(params.get("ca"), DEFAULT_PLAYER_COLORS.a);
+      state.colors.b = normalizeHexColor(params.get("cb"), DEFAULT_PLAYER_COLORS.b);
+      applyPlayerColors();
       const ids = [normalizeDiscordId(params.get("a")), normalizeDiscordId(params.get("b"))].filter(Boolean);
       if(!ids.length) return;
 
@@ -1019,48 +1211,47 @@
         .sort((left, right) => Number(left[0]) - Number(right[0]));
 
       if(!rows.length){
-        seasonBodyEl.innerHTML = `<tr><td class="empty-row" colspan="3">No tracked Ranked League head-to-head matches.</td></tr>`;
+        seasonBodyEl.innerHTML = `<div class="empty-row">No tracked Ranked League head-to-head matches.</div>`;
         return;
       }
 
       seasonBodyEl.innerHTML = rows.map(([season, record]) => `
-        <tr>
-          <td>Season ${escapeHtml(season)}</td>
-          <td><span class="record-cell">${recordHtml(record)}</span></td>
-          <td>${escapeHtml(recordTotal(record))}</td>
-        </tr>
+        <div class="season-summary-row">
+          <div class="h2h-summary h2h-summary-season">${h2hSummaryHtml(`Season ${season} - ${recordTotal(record)} ${recordTotal(record) === 1 ? "Match" : "Matches"}`, record)}</div>
+        </div>
       `).join("");
     }
 
-    function renderTournamentRows(matches){
+    function renderTournamentRows(playerAId, matches){
       if(!matches.length){
         tournamentBodyEl.innerHTML = `<tr><td class="empty-row" colspan="4">No tracked tournament head-to-head matches.</td></tr>`;
         return;
       }
 
-      tournamentBodyEl.innerHTML = matches.map(match => `
-        <tr>
-          <td>${escapeHtml(match.event_name || "")}</td>
-          <td>${escapeHtml(match.round_label || "")}</td>
-          <td>${outcomeLabel(match.outcome)}</td>
-          <td class="muted">${escapeHtml(formatDate(match.played_at))}</td>
-        </tr>
-      `).join("");
+      tournamentBodyEl.innerHTML = matches.map((match) => {
+        const isPlayerA = match.player_a_discord_user_id === playerAId;
+        const opponentName = isPlayerA ? match.player_b_name : match.player_a_name;
+        return `
+          <tr>
+            <td>${escapeHtml(opponentName || "")}</td>
+            <td>${outcomeLabel(match.outcome)}</td>
+            <td>${escapeHtml(match.event_name || "")}</td>
+            <td>${escapeHtml(match.round_label || "")}</td>
+          </tr>
+        `;
+      }).join("");
     }
 
     function renderComparison(playerA, playerB, ranked, tournament){
-      const rankedTotal = recordTotal(ranked.total);
-      const tournamentTotal = recordTotal(tournament.total);
+      const playerAId = normalizeDiscordId(playerA?.discord_user_id);
       matchupPlayerAEl.innerHTML = matchupPlayerHtml(playerA);
       matchupPlayerBEl.innerHTML = matchupPlayerHtml(playerB);
-      rankedRecordAEl.innerHTML = recordHtml(ranked.total);
-      rankedRecordBEl.innerHTML = recordHtml(inverseRecord(ranked.total));
-      rankedMatchLabelEl.innerHTML = matchupLabel("Ranked League", rankedTotal);
-      tournamentRecordAEl.innerHTML = recordHtml(tournament.total);
-      tournamentRecordBEl.innerHTML = recordHtml(inverseRecord(tournament.total));
-      tournamentMatchLabelEl.innerHTML = matchupLabel("Tournaments", tournamentTotal);
+      rankedSummaryEl.className = "h2h-summary h2h-summary-overall";
+      tournamentSummaryEl.className = "h2h-summary";
+      rankedSummaryEl.innerHTML = h2hSummaryHtml("Overall", ranked.total);
+      tournamentSummaryEl.innerHTML = h2hSummaryHtml("Tournaments", tournament.total, { showTitle:false, emptyText:"NO MATCHES" });
       renderSeasonRows(ranked.seasons);
-      renderTournamentRows(tournament.rows);
+      renderTournamentRows(playerAId, tournament.rows);
       hideStatus();
     }
 
@@ -1119,6 +1310,11 @@
         const member = state.memberSearchRows.find(row => normalizeDiscordId(row.discord_user_id) === id);
         if(member) selectPlayer(key, member);
       });
+      picker.colorInput.addEventListener("input", () => {
+        state.colors[key] = normalizeHexColor(picker.colorInput.value, DEFAULT_PLAYER_COLORS[key]);
+        applyPlayerColors();
+        updateUrl();
+      });
     }
 
     document.addEventListener("click", (event) => {
@@ -1138,6 +1334,7 @@
       void runComparison();
     });
 
+    applyPlayerColors();
     renderSelectedInput("a");
     renderSelectedInput("b");
     await loadPlayersFromUrl();
