@@ -9,7 +9,8 @@ const DEFAULT_BASE_RATING = 1200;
 const DEFAULT_K_FACTOR = 20;
 const DEFAULT_PL_RATING_SCALE = 400 / Math.log(10);
 const DEFAULT_PL_PRIOR_STRENGTH = 20;
-const DEFAULT_PL_SHRINKAGE_MATCHES = 10;
+const DEFAULT_PL_MIN_PRIOR_STRENGTH = 1;
+const DEFAULT_PL_SHRINKAGE_MATCHES = 50;
 const DEFAULT_PL_MAX_ITERATIONS = 500;
 const DEFAULT_PL_TOLERANCE = 0.000001;
 const DEFAULT_PL_RECENCY_MODE = "none";
@@ -350,6 +351,22 @@ function participantWeightForMatchSize(
     1 + Number(participantWeightScale) * Math.log2(Math.max(1, cleanPlayerCount - 1));
   if (!Number.isFinite(scaledWeight)) return 1;
   return Math.min(Number(maxParticipantWeight), Math.max(1, scaledWeight));
+}
+
+function reliabilityForMatches(matchesPlayed, fullReliabilityMatches) {
+  const matches = Number(matchesPlayed);
+  const threshold = Number(fullReliabilityMatches);
+  if (!Number.isFinite(matches) || matches <= 0) return 0;
+  if (!Number.isFinite(threshold) || threshold <= 0) return 1;
+  return Math.min(1, matches / threshold);
+}
+
+function priorStrengthForMatches(matchesPlayed, fullReliabilityMatches, priorStrength) {
+  const maxPrior = Number(priorStrength);
+  if (!Number.isFinite(maxPrior) || maxPrior <= 0) return 0;
+  const reliability = reliabilityForMatches(matchesPlayed, fullReliabilityMatches);
+  const priorFloor = Math.min(maxPrior, DEFAULT_PL_MIN_PRIOR_STRENGTH);
+  return priorFloor + (maxPrior - priorFloor) * (1 - reliability);
 }
 
 function normalizedOutcomeScore(player, players) {
@@ -832,14 +849,27 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
   const playerIds = [...statsByPlayer.keys()].sort();
   const abilities = new Map(playerIds.map((discordUserId) => [discordUserId, 1]));
+  const priorStrengths = new Map(
+    playerIds.map((discordUserId) => {
+      const state = statsByPlayer.get(discordUserId);
+      return [
+        discordUserId,
+        priorStrengthForMatches(state.matches_played, shrinkageMatches, priorStrength),
+      ];
+    })
+  );
 
   let iterations = 0;
   let converged = false;
   let maxChange = Infinity;
 
   for (iterations = 1; iterations <= maxIterations; iterations += 1) {
-    const numerators = new Map(playerIds.map((discordUserId) => [discordUserId, priorStrength]));
-    const denominators = new Map(playerIds.map((discordUserId) => [discordUserId, priorStrength]));
+    const numerators = new Map(
+      playerIds.map((discordUserId) => [discordUserId, priorStrengths.get(discordUserId)])
+    );
+    const denominators = new Map(
+      playerIds.map((discordUserId) => [discordUserId, priorStrengths.get(discordUserId)])
+    );
 
     for (let matchIndex = 0; matchIndex < sortedMatches.length; matchIndex += 1) {
       const matchRow = sortedMatches[matchIndex];
@@ -908,10 +938,7 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
       const ability = abilities.get(discordUserId);
       const skillLog = Math.log(ability);
       const rawRating = baseRating + ratingScale * skillLog;
-      const reliability =
-        state.matches_played > 0
-          ? state.matches_played / (state.matches_played + shrinkageMatches)
-          : 0;
+      const reliability = reliabilityForMatches(state.matches_played, shrinkageMatches);
       const rating = baseRating + reliability * (rawRating - baseRating);
       const outcomeWinPercentage =
         state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;

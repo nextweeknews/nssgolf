@@ -78,8 +78,8 @@ Options:
   --pl-prior <number>    Plackett-Luce population-average prior strength.
                          Default: ${DEFAULT_PL_PRIOR_STRENGTH}
   --pl-shrinkage-matches <number>
-                         Total matches needed before raw PL skill is mostly
-                         trusted. Default: ${DEFAULT_PL_SHRINKAGE_MATCHES}
+                         Raw match count for full PL reliability and minimum
+                         prior shrinkage. Default: ${DEFAULT_PL_SHRINKAGE_MATCHES}
   --pl-recency-mode <mode>
                          PL recency weighting mode: player, global, or none.
                          Default: ${DEFAULT_PL_RECENCY_MODE}
@@ -611,7 +611,8 @@ async function replayStoredMatchesPlackettLuce(options) {
     },
     prior_strength: options.plPrior,
     shrinkage_matches: options.plShrinkageMatches,
-    shrinkage_basis: "total_matches_played_not_time_weighted_matches",
+    shrinkage_basis: "raw_matches_played_reaches_full_reliability_at_threshold",
+    prior_basis: "prior_strength_tapers_to_floor_at_shrinkage_match_threshold",
     rating_scale: options.ratingScale,
     participant_weighting: {
       formula: "min(max_weight, 1 + scale * log2(player_count - 1))",

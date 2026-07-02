@@ -141,7 +141,7 @@ function match(timestamp, results, versus = "1v1v1") {
   assert(winner.rating > 1200);
   assert(loser.rating < 1200);
   assert.equal(winner.rank, 1);
-  assert.equal(winner.reliability, 1 / 11);
+  assert.equal(winner.reliability, 0.1);
   assert.equal(winner.weighted_matches, 1);
   assertAlmostEqual(
     winner.rating,
@@ -176,7 +176,7 @@ function match(timestamp, results, versus = "1v1v1") {
   const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
 
   assert.equal(winner.matches_played, 100);
-  assert.equal(winner.reliability, 100 / 110);
+  assert.equal(winner.reliability, 1);
   assert(winner.weighted_matches < winner.matches_played);
   assert(winner.rating > 1200);
 }
@@ -199,13 +199,39 @@ function match(timestamp, results, versus = "1v1v1") {
   const replay = replayPlackettLuceGpi(rows, {
     baseRating: 1200,
     priorStrength: 20,
-    shrinkageMatches: 10,
     maxIterations: 200,
   });
   const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
 
   assert.equal(replay.recencyMode, "none");
   assert.equal(winner.weighted_matches, winner.matches_played);
+  assert.equal(winner.reliability, 20 / 50);
+}
+
+{
+  const rows = [];
+  for (let index = 0; index < 75; index += 1) {
+    rows.push({
+      match_hash: `full-reliability-${index}`,
+      season: 7,
+      timestamp_ms: 20_000 + index,
+      played_at: new Date(20_000 + index).toISOString(),
+      raw_match: match(20_000 + index, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    });
+  }
+
+  const replay = replayPlackettLuceGpi(rows, {
+    baseRating: 1200,
+    priorStrength: 20,
+    maxIterations: 200,
+  });
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+
+  assert.equal(winner.reliability, 1);
+  assert.equal(winner.rating, winner.raw_rating);
 }
 
 {
