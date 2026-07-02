@@ -19,6 +19,8 @@ const workerUrl = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const superLeagueSheetId = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
 const worldOpenSheetId = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
 const lightningCupSheetId = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
+const superLeagueDiscordIdsRange = "A:B";
+const worldOpenDiscordIdsRange = "A:B";
 const syntheticStartMs = Date.UTC(2026, 0, 1, 0, 0, 0);
 const tournamentMatchWeightMultiplier = 2;
 const defaultTournamentPlShrinkageMatches = 20;
@@ -196,8 +198,8 @@ function normalizeAliasKey(value) {
 function normalizeDiscordId(value) {
   const raw = normalizeName(value);
   const mentionMatch = raw.match(/^<@!?(\d+)>$/);
-  const clean = mentionMatch ? mentionMatch[1] : raw.replace(/[^\d]/g, "");
-  return /^[0-9]+$/.test(clean) ? clean : "";
+  const clean = mentionMatch ? mentionMatch[1] : raw;
+  return /^[0-9]{15,25}$/.test(clean) ? clean : "";
 }
 
 function toNumber(value) {
@@ -265,6 +267,25 @@ function addIdentity(identityMap, name, discordUserId, source) {
   identityMap.key.set(aliasKey, { discordUserId: cleanDiscordId, displayName: cleanName, source });
 }
 
+function externalDiscordIdForName(name) {
+  const cleanName = normalizeName(name);
+  const aliasKey = normalizeAliasKey(cleanName);
+  const hash = crypto.createHash("sha256").update(`external-tournament-player:${aliasKey || cleanName}`).digest("hex");
+  const numeric = BigInt(`0x${hash.slice(0, 16)}`) % 1_000_000_000_000_000_000n;
+  return `9${numeric.toString().padStart(18, "0")}`;
+}
+
+function createExternalIdentity(name) {
+  const cleanName = normalizeName(name);
+  if (!cleanName) return null;
+  return {
+    discordUserId: externalDiscordIdForName(cleanName),
+    displayName: cleanName,
+    source: "external_tournament_placeholder",
+    isExternal: true,
+  };
+}
+
 function addTwoColumnIdentity(identityMap, row, source) {
   const first = row?.[0];
   const second = row?.[1];
@@ -321,7 +342,7 @@ async function loadSupabaseIdentities(supabase, identityMap) {
 }
 
 async function loadSuperLeagueIdentitySheet(identityMap) {
-  const rows = await fetchSheetRange(superLeagueSheetId, "Discord IDs", "A:B");
+  const rows = await fetchSheetRange(superLeagueSheetId, "Discord IDs", superLeagueDiscordIdsRange);
   for (const row of rows || []) {
     addTwoColumnIdentity(identityMap, row, "super_league_discord_ids");
   }
@@ -337,7 +358,7 @@ async function loadLightningIdentitySheet(identityMap) {
 }
 
 async function loadWorldOpenIdentitySheet(identityMap) {
-  const rows = await fetchSheetRange(worldOpenSheetId, "Discord IDs", "A:B");
+  const rows = await fetchSheetRange(worldOpenSheetId, "Discord IDs", worldOpenDiscordIdsRange);
   for (const row of rows || []) {
     addTwoColumnIdentity(identityMap, row, "world_open_discord_ids");
   }
@@ -405,23 +426,37 @@ function buildTournamentMatch({
   const missing = [];
   if (!playerAIdentity) missing.push(playerAName);
   if (!playerBIdentity) missing.push(playerBName);
-  if (missing.length || !winnerSide) {
+  if (!winnerSide) {
     return {
       row: null,
       warning: {
         event_key: event.key,
         source_match_id: sourceMatchId,
         players: [playerAName, playerBName],
-        reason: missing.length ? `unresolved player identity: ${missing.join(", ")}` : "missing winner",
+        reason: "missing winner",
+      },
+    };
+  }
+
+  const resolvedPlayerAIdentity = playerAIdentity || createExternalIdentity(playerAName);
+  const resolvedPlayerBIdentity = playerBIdentity || createExternalIdentity(playerBName);
+  if (!resolvedPlayerAIdentity || !resolvedPlayerBIdentity) {
+    return {
+      row: null,
+      warning: {
+        event_key: event.key,
+        source_match_id: sourceMatchId,
+        players: [playerAName, playerBName],
+        reason: `unresolved player identity: ${missing.join(", ")}`,
       },
     };
   }
 
   const timestampMs = syntheticStartMs + eventIndex * 1_000_000 + localOrder * 1000;
-  const playerA = { discordUserId: playerAIdentity.discordUserId, displayName: playerAName };
-  const playerB = { discordUserId: playerBIdentity.discordUserId, displayName: playerBName };
+  const playerA = { discordUserId: resolvedPlayerAIdentity.discordUserId, displayName: playerAName };
+  const playerB = { discordUserId: resolvedPlayerBIdentity.discordUserId, displayName: playerBName };
   const winnerDiscordUserId =
-    winnerSide === "a" ? playerAIdentity.discordUserId : playerBIdentity.discordUserId;
+    winnerSide === "a" ? resolvedPlayerAIdentity.discordUserId : resolvedPlayerBIdentity.discordUserId;
   const rawMatch = rawMatchFromSides({ timestampMs, playerA, playerB, winnerSide });
   const row = {
     match_hash: "",
@@ -433,10 +468,10 @@ function buildTournamentMatch({
     round_label: roundLabel,
     timestamp_ms: timestampMs,
     played_at: new Date(timestampMs).toISOString(),
-    player_a_discord_user_id: playerAIdentity.discordUserId,
+    player_a_discord_user_id: resolvedPlayerAIdentity.discordUserId,
     player_a_name: playerAName,
     player_a_score: normalizeName(scoreA),
-    player_b_discord_user_id: playerBIdentity.discordUserId,
+    player_b_discord_user_id: resolvedPlayerBIdentity.discordUserId,
     player_b_name: playerBName,
     player_b_score: normalizeName(scoreB),
     winner_discord_user_id: winnerDiscordUserId,
@@ -444,7 +479,17 @@ function buildTournamentMatch({
     raw_source: rawSource,
   };
   row.match_hash = tournamentMatchHash(row);
-  return { row, warning: null };
+  return {
+    row,
+    warning: missing.length
+      ? {
+          event_key: event.key,
+          source_match_id: sourceMatchId,
+          players: [playerAName, playerBName],
+          reason: `placeholder identity used for unresolved player: ${missing.join(", ")}`,
+        }
+      : null,
+  };
 }
 
 function parseSuperLeagueScheduleRows(rows, event, eventIndex, identityMap, startOrder) {
@@ -907,10 +952,16 @@ if (require.main === module) {
 }
 
 module.exports = {
+  addTwoColumnIdentity,
   buildLightningMatchesFromRows,
+  createExternalIdentity,
+  externalDiscordIdForName,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
+  resolveIdentity,
+  superLeagueDiscordIdsRange,
   winnerFromHigherScore,
   winnerFromLowerScore,
+  worldOpenDiscordIdsRange,
 };

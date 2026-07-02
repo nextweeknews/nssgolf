@@ -2,10 +2,15 @@
 
 const assert = require("node:assert/strict");
 const {
+  addTwoColumnIdentity,
   buildLightningMatchesFromRows,
+  createExternalIdentity,
+  externalDiscordIdForName,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
+  resolveIdentity,
+  superLeagueDiscordIdsRange,
   winnerFromHigherScore,
   winnerFromLowerScore,
 } = require("./tournament-gpi");
@@ -23,9 +28,35 @@ const identityMap = {
 };
 
 {
-  assert.equal(normalizeDiscordId("<@!1234567890>"), "1234567890");
-  assert.equal(normalizeDiscordId("abc123def"), "123");
+  assert.equal(superLeagueDiscordIdsRange, "A:B");
+  assert.equal(normalizeDiscordId("<@!123456789012345678>"), "123456789012345678");
+  assert.equal(normalizeDiscordId("123456789012345678"), "123456789012345678");
+  assert.equal(normalizeDiscordId("abc123def"), "");
+  assert.equal(normalizeDiscordId("Dylan3594"), "");
   assert.equal(normalizeAliasKey(" Alice Smith! "), "alicesmith");
+}
+
+{
+  const sheetIdentityMap = { exact: new Map(), key: new Map(), ambiguousKeys: new Set() };
+  addTwoColumnIdentity(
+    sheetIdentityMap,
+    ["Dylan3594", "123456789012345678"],
+    "test_discord_ids"
+  );
+  addTwoColumnIdentity(
+    sheetIdentityMap,
+    ["987654321098765432", "alexcat27"],
+    "test_discord_ids"
+  );
+
+  assert.equal(resolveIdentity(sheetIdentityMap, "Dylan3594")?.discordUserId, "123456789012345678");
+  assert.equal(resolveIdentity(sheetIdentityMap, "alexcat27")?.discordUserId, "987654321098765432");
+}
+
+{
+  assert.equal(externalDiscordIdForName("Mr. E"), externalDiscordIdForName("Mr. E"));
+  assert.match(externalDiscordIdForName("Mr. E"), /^9[0-9]{18}$/);
+  assert.equal(createExternalIdentity("Mr. E")?.source, "external_tournament_placeholder");
 }
 
 {
@@ -104,9 +135,10 @@ const identityMap = {
     0
   );
 
-  assert.equal(parsed.matches.length, 0);
+  assert.equal(parsed.matches.length, 1);
   assert.equal(parsed.warnings.length, 1);
-  assert.match(parsed.warnings[0].reason, /unresolved player identity/);
+  assert.match(parsed.warnings[0].reason, /placeholder identity used/);
+  assert.match(parsed.matches[0].player_b_discord_user_id, /^9[0-9]{18}$/);
 }
 
 {
