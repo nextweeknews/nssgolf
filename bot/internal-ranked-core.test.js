@@ -8,7 +8,6 @@ const {
   replayElo,
   replayPlackettLuceGpi,
   resultSignature,
-  timeWeightForMatch,
 } = require("./internal-ranked-core");
 
 function match(timestamp, results, versus = "1v1v1") {
@@ -97,11 +96,10 @@ function match(timestamp, results, versus = "1v1v1") {
 }
 
 {
-  assert.equal(timeWeightForMatch(1_000, 1_000), 1);
   assert.equal(matchRecencyWeightForIndex(9, 10), 1);
   assert(matchRecencyWeightForIndex(0, 10) < matchRecencyWeightForIndex(9, 10));
   assert.equal(
-    recencyWeightForMatch({ timestamp_ms: 1_000 }, 1_000 + 1200 * 24 * 60 * 60 * 1000, 9, 10, "hybrid"),
+    recencyWeightForMatch({ timestamp_ms: 1_000 }, 1_000 + 1200 * 24 * 60 * 60 * 1000, 9, 10, "match"),
     1
   );
 }

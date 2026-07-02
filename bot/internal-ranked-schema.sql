@@ -167,6 +167,15 @@ on public.internal_ranked_gpi_ratings (run_id, rank, discord_user_id);
 create index if not exists internal_ranked_gpi_ratings_run_matches_idx
 on public.internal_ranked_gpi_ratings (run_id, matches_played desc, rank, discord_user_id);
 
+create index if not exists internal_ranked_gpi_ratings_run_wins_idx
+on public.internal_ranked_gpi_ratings (run_id, pairwise_wins desc, rank, discord_user_id);
+
+create index if not exists internal_ranked_gpi_ratings_run_outcome_win_pct_idx
+on public.internal_ranked_gpi_ratings (run_id, outcome_win_percentage desc, rank, discord_user_id);
+
+create index if not exists internal_ranked_gpi_ratings_run_match_win_pct_idx
+on public.internal_ranked_gpi_ratings (run_id, match_win_percentage desc, rank, discord_user_id);
+
 create index if not exists internal_ranked_gpi_ratings_run_weighted_matches_idx
 on public.internal_ranked_gpi_ratings (run_id, weighted_matches desc, rank, discord_user_id);
 

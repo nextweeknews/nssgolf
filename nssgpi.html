@@ -600,8 +600,8 @@
 
     async function loadLatestRun(){
       const { data, error } = await supabase
-        .from("internal_ranked_elo_runs")
-        .select("id,calculation_version,base_rating,k_factor,season_start,season_end,match_count,player_count,created_at")
+        .from("internal_ranked_gpi_runs")
+        .select("id,calculation_version,model,base_rating,rating_scale,season_start,season_end,match_count,player_count,latest_match_at,created_at")
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
@@ -626,8 +626,8 @@
       const sortColumn = sortColumnForKey(sort.key);
       const ascending = sort.direction === "asc";
       let query = supabase
-        .from("internal_ranked_elo_ratings")
-        .select("discord_user_id,display_name,rating,matches_played,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,rank", { count:"exact" })
+        .from("internal_ranked_gpi_ratings")
+        .select("discord_user_id,display_name,rating,raw_rating,reliability,matches_played,weighted_matches,average_match_weight,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,placement_score_average,weighted_placement_score,first_played_at,last_played_at,rank", { count:"exact" })
         .eq("run_id", runId);
 
       if(sortColumn === "rank"){
@@ -643,28 +643,6 @@
       const { data, error, count } = await query;
       if(error) throw error;
       return { rows:data || [], count:count || 0 };
-    }
-
-    async function loadPlayerMatchResults(runId, discordId){
-      const rows = [];
-      const pageSize = 1000;
-      let from = 0;
-
-      while(true){
-        const { data, error } = await supabase
-          .from("internal_ranked_elo_match_results")
-          .select("discord_user_id,played_at,timestamp_ms,place,rating_after")
-          .eq("run_id", runId)
-          .eq("discord_user_id", discordId)
-          .order("timestamp_ms", { ascending:true })
-          .range(from, from + pageSize - 1);
-        if(error) throw error;
-        rows.push(...(data || []));
-        if(!data || data.length < pageSize) break;
-        from += pageSize;
-      }
-
-      return rows;
     }
 
     async function loadMembers(discordIds){
@@ -688,11 +666,12 @@
     function renderRunMeta(run){
       runMetaEl.hidden = false;
       runMetaEl.innerHTML = [
-        `Run #${run.id}`,
+        `GPI Run #${run.id}`,
+        run.model === "plackett_luce" ? "Plackett-Luce" : run.model,
         `Seasons ${run.season_start}-${run.season_end}`,
         `${run.match_count} matches`,
         `${run.player_count} players`,
-        `K ${Number(run.k_factor).toFixed(0)}`,
+        `Scale ${Number(run.rating_scale).toFixed(1)}`,
         formatDateTime(run.created_at),
       ].map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
     }
@@ -742,6 +721,9 @@
           outcomeWinPct: Number(row.outcome_win_percentage) || (outcomes > 0 ? wins / outcomes : 0),
           firstPlaceFinishes,
           matchWinPct: Number(row.match_win_percentage) || (matches > 0 ? firstPlaceFinishes / matches : 0),
+          reliability: Number(row.reliability) || 0,
+          weightedMatches: Number(row.weighted_matches) || 0,
+          weightedPlacementScore: Number(row.weighted_placement_score) || 0,
           history: null,
         };
       });
@@ -806,7 +788,7 @@
         .filter(point => Number.isFinite(point.timestamp_ms) && Number.isFinite(point.rating_after))
         .sort((left, right) => left.timestamp_ms - right.timestamp_ms);
       if(!points.length){
-        return `<div class="chart-empty">No rating history is available for this player.</div>`;
+        return `<div class="chart-empty">Per-match rating history is not available for batch Plackett-Luce GPI runs.</div>`;
       }
 
       const width = 840;
@@ -862,7 +844,7 @@
       `;
     }
 
-    async function openPlayerModal(discordId){
+    function openPlayerModal(discordId){
       const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
       if(!row) return;
 
@@ -873,11 +855,7 @@
           <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
         </span>
       `;
-      modalBodyEl.innerHTML = `<div class="status">Loading rating history...</div>`;
-      playerModalEl.hidden = false;
-      modalCloseEl.focus();
-
-      row.history = row.history || normalizeHistory(await loadPlayerMatchResults(latestRun.id, discordId));
+      row.history = row.history || [];
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
@@ -887,10 +865,15 @@
           <div class="detail-cell"><span class="detail-label">Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.outcomeWinPct))}</span></div>
           <div class="detail-cell"><span class="detail-label">Match Win %</span><span class="detail-value">${escapeHtml(formatPercent(row.matchWinPct))}</span></div>
           <div class="detail-cell"><span class="detail-label">1st Place</span><span class="detail-value">${escapeHtml(row.firstPlaceFinishes)}</span></div>
-          <div class="detail-cell"><span class="detail-label">Last Match</span><span class="detail-value">${escapeHtml(formatDateTime(row.history.at(-1)?.played_at))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Reliability</span><span class="detail-value">${escapeHtml(formatPercent(row.reliability))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Weighted Matches</span><span class="detail-value">${escapeHtml(formatRating(row.weightedMatches))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Weighted Placement</span><span class="detail-value">${escapeHtml(formatPercent(row.weightedPlacementScore))}</span></div>
+          <div class="detail-cell"><span class="detail-label">Last Match</span><span class="detail-value">${escapeHtml(formatDateTime(row.last_played_at))}</span></div>
         </div>
         ${chartSvgFor(row)}
       `;
+      playerModalEl.hidden = false;
+      modalCloseEl.focus();
     }
 
     function closePlayerModal(){
@@ -902,7 +885,7 @@
     async function loadPage(){
       latestRun = await loadLatestRun();
       if(!latestRun){
-        setStatus("No internal Ranked League Elo run is available yet.");
+        setStatus("No internal Ranked League GPI run is available yet. Run the Plackett-Luce replay first.");
         return;
       }
 
@@ -950,10 +933,7 @@
     leaderboardBodyEl.addEventListener("click", (event) => {
       const button = event.target.closest(".player-button[data-player-id]");
       if(!button) return;
-      openPlayerModal(button.dataset.playerId).catch((error) => {
-        console.error(error);
-        setStatus(`Unable to load player rating history: ${error?.message || "Unknown error"}`, "error");
-      });
+      openPlayerModal(button.dataset.playerId);
     });
 
     prevPageEl.addEventListener("click", () => {

@@ -42,7 +42,7 @@ Commands:
   replay   Recalculate internal Ranked League Elo from stored matches and
            write a new Elo run with final ratings and per-match history.
   replay-pl
-           Recalculate NSS GPI from stored matches using a time-weighted
+           Recalculate NSS GPI from stored matches using a match-recency-weighted
            batch Plackett-Luce model and write a new GPI run.
   sync     Run fetch, then replay.
   sync-pl  Run fetch, then replay-pl.
@@ -65,7 +65,7 @@ Options:
                          Total matches needed before raw PL skill is mostly
                          trusted. Default: ${DEFAULT_PL_SHRINKAGE_MATCHES}
   --pl-recency-mode <mode>
-                         Recency weighting mode: hybrid, time, or match.
+                         Recency weighting mode. Only match is supported.
                          Default: ${DEFAULT_PL_RECENCY_MODE}
   --pl-iterations <number>
                          Max Plackett-Luce fit iterations. Default: ${DEFAULT_PL_MAX_ITERATIONS}
@@ -586,14 +586,9 @@ async function replayStoredMatchesPlackettLuce(options) {
     model: "plackett_luce",
     fit_type: "batch",
     tie_handling: "same_place_players_share_a_rank_group",
-    time_weighting: {
+    recency_weighting: {
       mode: options.plRecencyMode,
-      hybrid_policy: "use_the_larger_of_calendar_time_weight_and_match_order_weight",
-      latest_90_days: 1,
-      days_90_to_180: "linear_0.85_to_0.70",
-      days_180_to_365: "linear_0.65_to_0.40",
-      days_365_to_1095: "linear_0.35_to_0.15",
-      older_than_1095_days: 0.15,
+      basis: "match_order_only",
       newest_20_percent_of_matches: 1,
       next_20_percent_of_matches: "linear_0.85_to_0.70",
       next_30_percent_of_matches: "linear_0.65_to_0.40",

@@ -11,9 +11,8 @@ const DEFAULT_PL_PRIOR_STRENGTH = 20;
 const DEFAULT_PL_SHRINKAGE_MATCHES = 10;
 const DEFAULT_PL_MAX_ITERATIONS = 500;
 const DEFAULT_PL_TOLERANCE = 0.000001;
-const DEFAULT_PL_RECENCY_MODE = "hybrid";
+const DEFAULT_PL_RECENCY_MODE = "match";
 const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function asInteger(value) {
   const number = Number(value);
@@ -260,19 +259,6 @@ function initialPlayerState(baseRating) {
   };
 }
 
-function timeWeightForMatch(timestampMs, latestTimestampMs) {
-  const timestamp = asInteger(timestampMs);
-  const latest = asInteger(latestTimestampMs);
-  if (timestamp == null || latest == null || timestamp <= 0 || latest <= 0) return 1;
-
-  const ageDays = Math.max(0, (latest - timestamp) / DAY_MS);
-  if (ageDays <= 90) return 1;
-  if (ageDays <= 180) return 0.85 - ((ageDays - 90) / 90) * 0.15;
-  if (ageDays <= 365) return 0.65 - ((ageDays - 180) / 185) * 0.25;
-  if (ageDays <= 1095) return 0.35 - ((ageDays - 365) / 730) * 0.2;
-  return 0.15;
-}
-
 function matchRecencyWeightForIndex(index, totalMatches) {
   if (totalMatches <= 1) return 1;
   const ageFraction = Math.max(0, Math.min(1, (totalMatches - 1 - index) / (totalMatches - 1)));
@@ -283,11 +269,7 @@ function matchRecencyWeightForIndex(index, totalMatches) {
 }
 
 function recencyWeightForMatch(matchRow, latestTimestampMs, index, totalMatches, mode) {
-  const timeWeight = timeWeightForMatch(matchRow.timestamp_ms, latestTimestampMs);
-  const matchRecencyWeight = matchRecencyWeightForIndex(index, totalMatches);
-  if (mode === "time") return timeWeight;
-  if (mode === "match") return matchRecencyWeight;
-  return Math.max(timeWeight, matchRecencyWeight);
+  return matchRecencyWeightForIndex(index, totalMatches);
 }
 
 function placementScore(place, playerCount) {
@@ -547,8 +529,8 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   if (!Number.isFinite(tolerance) || tolerance <= 0) {
     throw new Error("tolerance must be a positive finite number.");
   }
-  if (!["time", "match", "hybrid"].includes(recencyMode)) {
-    throw new Error("recencyMode must be one of: time, match, hybrid.");
+  if (recencyMode !== "match") {
+    throw new Error("recencyMode must be match.");
   }
 
   const sortedMatches = [...matchRows]
@@ -728,6 +710,5 @@ module.exports = {
   playersFromMatch,
   replayElo,
   resultSignature,
-  timeWeightForMatch,
   validateDescendingMatches,
 };
