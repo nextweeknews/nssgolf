@@ -1039,10 +1039,6 @@
       </section>
 
       <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab" hidden>
-        <div class="table-toolbar">
-          <h2 class="toolbar-title">Bracket</h2>
-          <span class="toolbar-meta" id="bracketMeta">Loading bracket...</span>
-        </div>
         <div class="qualifier-bracket-scroll">
           <div class="qualifier-bracket-grid" id="championshipBracketGrid"></div>
         </div>
@@ -1373,7 +1369,6 @@
       rankedLeagueTable:document.getElementById("rankedLeagueTable"),
       fieldTable:document.getElementById("fieldTable"),
       championshipBracketGrid:document.getElementById("championshipBracketGrid"),
-      bracketMeta:document.getElementById("bracketMeta"),
       adminResultsTable:document.getElementById("adminResultsTable"),
       adminLoginBtn:document.getElementById("adminLoginBtn"),
       adminResultsTab:document.getElementById("adminResultsTab"),
@@ -3646,19 +3641,16 @@
       if(!els.championshipBracketGrid) return;
       if(state.bracketLoading){
         els.championshipBracketGrid.dataset.bracketMode = "actual";
-        els.championshipBracketGrid.innerHTML = `<p class="bracket-empty-state">Loading bracket...</p>`;
-        if(els.bracketMeta) els.bracketMeta.textContent = "Loading bracket...";
+        els.championshipBracketGrid.innerHTML = "";
         return;
       }
       if(state.bracketError){
-        els.championshipBracketGrid.innerHTML = `<p class="bracket-empty-state">${escapeHtml(state.bracketError)}</p>`;
-        if(els.bracketMeta) els.bracketMeta.textContent = "Unable to load bracket";
+        els.championshipBracketGrid.innerHTML = "";
         return;
       }
       const matches = state.bracketMatches || [];
       if(!matches.length){
-        els.championshipBracketGrid.innerHTML = `<p class="bracket-empty-state">No bracket matches available yet.</p>`;
-        if(els.bracketMeta) els.bracketMeta.textContent = "No matches available";
+        els.championshipBracketGrid.innerHTML = "";
         return;
       }
 
@@ -3703,7 +3695,6 @@
           </div>
         `;
       }).join("");
-      if(els.bracketMeta) els.bracketMeta.textContent = `${matches.length} matches`;
     }
 
     function renderQualifierTables(){
@@ -4082,6 +4073,7 @@
       EVENT_DEFS.forEach(event => formatSourceStatus(event.key, "pending", "Loading..."));
       renderQualifierTables();
       renderBracket();
+      const bracketLoadPromise = loadChampionshipBracket();
 
       const initialLoaders = [
         ["lightningCup2026", scoreLightningCup],
@@ -4100,13 +4092,13 @@
         }
       });
 
-      await loadChampionshipBracket();
       await buildQualifierRows();
       ensureHiddenPlayersForAdminRestore();
       state.qualifiersLoading = false;
       renderQualifierTables();
       renderAdminResults();
       renderSettings();
+      await bracketLoadPromise;
       void refreshMemberDisplays();
     }
 
