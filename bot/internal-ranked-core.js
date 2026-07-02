@@ -811,6 +811,7 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     options.maxParticipantWeight ?? DEFAULT_PL_MAX_PARTICIPANT_WEIGHT
   );
   const matchWeightMultiplier = Number(options.matchWeightMultiplier ?? 1);
+  const reliabilityBasis = String(options.reliabilityBasis || "matches").trim();
 
   if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
   if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
@@ -833,6 +834,9 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   }
   if (!Number.isFinite(matchWeightMultiplier) || matchWeightMultiplier <= 0) {
     throw new Error("matchWeightMultiplier must be a positive finite number.");
+  }
+  if (!["matches", "weighted_matches"].includes(reliabilityBasis)) {
+    throw new Error("reliabilityBasis must be one of: matches, weighted_matches.");
   }
   if (!["player", "global", "none"].includes(recencyMode)) {
     throw new Error("recencyMode must be one of: player, global, none.");
@@ -865,12 +869,14 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
   const statsByPlayer = summarizeMatchStats(sortedMatches, recencyContext);
   const playerIds = [...statsByPlayer.keys()].sort();
   const abilities = new Map(playerIds.map((discordUserId) => [discordUserId, 1]));
+  const reliabilityMatchesForState = (state) =>
+    reliabilityBasis === "weighted_matches" ? state.weighted_matches : state.matches_played;
   const priorStrengths = new Map(
     playerIds.map((discordUserId) => {
       const state = statsByPlayer.get(discordUserId);
       return [
         discordUserId,
-        priorStrengthForMatches(state.matches_played, shrinkageMatches, priorStrength),
+        priorStrengthForMatches(reliabilityMatchesForState(state), shrinkageMatches, priorStrength),
       ];
     })
   );
@@ -954,7 +960,7 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
       const ability = abilities.get(discordUserId);
       const skillLog = Math.log(ability);
       const rawRating = baseRating + ratingScale * skillLog;
-      const reliability = reliabilityForMatches(state.matches_played, shrinkageMatches);
+      const reliability = reliabilityForMatches(reliabilityMatchesForState(state), shrinkageMatches);
       const rating = baseRating + reliability * (rawRating - baseRating);
       const outcomeWinPercentage =
         state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
@@ -1008,6 +1014,7 @@ function replayPlackettLuceGpi(matchRows, options = {}) {
     maxChange,
     recencyMode,
     matchWeightMultiplier,
+    reliabilityBasis,
   };
 }
 

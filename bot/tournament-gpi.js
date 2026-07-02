@@ -21,7 +21,7 @@ const worldOpenSheetId = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
 const lightningCupSheetId = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
 const syntheticStartMs = Date.UTC(2026, 0, 1, 0, 0, 0);
 const tournamentMatchWeightMultiplier = 2;
-const defaultTournamentPlShrinkageMatches = 25;
+const defaultTournamentPlShrinkageMatches = 20;
 
 const eventOrder = [
   { key: "super_league_s5", name: "Super League Season 5" },
@@ -60,7 +60,7 @@ Options:
   --rating-scale <number>  PL log-skill to rating scale. Default: ${DEFAULT_PL_RATING_SCALE.toFixed(6)}
   --pl-prior <number>      PL population-average prior strength. Default: ${DEFAULT_PL_PRIOR_STRENGTH}
   --pl-shrinkage-matches <number>
-                           Raw match count for full PL reliability. Default: ${defaultTournamentPlShrinkageMatches}
+                           Weighted match count for full PL reliability. Default: ${defaultTournamentPlShrinkageMatches}
   --pl-iterations <number> Max PL fit iterations. Default: ${DEFAULT_PL_MAX_ITERATIONS}
   --pl-tolerance <number>  PL convergence tolerance. Default: ${DEFAULT_PL_TOLERANCE}
 
@@ -776,6 +776,7 @@ async function replayStoredTournamentMatches(options) {
     participantWeightScale: 0,
     maxParticipantWeight: 1,
     matchWeightMultiplier: tournamentMatchWeightMultiplier,
+    reliabilityBasis: "weighted_matches",
   });
 
   const { data: runRow, error: runError } = await supabase
@@ -806,7 +807,7 @@ async function replayStoredTournamentMatches(options) {
         prior_strength: options.plPrior,
         shrinkage_matches: options.plShrinkageMatches,
         shrinkage_basis:
-          "raw_tournament_matches_reaches_full_reliability_at_25_because_tournament_matches_have_2x_weight",
+          "weighted_tournament_matches_reaches_full_reliability_at_20_so_10_raw_matches_are_fully_reliable_with_2x_weight",
         rating_scale: options.ratingScale,
         convergence: {
           max_iterations: options.plIterations,

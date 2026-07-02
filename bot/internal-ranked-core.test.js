@@ -341,6 +341,40 @@ function match(timestamp, results, versus = "1v1v1") {
 }
 
 {
+  const rows = [];
+  for (let index = 0; index < 10; index += 1) {
+    rows.push({
+      match_hash: `weighted-reliability-${index}`,
+      season: 1,
+      timestamp_ms: 2_000 + index,
+      played_at: new Date(2_000 + index).toISOString(),
+      raw_match: match(2_000 + index, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    });
+  }
+
+  const replay = replayPlackettLuceGpi(rows, {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: 20,
+    maxIterations: 200,
+    recencyMode: "none",
+    participantWeightScale: 0,
+    maxParticipantWeight: 1,
+    matchWeightMultiplier: 2,
+    reliabilityBasis: "weighted_matches",
+  });
+
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+  assert.equal(replay.reliabilityBasis, "weighted_matches");
+  assert.equal(winner.matches_played, 10);
+  assertAlmostEqual(winner.weighted_matches, 20);
+  assert.equal(winner.reliability, 1);
+}
+
+{
   const strongerWeighting = {
     participantWeightScale: 0.7,
     maxParticipantWeight: 3,
