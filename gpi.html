@@ -270,6 +270,8 @@
       table-layout:fixed;
     }
 
+    .mobile-label{ display:none; }
+
     th,
     td{
       padding:12px 14px;
@@ -678,47 +680,178 @@
         margin-top:14px;
       }
 
-      .detail-grid{
-        grid-template-columns:repeat(2, minmax(0, 174px));
+      .modal-backdrop{
+        padding:10px;
+        place-items:center;
       }
 
-      .leaderboard-table.is-gpi{
+      .modal{
+        width:100%;
+        max-height:calc(100dvh - 20px);
+      }
+
+      .modal-head{
+        gap:10px;
+        padding:12px;
+      }
+
+      .modal-title{
+        font-size:17px;
+      }
+
+      .modal-close{
+        width:32px;
+        height:32px;
+      }
+
+      .modal-body{
+        padding:10px;
+        overflow:auto;
+      }
+
+      .modal-section{
+        margin-bottom:12px;
+      }
+
+      .modal-section-title{
+        margin-bottom:6px;
+        font-size:12px;
+      }
+
+      .detail-grid{
+        grid-template-columns:repeat(5, minmax(0, 1fr));
+        gap:5px;
+        justify-content:stretch;
+        margin-bottom:12px;
+      }
+
+      .detail-cell{
+        min-height:58px;
+        padding:7px 3px;
+      }
+
+      .detail-label{
+        font-size:8px;
+        letter-spacing:.035em;
+        line-height:1.12;
+        margin-bottom:4px;
+      }
+
+      .detail-value{
+        font-size:12px;
+        line-height:1.08;
+      }
+
+      .modal-details summary{
+        padding-bottom:8px;
+        font-size:12px;
+      }
+
+      .modal-details-body{
+        padding-bottom:10px;
+      }
+
+      .desktop-label{ display:none; }
+      .mobile-label{ display:inline; }
+
+      .leaderboard-table{
         font-size:11px;
       }
 
-      .leaderboard-table.is-gpi th,
-      .leaderboard-table.is-gpi td{
+      .leaderboard-table.is-ranked{
+        min-width:680px;
+        table-layout:fixed;
+      }
+
+      .leaderboard-table.is-gpi,
+      .leaderboard-table.is-tournament{
+        min-width:0;
+        table-layout:fixed;
+        width:100%;
+      }
+
+      .leaderboard-table th,
+      .leaderboard-table td{
         overflow:hidden;
         padding:8px 4px;
       }
 
-      .leaderboard-table.is-gpi .rank-cell{
+      .leaderboard-table .rank-cell{
         width:38px;
       }
 
-      .leaderboard-table.is-gpi .rating-cell{
+      .leaderboard-table .rating-cell{
         width:56px;
       }
 
-      .leaderboard-table.is-gpi .avatar{
+      .leaderboard-table .number-cell{
+        width:52px;
+      }
+
+      .leaderboard-table .outcome-cell{
+        width:68px;
+      }
+
+      .leaderboard-table:not(.is-gpi) .player-cell{
+        width:120px;
+        min-width:120px;
+      }
+
+      .leaderboard-table.is-tournament .player-cell{
+        width:auto;
+        min-width:0;
+      }
+
+      .leaderboard-table .avatar{
         width:28px;
         height:28px;
       }
 
-      .leaderboard-table.is-gpi .player-button{
+      .leaderboard-table .player-button{
         gap:7px;
       }
 
-      .leaderboard-table.is-gpi .player-name{
+      .leaderboard-table .player-name{
         font-size:12px;
       }
 
-      .leaderboard-table.is-gpi .sort-button{
-        min-height:18px;
+      .leaderboard-table .sort-button{
+        align-items:flex-start;
+        min-height:26px;
         overflow:hidden;
-        padding:0 7px 0 0;
+        padding:0 8px 0 0;
         white-space:normal;
         overflow-wrap:anywhere;
+        line-height:1.05;
+      }
+
+      #leaderboard .leaderboard-table th:not(:nth-child(2)) .sort-button{
+        justify-content:center;
+        padding-left:0;
+        padding-right:8px;
+      }
+
+      #leaderboard .leaderboard-table th:nth-child(2) .sort-button{
+        justify-content:flex-start;
+        padding-left:0;
+        padding-right:8px;
+      }
+
+      #leaderboard .leaderboard-table .sort-button::after{
+        top:0;
+        right:0;
+        transform:none;
+        border-left-width:3px;
+        border-right-width:3px;
+        border-top-width:4px;
+      }
+
+      #leaderboard .leaderboard-table .sort-button[aria-sort="ascending"]::after{
+        border-bottom-width:4px;
+      }
+
+      #leaderboard .leaderboard-table .sort-button[aria-sort="descending"]::after{
+        border-top-width:4px;
       }
 
     }
@@ -1170,7 +1303,7 @@
           <th>Player</th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">GPI</button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating">Ranked Rating</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta">Tournament Delta</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta"><span class="desktop-label">Tournament Delta</span><span class="mobile-label">Tourney Delta</span></button></th>
         `;
         return;
       }
@@ -1183,7 +1316,7 @@
           <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
           <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
           <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
-          <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
+          <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win%</button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="lifetimeRating">Lifetime PL</button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="peakElo">Peak Elo</button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="recentRating">Recent 100</button></th>
@@ -1199,7 +1332,7 @@
         <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
         <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
         <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
-        ${currentView === "tournament" ? "" : `<th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>`}
+        ${currentView === "tournament" ? "" : `<th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win%</button></th>`}
       `;
     }
 
