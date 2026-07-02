@@ -254,10 +254,7 @@
     }
 
     .leaderboard-table.is-gpi{
-      width:860px;
-      max-width:100%;
-      min-width:0;
-      margin:0 auto;
+      width:100%;
       table-layout:fixed;
     }
 
@@ -337,13 +334,9 @@
       font-variant-numeric:tabular-nums;
     }
 
-    .player-cell{
+    .leaderboard-table:not(.is-gpi) .player-cell{
       width:280px;
       min-width:280px;
-    }
-
-    .leaderboard-table.is-gpi .player-cell{
-      max-width:280px;
     }
 
     .player{
@@ -416,6 +409,9 @@
       color:var(--muted);
       font-weight:650;
     }
+
+    .rating-delta-cell.delta-positive{ color:#86efac; }
+    .rating-delta-cell.delta-negative{ color:#fca5a5; }
 
     .number-cell{
       color:var(--muted);
@@ -617,6 +613,7 @@
     .modal-details summary{
       display:inline-flex;
       align-items:center;
+      gap:6px;
       width:auto;
       cursor:pointer;
       padding:0 0 12px;
@@ -627,6 +624,21 @@
     .modal-details summary:focus-visible{
       outline:2px solid rgba(107, 226, 181, .72);
       outline-offset:2px;
+    }
+
+    .modal-details summary::before{
+      content:"";
+      width:0;
+      height:0;
+      border-top:5px solid transparent;
+      border-bottom:5px solid transparent;
+      border-left:7px solid currentColor;
+      transform-origin:40% 50%;
+      transition:transform .16s ease;
+    }
+
+    .modal-details[open] summary::before{
+      transform:rotate(90deg);
     }
 
     .modal-details-body{
@@ -656,12 +668,6 @@
 
       .detail-grid{
         grid-template-columns:repeat(2, minmax(0, 174px));
-      }
-
-      .leaderboard-table.is-gpi{
-        width:860px;
-        max-width:none;
-        min-width:860px;
       }
 
     }
@@ -1120,14 +1126,14 @@
           <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
           <th>Player</th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="lifetimeRating">Lifetime PL</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="peakElo">Peak Elo</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="recentRating">Recent 100</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="recentDelta">Recent Delta</button></th>
           <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
           <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
           <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
           <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="lifetimeRating">Lifetime PL</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="peakElo">Peak Elo</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="recentRating">Recent 100</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="recentDelta">Recent Delta</button></th>
         `;
         return;
       }
@@ -1139,7 +1145,7 @@
         <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
         <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
         <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
-        <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
+        ${currentView === "tournament" ? "" : `<th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>`}
       `;
     }
 
@@ -1361,7 +1367,7 @@
               </td>
               <td class="rating-cell main-rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
               <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.rankedRating))}</td>
-              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatSignedRating(row.tournamentDelta))}</td>
+              <td class="rating-cell secondary-rating-cell rating-delta-cell right ${escapeHtml(deltaClass(row.tournamentDelta))}">${escapeHtml(formatSignedRating(row.tournamentDelta))}</td>
             </tr>
           `;
         }).join("");
@@ -1385,14 +1391,14 @@
                 </button>
               </td>
               <td class="rating-cell main-rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
-              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.fullHistoryRating))}</td>
-              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.potentialRating))}</td>
-              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.recentFormRating))}</td>
-              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatSignedRating(row.recentDelta))}</td>
               <td class="number-cell">${escapeHtml(row.matchesNumber)}</td>
               <td class="outcome-cell">${outcomeHtml(row)}</td>
               <td class="number-cell">${escapeHtml(formatPercent(row.outcomeWinPct))}</td>
               <td class="number-cell">${escapeHtml(formatPercent(row.matchWinPct))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.fullHistoryRating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.potentialRating))}</td>
+              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.recentFormRating))}</td>
+              <td class="rating-cell secondary-rating-cell rating-delta-cell right ${escapeHtml(deltaClass(row.recentDelta))}">${escapeHtml(formatSignedRating(row.recentDelta))}</td>
             </tr>
           `;
         }).join("");
@@ -1418,7 +1424,7 @@
             <td class="number-cell">${escapeHtml(row.matchesNumber)}</td>
             <td class="outcome-cell">${outcomeHtml(row)}</td>
             <td class="number-cell">${escapeHtml(formatPercent(row.outcomeWinPct))}</td>
-            <td class="number-cell">${escapeHtml(formatPercent(row.matchWinPct))}</td>
+            ${currentView === "tournament" ? "" : `<td class="number-cell">${escapeHtml(formatPercent(row.matchWinPct))}</td>`}
           </tr>
         `;
       }).join("");
