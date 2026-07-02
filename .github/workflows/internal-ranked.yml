@@ -162,7 +162,7 @@ jobs:
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
 
   replay-pl:
-    name: Internal Ranked League sports GPI replay
+    name: Internal Ranked League flat PL GPI replay
     runs-on: ubuntu-latest
     environment: github-pages
     timeout-minutes: 60
@@ -181,7 +181,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Replay sports-model NSS GPI from stored matches
+      - name: Replay flat Plackett-Luce NSS GPI from stored matches
         run: npm run internal-ranked:replay-pl -- --seasons "${{ github.event.inputs.seasons }}"
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
@@ -240,7 +240,7 @@ jobs:
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
 
   sync-pl:
-    name: Full internal Ranked League fetch and sports GPI replay
+    name: Full internal Ranked League fetch and flat PL GPI replay
     runs-on: ubuntu-latest
     environment: github-pages
     timeout-minutes: 360
@@ -259,7 +259,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fetch TeamUp matches, write Supabase, and replay sports-model NSS GPI
+      - name: Fetch TeamUp matches, write Supabase, and replay flat Plackett-Luce NSS GPI
         run: npm run internal-ranked:sync-pl -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}

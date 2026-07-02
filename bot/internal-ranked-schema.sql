@@ -144,9 +144,6 @@ create table if not exists public.internal_ranked_gpi_ratings (
   display_name text,
   rating numeric(12, 4) not null,
   raw_rating numeric(12, 4) not null,
-  predictive_rating numeric(12, 4),
-  performance_rating numeric(12, 4),
-  resume_rating numeric(12, 4),
   ability numeric(18, 8) not null,
   skill_log numeric(18, 8) not null,
   reliability numeric(10, 6) not null default 0,
@@ -162,10 +159,6 @@ create table if not exists public.internal_ranked_gpi_ratings (
   match_win_percentage numeric(10, 6) not null default 0,
   placement_score_average numeric(10, 6) not null default 0,
   weighted_placement_score numeric(10, 6) not null default 0,
-  expected_placement_score numeric(10, 6),
-  performance_above_expected numeric(10, 6),
-  schedule_strength numeric(12, 4),
-  resume_score numeric(10, 6),
   first_played_at timestamptz,
   last_played_at timestamptz,
   rank integer,
@@ -174,27 +167,6 @@ create table if not exists public.internal_ranked_gpi_ratings (
 
 create index if not exists internal_ranked_gpi_ratings_run_rating_idx
 on public.internal_ranked_gpi_ratings (run_id, rating desc, discord_user_id);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists predictive_rating numeric(12, 4);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists performance_rating numeric(12, 4);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists resume_rating numeric(12, 4);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists expected_placement_score numeric(10, 6);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists performance_above_expected numeric(10, 6);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists schedule_strength numeric(12, 4);
-
-alter table public.internal_ranked_gpi_ratings
-add column if not exists resume_score numeric(10, 6);
 
 create index if not exists internal_ranked_gpi_ratings_run_rank_idx
 on public.internal_ranked_gpi_ratings (run_id, rank, discord_user_id);
