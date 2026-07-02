@@ -308,6 +308,10 @@
       font-variant-numeric:tabular-nums;
     }
 
+    .delta-positive{ color:#86efac; }
+    .delta-negative{ color:#fca5a5; }
+    .delta-neutral{ color:var(--muted); }
+
     .number-cell{
       color:var(--muted);
       font-variant-numeric:tabular-nums;
@@ -469,7 +473,8 @@
     </header>
 
     <div class="gpi-tabs" role="tablist" aria-label="NSS GPI leaderboards">
-      <button class="gpi-tab" type="button" role="tab" data-view="ranked" aria-selected="true">Ranked League</button>
+      <button class="gpi-tab" type="button" role="tab" data-view="gpi" aria-selected="true">GPI</button>
+      <button class="gpi-tab" type="button" role="tab" data-view="ranked" aria-selected="false">Ranked League</button>
       <button class="gpi-tab" type="button" role="tab" data-view="tournament" aria-selected="false">Tournaments</button>
     </div>
 
@@ -486,15 +491,7 @@
       <div class="table-shell">
         <table>
           <thead>
-            <tr>
-              <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
-              <th>Player</th>
-              <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
-              <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
-              <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
-              <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
-              <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
-            </tr>
+            <tr id="leaderboardHeader"></tr>
           </thead>
           <tbody id="leaderboardBody"></tbody>
         </table>
@@ -519,6 +516,7 @@
     const statusEl = document.getElementById("status");
     const pageSubtitleEl = document.getElementById("pageSubtitle");
     const leaderboardEl = document.getElementById("leaderboard");
+    const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const runMetaEl = document.getElementById("runMeta");
     const pageInfoEl = document.getElementById("pageInfo");
@@ -529,8 +527,32 @@
     const modalBodyEl = document.getElementById("modalBody");
     const modalCloseEl = document.getElementById("modalClose");
     const PAGE_SIZE = 100;
+    const COMBINED_MIN_TOURNAMENT_MATCHES = 3;
+    const COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES = 20;
+    const COMBINED_TANH_SCALE = 1.5;
+    const COMBINED_POSITIVE_SCALE = 120;
+    const COMBINED_NEGATIVE_SCALE = 60;
     const VIEW_CONFIG = {
+      gpi: {
+        kind: "combined",
+        subtitle: "Combined NSS GPI rating",
+        minMatches: 25,
+        noRunMessage: "No combined NSS GPI is available yet. Run the Ranked OAWP replay and Tournament GPI replay first.",
+        meta(run){
+          return [
+            "NSS GPI",
+            "Ranked baseline",
+            "Tournament normalized delta",
+            `Min ${this.minMatches} ranked matches`,
+            `Min ${COMBINED_MIN_TOURNAMENT_MATCHES} tournament matches for adjustment`,
+            "Current Discord members",
+            `Ranked Run #${run.ranked.id}`,
+            `Tournament Run #${run.tournament.id}`,
+          ];
+        },
+      },
       ranked: {
+        kind: "standard",
         subtitle: "Internal Ranked League rating",
         runTable: "internal_ranked_gpi_runs",
         ratingTable: "internal_ranked_gpi_ratings",
@@ -557,6 +579,7 @@
         },
       },
       tournament: {
+        kind: "standard",
         subtitle: "Tournament-only rating",
         runTable: "internal_tournament_gpi_runs",
         ratingTable: "internal_tournament_gpi_ratings",
@@ -582,7 +605,7 @@
         },
       },
     };
-    let currentView = "ranked";
+    let currentView = "gpi";
     let latestRun = null;
     let allLeaderboardRows = [];
     let leaderboardRows = [];
@@ -632,6 +655,22 @@
       }).format(number);
     }
 
+    function formatSignedRating(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "";
+      const formatted = formatRating(Math.abs(number));
+      if(number > 0) return `+${formatted}`;
+      if(number < 0) return `-${formatted}`;
+      return formatted;
+    }
+
+    function deltaClass(value){
+      const number = Number(value);
+      if(number > 0) return "delta-positive";
+      if(number < 0) return "delta-negative";
+      return "delta-neutral";
+    }
+
     function formatDateTime(value){
       if(!value) return "";
       const date = new Date(value);
@@ -655,8 +694,7 @@
       }).format(number);
     }
 
-    async function loadLatestRunByModel(model){
-      const config = activeConfig();
+    async function loadLatestRunByModel(model, config = activeConfig()){
       const { data, error } = await supabase
         .from(config.runTable)
         .select(config.runSelect)
@@ -668,8 +706,7 @@
       return data || null;
     }
 
-    async function loadRatingsForRun(runId){
-      const config = activeConfig();
+    async function loadRatingsForRun(runId, config = activeConfig()){
       const rows = [];
       const pageSize = 1000;
       let from = 0;
@@ -688,6 +725,24 @@
       }
 
       return rows;
+    }
+
+    function numericStats(values){
+      const cleanValues = values.map(Number).filter(Number.isFinite);
+      if(cleanValues.length === 0) return { mean:0, std:1 };
+      const mean = cleanValues.reduce((sum, value) => sum + value, 0) / cleanValues.length;
+      const variance = cleanValues.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / cleanValues.length;
+      const std = Math.sqrt(variance);
+      return { mean, std: std > 0 ? std : 1 };
+    }
+
+    function zScore(value, stats){
+      return (Number(value) - stats.mean) / stats.std;
+    }
+
+    function tournamentAdjustmentFromDelta(deltaZ, reliability){
+      const scale = deltaZ >= 0 ? COMBINED_POSITIVE_SCALE : COMBINED_NEGATIVE_SCALE;
+      return reliability * scale * Math.tanh(deltaZ / COMBINED_TANH_SCALE);
     }
 
     async function loadMembers(discordIds){
@@ -731,6 +786,29 @@
     function outcomeHtml(row){
       return `
         <span class="win-text">${escapeHtml(row.pairwise_wins ?? 0)}</span><span class="dash-text">-</span><span class="loss-text">${escapeHtml(row.pairwise_losses ?? 0)}</span><span class="dash-text">-</span><span class="tie-text">${escapeHtml(row.pairwise_ties ?? 0)}</span>
+      `;
+    }
+
+    function renderTableHeader(){
+      if(activeConfig().kind === "combined"){
+        leaderboardHeaderEl.innerHTML = `
+          <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
+          <th>Player</th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Total GPI Rating</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating">Ranked Rating</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta">Tournament Delta</button></th>
+        `;
+        return;
+      }
+
+      leaderboardHeaderEl.innerHTML = `
+        <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
+        <th>Player</th>
+        <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
+        <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
+        <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
+        <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
+        <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
       `;
     }
 
@@ -795,10 +873,106 @@
       return rows;
     }
 
+    function buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById){
+      const rankedRows = [];
+      const tournamentById = new Map(
+        tournamentRatings
+          .map((row) => [normalizeDiscordId(row.discord_user_id), row])
+          .filter(([discordId]) => discordId)
+      );
+
+      for(const row of rankedRatings){
+        const discordId = normalizeDiscordId(row.discord_user_id);
+        const member = membersById.get(discordId);
+        if(!discordId || member?.is_current_member !== true) continue;
+
+        const rankedMatches = Number(row.matches_played) || 0;
+        if(rankedMatches < VIEW_CONFIG.gpi.minMatches) continue;
+
+        rankedRows.push({
+          rankedRow: row,
+          tournamentRow: tournamentById.get(discordId) || null,
+          discord_user_id: discordId,
+          member,
+          displayName: memberDisplayName(row, member),
+          avatarUrl: memberAvatarUrl(member),
+          rankedRating: Number(row.rating) || 0,
+          rankedMatches,
+        });
+      }
+
+      const bridgeRows = rankedRows.filter((row) =>
+        row.tournamentRow &&
+        (Number(row.tournamentRow.matches_played) || 0) >= COMBINED_MIN_TOURNAMENT_MATCHES
+      );
+      const rankedStats = numericStats(bridgeRows.map((row) => row.rankedRating));
+      const tournamentStats = numericStats(bridgeRows.map((row) => Number(row.tournamentRow.rating) || 0));
+      const hasBridge = bridgeRows.length >= 2;
+
+      const rows = rankedRows.map((row) => {
+        const tournamentRow = row.tournamentRow;
+        const tournamentMatches = Number(tournamentRow?.matches_played) || 0;
+        const tournamentWeightedMatches = Number(tournamentRow?.weighted_matches) || 0;
+        let tournamentDelta = 0;
+        let tournamentRating = null;
+        let tournamentReliability = 0;
+        let tournamentDeltaZ = 0;
+
+        if(hasBridge && tournamentRow && tournamentMatches >= COMBINED_MIN_TOURNAMENT_MATCHES){
+          tournamentRating = Number(tournamentRow.rating) || 0;
+          tournamentReliability = Math.min(
+            1,
+            Math.max(0, tournamentWeightedMatches / COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES)
+          );
+          tournamentDeltaZ =
+            zScore(tournamentRating, tournamentStats) - zScore(row.rankedRating, rankedStats);
+          tournamentDelta = tournamentAdjustmentFromDelta(tournamentDeltaZ, tournamentReliability);
+        }
+
+        const rating = row.rankedRating + tournamentDelta;
+        return {
+          ...row.rankedRow,
+          discord_user_id: row.discord_user_id,
+          member: row.member,
+          displayName: row.displayName,
+          avatarUrl: row.avatarUrl,
+          rankNumber: 0,
+          rank: "",
+          rating,
+          ratingNumber: rating,
+          rankedRating: row.rankedRating,
+          rankedRatingNumber: row.rankedRating,
+          tournamentRating,
+          tournamentDelta,
+          tournamentDeltaNumber: tournamentDelta,
+          tournamentDeltaZ,
+          tournamentReliability,
+          tournamentMatches,
+          tournamentWeightedMatches,
+          matchesNumber: row.rankedMatches,
+        };
+      });
+
+      rows.sort((left, right) =>
+        right.ratingNumber - left.ratingNumber ||
+        right.rankedRatingNumber - left.rankedRatingNumber ||
+        left.displayName.localeCompare(right.displayName)
+      );
+
+      rows.forEach((row, index) => {
+        row.rankNumber = index + 1;
+        row.rank = index + 1;
+      });
+
+      return rows;
+    }
+
     function sortValueForRow(row, key){
       return {
         rank: row.rankNumber,
         rating: row.ratingNumber,
+        rankedRating: row.rankedRatingNumber,
+        tournamentDelta: row.tournamentDeltaNumber,
         matches: row.matchesNumber,
         wins: row.winsNumber,
         outcomeWinPct: row.outcomeWinPct,
@@ -826,6 +1000,29 @@
 
     function renderLeaderboard(){
       updateSortButtons();
+      if(activeConfig().kind === "combined"){
+        leaderboardBodyEl.innerHTML = leaderboardRows.map((row) => {
+          return `
+            <tr>
+              <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
+              <td class="player-cell">
+                <div class="player">
+                  <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
+                  <span class="player-name">${escapeHtml(row.displayName)}</span>
+                </div>
+              </td>
+              <td class="rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
+              <td class="rating-cell right">${escapeHtml(formatRating(row.rankedRating))}</td>
+              <td class="rating-cell right ${escapeHtml(deltaClass(row.tournamentDelta))}">${escapeHtml(formatSignedRating(row.tournamentDelta))}</td>
+            </tr>
+          `;
+        }).join("");
+
+        leaderboardEl.hidden = false;
+        renderPager();
+        return;
+      }
+
       leaderboardBodyEl.innerHTML = leaderboardRows.map((row) => {
         return `
           <tr>
@@ -835,7 +1032,6 @@
                 <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
                 <span>
                   <span class="player-name">${escapeHtml(row.displayName)}</span>
-                  <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
                 </span>
               </button>
             </td>
@@ -857,12 +1053,13 @@
       const to = Math.min(totalRatings, (currentPage + 1) * PAGE_SIZE);
       pageInfoEl.textContent = totalRatings
         ? `Showing ${from}-${to} of ${totalRatings}`
-        : "No ranked players";
+        : "No players";
       prevPageEl.disabled = currentPage <= 0;
       nextPageEl.disabled = to >= totalRatings;
     }
 
     async function openPlayerModal(discordId){
+      if(activeConfig().kind === "combined") return;
       const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
       if(!row) return;
 
@@ -870,7 +1067,6 @@
         <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
         <span>
           <h2 id="modalTitle" class="modal-title">${escapeHtml(row.displayName)}</h2>
-          <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
         </span>
       `;
       playerModalEl.hidden = false;
@@ -913,8 +1109,15 @@
 
     async function loadPage(){
       const config = activeConfig();
+      renderTableHeader();
       pageSubtitleEl.textContent = config.subtitle;
-      latestRun = await loadLatestRunByModel(config.model);
+      if(config.kind === "combined"){
+        const loaded = await loadCombinedPage();
+        if(loaded) hideStatus();
+        return;
+      }
+
+      latestRun = await loadLatestRunByModel(config.model, config);
       if(!latestRun){
         leaderboardEl.hidden = true;
         runMetaEl.hidden = true;
@@ -926,6 +1129,35 @@
       await loadLeaderboardPage(0);
       renderRunMeta(latestRun);
       hideStatus();
+    }
+
+    async function loadCombinedPage(){
+      const rankedConfig = VIEW_CONFIG.ranked;
+      const tournamentConfig = VIEW_CONFIG.tournament;
+      const [rankedRun, tournamentRun] = await Promise.all([
+        loadLatestRunByModel(rankedConfig.model, rankedConfig),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
+      ]);
+
+      if(!rankedRun || !tournamentRun){
+        leaderboardEl.hidden = true;
+        runMetaEl.hidden = true;
+        setStatus(VIEW_CONFIG.gpi.noRunMessage);
+        return false;
+      }
+
+      latestRun = { ranked: rankedRun, tournament: tournamentRun };
+      const [rankedRatings, tournamentRatings] = await Promise.all([
+        loadRatingsForRun(rankedRun.id, rankedConfig),
+        loadRatingsForRun(tournamentRun.id, tournamentConfig),
+      ]);
+      const ids = rankedRatings.map(row => row.discord_user_id);
+      const membersById = await loadMembers(ids);
+      allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
+      totalRatings = allLeaderboardRows.length;
+      await loadLeaderboardPage(0);
+      renderRunMeta(latestRun);
+      return true;
     }
 
     function setActiveTab(view){
@@ -940,6 +1172,7 @@
       currentPage = 0;
       sortState = { key:"rank", direction:"asc" };
       leaderboardEl.hidden = true;
+      leaderboardBodyEl.innerHTML = "";
       runMetaEl.hidden = true;
       setStatus("Loading...");
       closePlayerModal();
@@ -950,7 +1183,7 @@
     }
 
     async function loadLeaderboardData(){
-      const ratings = await loadRatingsForRun(latestRun.id);
+      const ratings = await loadRatingsForRun(latestRun.id, activeConfig());
       const ids = ratings.map(row => row.discord_user_id);
       const membersById = await loadMembers(ids);
       allLeaderboardRows = buildLeaderboardRows(ratings, membersById);
@@ -971,22 +1204,22 @@
       renderLeaderboard();
     }
 
-    document.querySelectorAll(".sort-button[data-sort]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const key = button.dataset.sort;
-        const defaultDirection = key === "rank" ? "asc" : "desc";
-        if(sortState.key === key){
-          sortState = {
-            key,
-            direction: sortState.direction === "asc" ? "desc" : "asc",
-          };
-        }else{
-          sortState = { key, direction: defaultDirection };
-        }
-        loadLeaderboardPage(0).catch((error) => {
-          console.error(error);
-          setStatus(`Unable to sort NSS GPI: ${error?.message || "Unknown error"}`, "error");
-        });
+    leaderboardHeaderEl.addEventListener("click", (event) => {
+      const button = event.target.closest(".sort-button[data-sort]");
+      if(!button) return;
+      const key = button.dataset.sort;
+      const defaultDirection = key === "rank" ? "asc" : "desc";
+      if(sortState.key === key){
+        sortState = {
+          key,
+          direction: sortState.direction === "asc" ? "desc" : "asc",
+        };
+      }else{
+        sortState = { key, direction: defaultDirection };
+      }
+      loadLeaderboardPage(0).catch((error) => {
+        console.error(error);
+        setStatus(`Unable to sort NSS GPI: ${error?.message || "Unknown error"}`, "error");
       });
     });
 
