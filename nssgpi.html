@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NSS GPI</title>
+  <title>Golf Power Index</title>
   <link rel="icon" type="image/png" href="/logos/golf.png" />
   <style>
     :root{
@@ -48,6 +48,19 @@
       font-size:clamp(28px, 4vw, 44px);
       line-height:1;
       letter-spacing:0;
+    }
+
+    .page-title{
+      display:flex;
+      align-items:center;
+      gap:.28em;
+    }
+
+    .title-logo{
+      width:1em;
+      height:1em;
+      object-fit:contain;
+      flex:0 0 auto;
     }
 
     .subtitle{
@@ -259,13 +272,13 @@
     .sort-button{
       display:inline-flex;
       align-items:center;
-      justify-content:flex-end;
-      gap:5px;
+      justify-content:center;
+      position:relative;
       width:100%;
       min-height:20px;
       border:0;
       background:transparent;
-      padding:0;
+      padding:0 14px;
       color:inherit;
       font-size:inherit;
       line-height:inherit;
@@ -279,6 +292,10 @@
 
     .sort-button::after{
       content:"";
+      position:absolute;
+      top:50%;
+      right:0;
+      transform:translateY(-50%);
       width:0;
       height:0;
       border-left:4px solid transparent;
@@ -403,6 +420,8 @@
 
     #leaderboard th:not(:nth-child(2)) .sort-button{
       justify-content:center;
+      padding-left:14px;
+      padding-right:14px;
     }
 
     #leaderboard th:nth-child(2),
@@ -528,8 +547,11 @@
   <main>
     <header class="page-head">
       <div>
-        <h1>NSS GPI</h1>
-        <p id="pageSubtitle" class="subtitle">Internal Ranked League rating</p>
+        <h1 class="page-title">
+          <img class="title-logo" src="/logos/golf.png" alt="" />
+          <span>Golf Power Index</span>
+        </h1>
+        <p id="pageSubtitle" class="subtitle">Ranked League rating</p>
       </div>
       <div id="runMeta" class="run-meta" hidden></div>
     </header>
@@ -703,7 +725,7 @@
       },
       ranked: {
         kind: "standard",
-        subtitle: "Internal Ranked League rating",
+        subtitle: "Ranked League rating",
         runTable: "internal_ranked_gpi_runs",
         ratingTable: "internal_ranked_gpi_ratings",
         model: "opponent_aware_weighted_pairwise",
