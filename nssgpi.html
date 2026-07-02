@@ -65,6 +65,39 @@
       font-size:12px;
     }
 
+    .table-controls{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin:0 0 12px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .pager{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .pager-button{
+      appearance:none;
+      border:1px solid var(--line);
+      background:var(--panel);
+      color:var(--text);
+      border-radius:8px;
+      padding:8px 10px;
+      font:inherit;
+      font-weight:750;
+      cursor:pointer;
+    }
+
+    .pager-button:disabled{
+      cursor:not-allowed;
+      opacity:.45;
+    }
+
     .pill{
       border:1px solid var(--line);
       background:var(--panel);
@@ -434,21 +467,30 @@
 
     <div id="status" class="status">Loading...</div>
 
-    <section id="leaderboard" class="table-shell" hidden aria-label="Internal Ranked League leaderboard">
-      <table>
-        <thead>
-          <tr>
-            <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
-            <th>Player</th>
-            <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
-            <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
-            <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
-            <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
-            <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
-          </tr>
-        </thead>
-        <tbody id="leaderboardBody"></tbody>
-      </table>
+    <section id="leaderboard" hidden aria-label="Internal Ranked League leaderboard">
+      <div class="table-controls">
+        <div id="pageInfo">Loading rankings...</div>
+        <div class="pager">
+          <button id="prevPage" class="pager-button" type="button">Previous</button>
+          <button id="nextPage" class="pager-button" type="button">Next</button>
+        </div>
+      </div>
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
+              <th>Player</th>
+              <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
+              <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
+              <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
+              <th class="number-cell"><button class="sort-button" type="button" data-sort="outcomeWinPct">Win %</button></th>
+              <th class="number-cell"><button class="sort-button" type="button" data-sort="matchWinPct">Match Win %</button></th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
@@ -470,11 +512,18 @@
     const leaderboardEl = document.getElementById("leaderboard");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const runMetaEl = document.getElementById("runMeta");
+    const pageInfoEl = document.getElementById("pageInfo");
+    const prevPageEl = document.getElementById("prevPage");
+    const nextPageEl = document.getElementById("nextPage");
     const playerModalEl = document.getElementById("playerModal");
     const modalPlayerHeadEl = document.getElementById("modalPlayerHead");
     const modalBodyEl = document.getElementById("modalBody");
     const modalCloseEl = document.getElementById("modalClose");
+    const PAGE_SIZE = 100;
+    let latestRun = null;
     let leaderboardRows = [];
+    let totalRatings = 0;
+    let currentPage = 0;
     let sortState = { key:"rank", direction:"asc" };
 
     function normalizeText(value){
@@ -560,17 +609,43 @@
       return data || null;
     }
 
-    async function loadRatings(runId){
-      const { data, error } = await supabase
-        .from("internal_ranked_elo_ratings")
-        .select("discord_user_id,display_name,rating,matches_played,pairwise_wins,pairwise_losses,pairwise_ties,rank")
-        .eq("run_id", runId)
-        .order("rank", { ascending:true });
-      if(error) throw error;
-      return data || [];
+    function sortColumnForKey(key){
+      return {
+        rank:"rank",
+        rating:"rating",
+        matches:"matches_played",
+        wins:"pairwise_wins",
+        outcomeWinPct:"outcome_win_percentage",
+        matchWinPct:"match_win_percentage",
+      }[key] || "rank";
     }
 
-    async function loadMatchResults(runId){
+    async function loadRatingsPage(runId, { page = 0, sort = sortState } = {}){
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const sortColumn = sortColumnForKey(sort.key);
+      const ascending = sort.direction === "asc";
+      let query = supabase
+        .from("internal_ranked_elo_ratings")
+        .select("discord_user_id,display_name,rating,matches_played,pairwise_wins,pairwise_losses,pairwise_ties,pairwise_games,first_place_finishes,outcome_win_percentage,match_win_percentage,rank", { count:"exact" })
+        .eq("run_id", runId);
+
+      if(sortColumn === "rank"){
+        query = query.order("rank", { ascending });
+      }else{
+        query = query
+          .order(sortColumn, { ascending })
+          .order("rank", { ascending:true })
+          .order("discord_user_id", { ascending:true });
+      }
+
+      query = query.range(from, to);
+      const { data, error, count } = await query;
+      if(error) throw error;
+      return { rows:data || [], count:count || 0 };
+    }
+
+    async function loadPlayerMatchResults(runId, discordId){
       const rows = [];
       const pageSize = 1000;
       let from = 0;
@@ -580,6 +655,7 @@
           .from("internal_ranked_elo_match_results")
           .select("discord_user_id,played_at,timestamp_ms,place,rating_after")
           .eq("run_id", runId)
+          .eq("discord_user_id", discordId)
           .order("timestamp_ms", { ascending:true })
           .range(from, from + pageSize - 1);
         if(error) throw error;
@@ -641,13 +717,12 @@
       `;
     }
 
-    function buildLeaderboardRows(ratings, membersById, historiesById){
+    function buildLeaderboardRows(ratings, membersById){
       return ratings.map((row) => {
         const discordId = normalizeDiscordId(row.discord_user_id);
         const member = membersById.get(discordId);
-        const history = historiesById.get(discordId) || [];
-        const firstPlaceFinishes = history.filter(result => Number(result.place) === 1).length;
-        const matches = Number(row.matches_played) || history.length || 0;
+        const firstPlaceFinishes = Number(row.first_place_finishes) || 0;
+        const matches = Number(row.matches_played) || 0;
         const wins = Number(row.pairwise_wins) || 0;
         const losses = Number(row.pairwise_losses) || 0;
         const ties = Number(row.pairwise_ties) || 0;
@@ -664,28 +739,12 @@
           winsNumber: wins,
           lossesNumber: losses,
           tiesNumber: ties,
-          outcomeWinPct: outcomes > 0 ? wins / outcomes : 0,
+          outcomeWinPct: Number(row.outcome_win_percentage) || (outcomes > 0 ? wins / outcomes : 0),
           firstPlaceFinishes,
-          matchWinPct: matches > 0 ? firstPlaceFinishes / matches : 0,
-          history,
+          matchWinPct: Number(row.match_win_percentage) || (matches > 0 ? firstPlaceFinishes / matches : 0),
+          history: null,
         };
       });
-    }
-
-    function compareRows(left, right, key){
-      const textCompare = left.displayName.localeCompare(right.displayName, undefined, { sensitivity:"base", numeric:true });
-      if(key === "rank") return left.rankNumber - right.rankNumber || textCompare;
-      if(key === "rating") return left.ratingNumber - right.ratingNumber || left.rankNumber - right.rankNumber;
-      if(key === "matches") return left.matchesNumber - right.matchesNumber || left.rankNumber - right.rankNumber;
-      if(key === "wins") return left.winsNumber - right.winsNumber || left.rankNumber - right.rankNumber;
-      if(key === "outcomeWinPct") return left.outcomeWinPct - right.outcomeWinPct || left.rankNumber - right.rankNumber;
-      if(key === "matchWinPct") return left.matchWinPct - right.matchWinPct || left.rankNumber - right.rankNumber;
-      return left.rankNumber - right.rankNumber || textCompare;
-    }
-
-    function sortedLeaderboardRows(){
-      const directionMultiplier = sortState.direction === "asc" ? 1 : -1;
-      return [...leaderboardRows].sort((left, right) => compareRows(left, right, sortState.key) * directionMultiplier);
     }
 
     function updateSortButtons(){
@@ -696,9 +755,8 @@
     }
 
     function renderLeaderboard(){
-      const rows = sortedLeaderboardRows();
       updateSortButtons();
-      leaderboardBodyEl.innerHTML = rows.map((row) => {
+      leaderboardBodyEl.innerHTML = leaderboardRows.map((row) => {
         return `
           <tr>
             <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
@@ -721,25 +779,26 @@
       }).join("");
 
       leaderboardEl.hidden = false;
+      renderPager();
     }
 
-    function historyByDiscordId(matchResults){
-      const histories = new Map();
-      for(const result of matchResults){
-        const discordId = normalizeDiscordId(result.discord_user_id);
-        if(!discordId) continue;
-        if(!histories.has(discordId)) histories.set(discordId, []);
-        histories.get(discordId).push({
-          played_at: result.played_at,
-          timestamp_ms: Number(result.timestamp_ms) || new Date(result.played_at).getTime(),
-          rating_after: Number(result.rating_after),
-          place: Number(result.place),
-        });
-      }
-      for(const history of histories.values()){
-        history.sort((left, right) => left.timestamp_ms - right.timestamp_ms);
-      }
-      return histories;
+    function renderPager(){
+      const from = totalRatings === 0 ? 0 : currentPage * PAGE_SIZE + 1;
+      const to = Math.min(totalRatings, (currentPage + 1) * PAGE_SIZE);
+      pageInfoEl.textContent = totalRatings
+        ? `Showing ${from}-${to} of ${totalRatings}`
+        : "No ranked players";
+      prevPageEl.disabled = currentPage <= 0;
+      nextPageEl.disabled = to >= totalRatings;
+    }
+
+    function normalizeHistory(matchResults){
+      return (matchResults || []).map((result) => ({
+        played_at: result.played_at,
+        timestamp_ms: Number(result.timestamp_ms) || new Date(result.played_at).getTime(),
+        rating_after: Number(result.rating_after),
+        place: Number(result.place),
+      })).sort((left, right) => left.timestamp_ms - right.timestamp_ms);
     }
 
     function chartSvgFor(row){
@@ -803,7 +862,7 @@
       `;
     }
 
-    function openPlayerModal(discordId){
+    async function openPlayerModal(discordId){
       const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
       if(!row) return;
 
@@ -814,6 +873,11 @@
           <span class="player-id">${escapeHtml(row.discord_user_id)}</span>
         </span>
       `;
+      modalBodyEl.innerHTML = `<div class="status">Loading rating history...</div>`;
+      playerModalEl.hidden = false;
+      modalCloseEl.focus();
+
+      row.history = row.history || normalizeHistory(await loadPlayerMatchResults(latestRun.id, discordId));
       modalBodyEl.innerHTML = `
         <div class="detail-grid">
           <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${escapeHtml(row.rank)}</span></div>
@@ -827,8 +891,6 @@
         </div>
         ${chartSvgFor(row)}
       `;
-      playerModalEl.hidden = false;
-      modalCloseEl.focus();
     }
 
     function closePlayerModal(){
@@ -838,22 +900,32 @@
     }
 
     async function loadPage(){
-      const run = await loadLatestRun();
-      if(!run){
+      latestRun = await loadLatestRun();
+      if(!latestRun){
         setStatus("No internal Ranked League Elo run is available yet.");
         return;
       }
 
-      const [ratings, matchResults] = await Promise.all([
-        loadRatings(run.id),
-        loadMatchResults(run.id),
-      ]);
-      const membersById = await loadMembers(ratings.map(row => row.discord_user_id));
-      const historiesById = historyByDiscordId(matchResults);
-      leaderboardRows = buildLeaderboardRows(ratings, membersById, historiesById);
-      renderRunMeta(run);
-      renderLeaderboard();
+      await loadLeaderboardPage(0);
+      renderRunMeta(latestRun);
       hideStatus();
+    }
+
+    async function loadLeaderboardPage(page){
+      if(!latestRun) return;
+      currentPage = Math.max(0, page);
+      leaderboardEl.hidden = false;
+      pageInfoEl.textContent = "Loading rankings...";
+      prevPageEl.disabled = true;
+      nextPageEl.disabled = true;
+      const { rows:ratings, count } = await loadRatingsPage(latestRun.id, {
+        page:currentPage,
+        sort:sortState,
+      });
+      const membersById = await loadMembers(ratings.map(row => row.discord_user_id));
+      totalRatings = count;
+      leaderboardRows = buildLeaderboardRows(ratings, membersById);
+      renderLeaderboard();
     }
 
     document.querySelectorAll(".sort-button[data-sort]").forEach((button) => {
@@ -868,14 +940,36 @@
         }else{
           sortState = { key, direction: defaultDirection };
         }
-        renderLeaderboard();
+        loadLeaderboardPage(0).catch((error) => {
+          console.error(error);
+          setStatus(`Unable to sort NSS GPI: ${error?.message || "Unknown error"}`, "error");
+        });
       });
     });
 
     leaderboardBodyEl.addEventListener("click", (event) => {
       const button = event.target.closest(".player-button[data-player-id]");
       if(!button) return;
-      openPlayerModal(button.dataset.playerId);
+      openPlayerModal(button.dataset.playerId).catch((error) => {
+        console.error(error);
+        setStatus(`Unable to load player rating history: ${error?.message || "Unknown error"}`, "error");
+      });
+    });
+
+    prevPageEl.addEventListener("click", () => {
+      if(currentPage <= 0) return;
+      loadLeaderboardPage(currentPage - 1).catch((error) => {
+        console.error(error);
+        setStatus(`Unable to load previous page: ${error?.message || "Unknown error"}`, "error");
+      });
+    });
+
+    nextPageEl.addEventListener("click", () => {
+      if((currentPage + 1) * PAGE_SIZE >= totalRatings) return;
+      loadLeaderboardPage(currentPage + 1).catch((error) => {
+        console.error(error);
+        setStatus(`Unable to load next page: ${error?.message || "Unknown error"}`, "error");
+      });
     });
 
     modalCloseEl.addEventListener("click", closePlayerModal);

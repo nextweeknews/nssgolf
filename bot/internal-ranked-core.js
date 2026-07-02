@@ -3,9 +3,17 @@
 const crypto = require("node:crypto");
 
 const CALCULATION_VERSION = "ranked-pairwise-elo-v1";
+const GPI_CALCULATION_VERSION = "ranked-pl-gpi-v1";
 const DEFAULT_BASE_RATING = 1200;
 const DEFAULT_K_FACTOR = 20;
+const DEFAULT_PL_RATING_SCALE = 400 / Math.log(10);
+const DEFAULT_PL_PRIOR_STRENGTH = 20;
+const DEFAULT_PL_SHRINKAGE_MATCHES = 10;
+const DEFAULT_PL_MAX_ITERATIONS = 500;
+const DEFAULT_PL_TOLERANCE = 0.000001;
+const DEFAULT_PL_RECENCY_MODE = "hybrid";
 const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function asInteger(value) {
   const number = Number(value);
@@ -212,6 +220,21 @@ function playersFromMatch(matchRow) {
   });
 }
 
+function groupedPlayersFromMatch(matchRow) {
+  const players = playersFromMatch(matchRow);
+  const groupsByPlace = new Map();
+  for (const player of players) {
+    if (!groupsByPlace.has(player.place)) groupsByPlace.set(player.place, []);
+    groupsByPlace.get(player.place).push(player);
+  }
+
+  return [...groupsByPlace.entries()]
+    .sort((left, right) => left[0] - right[0])
+    .map(([, group]) =>
+      group.sort((left, right) => left.discord_user_id.localeCompare(right.discord_user_id))
+    );
+}
+
 function expectedScore(leftRating, rightRating) {
   return 1 / (1 + 10 ** ((rightRating - leftRating) / 400));
 }
@@ -230,10 +253,129 @@ function initialPlayerState(baseRating) {
     pairwise_losses: 0,
     pairwise_ties: 0,
     pairwise_games: 0,
+    first_place_finishes: 0,
     display_name: null,
     first_played_at: null,
     last_played_at: null,
   };
+}
+
+function timeWeightForMatch(timestampMs, latestTimestampMs) {
+  const timestamp = asInteger(timestampMs);
+  const latest = asInteger(latestTimestampMs);
+  if (timestamp == null || latest == null || timestamp <= 0 || latest <= 0) return 1;
+
+  const ageDays = Math.max(0, (latest - timestamp) / DAY_MS);
+  if (ageDays <= 90) return 1;
+  if (ageDays <= 180) return 0.85 - ((ageDays - 90) / 90) * 0.15;
+  if (ageDays <= 365) return 0.65 - ((ageDays - 180) / 185) * 0.25;
+  if (ageDays <= 1095) return 0.35 - ((ageDays - 365) / 730) * 0.2;
+  return 0.15;
+}
+
+function matchRecencyWeightForIndex(index, totalMatches) {
+  if (totalMatches <= 1) return 1;
+  const ageFraction = Math.max(0, Math.min(1, (totalMatches - 1 - index) / (totalMatches - 1)));
+  if (ageFraction <= 0.2) return 1;
+  if (ageFraction <= 0.4) return 0.85 - ((ageFraction - 0.2) / 0.2) * 0.15;
+  if (ageFraction <= 0.7) return 0.65 - ((ageFraction - 0.4) / 0.3) * 0.25;
+  return Math.max(0.15, 0.35 - ((ageFraction - 0.7) / 0.3) * 0.2);
+}
+
+function recencyWeightForMatch(matchRow, latestTimestampMs, index, totalMatches, mode) {
+  const timeWeight = timeWeightForMatch(matchRow.timestamp_ms, latestTimestampMs);
+  const matchRecencyWeight = matchRecencyWeightForIndex(index, totalMatches);
+  if (mode === "time") return timeWeight;
+  if (mode === "match") return matchRecencyWeight;
+  return Math.max(timeWeight, matchRecencyWeight);
+}
+
+function placementScore(place, playerCount) {
+  if (playerCount <= 1) return 0;
+  return (playerCount - place) / (playerCount - 1);
+}
+
+function summarizeMatchStats(matchRows, latestTimestampMs, recencyMode) {
+  const states = new Map();
+
+  function stateFor(player) {
+    if (!states.has(player.discord_user_id)) {
+      states.set(player.discord_user_id, {
+        matches_played: 0,
+        weighted_matches: 0,
+        pairwise_wins: 0,
+        pairwise_losses: 0,
+        pairwise_ties: 0,
+        pairwise_games: 0,
+        first_place_finishes: 0,
+        placement_score_sum: 0,
+        weighted_placement_score_sum: 0,
+        display_name: null,
+        first_played_at: null,
+        last_played_at: null,
+      });
+    }
+    return states.get(player.discord_user_id);
+  }
+
+  for (let matchIndex = 0; matchIndex < matchRows.length; matchIndex += 1) {
+    const matchRow = matchRows[matchIndex];
+    const players = playersFromMatch(matchRow);
+    if (players.length < 2) continue;
+
+    const weight = recencyWeightForMatch(
+      matchRow,
+      latestTimestampMs,
+      matchIndex,
+      matchRows.length,
+      recencyMode
+    );
+    const playedAt = matchRow.played_at || playedAtFromTimestamp(matchRow.timestamp_ms);
+    const perMatchStats = new Map(
+      players.map((player) => [player.discord_user_id, { wins: 0, losses: 0, ties: 0 }])
+    );
+
+    for (let leftIndex = 0; leftIndex < players.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < players.length; rightIndex += 1) {
+        const left = players[leftIndex];
+        const right = players[rightIndex];
+        const leftActual = actualScore(left.place, right.place);
+        const leftStats = perMatchStats.get(left.discord_user_id);
+        const rightStats = perMatchStats.get(right.discord_user_id);
+        if (leftActual === 1) {
+          leftStats.wins += 1;
+          rightStats.losses += 1;
+        } else if (leftActual === 0) {
+          leftStats.losses += 1;
+          rightStats.wins += 1;
+        } else {
+          leftStats.ties += 1;
+          rightStats.ties += 1;
+        }
+      }
+    }
+
+    for (const player of players) {
+      const state = stateFor(player);
+      const stats = perMatchStats.get(player.discord_user_id);
+      const normalizedPlacement = placementScore(player.place, players.length);
+
+      state.matches_played += 1;
+      state.weighted_matches += weight;
+      state.pairwise_wins += stats.wins;
+      state.pairwise_losses += stats.losses;
+      state.pairwise_ties += stats.ties;
+      state.pairwise_games += stats.wins + stats.losses + stats.ties;
+      if (player.place === 1) state.first_place_finishes += 1;
+      state.placement_score_sum += normalizedPlacement;
+      state.weighted_placement_score_sum += normalizedPlacement * weight;
+      state.display_name = player.display_name || state.display_name;
+      state.first_played_at = state.first_played_at || playedAt;
+      state.last_played_at = playedAt;
+    }
+  }
+
+  return states;
 }
 
 function replayElo(matchRows, options = {}) {
@@ -317,6 +459,9 @@ function replayElo(matchRows, options = {}) {
       state.pairwise_losses += stats.losses;
       state.pairwise_ties += stats.ties;
       state.pairwise_games += stats.wins + stats.losses + stats.ties;
+      if (player.place === 1) {
+        state.first_place_finishes += 1;
+      }
       state.display_name = player.display_name || state.display_name;
       state.first_played_at = state.first_played_at || playedAt;
       state.last_played_at = playedAt;
@@ -340,18 +485,27 @@ function replayElo(matchRows, options = {}) {
   }
 
   const finalRatings = [...ratings.entries()]
-    .map(([discordUserId, state]) => ({
-      discord_user_id: discordUserId,
-      display_name: state.display_name,
-      rating: state.rating,
-      matches_played: state.matches_played,
-      pairwise_wins: state.pairwise_wins,
-      pairwise_losses: state.pairwise_losses,
-      pairwise_ties: state.pairwise_ties,
-      pairwise_games: state.pairwise_games,
-      first_played_at: state.first_played_at,
-      last_played_at: state.last_played_at,
-    }))
+    .map(([discordUserId, state]) => {
+      const outcomeWinPercentage =
+        state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
+      const matchWinPercentage =
+        state.matches_played > 0 ? state.first_place_finishes / state.matches_played : 0;
+      return {
+        discord_user_id: discordUserId,
+        display_name: state.display_name,
+        rating: state.rating,
+        matches_played: state.matches_played,
+        pairwise_wins: state.pairwise_wins,
+        pairwise_losses: state.pairwise_losses,
+        pairwise_ties: state.pairwise_ties,
+        pairwise_games: state.pairwise_games,
+        first_place_finishes: state.first_place_finishes,
+        outcome_win_percentage: outcomeWinPercentage,
+        match_win_percentage: matchWinPercentage,
+        first_played_at: state.first_played_at,
+        last_played_at: state.last_played_at,
+      };
+    })
     .sort((left, right) => {
       if (right.rating !== left.rating) return right.rating - left.rating;
       return left.discord_user_id.localeCompare(right.discord_user_id);
@@ -368,17 +522,212 @@ function replayElo(matchRows, options = {}) {
   };
 }
 
+function replayPlackettLuceGpi(matchRows, options = {}) {
+  const baseRating = Number(options.baseRating ?? DEFAULT_BASE_RATING);
+  const ratingScale = Number(options.ratingScale ?? DEFAULT_PL_RATING_SCALE);
+  const priorStrength = Number(options.priorStrength ?? DEFAULT_PL_PRIOR_STRENGTH);
+  const shrinkageMatches = Number(options.shrinkageMatches ?? DEFAULT_PL_SHRINKAGE_MATCHES);
+  const maxIterations = Math.max(
+    1,
+    Math.trunc(Number(options.maxIterations ?? DEFAULT_PL_MAX_ITERATIONS))
+  );
+  const tolerance = Number(options.tolerance ?? DEFAULT_PL_TOLERANCE);
+  const recencyMode = String(options.recencyMode || DEFAULT_PL_RECENCY_MODE).trim();
+
+  if (!Number.isFinite(baseRating)) throw new Error("baseRating must be a finite number.");
+  if (!Number.isFinite(ratingScale) || ratingScale <= 0) {
+    throw new Error("ratingScale must be a positive finite number.");
+  }
+  if (!Number.isFinite(priorStrength) || priorStrength < 0) {
+    throw new Error("priorStrength must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(shrinkageMatches) || shrinkageMatches < 0) {
+    throw new Error("shrinkageMatches must be a non-negative finite number.");
+  }
+  if (!Number.isFinite(tolerance) || tolerance <= 0) {
+    throw new Error("tolerance must be a positive finite number.");
+  }
+  if (!["time", "match", "hybrid"].includes(recencyMode)) {
+    throw new Error("recencyMode must be one of: time, match, hybrid.");
+  }
+
+  const sortedMatches = [...matchRows]
+    .sort((left, right) => {
+      if (left.timestamp_ms !== right.timestamp_ms) return left.timestamp_ms - right.timestamp_ms;
+      return String(left.match_hash).localeCompare(String(right.match_hash));
+    })
+    .filter((matchRow) => playersFromMatch(matchRow).length >= 2);
+
+  const latestTimestampMs = sortedMatches.reduce(
+    (latest, matchRow) => Math.max(latest, asInteger(matchRow.timestamp_ms) || 0),
+    0
+  );
+  const statsByPlayer = summarizeMatchStats(sortedMatches, latestTimestampMs, recencyMode);
+  const playerIds = [...statsByPlayer.keys()].sort();
+  const abilities = new Map(playerIds.map((discordUserId) => [discordUserId, 1]));
+
+  let iterations = 0;
+  let converged = false;
+  let maxChange = Infinity;
+
+  for (iterations = 1; iterations <= maxIterations; iterations += 1) {
+    const numerators = new Map(playerIds.map((discordUserId) => [discordUserId, priorStrength]));
+    const denominators = new Map(playerIds.map((discordUserId) => [discordUserId, priorStrength]));
+
+    for (let matchIndex = 0; matchIndex < sortedMatches.length; matchIndex += 1) {
+      const matchRow = sortedMatches[matchIndex];
+      const groups = groupedPlayersFromMatch(matchRow);
+      if (groups.length < 2) continue;
+
+      const weight = recencyWeightForMatch(
+        matchRow,
+        latestTimestampMs,
+        matchIndex,
+        sortedMatches.length,
+        recencyMode
+      );
+      let remainingIds = groups.flat().map((player) => player.discord_user_id);
+
+      for (const group of groups) {
+        if (remainingIds.length <= group.length) break;
+
+        const denominator = remainingIds.reduce(
+          (sum, discordUserId) => sum + abilities.get(discordUserId),
+          0
+        );
+        if (denominator <= 0) break;
+
+        const stageMultiplier = weight * group.length;
+        for (const player of group) {
+          numerators.set(player.discord_user_id, numerators.get(player.discord_user_id) + weight);
+        }
+        for (const discordUserId of remainingIds) {
+          denominators.set(
+            discordUserId,
+            denominators.get(discordUserId) + stageMultiplier / denominator
+          );
+        }
+
+        const selectedIds = new Set(group.map((player) => player.discord_user_id));
+        remainingIds = remainingIds.filter((discordUserId) => !selectedIds.has(discordUserId));
+      }
+    }
+
+    const nextAbilities = new Map();
+    let logTotal = 0;
+    for (const discordUserId of playerIds) {
+      const nextAbility = numerators.get(discordUserId) / denominators.get(discordUserId);
+      nextAbilities.set(discordUserId, nextAbility);
+      logTotal += Math.log(nextAbility);
+    }
+
+    const geometricMean = Math.exp(logTotal / Math.max(1, playerIds.length));
+    maxChange = 0;
+    for (const discordUserId of playerIds) {
+      const normalizedAbility = nextAbilities.get(discordUserId) / geometricMean;
+      const previousAbility = abilities.get(discordUserId);
+      maxChange = Math.max(
+        maxChange,
+        Math.abs(Math.log(normalizedAbility) - Math.log(previousAbility))
+      );
+      abilities.set(discordUserId, normalizedAbility);
+    }
+
+    if (maxChange < tolerance) {
+      converged = true;
+      break;
+    }
+  }
+
+  const finalRatings = playerIds
+    .map((discordUserId) => {
+      const state = statsByPlayer.get(discordUserId);
+      const ability = abilities.get(discordUserId);
+      const skillLog = Math.log(ability);
+      const rawRating = baseRating + ratingScale * skillLog;
+      const reliability =
+        state.matches_played > 0
+          ? state.matches_played / (state.matches_played + shrinkageMatches)
+          : 0;
+      const rating = baseRating + reliability * (rawRating - baseRating);
+      const outcomeWinPercentage =
+        state.pairwise_games > 0 ? state.pairwise_wins / state.pairwise_games : 0;
+      const matchWinPercentage =
+        state.matches_played > 0 ? state.first_place_finishes / state.matches_played : 0;
+      const placementScoreAverage =
+        state.matches_played > 0 ? state.placement_score_sum / state.matches_played : 0;
+      const weightedPlacementScore =
+        state.weighted_matches > 0
+          ? state.weighted_placement_score_sum / state.weighted_matches
+          : 0;
+
+      return {
+        discord_user_id: discordUserId,
+        display_name: state.display_name,
+        rating,
+        raw_rating: rawRating,
+        ability,
+        skill_log: skillLog,
+        reliability,
+        matches_played: state.matches_played,
+        weighted_matches: state.weighted_matches,
+        average_match_weight:
+          state.matches_played > 0 ? state.weighted_matches / state.matches_played : 0,
+        pairwise_wins: state.pairwise_wins,
+        pairwise_losses: state.pairwise_losses,
+        pairwise_ties: state.pairwise_ties,
+        pairwise_games: state.pairwise_games,
+        first_place_finishes: state.first_place_finishes,
+        outcome_win_percentage: outcomeWinPercentage,
+        match_win_percentage: matchWinPercentage,
+        placement_score_average: placementScoreAverage,
+        weighted_placement_score: weightedPlacementScore,
+        first_played_at: state.first_played_at,
+        last_played_at: state.last_played_at,
+      };
+    })
+    .sort((left, right) => {
+      if (right.rating !== left.rating) return right.rating - left.rating;
+      return left.discord_user_id.localeCompare(right.discord_user_id);
+    })
+    .map((row, index) => ({
+      ...row,
+      rank: index + 1,
+    }));
+
+  return {
+    finalRatings,
+    matchCount: sortedMatches.length,
+    latestTimestampMs,
+    iterations,
+    converged,
+    maxChange,
+    recencyMode,
+  };
+}
+
 module.exports = {
   CALCULATION_VERSION,
+  GPI_CALCULATION_VERSION,
   DEFAULT_BASE_RATING,
   DEFAULT_K_FACTOR,
+  DEFAULT_PL_MAX_ITERATIONS,
+  DEFAULT_PL_PRIOR_STRENGTH,
+  DEFAULT_PL_RATING_SCALE,
+  DEFAULT_PL_RECENCY_MODE,
+  DEFAULT_PL_SHRINKAGE_MATCHES,
+  DEFAULT_PL_TOLERANCE,
   DUPLICATE_WINDOW_MS,
   dedupeMatches,
   expectedScore,
   matchHash,
   normalizeMatchForStorage,
+  matchRecencyWeightForIndex,
+  recencyWeightForMatch,
+  replayPlackettLuceGpi,
   playersFromMatch,
   replayElo,
   resultSignature,
+  timeWeightForMatch,
   validateDescendingMatches,
 };

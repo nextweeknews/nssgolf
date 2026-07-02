@@ -7,7 +7,15 @@ const {
   CALCULATION_VERSION,
   DEFAULT_BASE_RATING,
   DEFAULT_K_FACTOR,
+  DEFAULT_PL_MAX_ITERATIONS,
+  DEFAULT_PL_PRIOR_STRENGTH,
+  DEFAULT_PL_RATING_SCALE,
+  DEFAULT_PL_RECENCY_MODE,
+  DEFAULT_PL_SHRINKAGE_MATCHES,
+  DEFAULT_PL_TOLERANCE,
+  GPI_CALCULATION_VERSION,
   dedupeMatches,
+  replayPlackettLuceGpi,
   replayElo,
   validateDescendingMatches,
 } = require("./internal-ranked-core");
@@ -24,14 +32,20 @@ function usage() {
 Usage:
   node bot/internal-ranked.js fetch [options]
   node bot/internal-ranked.js replay [options]
+  node bot/internal-ranked.js replay-pl [options]
   node bot/internal-ranked.js sync [options]
+  node bot/internal-ranked.js sync-pl [options]
 
 Commands:
   fetch    Pull TeamUp Ranked League matches for seasons 7-12, validate,
            dedupe, and upsert valid matches into Supabase.
   replay   Recalculate internal Ranked League Elo from stored matches and
            write a new Elo run with final ratings and per-match history.
+  replay-pl
+           Recalculate NSS GPI from stored matches using a time-weighted
+           batch Plackett-Luce model and write a new GPI run.
   sync     Run fetch, then replay.
+  sync-pl  Run fetch, then replay-pl.
 
 Options:
   --seasons <list>       Seasons to process. Examples: 7-12 or 7,8,9.
@@ -42,6 +56,21 @@ Options:
   --allow-incomplete     Testing only: never fail on total_matches under-fetch.
   --base-rating <number> Elo starting rating. Default: ${DEFAULT_BASE_RATING}
   --k-factor <number>    Elo K-factor. Default: ${DEFAULT_K_FACTOR}
+  --rating-scale <number>
+                         Plackett-Luce log-skill to rating scale.
+                         Default: ${DEFAULT_PL_RATING_SCALE.toFixed(6)}
+  --pl-prior <number>    Plackett-Luce population-average prior strength.
+                         Default: ${DEFAULT_PL_PRIOR_STRENGTH}
+  --pl-shrinkage-matches <number>
+                         Total matches needed before raw PL skill is mostly
+                         trusted. Default: ${DEFAULT_PL_SHRINKAGE_MATCHES}
+  --pl-recency-mode <mode>
+                         Recency weighting mode: hybrid, time, or match.
+                         Default: ${DEFAULT_PL_RECENCY_MODE}
+  --pl-iterations <number>
+                         Max Plackett-Luce fit iterations. Default: ${DEFAULT_PL_MAX_ITERATIONS}
+  --pl-tolerance <number>
+                         Plackett-Luce convergence tolerance. Default: ${DEFAULT_PL_TOLERANCE}
 
 Environment:
   NSSGOLF_SUPABASE_URL or SUPABASE_URL
@@ -417,6 +446,14 @@ function roundRating(value) {
   return Number(value.toFixed(4));
 }
 
+function roundPercentage(value) {
+  return Number(value.toFixed(6));
+}
+
+function roundMetric(value) {
+  return Number(value.toFixed(8));
+}
+
 async function insertReplayRows(supabase, tableName, rows, context) {
   for (const chunk of chunkRows(rows, 500)) {
     const { error } = await supabase.from(tableName).insert(chunk);
@@ -475,6 +512,9 @@ async function replayStoredMatches(options) {
     pairwise_losses: row.pairwise_losses,
     pairwise_ties: row.pairwise_ties,
     pairwise_games: row.pairwise_games,
+    first_place_finishes: row.first_place_finishes,
+    outcome_win_percentage: roundPercentage(row.outcome_win_percentage),
+    match_win_percentage: roundPercentage(row.match_win_percentage),
     first_played_at: row.first_played_at,
     last_played_at: row.last_played_at,
     rank: row.rank,
@@ -523,6 +563,124 @@ async function replayStoredMatches(options) {
   return runId;
 }
 
+async function replayStoredMatchesPlackettLuce(options) {
+  const supabase = createSupabaseServiceClient();
+  const storedMatches = await loadStoredMatches(supabase, options.seasons);
+  if (!storedMatches.length) {
+    throw new Error(
+      `No stored internal Ranked League matches found for seasons ${options.seasons.join(", ")}. Run fetch first.`
+    );
+  }
+
+  const replay = replayPlackettLuceGpi(storedMatches, {
+    baseRating: options.baseRating,
+    ratingScale: options.ratingScale,
+    priorStrength: options.plPrior,
+    shrinkageMatches: options.plShrinkageMatches,
+    maxIterations: options.plIterations,
+    tolerance: options.plTolerance,
+    recencyMode: options.plRecencyMode,
+  });
+
+  const runConfig = {
+    model: "plackett_luce",
+    fit_type: "batch",
+    tie_handling: "same_place_players_share_a_rank_group",
+    time_weighting: {
+      mode: options.plRecencyMode,
+      hybrid_policy: "use_the_larger_of_calendar_time_weight_and_match_order_weight",
+      latest_90_days: 1,
+      days_90_to_180: "linear_0.85_to_0.70",
+      days_180_to_365: "linear_0.65_to_0.40",
+      days_365_to_1095: "linear_0.35_to_0.15",
+      older_than_1095_days: 0.15,
+      newest_20_percent_of_matches: 1,
+      next_20_percent_of_matches: "linear_0.85_to_0.70",
+      next_30_percent_of_matches: "linear_0.65_to_0.40",
+      oldest_30_percent_of_matches: "linear_0.35_to_0.15",
+    },
+    prior_strength: options.plPrior,
+    shrinkage_matches: options.plShrinkageMatches,
+    shrinkage_basis: "total_matches_played_not_time_weighted_matches",
+    rating_scale: options.ratingScale,
+    convergence: {
+      max_iterations: options.plIterations,
+      tolerance: options.plTolerance,
+      iterations: replay.iterations,
+      converged: replay.converged,
+      max_change: replay.maxChange,
+    },
+    duplicate_policy: "exact_result_signature_within_2_minutes_skipped_before_insert",
+  };
+
+  const { data: runRow, error: runError } = await supabase
+    .from("internal_ranked_gpi_runs")
+    .insert({
+      calculation_version: GPI_CALCULATION_VERSION,
+      model: "plackett_luce",
+      base_rating: options.baseRating,
+      rating_scale: options.ratingScale,
+      season_start: Math.min(...options.seasons),
+      season_end: Math.max(...options.seasons),
+      match_count: replay.matchCount,
+      player_count: replay.finalRatings.length,
+      latest_match_at: replay.latestTimestampMs
+        ? new Date(replay.latestTimestampMs).toISOString()
+        : null,
+      config: runConfig,
+    })
+    .select("id")
+    .single();
+
+  if (runError) throw new Error(`GPI run insert failed: ${runError.message}`);
+  const runId = runRow.id;
+
+  const ratingRows = replay.finalRatings.map((row) => ({
+    run_id: runId,
+    discord_user_id: row.discord_user_id,
+    display_name: row.display_name,
+    rating: roundRating(row.rating),
+    raw_rating: roundRating(row.raw_rating),
+    ability: roundMetric(row.ability),
+    skill_log: roundMetric(row.skill_log),
+    reliability: roundPercentage(row.reliability),
+    matches_played: row.matches_played,
+    weighted_matches: roundMetric(row.weighted_matches),
+    average_match_weight: roundPercentage(row.average_match_weight),
+    pairwise_wins: row.pairwise_wins,
+    pairwise_losses: row.pairwise_losses,
+    pairwise_ties: row.pairwise_ties,
+    pairwise_games: row.pairwise_games,
+    first_place_finishes: row.first_place_finishes,
+    outcome_win_percentage: roundPercentage(row.outcome_win_percentage),
+    match_win_percentage: roundPercentage(row.match_win_percentage),
+    placement_score_average: roundPercentage(row.placement_score_average),
+    weighted_placement_score: roundPercentage(row.weighted_placement_score),
+    first_played_at: row.first_played_at,
+    last_played_at: row.last_played_at,
+    rank: row.rank,
+  }));
+
+  await insertReplayRows(
+    supabase,
+    "internal_ranked_gpi_ratings",
+    ratingRows,
+    "Final GPI rating insert failed"
+  );
+
+  console.log(
+    `GPI replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players, ${replay.iterations} PL iterations, converged=${replay.converged}.`
+  );
+  console.log("Top 10:");
+  for (const row of ratingRows.slice(0, 10)) {
+    console.log(
+      `${row.rank}. ${row.display_name || row.discord_user_id} (${row.discord_user_id}) ${row.rating} reliability=${row.reliability}`
+    );
+  }
+
+  return runId;
+}
+
 function parseOptions() {
   return {
     seasons: parseSeasons(getArg("--seasons", "7-12")),
@@ -532,12 +690,21 @@ function parseOptions() {
     allowIncomplete: hasFlag("--allow-incomplete"),
     baseRating: getNumberArg("--base-rating", DEFAULT_BASE_RATING),
     kFactor: getNumberArg("--k-factor", DEFAULT_K_FACTOR),
+    ratingScale: getNumberArg("--rating-scale", DEFAULT_PL_RATING_SCALE),
+    plPrior: getNumberArg("--pl-prior", DEFAULT_PL_PRIOR_STRENGTH),
+    plShrinkageMatches: getNumberArg(
+      "--pl-shrinkage-matches",
+      DEFAULT_PL_SHRINKAGE_MATCHES
+    ),
+    plIterations: getNumberArg("--pl-iterations", DEFAULT_PL_MAX_ITERATIONS),
+    plTolerance: getNumberArg("--pl-tolerance", DEFAULT_PL_TOLERANCE),
+    plRecencyMode: getArg("--pl-recency-mode", DEFAULT_PL_RECENCY_MODE),
   };
 }
 
 async function main() {
   const command = process.argv[2];
-  if (!command || command === "--help" || command === "-h") {
+  if (!command || command === "--help" || command === "-h" || hasFlag("--help") || hasFlag("-h")) {
     usage();
     return;
   }
@@ -548,9 +715,14 @@ async function main() {
     await fetchAndUpsert(options);
   } else if (command === "replay") {
     await replayStoredMatches(options);
+  } else if (command === "replay-pl") {
+    await replayStoredMatchesPlackettLuce(options);
   } else if (command === "sync") {
     await fetchAndUpsert(options);
     await replayStoredMatches(options);
+  } else if (command === "sync-pl") {
+    await fetchAndUpsert(options);
+    await replayStoredMatchesPlackettLuce(options);
   } else {
     usage();
     throw new Error(`Unknown command: ${command}`);

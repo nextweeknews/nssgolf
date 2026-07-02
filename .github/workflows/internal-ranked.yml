@@ -29,7 +29,9 @@ on:
           - test-fetch
           - fetch
           - replay
+          - replay-pl
           - sync
+          - sync-pl
       seasons:
         description: "Ranked League seasons for fetch/replay/sync"
         required: true
@@ -157,6 +159,32 @@ jobs:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
 
+  replay-pl:
+    name: Internal Ranked League GPI Plackett-Luce replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'replay-pl'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Replay GPI Plackett-Luce from stored matches
+        run: npm run internal-ranked:replay-pl -- --seasons "${{ github.event.inputs.seasons }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
   sync:
     name: Full internal Ranked League fetch and Elo replay
     runs-on: ubuntu-latest
@@ -179,6 +207,32 @@ jobs:
 
       - name: Fetch TeamUp matches, write Supabase, and replay Elo
         run: npm run internal-ranked:sync -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  sync-pl:
+    name: Full internal Ranked League fetch and GPI Plackett-Luce replay
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 360
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'sync-pl'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch TeamUp matches, write Supabase, and replay GPI Plackett-Luce
+        run: npm run internal-ranked:sync-pl -- --seasons "${{ github.event.inputs.seasons }}" --delay-ms "${{ github.event.inputs.delay_ms }}"
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
