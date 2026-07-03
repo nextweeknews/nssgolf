@@ -537,12 +537,17 @@
       margin-top: 18px;
     }
     .calendar-pinned-actions{
-      display:flex;
+      width: min(520px, 100%);
+      margin: 0 auto;
+      display:grid;
       gap: 10px;
-      flex-wrap: wrap;
-      align-items:center;
-      justify-content: center;
+      align-items:stretch;
       padding-top: 6px;
+    }
+    .calendar-pinned-actions .btn{
+      width: 100%;
+      justify-content: center;
+      text-align: center;
     }
     .calendar-separator{
       width: min(520px, 100%);
@@ -562,6 +567,12 @@
       grid-template-columns: 54px minmax(0, 1fr);
       align-items: start;
       gap: 10px;
+    }
+    .calendar-row .schedule-month{
+      min-height: 40px;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
     }
     .calendar-event{
       min-width:0;
@@ -711,14 +722,10 @@
         grid-template-columns: max-content minmax(0, 1fr);
       }
       .calendar-pinned-actions{
-        flex-direction: column;
-        align-items: stretch;
         padding-left: 12px;
         padding-right: 12px;
       }
       .calendar-pinned-actions .btn{
-        width:100%;
-        justify-content:center;
         min-height:44px;
       }
       .calendar-view{
@@ -727,6 +734,9 @@
       }
       .calendar-row{
         grid-template-columns: max-content minmax(0, 1fr);
+      }
+      .calendar-row .schedule-month{
+        min-height:44px;
       }
       .calendar-event .btn{
         min-height:44px;
@@ -873,6 +883,7 @@
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
     const SHEET_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const FETCH_NO_STORE = { cache:"no-store" };
     const CURRENT_DATE = new Date();
     const CURRENT_YEAR = CURRENT_DATE.getFullYear();
     const CURRENT_MONTH_INDEX = CURRENT_DATE.getMonth();
@@ -885,12 +896,12 @@
       label: String(year),
     }));
     const CALENDAR_EVENTS = [
-      { year:2024, month:10, title:"World Cup", href:"/worldcup.html?year=2024", className:"royal-blue", winnerLoader:"worldCup2024" },
-      { year:2025, month:10, title:"World Cup", href:"/worldcup.html?year=2025", className:"royal-blue", winnerLoader:"worldCup2025" },
-      { year:CURRENT_YEAR, month:0, title:"World Open", href:"/worldopen", className:"neon-green", winnerLoader:"worldOpen2026" },
-      { year:CURRENT_YEAR, month:3, title:"Super League S6", href:"/superleague/index.html", className:"neon-purple", winnerLoader:"superLeagueS6" },
-      { year:CURRENT_YEAR, month:4, title:"Lightning Cup", href:"/lightningcup/index.html", className:"neon-yellow", winnerLoader:"lightningCup2026" },
-      { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026" },
+      { year:2024, month:10, title:"World Cup", href:"/worldcup.html?year=2024", className:"royal-blue", winnerLoader:"worldCup2024", fallbackWinner:{ name:"Taiwan", displayName:"Taiwan", avatarUrl:"/assets/flag-icons/4x3/tw.svg" } },
+      { year:2025, month:10, title:"World Cup", href:"/worldcup.html?year=2025", className:"royal-blue", winnerLoader:"worldCup2025", fallbackWinner:{ name:"USA A", displayName:"USA A", avatarUrl:"/assets/flag-icons/4x3/us.svg" } },
+      { year:CURRENT_YEAR, month:0, title:"World Open", href:"/worldopen", className:"neon-green", winnerLoader:"worldOpen2026", fallbackWinner:{ name:"Duke07" } },
+      { year:CURRENT_YEAR, month:3, title:"Super League S6", href:"/superleague/index.html", className:"neon-purple", winnerLoader:"superLeagueS6", fallbackWinner:{ name:"Duke07" } },
+      { year:CURRENT_YEAR, month:4, title:"Lightning Cup", href:"/lightningcup/index.html", className:"neon-yellow", winnerLoader:"lightningCup2026", fallbackWinner:{ name:"Hunter" } },
+      { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026", fallbackWinner:{ name:"Duke07" } },
       { year:CURRENT_YEAR, month:6, title:"World Championship", href:"/championship.html", className:"light-green", winnerLoader:"worldChampionship2026" },
       { year:CURRENT_YEAR, month:7, title:"World Golf Masters", href:"/masters.html", className:"gold" },
       { year:CURRENT_YEAR, month:8, title:"Super League S7", href:"/superleague/index.html", className:"neon-purple" },
@@ -949,6 +960,7 @@
 
     function normalizeSheetValues(payload){
       if(Array.isArray(payload)) return payload;
+      if(payload?.error) throw new Error(payload.error.message || "Google Sheets request failed.");
       if(Array.isArray(payload?.values)) return payload.values;
       if(Array.isArray(payload?.data?.values)) return payload.data.values;
       if(Array.isArray(payload?.result?.values)) return payload.result.values;
@@ -956,10 +968,87 @@
     }
 
     async function fetchSheetRange(sheetId, range){
+      const payload = { sheetId, range };
+
+      try{
+        const response = await fetch(SHEET_WORKER_URL, {
+          ...FETCH_NO_STORE,
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify(payload),
+        });
+        if(response.ok) return normalizeSheetValues(await response.json());
+      }catch{
+      }
+
+      try{
+        const url = new URL(SHEET_WORKER_URL);
+        url.searchParams.set("sheetId", sheetId);
+        url.searchParams.set("range", range);
+        const response = await fetch(url.toString(), FETCH_NO_STORE);
+        if(response.ok) return normalizeSheetValues(await response.json());
+      }catch{
+      }
+
+      return fetchSheetRangeGviz(sheetId, range);
+    }
+
+    function parseSheetRange(range){
+      const text = normalizeSearchText(range);
+      const match = text.match(/^'([^']+)'!(.+)$/) || text.match(/^([^!]+)!(.+)$/);
+      if(match) return { sheetName:match[1], a1:match[2] };
+      return { sheetName:"", a1:text };
+    }
+
+    function parseGvizResponse(text){
+      const match = String(text || "").match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/s);
+      if(!match) throw new Error("Unable to parse Google Sheets response.");
+      const payload = JSON.parse(match[1]);
+      const rows = payload?.table?.rows ?? [];
+      return rows.map(row => (row.c ?? []).map(cell => cell?.v ?? ""));
+    }
+
+    async function fetchSheetRangeGviz(sheetId, range){
+      const { sheetName, a1 } = parseSheetRange(range);
+      const url = new URL(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq`);
+      url.searchParams.set("tqx", "out:json");
+      if(sheetName) url.searchParams.set("sheet", sheetName);
+      if(a1) url.searchParams.set("range", a1);
+      const response = await fetch(url.toString(), FETCH_NO_STORE);
+      if(!response.ok){
+        const text = await response.text().catch(() => "");
+        throw new Error(`Google Sheets request failed (${response.status}). ${text}`.trim());
+      }
+      return parseGvizResponse(await response.text());
+    }
+
+    async function fetchSheetRanges(sheetId, ranges){
+      const payload = { sheetId, ranges };
+      try{
+        const response = await fetch(SHEET_WORKER_URL, {
+          ...FETCH_NO_STORE,
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify(payload),
+        });
+        if(response.ok){
+          const payload = await response.json();
+          const valueRanges = Array.isArray(payload?.valueRanges) ? payload.valueRanges : [];
+          if(valueRanges.length){
+            return valueRanges.map(valueRange => normalizeSheetValues(valueRange));
+          }
+        }
+      }catch{
+      }
+
+      return Promise.all(ranges.map(range => fetchSheetRange(sheetId, range)));
+    }
+
+    async function fetchSheetRangeDirect(sheetId, range){
       const url = new URL(SHEET_WORKER_URL);
       url.searchParams.set("sheetId", sheetId);
       url.searchParams.set("range", range);
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), FETCH_NO_STORE);
       if(!response.ok) throw new Error(`Sheet request failed (${response.status})`);
       return normalizeSheetValues(await response.json());
     }
@@ -1028,7 +1117,7 @@
             <a class="btn ${escapeHtml(event.className)}" href="${escapeHtml(event.href)}" aria-label="Go to ${escapeHtml(event.title)}">
               ${escapeHtml(event.title)}
             </a>
-            ${statusMarkup(event)}
+            ${statusMarkup(event, event.fallbackWinner)}
           </div>
         </div>
       `;
@@ -1078,7 +1167,7 @@
         if(!winnerCache.has(event.winnerLoader)){
           winnerCache.set(event.winnerLoader, Promise.resolve(WINNER_LOADERS[event.winnerLoader]()).catch(() => null));
         }
-        const winner = await winnerCache.get(event.winnerLoader);
+        const winner = await winnerCache.get(event.winnerLoader) || event.fallbackWinner;
         if(String(event.year) !== activeCalendarYear) return;
         if(winner?.name){
           updateEventStatus(event, await enrichWinnerProfile(winner));
@@ -1243,7 +1332,9 @@
         fetchSheetRange(sheetId, sheetRange("Discord IDs", "A:B")).catch(() => []),
       ]);
       const championship = parseSuperLeaguePlayoffRows(playoffRows)[2];
-      const name = championship?.p1?.result === "W" ? championship.p1.name : championship?.p2?.result === "W" ? championship.p2.name : "";
+      const name = championship?.p1?.result === "W" ? championship.p1.name
+        : championship?.p2?.result === "W" ? championship.p2.name
+        : "";
       if(!name) return null;
       const discordId = (discordRows || []).find(row => normalizeNameKey(row?.[1]) === normalizeNameKey(name))?.[0] || "";
       return { name, discordId };
