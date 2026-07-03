@@ -42,16 +42,18 @@
     }
 
     .page-head{
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      gap:20px;
       margin-bottom:18px;
       padding:16px 18px;
       border:1px solid rgba(255,255,255,.10);
       border-radius:8px;
       background:rgba(3,18,42,.70);
       backdrop-filter:blur(10px);
+    }
+
+    .page-title-row{
+      display:flex;
+      align-items:center;
+      gap:16px;
     }
 
     h1{
@@ -74,19 +76,18 @@
       flex:0 0 auto;
     }
 
-    .subtitle{
-      margin:8px 0 0;
-      color:var(--muted);
-      font-size:14px;
-    }
-
     .run-meta{
       display:flex;
       flex-wrap:wrap;
-      justify-content:flex-end;
+      justify-content:flex-start;
       gap:8px;
       color:var(--muted);
       font-size:12px;
+    }
+
+    .run-meta .pill{
+      min-width:132px;
+      text-align:center;
     }
 
     .table-controls{
@@ -238,7 +239,7 @@
       border-radius:8px;
       background:var(--panel);
       box-shadow:var(--shadow);
-      overflow:hidden;
+      overflow:visible;
     }
 
     .prediction-tool-head{
@@ -258,13 +259,6 @@
       letter-spacing:0;
     }
 
-    .prediction-actions{
-      display:flex;
-      align-items:center;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-
     .prediction-tool-body{
       display:grid;
       gap:16px;
@@ -279,6 +273,10 @@
 
     .player-search{
       position:relative;
+    }
+
+    .player-search:focus-within{
+      z-index:50;
     }
 
     .player-search-input{
@@ -320,14 +318,14 @@
       height:26px;
       display:grid;
       place-items:center;
-      border:1px solid rgba(148,163,184,.22);
-      border-radius:999px;
-      background:rgba(15,23,42,.82);
+      border:0;
+      border-radius:0;
+      background:transparent;
       color:rgba(226,232,240,.88);
       cursor:pointer;
       opacity:0;
       pointer-events:none;
-      transition:opacity .14s ease, border-color .14s ease, color .14s ease;
+      transition:opacity .14s ease, color .14s ease;
     }
 
     .player-search[data-has-value="true"]:focus-within .player-search-clear{
@@ -337,7 +335,6 @@
 
     .player-search-clear:hover,
     .player-search-clear:focus-visible{
-      border-color:rgba(203,213,225,.58);
       color:#fff;
       outline:none;
     }
@@ -350,7 +347,7 @@
 
     .player-search-results{
       position:absolute;
-      z-index:20;
+      z-index:100;
       top:calc(100% + 8px);
       left:0;
       right:0;
@@ -464,25 +461,42 @@
 
     .prediction-matchup{
       display:grid;
-      grid-template-columns:minmax(0, 1fr) minmax(120px, 180px) minmax(0, 1fr);
-      gap:10px;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
       align-items:stretch;
     }
 
-    .prediction-side,
-    .prediction-center{
+    .prediction-side{
       min-width:0;
       display:grid;
-      align-content:center;
-      gap:7px;
+      grid-template-rows:auto auto minmax(120px, 1fr);
+      gap:12px;
       border:1px solid var(--line);
       border-radius:8px;
       background:#181b20;
-      padding:12px;
+      padding:14px;
       text-align:center;
     }
 
+    .prediction-player-head{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+    }
+
+    .prediction-avatar{
+      width:44px;
+      height:44px;
+      flex:0 0 auto;
+      border-radius:999px;
+      background:rgba(148,163,184,.16);
+      object-fit:cover;
+    }
+
     .prediction-player-name{
+      min-width:0;
       overflow:hidden;
       color:var(--text);
       font-weight:900;
@@ -490,25 +504,42 @@
       white-space:nowrap;
     }
 
-    .prediction-rating{
-      color:var(--muted);
-      font-size:12px;
+    .prediction-gpi{
+      display:flex;
+      align-items:baseline;
+      justify-content:center;
+      gap:7px;
       font-variant-numeric:tabular-nums;
+    }
+
+    .prediction-gpi-label{
+      color:var(--muted);
+      font-weight:500;
+      font-size:12px;
+    }
+
+    .prediction-gpi-value{
+      color:var(--text);
+      font-weight:900;
+      font-size:16px;
+    }
+
+    .prediction-probability-panel{
+      min-height:120px;
+      display:grid;
+      place-items:center;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:8px;
+      background:rgba(2,6,23,.34);
+      padding:16px;
     }
 
     .prediction-percent{
-      font-size:28px;
+      color:#fff;
+      font-size:clamp(42px, 7vw, 72px);
       font-weight:950;
       line-height:1;
       font-variant-numeric:tabular-nums;
-    }
-
-    .prediction-center-label{
-      color:var(--muted);
-      font-size:10px;
-      font-weight:850;
-      letter-spacing:.08em;
-      text-transform:uppercase;
     }
 
     .prediction-bar{
@@ -1047,13 +1078,10 @@
         padding-top:22px;
       }
 
-      .page-head{
-        display:block;
-      }
-
-      .run-meta{
-        justify-content:flex-start;
-        margin-top:14px;
+      .page-title-row{
+        align-items:flex-start;
+        flex-direction:column;
+        gap:12px;
       }
 
       .modal-backdrop{
@@ -1115,10 +1143,6 @@
       .prediction-select-grid,
       .prediction-matchup{
         grid-template-columns:1fr;
-      }
-
-      .prediction-percent{
-        font-size:24px;
       }
 
       .detail-cell{
@@ -1279,14 +1303,13 @@
 <body>
   <main>
     <header class="page-head">
-      <div>
+      <div class="page-title-row">
         <h1 class="page-title">
           <img class="title-logo" src="/logos/golf.png" alt="" />
           <span>Golf Power Index</span>
         </h1>
-        <p id="pageSubtitle" class="subtitle">Ranked League rating</p>
+        <div id="runMeta" class="run-meta"><span class="pill">- Matches Tracked</span></div>
       </div>
-      <div id="runMeta" class="run-meta" hidden></div>
     </header>
 
     <div class="gpi-tabs" role="tablist" aria-label="NSS GPI leaderboards">
@@ -1321,9 +1344,6 @@
       <section class="prediction-tool" aria-label="Match predictor">
         <header class="prediction-tool-head">
           <h2>Match Predictor</h2>
-          <div class="prediction-actions">
-            <button id="predictionSwap" class="pager-button" type="button">Swap</button>
-          </div>
         </header>
         <div class="prediction-tool-body">
           <div class="prediction-select-grid">
@@ -1358,7 +1378,8 @@
             <label class="prediction-field">
               <span class="prediction-label">Match Format</span>
               <select class="prediction-select" id="predictionSeriesLength" aria-label="Select prediction match format">
-                <option value="3" selected>Best of 3</option>
+                <option value="1" selected>Single match</option>
+                <option value="3">Best of 3</option>
                 <option value="5">Best of 5</option>
                 <option value="7">Best of 7</option>
                 <option value="9">Best of 9</option>
@@ -1384,7 +1405,7 @@
       <div class="about-section">
         <h2>Overall GPI</h2>
         <p>
-          Overall GPI uses the Ranked League rating as the baseline, then applies a reliability-weighted tournament adjustment after translating tournament performance onto the Ranked League scale.
+          Overall GPI uses the Ranked League rating as the baseline, then applies a reliability-weighted tournament adjustment after translating tournament performance onto the Ranked League scale. Players without a Ranked rating receive a provisional GPI from tournament rating and tournament strength of schedule.
         </p>
         <ul class="formula-list">
           <li>
@@ -1409,6 +1430,11 @@
           <li>
             <span class="formula-label">Total</span>
             <code>total_gpi = ranked_rating + tournament_delta</code>
+          </li>
+          <li>
+            <span class="formula-label">Provisional</span>
+            <code>tournament_sos = average opponent tournament rating</code>
+            <code>provisional_gpi = 0.75 * tournament_rating_on_ranked_scale + 0.25 * tournament_sos_on_ranked_scale</code>
           </li>
         </ul>
       </div>
@@ -1492,7 +1518,6 @@
 
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("status");
-    const pageSubtitleEl = document.getElementById("pageSubtitle");
     const leaderboardEl = document.getElementById("leaderboard");
     const leaderboardTableEl = document.getElementById("leaderboardTable");
     const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
@@ -1507,7 +1532,6 @@
     const predictionPlayerResultsBEl = document.getElementById("predictionPlayerResultsB");
     const predictionClearAEl = document.getElementById("predictionClearA");
     const predictionClearBEl = document.getElementById("predictionClearB");
-    const predictionSwapEl = document.getElementById("predictionSwap");
     const predictionSeriesLengthEl = document.getElementById("predictionSeriesLength");
     const predictionMatchupEl = document.getElementById("predictionMatchup");
     const tournamentProjectionEl = document.getElementById("tournamentProjection");
@@ -1525,6 +1549,8 @@
     const COMBINED_TANH_SCALE = 1.5;
     const COMBINED_POSITIVE_SCALE = 120;
     const COMBINED_NEGATIVE_SCALE = 60;
+    const COMBINED_PROVISIONAL_TOURNAMENT_WEIGHT = 0.75;
+    const COMBINED_PROVISIONAL_SOS_WEIGHT = 0.25;
     const PLAYER_SEARCH_LIMIT = 8;
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const FETCH_NO_STORE = { cache:"no-store" };
@@ -1638,7 +1664,7 @@
     let predictionRows = [];
     let predictionSearchRows = [];
     let selectedPredictionPlayers = { a:null, b:null };
-    let predictionSeriesGames = CHAMPIONSHIP_SERIES_GAMES;
+    let predictionSeriesGames = 1;
     const HISTORICAL_GPI_WIN_CURVE = [
       { delta:0, probability:.5 },
       { delta:25, probability:.5 },
@@ -1819,6 +1845,28 @@
       return rows;
     }
 
+    async function loadTournamentStrengthMatches(){
+      const rows = [];
+      const pageSize = 1000;
+      let from = 0;
+
+      while(true){
+        const { data, error } = await supabase
+          .from("internal_tournament_matches")
+          .select("match_hash,event_order,match_order,player_a_discord_user_id,player_b_discord_user_id")
+          .order("event_order", { ascending:true })
+          .order("match_order", { ascending:true })
+          .order("match_hash", { ascending:true })
+          .range(from, from + pageSize - 1);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return rows;
+    }
+
     function numericStats(values){
       const cleanValues = values.map(Number).filter(Number.isFinite);
       if(cleanValues.length === 0) return { mean:0, std:1 };
@@ -1830,6 +1878,10 @@
 
     function zScore(value, stats){
       return (Number(value) - stats.mean) / stats.std;
+    }
+
+    function normalizeRatingToStats(value, sourceStats, targetStats){
+      return targetStats.mean + (zScore(value, sourceStats) * targetStats.std);
     }
 
     function tournamentAdjustmentFromDelta(deltaZ, reliability){
@@ -1857,8 +1909,11 @@
 
     function renderRunMeta(run){
       const config = activeConfig();
-      runMetaEl.hidden = false;
       runMetaEl.innerHTML = config.meta(run).map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
+    }
+
+    function renderRunMetaPlaceholder(){
+      runMetaEl.innerHTML = `<span class="pill">- Matches Tracked</span>`;
     }
 
     function memberDisplayName(row, member){
@@ -1889,7 +1944,7 @@
           <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
           <th>Player</th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">GPI</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating">Ranked Rating</button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating"><span class="desktop-label">Ranked / Provisional</span><span class="mobile-label">Ranked/Prov.</span></button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta"><span class="desktop-label">Tournament Delta</span><span class="mobile-label">Tourney Delta</span></button></th>
         `;
         return;
@@ -1988,7 +2043,40 @@
       return rows;
     }
 
-    function buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById){
+    function buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches){
+      const ratingById = new Map(
+        tournamentRatings
+          .map((row) => [normalizeDiscordId(row.discord_user_id), Number(row.rating)])
+          .filter(([discordId, rating]) => discordId && Number.isFinite(rating))
+      );
+      const scheduleById = new Map();
+
+      const addOpponent = (discordId, opponentRating) => {
+        if(!discordId || !Number.isFinite(opponentRating)) return;
+        const current = scheduleById.get(discordId) || { total:0, count:0 };
+        current.total += opponentRating;
+        current.count += 1;
+        scheduleById.set(discordId, current);
+      };
+
+      for(const match of tournamentMatches || []){
+        const playerA = normalizeDiscordId(match.player_a_discord_user_id);
+        const playerB = normalizeDiscordId(match.player_b_discord_user_id);
+        const ratingA = ratingById.get(playerA);
+        const ratingB = ratingById.get(playerB);
+        addOpponent(playerA, ratingB);
+        addOpponent(playerB, ratingA);
+      }
+
+      return new Map(
+        [...scheduleById.entries()].map(([discordId, schedule]) => [
+          discordId,
+          schedule.count > 0 ? schedule.total / schedule.count : null,
+        ])
+      );
+    }
+
+    function buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches = []){
       const rankedRows = [];
       const tournamentById = new Map(
         tournamentRatings
@@ -2015,6 +2103,7 @@
           rankedMatches,
         });
       }
+      const qualifiedRankedIds = new Set(rankedRows.map((row) => row.discord_user_id));
 
       const bridgeRows = rankedRows.filter((row) =>
         row.tournamentRow &&
@@ -2022,6 +2111,7 @@
       );
       const rankedStats = numericStats(bridgeRows.map((row) => row.rankedRating));
       const tournamentStats = numericStats(bridgeRows.map((row) => Number(row.tournamentRow.rating) || 0));
+      const tournamentStrengthById = buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches);
       const hasBridge = bridgeRows.length >= 2;
 
       const rows = rankedRows.map((row) => {
@@ -2072,6 +2162,65 @@
           matchesNumber: row.rankedMatches,
         };
       });
+
+      for(const tournamentRow of tournamentRatings){
+        const discordId = normalizeDiscordId(tournamentRow.discord_user_id);
+        const member = membersById.get(discordId);
+        if(!discordId || member?.is_current_member !== true) continue;
+        if(qualifiedRankedIds.has(discordId)) continue;
+
+        const tournamentMatches = Number(tournamentRow.matches_played) || 0;
+        if(tournamentMatches < VIEW_CONFIG.tournament.minMatches) continue;
+
+        const tournamentRating = Number(tournamentRow.rating) || 0;
+        const tournamentWeightedMatches = Number(tournamentRow.weighted_matches) || 0;
+        const tournamentStrengthOfSchedule = tournamentStrengthById.get(discordId);
+        const normalizedTournamentRating = hasBridge
+          ? normalizeRatingToStats(tournamentRating, tournamentStats, rankedStats)
+          : tournamentRating;
+        const normalizedStrengthOfSchedule = Number.isFinite(tournamentStrengthOfSchedule)
+          ? (
+              hasBridge
+                ? normalizeRatingToStats(tournamentStrengthOfSchedule, tournamentStats, rankedStats)
+                : tournamentStrengthOfSchedule
+            )
+          : normalizedTournamentRating;
+        const provisionalRating =
+          (COMBINED_PROVISIONAL_TOURNAMENT_WEIGHT * normalizedTournamentRating) +
+          (COMBINED_PROVISIONAL_SOS_WEIGHT * normalizedStrengthOfSchedule);
+
+        rows.push({
+          ...tournamentRow,
+          discord_user_id: discordId,
+          member,
+          displayName: memberDisplayName(tournamentRow, member),
+          avatarUrl: memberAvatarUrl(member),
+          rankNumber: 0,
+          rank: "",
+          rating: provisionalRating,
+          ratingNumber: provisionalRating,
+          rankedRating: provisionalRating,
+          rankedRatingNumber: provisionalRating,
+          rankedRatingProvisional: true,
+          rankedRank: 0,
+          lifetimeRating: null,
+          potentialRating: null,
+          recentRating: null,
+          tournamentRating,
+          tournamentRank: Number(tournamentRow.rank) || 0,
+          tournamentDelta: null,
+          tournamentDeltaNumber: null,
+          tournamentDeltaZ: 0,
+          tournamentReliability: Math.min(
+            1,
+            Math.max(0, tournamentWeightedMatches / COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES)
+          ),
+          tournamentMatches,
+          tournamentWeightedMatches,
+          tournamentStrengthOfSchedule,
+          matchesNumber: tournamentMatches,
+        });
+      }
 
       rows.sort((left, right) =>
         right.ratingNumber - left.ratingNumber ||
@@ -2139,24 +2288,15 @@
 
     function selectedPredictionSeriesGames(){
       const games = Number(predictionSeriesLengthEl?.value || predictionSeriesGames);
-      return [3, 5, 7, 9].includes(games) ? games : CHAMPIONSHIP_SERIES_GAMES;
+      return [1, 3, 5, 7, 9].includes(games) ? games : 1;
     }
 
     function championshipSeriesGamesForRound(round){
       return CHAMPIONSHIP_SERIES_GAMES_BY_ROUND[round] || CHAMPIONSHIP_SERIES_GAMES;
     }
 
-    function predictionConfidenceLabel(delta){
-      const cleanDelta = Math.abs(Number(delta) || 0);
-      if(cleanDelta < 25) return "Toss-up";
-      if(cleanDelta < 75) return "Lean";
-      if(cleanDelta < 150) return "Edge";
-      if(cleanDelta < 250) return "Strong edge";
-      return "Heavy favorite";
-    }
-
     function predictionPlayerLabel(row){
-      return row ? `${row.displayName} (${formatRating(row.ratingNumber)})` : "";
+      return row ? row.displayName : "";
     }
 
     function predictionUsername(row){
@@ -2237,7 +2377,7 @@
 
         const displayName = document.createElement("span");
         displayName.className = "player-search-display";
-        displayName.textContent = predictionPlayerLabel(row);
+        displayName.textContent = row.displayName;
 
         const username = document.createElement("span");
         username.className = "player-search-username";
@@ -2308,25 +2448,33 @@
       const seriesGames = selectedPredictionSeriesGames();
       const leftProbability = seriesWinProbability(predictionProbability(left, right), seriesGames);
       const rightProbability = 1 - leftProbability;
-      const delta = Number(left.ratingNumber) - Number(right.ratingNumber);
-      const favorite = delta >= 0 ? left : right;
-      const confidence = predictionConfidenceLabel(delta);
       predictionMatchupEl.innerHTML = `
         <div class="prediction-matchup">
           <div class="prediction-side">
-            <span class="prediction-player-name">${escapeHtml(left.displayName)}</span>
-            <span class="prediction-rating">GPI ${escapeHtml(formatRating(left.ratingNumber))}</span>
-            <span class="prediction-percent">${escapeHtml(formatPercent(leftProbability))}</span>
-          </div>
-          <div class="prediction-center">
-            <span class="prediction-center-label">Series Favorite</span>
-            <span class="prediction-player-name">${escapeHtml(favorite.displayName)}</span>
-            <span class="prediction-rating">Best of ${escapeHtml(seriesGames)} · ${escapeHtml(confidence)}</span>
+            <div class="prediction-player-head">
+              <img class="prediction-avatar" src="${escapeHtml(left.avatarUrl || "/logos/golf.png")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+              <span class="prediction-player-name">${escapeHtml(left.displayName)}</span>
+            </div>
+            <div class="prediction-gpi">
+              <span class="prediction-gpi-label">GPI</span>
+              <span class="prediction-gpi-value">${escapeHtml(formatRating(left.ratingNumber))}</span>
+            </div>
+            <div class="prediction-probability-panel">
+              <span class="prediction-percent">${escapeHtml(formatPercent(leftProbability))}</span>
+            </div>
           </div>
           <div class="prediction-side">
-            <span class="prediction-player-name">${escapeHtml(right.displayName)}</span>
-            <span class="prediction-rating">GPI ${escapeHtml(formatRating(right.ratingNumber))}</span>
-            <span class="prediction-percent">${escapeHtml(formatPercent(rightProbability))}</span>
+            <div class="prediction-player-head">
+              <img class="prediction-avatar" src="${escapeHtml(right.avatarUrl || "/logos/golf.png")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+              <span class="prediction-player-name">${escapeHtml(right.displayName)}</span>
+            </div>
+            <div class="prediction-gpi">
+              <span class="prediction-gpi-label">GPI</span>
+              <span class="prediction-gpi-value">${escapeHtml(formatRating(right.ratingNumber))}</span>
+            </div>
+            <div class="prediction-probability-panel">
+              <span class="prediction-percent">${escapeHtml(formatPercent(rightProbability))}</span>
+            </div>
           </div>
         </div>
         <div class="prediction-bar" aria-hidden="true">
@@ -2743,9 +2891,9 @@
                   <span class="player-name">${escapeHtml(row.displayName)}</span>
                 </button>
               </td>
-              <td class="rating-cell main-rating-cell right">${escapeHtml(formatRating(row.rating))}</td>
-              <td class="rating-cell secondary-rating-cell right">${escapeHtml(formatRating(row.rankedRating))}</td>
-              <td class="rating-cell secondary-rating-cell rating-delta-cell right ${escapeHtml(deltaClass(row.tournamentDelta))}">${escapeHtml(formatSignedRating(row.tournamentDelta))}</td>
+              <td class="rating-cell main-rating-cell right">${ratingValue(row.rating)}</td>
+              <td class="rating-cell secondary-rating-cell right">${ratingValue(row.rankedRating)}</td>
+              <td class="rating-cell secondary-rating-cell rating-delta-cell right ${escapeHtml(deltaClass(row.tournamentDelta))}">${signedRatingValue(row.tournamentDelta)}</td>
             </tr>
           `;
         }).join("");
@@ -2858,12 +3006,17 @@
       ]);
       if(!rankedRun || !tournamentRun) return;
 
-      const [rankedRatings, tournamentRatings] = await Promise.all([
+      const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
+        loadTournamentStrengthMatches(),
       ]);
-      const membersById = await loadMembers(rankedRatings.map(row => row.discord_user_id));
-      cacheCombinedRows(buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById));
+      const ids = [
+        ...rankedRatings.map(row => row.discord_user_id),
+        ...tournamentRatings.map(row => row.discord_user_id),
+      ];
+      const membersById = await loadMembers(ids);
+      cacheCombinedRows(buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches));
     }
 
     function fallbackModalRow(row){
@@ -2878,6 +3031,7 @@
         tournamentRating: currentView === "tournament" ? Number(row?.ratingNumber) : null,
         tournamentRank: currentView === "tournament" ? Number(row?.rankNumber) : null,
         tournamentDelta: null,
+        tournamentStrengthOfSchedule: null,
       };
     }
 
@@ -2892,7 +3046,9 @@
       const row = leaderboardRows.find(candidate => candidate.discord_user_id === discordId);
       if(!row) return;
       const profileRow = await profileRowForModal(discordId, row);
-      const recentDelta = Number(profileRow.recentRating) - Number(profileRow.lifetimeRating);
+      const recentRating = finiteValue(profileRow.recentRating);
+      const lifetimeRating = finiteValue(profileRow.lifetimeRating);
+      const recentDelta = recentRating == null || lifetimeRating == null ? null : recentRating - lifetimeRating;
 
       modalPlayerHeadEl.innerHTML = `
         <img class="avatar" src="${escapeHtml(profileRow.avatarUrl || row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
@@ -2909,7 +3065,7 @@
           <div class="detail-grid">
             <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${rankValue(profileRow.rankNumber)}</span></div>
             <div class="detail-cell"><span class="detail-label">GPI</span><span class="detail-value">${ratingValue(profileRow.rating)}</span></div>
-            <div class="detail-cell"><span class="detail-label">Ranked Rating</span><span class="detail-value">${ratingValue(profileRow.rankedRating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">${profileRow.rankedRatingProvisional ? "Provisional Rating" : "Ranked Rating"}</span><span class="detail-value">${ratingValue(profileRow.rankedRating)}</span></div>
             <div class="detail-cell"><span class="detail-label">Tournament Delta</span><span class="detail-value">${signedRatingValue(profileRow.tournamentDelta)}</span></div>
           </div>
         </section>
@@ -2930,6 +3086,7 @@
           <div class="detail-grid">
             <div class="detail-cell"><span class="detail-label">Rank</span><span class="detail-value">${rankValue(profileRow.tournamentRank)}</span></div>
             <div class="detail-cell"><span class="detail-label">Rating</span><span class="detail-value">${ratingValue(profileRow.tournamentRating)}</span></div>
+            <div class="detail-cell"><span class="detail-label">Strength of Schedule</span><span class="detail-value">${ratingValue(profileRow.tournamentStrengthOfSchedule)}</span></div>
           </div>
           <details id="tournamentMatchDetails" class="modal-details" data-player-id="${escapeHtml(discordId)}">
             <summary>Show tournament matches</summary>
@@ -2999,7 +3156,7 @@
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
       renderTableHeader();
-      pageSubtitleEl.textContent = config.subtitle;
+      renderRunMetaPlaceholder();
       if(config.kind === "about"){
         renderAboutPage();
         return;
@@ -3018,7 +3175,6 @@
       if(requestId !== loadRequestId) return;
       if(!latestRun){
         leaderboardEl.hidden = true;
-        runMetaEl.hidden = true;
         setStatus(config.noRunMessage);
         return;
       }
@@ -3042,21 +3198,24 @@
 
       if(!rankedRun || !tournamentRun){
         leaderboardEl.hidden = true;
-        runMetaEl.hidden = true;
         setStatus(VIEW_CONFIG.gpi.noRunMessage);
         return false;
       }
 
       latestRun = { ranked: rankedRun, tournament: tournamentRun };
-      const [rankedRatings, tournamentRatings] = await Promise.all([
+      const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
+        loadTournamentStrengthMatches(),
       ]);
       if(requestId !== loadRequestId) return false;
-      const ids = rankedRatings.map(row => row.discord_user_id);
+      const ids = [
+        ...rankedRatings.map(row => row.discord_user_id),
+        ...tournamentRatings.map(row => row.discord_user_id),
+      ];
       const membersById = await loadMembers(ids);
       if(requestId !== loadRequestId) return false;
-      allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
+      allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches);
       cacheCombinedRows(allLeaderboardRows);
       totalRatings = allLeaderboardRows.length;
       await loadLeaderboardPage(0);
@@ -3078,12 +3237,17 @@
       }
 
       latestRun = { ranked: rankedRun, tournament: tournamentRun };
-      const [rankedRatings, tournamentRatings] = await Promise.all([
+      const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
+        loadTournamentStrengthMatches(),
       ]);
-      const membersById = await loadMembers(rankedRatings.map(row => row.discord_user_id));
-      const rows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
+      const ids = [
+        ...rankedRatings.map(row => row.discord_user_id),
+        ...tournamentRatings.map(row => row.discord_user_id),
+      ];
+      const membersById = await loadMembers(ids);
+      const rows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches);
       cacheCombinedRows(rows);
       return rows;
     }
@@ -3092,8 +3256,7 @@
       leaderboardEl.hidden = true;
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
-      runMetaEl.hidden = true;
-      runMetaEl.innerHTML = "";
+      renderRunMetaPlaceholder();
       setStatus("Loading predictions...");
 
       const [rows, championshipMatches] = await Promise.all([
@@ -3133,8 +3296,7 @@
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
       predictionPanelEl.hidden = true;
-      runMetaEl.hidden = true;
-      runMetaEl.innerHTML = "";
+      renderRunMetaPlaceholder();
       hideStatus();
       aboutPanelEl.hidden = false;
     }
@@ -3153,8 +3315,7 @@
       leaderboardBodyEl.innerHTML = "";
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
-      runMetaEl.hidden = true;
-      runMetaEl.innerHTML = "";
+      renderRunMetaPlaceholder();
       setStatus("Loading...");
       closePlayerModal();
       loadPage().catch((error) => {
@@ -3236,15 +3397,6 @@
 
     predictionSeriesLengthEl.addEventListener("change", () => {
       predictionSeriesGames = selectedPredictionSeriesGames();
-      renderMatchupPrediction();
-    });
-
-    predictionSwapEl.addEventListener("click", () => {
-      const leftPlayer = selectedPredictionPlayers.a;
-      selectedPredictionPlayers.a = selectedPredictionPlayers.b;
-      selectedPredictionPlayers.b = leftPlayer;
-      renderSelectedPredictionInput("a");
-      renderSelectedPredictionInput("b");
       renderMatchupPrediction();
     });
 
