@@ -174,134 +174,6 @@
       overflow:hidden;
     }
 
-    .analysis-panel{
-      display:grid;
-      gap:14px;
-    }
-
-    .analysis-card{
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:var(--panel);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .analysis-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:14px;
-      padding:16px 18px;
-      border-bottom:1px solid var(--line);
-      background:var(--panel-2);
-    }
-
-    .analysis-head h2{
-      margin:0;
-      font-size:18px;
-      line-height:1.2;
-      letter-spacing:0;
-    }
-
-    .analysis-note{
-      max-width:72ch;
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.45;
-    }
-
-    .analysis-verdict{
-      flex:0 0 auto;
-      border:1px solid rgba(110,231,183,.38);
-      border-radius:999px;
-      background:rgba(16,185,129,.12);
-      color:#bbf7d0;
-      padding:7px 10px;
-      font-size:12px;
-      font-weight:850;
-      white-space:nowrap;
-    }
-
-    .analysis-body{
-      display:grid;
-      gap:16px;
-      padding:16px 18px 18px;
-    }
-
-    .metric-grid{
-      display:grid;
-      grid-template-columns:repeat(5, minmax(0, 1fr));
-      gap:8px;
-    }
-
-    .metric-cell{
-      min-width:0;
-      min-height:82px;
-      display:grid;
-      align-content:center;
-      gap:6px;
-      padding:12px 10px;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#181b20;
-      text-align:center;
-    }
-
-    .metric-label{
-      color:var(--muted);
-      font-size:10px;
-      font-weight:850;
-      line-height:1.18;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-    }
-
-    .metric-value{
-      color:var(--text);
-      font-size:20px;
-      font-weight:900;
-      line-height:1.05;
-      font-variant-numeric:tabular-nums;
-    }
-
-    .analysis-table-wrap{
-      overflow:auto;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#181b20;
-    }
-
-    .analysis-table{
-      min-width:640px;
-      box-shadow:none;
-    }
-
-    .analysis-table th,
-    .analysis-table td{
-      padding:10px 12px;
-      text-align:right;
-    }
-
-    .analysis-table th:first-child,
-    .analysis-table td:first-child{
-      text-align:left;
-    }
-
-    .analysis-summary{
-      display:grid;
-      gap:7px;
-      margin:0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.45;
-    }
-
-    .analysis-summary strong{
-      color:var(--text);
-    }
-
     .about-section{
       padding:20px;
       border-bottom:1px solid var(--line);
@@ -354,6 +226,295 @@
       font-size:13px;
       line-height:1.5;
       overflow-wrap:anywhere;
+    }
+
+    .prediction-panel{
+      display:grid;
+      gap:14px;
+    }
+
+    .prediction-tool{
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .prediction-tool-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      background:var(--panel-2);
+    }
+
+    .prediction-tool-head h2{
+      margin:0;
+      font-size:18px;
+      line-height:1.2;
+      letter-spacing:0;
+    }
+
+    .prediction-actions{
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .prediction-tool-body{
+      display:grid;
+      gap:16px;
+      padding:18px;
+    }
+
+    .prediction-select-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
+    }
+
+    .prediction-field{
+      display:grid;
+      gap:7px;
+      min-width:0;
+    }
+
+    .prediction-label{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .prediction-select{
+      width:100%;
+      min-height:42px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#111827;
+      color:var(--text);
+      font:inherit;
+      font-size:14px;
+      padding:0 10px;
+    }
+
+    .prediction-select:focus{
+      outline:2px solid rgba(110,231,183,.42);
+      outline-offset:2px;
+    }
+
+    .prediction-result{
+      display:grid;
+      gap:12px;
+    }
+
+    .prediction-matchup{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) minmax(120px, 180px) minmax(0, 1fr);
+      gap:10px;
+      align-items:stretch;
+    }
+
+    .prediction-side,
+    .prediction-center{
+      min-width:0;
+      display:grid;
+      align-content:center;
+      gap:7px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+      padding:12px;
+      text-align:center;
+    }
+
+    .prediction-player-name{
+      overflow:hidden;
+      color:var(--text);
+      font-weight:900;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .prediction-rating{
+      color:var(--muted);
+      font-size:12px;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .prediction-percent{
+      font-size:28px;
+      font-weight:950;
+      line-height:1;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .prediction-center-label{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .prediction-bar{
+      height:16px;
+      display:flex;
+      overflow:hidden;
+      border:1px solid rgba(148,163,184,.18);
+      border-radius:999px;
+      background:rgba(148,163,184,.14);
+    }
+
+    .prediction-fill-a{
+      height:100%;
+      background:#6ee7b7;
+    }
+
+    .prediction-fill-b{
+      height:100%;
+      background:#93c5fd;
+    }
+
+    .prediction-meta-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:8px;
+    }
+
+    .prediction-meta{
+      min-width:0;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+      padding:10px;
+      text-align:center;
+    }
+
+    .prediction-meta-label{
+      display:block;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .prediction-meta-value{
+      display:block;
+      margin-top:4px;
+      color:var(--text);
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .bracket-controls{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .bracket-slots{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:8px;
+    }
+
+    .bracket-slot{
+      display:grid;
+      gap:6px;
+      min-width:0;
+    }
+
+    .bracket-slot-label{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .bracket-results{
+      display:grid;
+      gap:14px;
+    }
+
+    .bracket-rounds{
+      display:grid;
+      gap:8px;
+    }
+
+    .bracket-round{
+      display:grid;
+      grid-template-columns:90px minmax(0, 1fr);
+      gap:8px;
+      align-items:start;
+    }
+
+    .bracket-round-name{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      padding-top:10px;
+    }
+
+    .bracket-match-list{
+      display:grid;
+      gap:6px;
+    }
+
+    .bracket-match{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
+      gap:8px;
+      align-items:center;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+      padding:9px 10px;
+      font-size:13px;
+    }
+
+    .bracket-match-player{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .bracket-match-odds{
+      color:var(--muted);
+      font-size:11px;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+    }
+
+    .bracket-odds-table{
+      min-width:520px;
+      box-shadow:none;
+    }
+
+    .bracket-odds-table th,
+    .bracket-odds-table td{
+      padding:10px 12px;
+    }
+
+    .prediction-empty{
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+      color:var(--muted);
+      padding:14px;
+      text-align:center;
     }
 
     .button,
@@ -854,20 +1015,38 @@
         margin-bottom:12px;
       }
 
-      .analysis-head{
+      .prediction-tool-head{
         display:grid;
+        gap:10px;
+        padding:14px;
       }
 
-      .analysis-verdict{
-        justify-self:start;
+      .prediction-tool-body{
+        padding:14px;
       }
 
-      .metric-grid{
-        grid-template-columns:repeat(2, minmax(0, 1fr));
+      .prediction-select-grid,
+      .prediction-matchup,
+      .prediction-meta-grid,
+      .bracket-slots{
+        grid-template-columns:1fr;
       }
 
-      .metric-value{
-        font-size:17px;
+      .prediction-percent{
+        font-size:24px;
+      }
+
+      .bracket-round{
+        grid-template-columns:1fr;
+      }
+
+      .bracket-round-name{
+        padding-top:0;
+      }
+
+      .bracket-match{
+        grid-template-columns:1fr;
+        text-align:center;
       }
 
       .detail-cell{
@@ -1042,7 +1221,7 @@
       <button class="gpi-tab" type="button" role="tab" data-view="gpi" aria-selected="true">GPI</button>
       <button class="gpi-tab" type="button" role="tab" data-view="ranked" aria-selected="false">Ranked League</button>
       <button class="gpi-tab" type="button" role="tab" data-view="tournament" aria-selected="false">Tournaments</button>
-      <button class="gpi-tab" type="button" role="tab" data-view="analysis" aria-selected="false">Analysis</button>
+      <button class="gpi-tab" type="button" role="tab" data-view="prediction" aria-selected="false">Prediction Center</button>
       <button class="gpi-tab" type="button" role="tab" data-view="about" aria-selected="false">About GPI</button>
     </div>
 
@@ -1064,6 +1243,52 @@
           <tbody id="leaderboardBody"></tbody>
         </table>
       </div>
+    </section>
+
+    <section id="predictionPanel" class="prediction-panel" hidden aria-label="Prediction Center">
+      <section class="prediction-tool" aria-label="Match predictor">
+        <header class="prediction-tool-head">
+          <h2>Match Predictor</h2>
+          <div class="prediction-actions">
+            <button id="predictionSwap" class="pager-button" type="button">Swap</button>
+          </div>
+        </header>
+        <div class="prediction-tool-body">
+          <div class="prediction-select-grid">
+            <label class="prediction-field">
+              <span class="prediction-label">Player 1</span>
+              <select id="predictionPlayerA" class="prediction-select"></select>
+            </label>
+            <label class="prediction-field">
+              <span class="prediction-label">Player 2</span>
+              <select id="predictionPlayerB" class="prediction-select"></select>
+            </label>
+          </div>
+          <div id="predictionMatchup" class="prediction-result"></div>
+        </div>
+      </section>
+
+      <section class="prediction-tool" aria-label="Bracket builder">
+        <header class="prediction-tool-head">
+          <h2>Bracket Builder</h2>
+          <div class="prediction-actions">
+            <label class="prediction-field">
+              <span class="prediction-label">Size</span>
+              <select id="bracketSize" class="prediction-select">
+                <option value="4">4 players</option>
+                <option value="8" selected>8 players</option>
+                <option value="16">16 players</option>
+              </select>
+            </label>
+            <button id="bracketFillTop" class="pager-button" type="button">Fill Top Rated</button>
+            <button id="bracketClear" class="pager-button" type="button">Clear</button>
+          </div>
+        </header>
+        <div class="prediction-tool-body">
+          <div id="bracketSlots" class="bracket-slots"></div>
+          <div id="bracketResults" class="bracket-results"></div>
+        </div>
+      </section>
     </section>
 
     <section id="aboutPanel" class="about-panel" hidden aria-label="About NSS GPI">
@@ -1157,8 +1382,6 @@
         </ul>
       </div>
     </section>
-
-    <section id="analysisPanel" class="analysis-panel" hidden aria-label="NSS GPI prediction analysis"></section>
   </main>
 
   <div id="playerModal" class="modal-backdrop" hidden>
@@ -1186,7 +1409,16 @@
     const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const aboutPanelEl = document.getElementById("aboutPanel");
-    const analysisPanelEl = document.getElementById("analysisPanel");
+    const predictionPanelEl = document.getElementById("predictionPanel");
+    const predictionPlayerAEl = document.getElementById("predictionPlayerA");
+    const predictionPlayerBEl = document.getElementById("predictionPlayerB");
+    const predictionSwapEl = document.getElementById("predictionSwap");
+    const predictionMatchupEl = document.getElementById("predictionMatchup");
+    const bracketSizeEl = document.getElementById("bracketSize");
+    const bracketSlotsEl = document.getElementById("bracketSlots");
+    const bracketResultsEl = document.getElementById("bracketResults");
+    const bracketFillTopEl = document.getElementById("bracketFillTop");
+    const bracketClearEl = document.getElementById("bracketClear");
     const runMetaEl = document.getElementById("runMeta");
     const pageInfoEl = document.getElementById("pageInfo");
     const prevPageEl = document.getElementById("prevPage");
@@ -1217,9 +1449,10 @@
         kind: "about",
         subtitle: "How NSS GPI is calculated",
       },
-      analysis: {
-        kind: "analysis",
-        subtitle: "Historical 1v1 prediction analysis",
+      prediction: {
+        kind: "prediction",
+        subtitle: "Prediction Center",
+        noRunMessage: "No combined NSS GPI is available yet. Run the Ranked OAWP replay and Tournament GPI replay first.",
         meta(run){
           return [
             `${formatInteger((Number(run.ranked.match_count) || 0) + (Number(run.tournament.match_count) || 0))} Matches Tracked`,
@@ -1268,6 +1501,18 @@
     let sortState = { key:"rank", direction:"asc" };
     let loadRequestId = 0;
     let combinedRowsById = new Map();
+    let predictionRows = [];
+    const HISTORICAL_GPI_WIN_CURVE = [
+      { delta:0, probability:.5 },
+      { delta:25, probability:.5 },
+      { delta:50, probability:.565 },
+      { delta:75, probability:.599 },
+      { delta:100, probability:.635 },
+      { delta:150, probability:.676 },
+      { delta:200, probability:.745 },
+      { delta:300, probability:.827 },
+      { delta:400, probability:.928 },
+    ];
 
     function activeConfig(){
       return VIEW_CONFIG[currentView] || VIEW_CONFIG.ranked;
@@ -1384,464 +1629,6 @@
         minimumFractionDigits:1,
         maximumFractionDigits:1,
       }).format(number);
-    }
-
-    function expectedWinProbability(leftRating, rightRating){
-      const left = Number(leftRating);
-      const right = Number(rightRating);
-      if(!Number.isFinite(left) || !Number.isFinite(right)) return 0.5;
-      return 1 / (1 + (10 ** ((right - left) / 400)));
-    }
-
-    function clampProbability(value){
-      const number = Number(value);
-      if(!Number.isFinite(number)) return 0.5;
-      return Math.min(.999999, Math.max(.000001, number));
-    }
-
-    function formatDecimal(value, digits = 3){
-      const number = Number(value);
-      if(!Number.isFinite(number)) return "";
-      return new Intl.NumberFormat("en-US", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits,
-      }).format(number);
-    }
-
-    function predictionBucket(confidence){
-      const pct = Math.max(50, Math.min(100, Number(confidence) * 100));
-      if(pct < 55) return "50-55%";
-      if(pct < 60) return "55-60%";
-      if(pct < 65) return "60-65%";
-      if(pct < 70) return "65-70%";
-      return "70%+";
-    }
-
-    function emptyPredictionSummary(label, note){
-      return {
-        label,
-        note,
-        totalMatches: 0,
-        eligibleMatches: 0,
-        skippedMatches: 0,
-        noPickMatches: 0,
-        correctPicks: 0,
-        brierSum: 0,
-        logLossSum: 0,
-        confidenceSum: 0,
-        buckets: new Map(),
-        misses: [],
-      };
-    }
-
-    function bucketForSummary(summary, label){
-      if(!summary.buckets.has(label)){
-        summary.buckets.set(label, {
-          label,
-          count: 0,
-          correct: 0,
-          confidenceSum: 0,
-          brierSum: 0,
-        });
-      }
-      return summary.buckets.get(label);
-    }
-
-    function addPrediction(summary, prediction){
-      summary.totalMatches += 1;
-      if(!prediction.eligible){
-        summary.skippedMatches += 1;
-        return;
-      }
-
-      const actualA = prediction.winnerId === prediction.playerAId ? 1 : 0;
-      const probA = clampProbability(prediction.probabilityA);
-      const confidence = Math.max(probA, 1 - probA);
-      const predictedA = probA > 0.5;
-      const predictedB = probA < 0.5;
-      const hasPick = predictedA || predictedB;
-      const correct = hasPick && ((predictedA && actualA === 1) || (predictedB && actualA === 0));
-      const actualProb = actualA === 1 ? probA : 1 - probA;
-      const brier = (probA - actualA) ** 2;
-
-      summary.eligibleMatches += 1;
-      summary.brierSum += brier;
-      summary.logLossSum += -Math.log(clampProbability(actualProb));
-
-      if(!hasPick){
-        summary.noPickMatches += 1;
-        return;
-      }
-
-      summary.confidenceSum += confidence;
-      if(correct) summary.correctPicks += 1;
-
-      const bucket = bucketForSummary(summary, predictionBucket(confidence));
-      bucket.count += 1;
-      bucket.correct += correct ? 1 : 0;
-      bucket.confidenceSum += confidence;
-      bucket.brierSum += brier;
-
-      if(!correct){
-        summary.misses.push({
-          ...prediction,
-          confidence,
-          actualProb,
-          brier,
-        });
-        summary.misses.sort((left, right) => left.actualProb - right.actualProb);
-        summary.misses = summary.misses.slice(0, 8);
-      }
-    }
-
-    function finalizePredictionSummary(summary){
-      const picked = summary.eligibleMatches - summary.noPickMatches;
-      const brier = summary.eligibleMatches ? summary.brierSum / summary.eligibleMatches : 0;
-      const logLoss = summary.eligibleMatches ? summary.logLossSum / summary.eligibleMatches : 0;
-      const accuracy = picked ? summary.correctPicks / picked : 0;
-      const averageConfidence = picked ? summary.confidenceSum / picked : 0;
-      const eceNumerator = [...summary.buckets.values()].reduce((sum, bucket) => {
-        if(!bucket.count) return sum;
-        const hitRate = bucket.correct / bucket.count;
-        const avgConfidence = bucket.confidenceSum / bucket.count;
-        return sum + (Math.abs(hitRate - avgConfidence) * bucket.count);
-      }, 0);
-      const calibrationError = picked ? eceNumerator / picked : 0;
-      return {
-        ...summary,
-        picked,
-        coverage: summary.totalMatches ? summary.eligibleMatches / summary.totalMatches : 0,
-        pickCoverage: summary.eligibleMatches ? picked / summary.eligibleMatches : 0,
-        accuracy,
-        averageConfidence,
-        brier,
-        logLoss,
-        calibrationError,
-      };
-    }
-
-    function reliabilityLabel(summary){
-      if(summary.picked < 20) return "Small sample";
-      if(summary.accuracy >= .60 && summary.brier <= .235 && summary.calibrationError <= .08) return "Promising signal";
-      if(summary.accuracy >= .55 && summary.brier <= .25) return "Directional signal";
-      return "Weak standalone signal";
-    }
-
-    function predictionRowsHtml(summary){
-      const order = ["50-55%", "55-60%", "60-65%", "65-70%", "70%+"];
-      return order.map((label) => {
-        const bucket = summary.buckets.get(label) || { count:0, correct:0, confidenceSum:0, brierSum:0 };
-        const hitRate = bucket.count ? bucket.correct / bucket.count : 0;
-        const avgConfidence = bucket.count ? bucket.confidenceSum / bucket.count : 0;
-        const brier = bucket.count ? bucket.brierSum / bucket.count : 0;
-        return `
-          <tr>
-            <td>${escapeHtml(label)}</td>
-            <td>${escapeHtml(formatInteger(bucket.count))}</td>
-            <td>${bucket.count ? escapeHtml(formatPercent(hitRate)) : blankValue()}</td>
-            <td>${bucket.count ? escapeHtml(formatPercent(avgConfidence)) : blankValue()}</td>
-            <td>${bucket.count ? escapeHtml(formatDecimal(brier, 3)) : blankValue()}</td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function missesRowsHtml(summary){
-      if(!summary.misses.length){
-        return `<tr><td class="delta-neutral" colspan="5">No missed rated picks in this sample.</td></tr>`;
-      }
-      return summary.misses.map((miss) => {
-        const predictedName = miss.probabilityA > 0.5 ? miss.playerAName : miss.playerBName;
-        const winnerName = miss.winnerId === miss.playerAId ? miss.playerAName : miss.playerBName;
-        return `
-          <tr>
-            <td>${escapeHtml(predictedName || "Player")}</td>
-            <td>${escapeHtml(winnerName || "Player")}</td>
-            <td>${escapeHtml(formatPercent(miss.confidence))}</td>
-            <td>${escapeHtml(miss.eventName || "")}</td>
-            <td>${escapeHtml(formatTournamentRoundLabel(miss.roundLabel || ""))}</td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function metricCard(label, value){
-      return `
-        <div class="metric-cell">
-          <span class="metric-label">${escapeHtml(label)}</span>
-          <span class="metric-value">${value}</span>
-        </div>
-      `;
-    }
-
-    function analysisCardHtml(summary){
-      const verdict = reliabilityLabel(summary);
-      const coinBrier = .25;
-      const coinLogLoss = Math.log(2);
-      return `
-        <article class="analysis-card">
-          <header class="analysis-head">
-            <div>
-              <h2>${escapeHtml(summary.label)}</h2>
-              <p class="analysis-note">${escapeHtml(summary.note)}</p>
-            </div>
-            <div class="analysis-verdict">${escapeHtml(verdict)}</div>
-          </header>
-          <div class="analysis-body">
-            <div class="metric-grid">
-              ${metricCard("Rated Matches", escapeHtml(formatInteger(summary.eligibleMatches)))}
-              ${metricCard("Pick Accuracy", summary.picked ? escapeHtml(formatPercent(summary.accuracy)) : blankValue())}
-              ${metricCard("Brier Score", escapeHtml(formatDecimal(summary.brier, 3)))}
-              ${metricCard("Log Loss", escapeHtml(formatDecimal(summary.logLoss, 3)))}
-              ${metricCard("Calibration Error", summary.picked ? escapeHtml(formatPercent(summary.calibrationError)) : blankValue())}
-            </div>
-            <p class="analysis-summary">
-              <span><strong>${escapeHtml(formatInteger(summary.correctPicks))}</strong> correct picks from <strong>${escapeHtml(formatInteger(summary.picked))}</strong> non-even predictions. Coverage was <strong>${escapeHtml(formatPercent(summary.coverage))}</strong> of tracked tournament 1v1 matches.</span>
-              <span>Coin-flip baselines are 50.0% accuracy, ${escapeHtml(formatDecimal(coinBrier, 3))} Brier, and ${escapeHtml(formatDecimal(coinLogLoss, 3))} log loss.</span>
-            </p>
-            <div class="analysis-table-wrap">
-              <table class="analysis-table">
-                <thead>
-                  <tr>
-                    <th>Confidence</th>
-                    <th>Matches</th>
-                    <th>Hit Rate</th>
-                    <th>Avg Confidence</th>
-                    <th>Brier</th>
-                  </tr>
-                </thead>
-                <tbody>${predictionRowsHtml(summary)}</tbody>
-              </table>
-            </div>
-            <div class="analysis-table-wrap">
-              <table class="analysis-table">
-                <thead>
-                  <tr>
-                    <th>Picked</th>
-                    <th>Winner</th>
-                    <th>Confidence</th>
-                    <th>Tournament</th>
-                    <th>Round</th>
-                  </tr>
-                </thead>
-                <tbody>${missesRowsHtml(summary)}</tbody>
-              </table>
-            </div>
-          </div>
-        </article>
-      `;
-    }
-
-    function normalizeTournamentMatch(row){
-      const playerAId = normalizeDiscordId(row.player_a_discord_user_id);
-      const playerBId = normalizeDiscordId(row.player_b_discord_user_id);
-      const winnerId = normalizeDiscordId(row.winner_discord_user_id);
-      if(!playerAId || !playerBId || !winnerId || playerAId === playerBId) return null;
-      if(winnerId !== playerAId && winnerId !== playerBId) return null;
-      return {
-        matchHash: normalizeText(row.match_hash),
-        eventName: normalizeText(row.event_name),
-        roundLabel: normalizeText(row.round_label),
-        eventOrder: Number(row.event_order) || 0,
-        matchOrder: Number(row.match_order) || 0,
-        timestampMs: Number(row.timestamp_ms) || 0,
-        playerAId,
-        playerAName: normalizeText(row.player_a_name),
-        playerBId,
-        playerBName: normalizeText(row.player_b_name),
-        winnerId,
-      };
-    }
-
-    async function loadAllTournamentMatches(){
-      const rows = [];
-      const pageSize = 1000;
-      let from = 0;
-
-      while(true){
-        const { data, error } = await supabase
-          .from("internal_tournament_matches")
-          .select("match_hash,event_name,round_label,event_order,match_order,timestamp_ms,player_a_discord_user_id,player_a_name,player_b_discord_user_id,player_b_name,winner_discord_user_id")
-          .order("event_order", { ascending:true })
-          .order("match_order", { ascending:true })
-          .range(from, from + pageSize - 1);
-        if(error) throw error;
-        rows.push(...(data || []));
-        if(!data || data.length < pageSize) break;
-        from += pageSize;
-      }
-
-      return rows
-        .map(normalizeTournamentMatch)
-        .filter(Boolean)
-        .sort((left, right) =>
-          left.eventOrder - right.eventOrder ||
-          left.matchOrder - right.matchOrder ||
-          left.timestampMs - right.timestampMs ||
-          left.matchHash.localeCompare(right.matchHash)
-        );
-    }
-
-    function summarizeCurrentRatingPredictions(matches, ratingsById, ratingKey, label, note){
-      const summary = emptyPredictionSummary(label, note);
-      for(const match of matches){
-        const left = ratingsById.get(match.playerAId);
-        const right = ratingsById.get(match.playerBId);
-        const leftRating = Number(left?.[ratingKey]);
-        const rightRating = Number(right?.[ratingKey]);
-        addPrediction(summary, {
-          ...match,
-          eligible: Number.isFinite(leftRating) && Number.isFinite(rightRating),
-          probabilityA: expectedWinProbability(leftRating, rightRating),
-        });
-      }
-      return finalizePredictionSummary(summary);
-    }
-
-    function reliabilityForWeightedMatches(weightedMatches){
-      const matches = Number(weightedMatches);
-      if(!Number.isFinite(matches) || matches <= 0) return 0;
-      return Math.min(1, matches / COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES);
-    }
-
-    function priorStrengthForWeightedMatches(weightedMatches){
-      const maxPrior = 20;
-      const priorFloor = 1;
-      return priorFloor + (maxPrior - priorFloor) * (1 - reliabilityForWeightedMatches(weightedMatches));
-    }
-
-    function fitTournamentRatings(matches){
-      const baseRating = 1200;
-      const ratingScale = 400 / Math.log(10);
-      const playerStats = new Map();
-
-      function stateFor(id, displayName){
-        if(!playerStats.has(id)){
-          playerStats.set(id, {
-            displayName,
-            matches: 0,
-            weightedMatches: 0,
-          });
-        }
-        const state = playerStats.get(id);
-        state.displayName = state.displayName || displayName;
-        return state;
-      }
-
-      for(const match of matches){
-        stateFor(match.playerAId, match.playerAName).matches += 1;
-        stateFor(match.playerAId, match.playerAName).weightedMatches += 2;
-        stateFor(match.playerBId, match.playerBName).matches += 1;
-        stateFor(match.playerBId, match.playerBName).weightedMatches += 2;
-      }
-
-      const playerIds = [...playerStats.keys()].sort();
-      const abilities = new Map(playerIds.map((id) => [id, 1]));
-      if(playerIds.length < 2) return new Map();
-
-      for(let iteration = 0; iteration < 120; iteration += 1){
-        const numerators = new Map();
-        const denominators = new Map();
-        for(const id of playerIds){
-          const prior = priorStrengthForWeightedMatches(playerStats.get(id).weightedMatches);
-          numerators.set(id, prior);
-          denominators.set(id, prior);
-        }
-
-        for(const match of matches){
-          const winnerId = match.winnerId;
-          const loserId = winnerId === match.playerAId ? match.playerBId : match.playerAId;
-          const denominator = (abilities.get(winnerId) || 1) + (abilities.get(loserId) || 1);
-          if(denominator <= 0) continue;
-          numerators.set(winnerId, numerators.get(winnerId) + 2);
-          denominators.set(winnerId, denominators.get(winnerId) + (2 / denominator));
-          denominators.set(loserId, denominators.get(loserId) + (2 / denominator));
-        }
-
-        const next = new Map();
-        let logTotal = 0;
-        for(const id of playerIds){
-          const ability = numerators.get(id) / denominators.get(id);
-          next.set(id, ability);
-          logTotal += Math.log(ability);
-        }
-
-        const geometricMean = Math.exp(logTotal / playerIds.length);
-        let maxChange = 0;
-        for(const id of playerIds){
-          const ability = next.get(id) / geometricMean;
-          maxChange = Math.max(maxChange, Math.abs(Math.log(ability) - Math.log(abilities.get(id))));
-          abilities.set(id, ability);
-        }
-        if(maxChange < .000001) break;
-      }
-
-      return new Map(playerIds.map((id) => {
-        const state = playerStats.get(id);
-        const rawRating = baseRating + ratingScale * Math.log(abilities.get(id));
-        const reliability = reliabilityForWeightedMatches(state.weightedMatches);
-        return [id, {
-          rating: baseRating + reliability * (rawRating - baseRating),
-          matches: state.matches,
-        }];
-      }));
-    }
-
-    async function summarizeWalkForwardTournamentPredictions(matches){
-      const summary = emptyPredictionSummary(
-        "Walk-forward tournament rating",
-        "Each match is predicted from tournament results that happened before it. This avoids using the match being tested to rate either player."
-      );
-      const prefix = [];
-
-      for(let index = 0; index < matches.length; index += 1){
-        const match = matches[index];
-        const ratings = fitTournamentRatings(prefix);
-        const left = ratings.get(match.playerAId);
-        const right = ratings.get(match.playerBId);
-        const leftRating = Number(left?.rating ?? 1200);
-        const rightRating = Number(right?.rating ?? 1200);
-        const hasHistory = (Number(left?.matches) || 0) > 0 || (Number(right?.matches) || 0) > 0;
-
-        addPrediction(summary, {
-          ...match,
-          eligible: hasHistory,
-          probabilityA: expectedWinProbability(leftRating, rightRating),
-        });
-        prefix.push(match);
-
-        if(index > 0 && index % 25 === 0){
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      }
-
-      return finalizePredictionSummary(summary);
-    }
-
-    async function loadCombinedRowsForAnalysis(){
-      const rankedConfig = VIEW_CONFIG.ranked;
-      const tournamentConfig = VIEW_CONFIG.tournament;
-      const [rankedRun, tournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
-      ]);
-      if(!rankedRun || !tournamentRun){
-        throw new Error(VIEW_CONFIG.gpi.noRunMessage);
-      }
-
-      latestRun = { ranked: rankedRun, tournament: tournamentRun };
-      const [rankedRatings, tournamentRatings] = await Promise.all([
-        loadRatingsForRun(rankedRun.id, rankedConfig),
-        loadRatingsForRun(tournamentRun.id, tournamentConfig),
-      ]);
-      const membersById = await loadMembers(rankedRatings.map(row => row.discord_user_id));
-      const combinedRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
-      cacheCombinedRows(combinedRows);
-
-      return {
-        combinedRows,
-        tournamentRatings,
-      };
     }
 
     async function loadLatestRunByModel(model, config = activeConfig()){
@@ -2149,6 +1936,267 @@
       combinedRowsById = new Map(rows.map((row) => [row.discord_user_id, row]));
     }
 
+    function calibratedFavoriteProbability(delta){
+      const cleanDelta = Math.max(0, Math.abs(Number(delta) || 0));
+      const curve = HISTORICAL_GPI_WIN_CURVE;
+      if(cleanDelta <= curve[0].delta) return curve[0].probability;
+      for(let index = 1; index < curve.length; index += 1){
+        const previous = curve[index - 1];
+        const next = curve[index];
+        if(cleanDelta <= next.delta){
+          const progress = (cleanDelta - previous.delta) / (next.delta - previous.delta);
+          return previous.probability + ((next.probability - previous.probability) * progress);
+        }
+      }
+      return curve[curve.length - 1].probability;
+    }
+
+    function predictionProbability(leftRow, rightRow){
+      const leftRating = Number(leftRow?.ratingNumber ?? leftRow?.rating);
+      const rightRating = Number(rightRow?.ratingNumber ?? rightRow?.rating);
+      if(!Number.isFinite(leftRating) || !Number.isFinite(rightRating)) return 0.5;
+      const favoriteProbability = calibratedFavoriteProbability(leftRating - rightRating);
+      return leftRating >= rightRating ? favoriteProbability : 1 - favoriteProbability;
+    }
+
+    function predictionConfidenceLabel(delta){
+      const cleanDelta = Math.abs(Number(delta) || 0);
+      if(cleanDelta < 25) return "Toss-up";
+      if(cleanDelta < 75) return "Lean";
+      if(cleanDelta < 150) return "Edge";
+      if(cleanDelta < 250) return "Strong edge";
+      return "Heavy favorite";
+    }
+
+    function predictionPlayerLabel(row){
+      return row ? `${row.displayName} (${formatRating(row.ratingNumber)})` : "";
+    }
+
+    function predictionOptionHtml(row){
+      return `<option value="${escapeHtml(row.discord_user_id)}">${escapeHtml(predictionPlayerLabel(row))}</option>`;
+    }
+
+    function populatePredictionSelect(selectEl, rows, selectedId, { includeEmpty = false } = {}){
+      const emptyOption = includeEmpty ? `<option value="">Open slot</option>` : "";
+      selectEl.innerHTML = `${emptyOption}${rows.map(predictionOptionHtml).join("")}`;
+      if(selectedId && rows.some((row) => row.discord_user_id === selectedId)){
+        selectEl.value = selectedId;
+      }else if(!includeEmpty && rows.length){
+        selectEl.value = rows[0].discord_user_id;
+      }else{
+        selectEl.value = "";
+      }
+    }
+
+    function selectedPredictionRows(){
+      return {
+        left: combinedRowsById.get(normalizeDiscordId(predictionPlayerAEl.value)) || null,
+        right: combinedRowsById.get(normalizeDiscordId(predictionPlayerBEl.value)) || null,
+      };
+    }
+
+    function renderMatchupPrediction(){
+      const { left, right } = selectedPredictionRows();
+      if(!left || !right || left.discord_user_id === right.discord_user_id){
+        predictionMatchupEl.innerHTML = `<div class="prediction-empty">Choose two different players.</div>`;
+        return;
+      }
+
+      const leftProbability = predictionProbability(left, right);
+      const rightProbability = 1 - leftProbability;
+      const delta = Number(left.ratingNumber) - Number(right.ratingNumber);
+      const favorite = delta >= 0 ? left : right;
+      const confidence = predictionConfidenceLabel(delta);
+      predictionMatchupEl.innerHTML = `
+        <div class="prediction-matchup">
+          <div class="prediction-side">
+            <span class="prediction-player-name">${escapeHtml(left.displayName)}</span>
+            <span class="prediction-rating">GPI ${escapeHtml(formatRating(left.ratingNumber))}</span>
+            <span class="prediction-percent">${escapeHtml(formatPercent(leftProbability))}</span>
+          </div>
+          <div class="prediction-center">
+            <span class="prediction-center-label">Favorite</span>
+            <span class="prediction-player-name">${escapeHtml(favorite.displayName)}</span>
+            <span class="prediction-rating">${escapeHtml(confidence)}</span>
+          </div>
+          <div class="prediction-side">
+            <span class="prediction-player-name">${escapeHtml(right.displayName)}</span>
+            <span class="prediction-rating">GPI ${escapeHtml(formatRating(right.ratingNumber))}</span>
+            <span class="prediction-percent">${escapeHtml(formatPercent(rightProbability))}</span>
+          </div>
+        </div>
+        <div class="prediction-bar" aria-hidden="true">
+          <span class="prediction-fill-a" style="width:${Math.max(0, Math.min(100, leftProbability * 100)).toFixed(2)}%"></span>
+          <span class="prediction-fill-b" style="width:${Math.max(0, Math.min(100, rightProbability * 100)).toFixed(2)}%"></span>
+        </div>
+        <div class="prediction-meta-grid">
+          <div class="prediction-meta"><span class="prediction-meta-label">GPI Difference</span><span class="prediction-meta-value">${escapeHtml(formatSignedRating(delta))}</span></div>
+          <div class="prediction-meta"><span class="prediction-meta-label">Historical Favorite Win %</span><span class="prediction-meta-value">${escapeHtml(formatPercent(Math.max(leftProbability, rightProbability)))}</span></div>
+          <div class="prediction-meta"><span class="prediction-meta-label">Rating Model</span><span class="prediction-meta-value">GPI curve</span></div>
+        </div>
+      `;
+    }
+
+    function seedOrder(size){
+      if(size <= 1) return [1];
+      const previous = seedOrder(size / 2);
+      return previous.flatMap((seed) => [seed, size + 1 - seed]);
+    }
+
+    function currentBracketSelections(){
+      return [...bracketSlotsEl.querySelectorAll("select[data-bracket-slot]")]
+        .sort((left, right) => Number(left.dataset.bracketSlot) - Number(right.dataset.bracketSlot))
+        .map((select) => normalizeDiscordId(select.value));
+    }
+
+    function renderBracketSlots(selectedIds = currentBracketSelections()){
+      const size = Number(bracketSizeEl.value) || 8;
+      const rows = predictionRows;
+      bracketSlotsEl.innerHTML = Array.from({ length:size }, (_, index) => {
+        const seed = index + 1;
+        const selectedId = selectedIds[index] || "";
+        return `
+          <label class="bracket-slot">
+            <span class="bracket-slot-label">Seed ${seed}</span>
+            <select class="prediction-select" data-bracket-slot="${seed}">
+              <option value="">Open slot</option>
+              ${rows.map((row) => `<option value="${escapeHtml(row.discord_user_id)}"${row.discord_user_id === selectedId ? " selected" : ""}>${escapeHtml(predictionPlayerLabel(row))}</option>`).join("")}
+            </select>
+          </label>
+        `;
+      }).join("");
+      renderBracketPrediction();
+    }
+
+    function combineEntrants(leftMap, rightMap){
+      const result = new Map();
+      if(!leftMap.size && !rightMap.size) return result;
+      if(!leftMap.size) return new Map(rightMap);
+      if(!rightMap.size) return new Map(leftMap);
+
+      for(const [leftId, leftChance] of leftMap.entries()){
+        const leftRow = combinedRowsById.get(leftId);
+        for(const [rightId, rightChance] of rightMap.entries()){
+          const rightRow = combinedRowsById.get(rightId);
+          if(!leftRow || !rightRow) continue;
+          const pairChance = leftChance * rightChance;
+          const leftWin = predictionProbability(leftRow, rightRow);
+          result.set(leftId, (result.get(leftId) || 0) + pairChance * leftWin);
+          result.set(rightId, (result.get(rightId) || 0) + pairChance * (1 - leftWin));
+        }
+      }
+      return result;
+    }
+
+    function topEntry(distribution){
+      return [...distribution.entries()]
+        .sort((left, right) => right[1] - left[1])
+        .map(([id, probability]) => ({ row: combinedRowsById.get(id), probability }))
+        .find((entry) => entry.row) || null;
+    }
+
+    function bracketRoundName(roundIndex, totalRounds){
+      if(roundIndex === totalRounds - 1) return "Final";
+      if(roundIndex === totalRounds - 2) return "Semis";
+      if(roundIndex === totalRounds - 3) return "Quarters";
+      return `Round ${roundIndex + 1}`;
+    }
+
+    function renderBracketPrediction(){
+      if(!predictionRows.length){
+        bracketResultsEl.innerHTML = `<div class="prediction-empty">No GPI players available.</div>`;
+        return;
+      }
+
+      const size = Number(bracketSizeEl.value) || 8;
+      const selectedIds = currentBracketSelections();
+      const duplicateIds = selectedIds.filter(Boolean).filter((id, index, values) => values.indexOf(id) !== index);
+      if(duplicateIds.length){
+        bracketResultsEl.innerHTML = `<div class="prediction-empty">Each player can only appear once.</div>`;
+        return;
+      }
+
+      const activeIds = selectedIds.filter(Boolean);
+      if(activeIds.length < 2){
+        bracketResultsEl.innerHTML = `<div class="prediction-empty">Add at least two players.</div>`;
+        return;
+      }
+
+      let entrants = seedOrder(size).map((seed) => {
+        const id = selectedIds[seed - 1];
+        return id ? new Map([[id, 1]]) : new Map();
+      });
+      const totalRounds = Math.log2(size);
+      const roundMarkup = [];
+
+      for(let roundIndex = 0; roundIndex < totalRounds; roundIndex += 1){
+        const nextEntrants = [];
+        const matchMarkup = [];
+
+        for(let index = 0; index < entrants.length; index += 2){
+          const left = entrants[index] || new Map();
+          const right = entrants[index + 1] || new Map();
+          const leftTop = topEntry(left);
+          const rightTop = topEntry(right);
+          const next = combineEntrants(left, right);
+          nextEntrants.push(next);
+
+          let oddsMarkup = "Bye";
+          if(leftTop && rightTop){
+            const leftVsRight = predictionProbability(leftTop.row, rightTop.row);
+            oddsMarkup = `${formatPercent(leftVsRight)} / ${formatPercent(1 - leftVsRight)}`;
+          }else if(!leftTop && !rightTop){
+            oddsMarkup = "Open";
+          }
+
+          matchMarkup.push(`
+            <div class="bracket-match">
+              <span class="bracket-match-player">${escapeHtml(leftTop?.row?.displayName || "Open")}</span>
+              <span class="bracket-match-odds">${escapeHtml(oddsMarkup)}</span>
+              <span class="bracket-match-player">${escapeHtml(rightTop?.row?.displayName || "Open")}</span>
+            </div>
+          `);
+        }
+
+        roundMarkup.push(`
+          <div class="bracket-round">
+            <div class="bracket-round-name">${escapeHtml(bracketRoundName(roundIndex, totalRounds))}</div>
+            <div class="bracket-match-list">${matchMarkup.join("")}</div>
+          </div>
+        `);
+        entrants = nextEntrants;
+      }
+
+      const championOdds = [...(entrants[0] || new Map()).entries()]
+        .map(([id, probability]) => ({ row: combinedRowsById.get(id), probability }))
+        .filter((entry) => entry.row)
+        .sort((left, right) => right.probability - left.probability);
+
+      bracketResultsEl.innerHTML = `
+        <div class="bracket-rounds">${roundMarkup.join("")}</div>
+        <div class="table-shell">
+          <table class="bracket-odds-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th class="right">GPI</th>
+                <th class="right">Title Odds</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${championOdds.map((entry) => `
+                <tr>
+                  <td>${escapeHtml(entry.row.displayName)}</td>
+                  <td class="right">${escapeHtml(formatRating(entry.row.ratingNumber))}</td>
+                  <td class="right">${escapeHtml(formatPercent(entry.probability))}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
     function sortValueForRow(row, key){
       return {
         rank: row.rankNumber,
@@ -2451,15 +2499,15 @@
       const requestId = ++loadRequestId;
       const config = activeConfig();
       aboutPanelEl.hidden = true;
-      analysisPanelEl.hidden = true;
+      predictionPanelEl.hidden = true;
       renderTableHeader();
       pageSubtitleEl.textContent = config.subtitle;
       if(config.kind === "about"){
         renderAboutPage();
         return;
       }
-      if(config.kind === "analysis"){
-        await renderAnalysisPage();
+      if(config.kind === "prediction"){
+        await renderPredictionPage(requestId);
         return;
       }
       if(config.kind === "combined"){
@@ -2519,54 +2567,63 @@
       return true;
     }
 
-    async function renderAnalysisPage(){
-      latestRun = null;
-      leaderboardEl.hidden = true;
-      leaderboardBodyEl.innerHTML = "";
-      aboutPanelEl.hidden = true;
-      analysisPanelEl.hidden = true;
-      runMetaEl.hidden = true;
-      runMetaEl.innerHTML = "";
-      setStatus("Running historical 1v1 analysis...");
-
-      const [{ combinedRows, tournamentRatings }, matches] = await Promise.all([
-        loadCombinedRowsForAnalysis(),
-        loadAllTournamentMatches(),
+    async function loadPredictionRows(){
+      const rankedConfig = VIEW_CONFIG.ranked;
+      const tournamentConfig = VIEW_CONFIG.tournament;
+      const [rankedRun, tournamentRun] = await Promise.all([
+        loadLatestRunByModel(rankedConfig.model, rankedConfig),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
       ]);
 
-      const combinedById = new Map(combinedRows.map((row) => [row.discord_user_id, row]));
-      const tournamentById = new Map(
-        tournamentRatings
-          .map((row) => [normalizeDiscordId(row.discord_user_id), {
-            ...row,
-            tournamentRating: Number(row.rating),
-          }])
-          .filter(([id]) => id)
-      );
+      if(!rankedRun || !tournamentRun){
+        throw new Error(VIEW_CONFIG.prediction.noRunMessage);
+      }
 
-      const currentGpi = summarizeCurrentRatingPredictions(
-        matches,
-        combinedById,
-        "ratingNumber",
-        "Current GPI retrospective fit",
-        "Uses each player's current overall GPI against historical tournament 1v1 results. Useful as a sanity check, but it includes hindsight."
-      );
-      const currentTournament = summarizeCurrentRatingPredictions(
-        matches,
-        tournamentById,
-        "tournamentRating",
-        "Current tournament rating retrospective fit",
-        "Uses the current tournament-only rating against the same historical results. This is also retrospective and should not be read as a clean forecast test."
-      );
-      const walkForward = await summarizeWalkForwardTournamentPredictions(matches);
+      latestRun = { ranked: rankedRun, tournament: tournamentRun };
+      const [rankedRatings, tournamentRatings] = await Promise.all([
+        loadRatingsForRun(rankedRun.id, rankedConfig),
+        loadRatingsForRun(tournamentRun.id, tournamentConfig),
+      ]);
+      const membersById = await loadMembers(rankedRatings.map(row => row.discord_user_id));
+      const rows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
+      cacheCombinedRows(rows);
+      return rows;
+    }
 
-      analysisPanelEl.innerHTML = [
-        analysisCardHtml(currentGpi),
-        analysisCardHtml(walkForward),
-        analysisCardHtml(currentTournament),
-      ].join("");
-      analysisPanelEl.hidden = false;
+    async function renderPredictionPage(requestId){
+      leaderboardEl.hidden = true;
+      aboutPanelEl.hidden = true;
+      predictionPanelEl.hidden = true;
+      runMetaEl.hidden = true;
+      runMetaEl.innerHTML = "";
+      setStatus("Loading predictions...");
+
+      predictionRows = await loadPredictionRows();
+      if(requestId !== loadRequestId) return;
+
+      if(!predictionRows.length){
+        setStatus("No GPI players are available for predictions.");
+        return;
+      }
+
+      const currentA = normalizeDiscordId(predictionPlayerAEl.value);
+      const currentB = normalizeDiscordId(predictionPlayerBEl.value);
+      populatePredictionSelect(predictionPlayerAEl, predictionRows, currentA || predictionRows[0]?.discord_user_id);
+      populatePredictionSelect(predictionPlayerBEl, predictionRows, currentB || predictionRows[1]?.discord_user_id || predictionRows[0]?.discord_user_id);
+      if(predictionPlayerAEl.value === predictionPlayerBEl.value && predictionRows[1]){
+        predictionPlayerBEl.value = predictionRows[1].discord_user_id;
+      }
+
+      renderMatchupPrediction();
+      const currentSlots = currentBracketSelections();
+      const bracketSize = Number(bracketSizeEl.value) || 8;
+      renderBracketSlots(
+        currentSlots.some(Boolean)
+          ? currentSlots
+          : predictionRows.slice(0, bracketSize).map((row) => row.discord_user_id)
+      );
       renderRunMeta(latestRun);
+      predictionPanelEl.hidden = false;
       hideStatus();
     }
 
@@ -2574,8 +2631,7 @@
       latestRun = null;
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
-      analysisPanelEl.hidden = true;
-      analysisPanelEl.innerHTML = "";
+      predictionPanelEl.hidden = true;
       runMetaEl.hidden = true;
       runMetaEl.innerHTML = "";
       hideStatus();
@@ -2595,8 +2651,7 @@
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
       aboutPanelEl.hidden = true;
-      analysisPanelEl.hidden = true;
-      analysisPanelEl.innerHTML = "";
+      predictionPanelEl.hidden = true;
       runMetaEl.hidden = true;
       runMetaEl.innerHTML = "";
       setStatus("Loading...");
@@ -2653,6 +2708,30 @@
         if(button.dataset.view === currentView) return;
         setActiveTab(button.dataset.view);
       });
+    });
+
+    predictionPlayerAEl.addEventListener("change", renderMatchupPrediction);
+    predictionPlayerBEl.addEventListener("change", renderMatchupPrediction);
+    predictionSwapEl.addEventListener("click", () => {
+      const leftValue = predictionPlayerAEl.value;
+      predictionPlayerAEl.value = predictionPlayerBEl.value;
+      predictionPlayerBEl.value = leftValue;
+      renderMatchupPrediction();
+    });
+
+    bracketSizeEl.addEventListener("change", () => {
+      renderBracketSlots(currentBracketSelections());
+    });
+    bracketFillTopEl.addEventListener("click", () => {
+      const size = Number(bracketSizeEl.value) || 8;
+      renderBracketSlots(predictionRows.slice(0, size).map((row) => row.discord_user_id));
+    });
+    bracketClearEl.addEventListener("click", () => {
+      renderBracketSlots([]);
+    });
+    bracketSlotsEl.addEventListener("change", (event) => {
+      if(!event.target.closest("select[data-bracket-slot]")) return;
+      renderBracketPrediction();
     });
 
     window.addEventListener("popstate", () => {
