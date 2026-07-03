@@ -564,15 +564,15 @@
     }
     .calendar-row{
       display: grid;
-      grid-template-columns: 54px minmax(0, 1fr);
+      grid-template-columns: 42px minmax(0, 1fr);
       align-items: start;
-      gap: 10px;
+      gap: 8px;
     }
     .calendar-row .schedule-month{
       min-height: 40px;
       display:flex;
       align-items:center;
-      justify-content:flex-end;
+      justify-content:center;
     }
     .calendar-event{
       min-width:0;
@@ -601,6 +601,9 @@
       color: #5eead4;
     }
     .event-status.is-finished{
+      color: rgba(248,250,252,0.96);
+    }
+    .event-status.is-finished .event-status-icon{
       color: rgba(253,230,138,0.96);
     }
     .event-status-icon{
@@ -608,6 +611,8 @@
       height: 14px;
       flex: 0 0 auto;
       display:block;
+      fill: none;
+      stroke: currentColor;
     }
     .event-live-dot{
       width: 9px;
@@ -626,6 +631,10 @@
       border: 1px solid rgba(253,230,138,0.48);
       background: rgba(255,255,255,0.08);
       flex: 0 0 auto;
+    }
+    .event-winner-avatar-placeholder{
+      display:inline-block;
+      background: radial-gradient(circle at 50% 35%, rgba(253,230,138,0.32), rgba(255,255,255,0.08) 58%, rgba(15,23,42,0.5));
     }
     .event-status-text{
       min-width:0;
@@ -733,7 +742,8 @@
         padding-right: 12px;
       }
       .calendar-row{
-        grid-template-columns: max-content minmax(0, 1fr);
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 8px;
       }
       .calendar-row .schedule-month{
         min-height:44px;
@@ -898,10 +908,10 @@
     const CALENDAR_EVENTS = [
       { year:2024, month:10, title:"World Cup", href:"/worldcup.html?year=2024", className:"royal-blue", winnerLoader:"worldCup2024", fallbackWinner:{ name:"Taiwan", displayName:"Taiwan", avatarUrl:"/assets/flag-icons/4x3/tw.svg" } },
       { year:2025, month:10, title:"World Cup", href:"/worldcup.html?year=2025", className:"royal-blue", winnerLoader:"worldCup2025", fallbackWinner:{ name:"USA A", displayName:"USA A", avatarUrl:"/assets/flag-icons/4x3/us.svg" } },
-      { year:CURRENT_YEAR, month:0, title:"World Open", href:"/worldopen", className:"neon-green", winnerLoader:"worldOpen2026", fallbackWinner:{ name:"Duke07" } },
-      { year:CURRENT_YEAR, month:3, title:"Super League S6", href:"/superleague/index.html", className:"neon-purple", winnerLoader:"superLeagueS6", fallbackWinner:{ name:"Duke07" } },
-      { year:CURRENT_YEAR, month:4, title:"Lightning Cup", href:"/lightningcup/index.html", className:"neon-yellow", winnerLoader:"lightningCup2026", fallbackWinner:{ name:"Hunter" } },
-      { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026", fallbackWinner:{ name:"Duke07" } },
+      { year:CURRENT_YEAR, month:0, title:"World Open", href:"/worldopen", className:"neon-green", winnerLoader:"worldOpen2026", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222" } },
+      { year:CURRENT_YEAR, month:3, title:"Super League S6", href:"/superleague/index.html", className:"neon-purple", winnerLoader:"superLeagueS6", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222" } },
+      { year:CURRENT_YEAR, month:4, title:"Lightning Cup", href:"/lightningcup/index.html", className:"neon-yellow", winnerLoader:"lightningCup2026", fallbackWinner:{ name:"Hunter", discordId:"1183051773884248104" } },
+      { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222", username:"duke07golf" } },
       { year:CURRENT_YEAR, month:6, title:"World Championship", href:"/championship.html", className:"light-green", winnerLoader:"worldChampionship2026" },
       { year:CURRENT_YEAR, month:7, title:"World Golf Masters", href:"/masters.html", className:"gold" },
       { year:CURRENT_YEAR, month:8, title:"Super League S7", href:"/superleague/index.html", className:"neon-purple" },
@@ -948,6 +958,20 @@
 
     function normalizeNameKey(value){
       return normalizeSearchText(value).toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function normalizeProfileLookupKey(value){
+      return normalizeNameKey(value).replace(/[^a-z0-9]/g, "");
+    }
+
+    function memberDisplayName(member, fallback = ""){
+      return normalizeSearchText(member?.display_name) ||
+        normalizeSearchText(member?.username) ||
+        normalizeSearchText(fallback);
+    }
+
+    function winnerAvatarUrlForMember(member){
+      return normalizeSearchText(member?.server_avatar_url) || normalizeSearchText(member?.avatar_url);
     }
 
     function sheetNameEscape(value){
@@ -1055,9 +1079,23 @@
 
     function statusIconSvg(kind){
       if(kind === "trophy"){
-        return `<svg class="event-status-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4h10v2h3v3a5 5 0 0 1-4.3 4.95A5.01 5.01 0 0 1 13 16.9V19h3v2H8v-2h3v-2.1a5.01 5.01 0 0 1-2.7-2.95A5 5 0 0 1 4 9V6h3V4Zm10 4v3.83A3 3 0 0 0 18 6.17V8h-1ZM6 6.17A3 3 0 0 0 7 11.83V8H6V6.17Z"/></svg>`;
+        return `
+          <svg class="lucide lucide-trophy event-status-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path>
+            <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+            <path d="M4 22h16"></path>
+            <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path>
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+          </svg>
+        `;
       }
-      return `<svg class="event-status-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5h-2v6l5 3 .95-1.76L13 11.9V7Z"/></svg>`;
+      return `
+        <svg class="lucide lucide-clock event-status-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+      `;
     }
 
     function eventBaseStatus(event){
@@ -1069,11 +1107,14 @@
 
     function statusMarkup(event, winner = null){
       if(winner?.name){
-        const avatar = winner.avatarUrl || "/logos/golf.png";
+        const avatar = normalizeSearchText(winner.avatarUrl);
+        const avatarMarkup = avatar
+          ? `<img class="event-winner-avatar" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
+          : `<span class="event-winner-avatar event-winner-avatar-placeholder" aria-hidden="true"></span>`;
         return `
           <div class="event-status is-finished">
             ${statusIconSvg("trophy")}
-            <img class="event-winner-avatar" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+            ${avatarMarkup}
             <span class="event-status-text">${escapeHtml(winner.displayName || winner.name)}</span>
           </div>
         `;
@@ -1167,7 +1208,10 @@
         if(!winnerCache.has(event.winnerLoader)){
           winnerCache.set(event.winnerLoader, Promise.resolve(WINNER_LOADERS[event.winnerLoader]()).catch(() => null));
         }
-        const winner = await winnerCache.get(event.winnerLoader) || event.fallbackWinner;
+        const loadedWinner = await winnerCache.get(event.winnerLoader);
+        const winner = loadedWinner
+          ? { ...(event.fallbackWinner || {}), ...loadedWinner }
+          : event.fallbackWinner;
         if(String(event.year) !== activeCalendarYear) return;
         if(winner?.name){
           updateEventStatus(event, await enrichWinnerProfile(winner));
@@ -1179,7 +1223,13 @@
 
     async function enrichWinnerProfile(winner){
       const discordId = normalizeDiscordId(winner?.discordId);
-      const nameKey = normalizeNameKey(winner?.name);
+      const lookupKeys = [
+        winner?.name,
+        winner?.displayName,
+        winner?.username,
+        ...(Array.isArray(winner?.aliases) ? winner.aliases : []),
+      ].map(normalizeNameKey).filter(Boolean);
+      const compactLookupKeys = lookupKeys.map(normalizeProfileLookupKey).filter(Boolean);
       let member = null;
 
       if(discordId){
@@ -1195,12 +1245,15 @@
         }
       }
 
-      if(!member && nameKey){
+      if(!member && lookupKeys.length){
         try{
           const rows = await loadMemberSearchRows();
           member = rows.find(row => (
-            normalizeNameKey(row.display_name) === nameKey ||
-            normalizeNameKey(row.username) === nameKey
+            lookupKeys.includes(normalizeNameKey(row.username)) ||
+            lookupKeys.includes(normalizeNameKey(row.display_name))
+          )) || rows.find(row => (
+            compactLookupKeys.includes(normalizeProfileLookupKey(row.username)) ||
+            compactLookupKeys.includes(normalizeProfileLookupKey(row.display_name))
           )) || null;
         }catch{
           member = null;
@@ -1210,7 +1263,8 @@
       return {
         ...winner,
         displayName: memberDisplayName(member, winner.name),
-        avatarUrl: member ? avatarUrlForMember(member) : (winner.avatarUrl || "/logos/golf.png"),
+        discordId: normalizeDiscordId(member?.discord_user_id) || discordId,
+        avatarUrl: winnerAvatarUrlForMember(member) || winner.avatarUrl || "",
       };
     }
 
@@ -1279,7 +1333,14 @@
     }
 
     function noptationalDisplayParts(rawName){
-      const text = normalizeSearchText(rawName);
+      const lines = String(rawName || "").split(/\n+/).map(normalizeSearchText).filter(Boolean);
+      if(lines.length > 1){
+        return {
+          display:normalizeSearchText(lines[0]),
+          username:normalizeSearchText(lines[1]),
+        };
+      }
+      const text = normalizeSearchText(lines[0] || rawName);
       const match = text.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
       return {
         display:normalizeSearchText(match ? match[1] : text),
@@ -1315,7 +1376,7 @@
       if(!winner) return null;
       const memberRows = await loadMemberSearchRows().catch(() => []);
       const member = memberRows.find(row => normalizeNameKey(row.username) === normalizeNameKey(winner.username)) || null;
-      return { name:winner.display, discordId:member?.discord_user_id || "" };
+      return { name:winner.display, username:winner.username, discordId:member?.discord_user_id || "" };
     }
 
     function parseSuperLeaguePlayoffRows(values){
