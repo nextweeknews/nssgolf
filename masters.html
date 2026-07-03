@@ -305,9 +305,6 @@
       text-transform:uppercase;
       white-space:nowrap;
     }
-    .defending-champion-chip{
-      justify-self:end;
-    }
     .table-scroll{
       width:100%;
       overflow-x:auto;
@@ -573,24 +570,81 @@
         grid-template-columns:1fr;
         gap:12px;
       }
-      .defending-champion-chip{ justify-self:start; }
       .defending-champion-avatar{
         width:48px;
         height:48px;
       }
       .defending-champion-name{ font-size:21px; }
-      .qualifiers-table{ min-width:560px; }
+      .table-scroll{
+        overflow-x:hidden;
+      }
+      .qualifiers-table{
+        min-width:0;
+        table-layout:fixed;
+      }
+      .qualifiers-table th,
+      .qualifiers-table td{
+        padding:8px 7px;
+      }
+      .qualifiers-table th:first-child,
+      .qualifiers-table td:first-child{
+        width:42%;
+      }
+      .qualifiers-table th:last-child,
+      .qualifiers-table td:last-child{
+        width:58%;
+        text-align:left;
+      }
+      .qualifier-player-link,
+      .qualifier-player-static{
+        width:100%;
+        gap:7px;
+      }
+      .qualifier-avatar{
+        width:28px;
+        height:28px;
+      }
+      .qualifier-name{
+        font-size:11px;
+      }
+      .qualification-chips{
+        width:100%;
+        max-width:100%;
+        flex-wrap:nowrap;
+        justify-content:flex-start;
+        overflow-x:auto;
+        overflow-y:hidden;
+        padding:1px 0 3px;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-width:thin;
+      }
+      .qualification-chip{
+        min-height:22px;
+        padding:3px 6px;
+        font-size:8px;
+        letter-spacing:.035em;
+        flex:0 0 auto;
+      }
       .qualifier-bracket-scroll{
         margin-left:-2px;
         margin-right:-2px;
         width:calc(100% + 4px);
+        scroll-snap-type:x mandatory;
+        scroll-behavior:smooth;
+        scroll-padding-inline:14px;
+        overscroll-behavior-x:contain;
+        -webkit-overflow-scrolling:touch;
       }
       .qualifier-bracket-grid{
+        grid-auto-columns:minmax(238px, calc(100vw - 82px));
+        gap:14px;
         justify-content:start;
-        padding:12px;
+        padding:12px 34px 12px 12px;
       }
       .qualifier-round-column{
-        width:var(--qualifier-round-column-width);
+        width:100%;
+        scroll-snap-align:start;
+        scroll-snap-stop:always;
       }
     }
   </style>
@@ -933,9 +987,6 @@
           <div>
             <p class="defending-champion-label">Defending Champion</p>
             ${renderPlayer(champion, { large:true })}
-          </div>
-          <div class="defending-champion-chip">
-            ${renderQualificationChip("Defending Champion")}
           </div>
         </section>
       `;
