@@ -972,15 +972,15 @@
       </div>
 
       <div class="champ-tabs" role="tablist" aria-label="World Championship views">
-        <button class="champ-tab" id="qualifiersTab" role="tab" type="button" data-view="leaderboard" data-state="active" aria-selected="true" aria-controls="leaderboardPanel">
+        <button class="champ-tab" id="qualifiersTab" role="tab" type="button" data-view="leaderboard" data-state="inactive" aria-selected="false" aria-controls="leaderboardPanel">
           <span class="champ-tab-label">Qualifiers</span>
         </button>
-        <button class="champ-tab" id="bracketTab" role="tab" type="button" data-view="bracket" data-state="inactive" aria-selected="false" aria-controls="bracketPanel">
+        <button class="champ-tab" id="bracketTab" role="tab" type="button" data-view="bracket" data-state="active" aria-selected="true" aria-controls="bracketPanel">
           <span class="champ-tab-label">Bracket</span>
         </button>
       </div>
 
-      <section class="panel" id="leaderboardPanel" role="tabpanel" aria-labelledby="qualifiersTab">
+      <section class="panel" id="leaderboardPanel" role="tabpanel" aria-labelledby="qualifiersTab" hidden>
         <div class="qualifier-tabs-mount" id="qualifierTabsMount"></div>
 
         <div class="qualifier-panel" id="qualifierTournamentsPanel" data-qualifier-panel="tournaments">
@@ -1020,7 +1020,7 @@
         </div>
       </section>
 
-      <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab" hidden>
+      <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab">
         <div class="qualifier-bracket-scroll">
           <div class="qualifier-bracket-grid" id="championshipBracketGrid"></div>
         </div>
@@ -1320,7 +1320,7 @@
       pointSettings:clonePointSettings(DEFAULT_POINT_SETTINGS),
       hiddenPlayerKeys:new Set(),
       sourceStatus:new Map(EVENT_DEFS.map(event => [event.key, { tone:"pending", message:"Loading..." }])),
-      view:"leaderboard",
+      view:"bracket",
       qualifierView:"tournaments",
       qualifierTabs:null,
       qualifierRows:{
@@ -3984,7 +3984,7 @@
 
     function requestedViewFromUrl(){
       const view = new URLSearchParams(window.location.search).get(VIEW_QUERY_PARAM);
-      return isValidView(view) ? view : "leaderboard";
+      return isValidView(view) ? view : "bracket";
     }
 
     function requestedQualifierViewFromUrl(){
@@ -3994,7 +3994,7 @@
 
     function writeViewUrlState(historyMode = "push"){
       const url = new URL(window.location.href);
-      url.searchParams.set(VIEW_QUERY_PARAM, isValidView(state.view) ? state.view : "leaderboard");
+      url.searchParams.set(VIEW_QUERY_PARAM, isValidView(state.view) ? state.view : "bracket");
       url.searchParams.set(QUALIFIER_QUERY_PARAM, isValidQualifierView(state.qualifierView) ? state.qualifierView : "tournaments");
       const nextUrl = `${url.pathname}${url.search}${url.hash}`;
       if(nextUrl === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
