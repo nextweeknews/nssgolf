@@ -653,6 +653,36 @@
       text-align:left;
     }
 
+    .tournament-winner{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
+      font-weight:900;
+    }
+
+    .tournament-winner-a{
+      color:var(--player-a-color);
+    }
+
+    .tournament-winner-b{
+      color:var(--player-b-color);
+    }
+
+    .tournament-winner-tie{
+      color:var(--tie);
+    }
+
+    .tournament-winner-avatar{
+      width:24px;
+      height:24px;
+      flex:0 0 auto;
+      border:1px solid currentColor;
+      border-radius:50%;
+      object-fit:cover;
+      background:rgba(148,163,184,.16);
+    }
+
     .empty-row{
       color:var(--muted);
       text-align:center !important;
@@ -758,6 +788,10 @@
 
       th{
         font-size:10px;
+      }
+
+      .tournament-winner-avatar{
+        display:none;
       }
     }
   </style>
@@ -1316,14 +1350,17 @@
 
       tournamentBodyEl.innerHTML = matches.map((match) => {
         const winnerId = normalizeDiscordId(match.winner_discord_user_id);
-        const winnerName = winnerId === normalizeDiscordId(playerA?.discord_user_id)
-          ? displayNameForMember(playerA)
-          : winnerId === normalizeDiscordId(playerB?.discord_user_id)
-            ? displayNameForMember(playerB)
-            : "Tie";
+        const playerAId = normalizeDiscordId(playerA?.discord_user_id);
+        const playerBId = normalizeDiscordId(playerB?.discord_user_id);
+        const winnerKey = winnerId === playerAId ? "a" : winnerId === playerBId ? "b" : "tie";
+        const winnerPlayer = winnerKey === "a" ? playerA : winnerKey === "b" ? playerB : null;
+        const winnerName = winnerPlayer ? displayNameForMember(winnerPlayer) : "Tie";
+        const winnerAvatar = winnerPlayer
+          ? `<img class="tournament-winner-avatar" src="${escapeHtml(avatarUrlForMember(winnerPlayer))}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
+          : "";
         return `
           <tr>
-            <td>${escapeHtml(winnerName)}</td>
+            <td><span class="tournament-winner tournament-winner-${winnerKey}">${winnerAvatar}<span>${escapeHtml(winnerName)}</span></span></td>
             <td>${escapeHtml(match.event_name || "")}</td>
             <td>${escapeHtml(match.round_label || "")}</td>
           </tr>
