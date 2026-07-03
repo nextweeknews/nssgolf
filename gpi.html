@@ -267,8 +267,9 @@
 
     .prediction-select-grid{
       display:grid;
-      grid-template-columns:repeat(3, minmax(0, 1fr));
+      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) max-content;
       gap:12px;
+      align-items:end;
     }
 
     .player-search{
@@ -449,6 +450,16 @@
       padding:0 10px;
     }
 
+    .prediction-format-field{
+      width:max-content;
+    }
+
+    .prediction-format-field .prediction-select{
+      width:auto;
+      min-width:13.5ch;
+      max-width:13.5ch;
+    }
+
     .prediction-select:focus{
       outline:2px solid rgba(110,231,183,.42);
       outline-offset:2px;
@@ -469,8 +480,9 @@
     .prediction-side{
       min-width:0;
       display:grid;
-      grid-template-rows:auto auto minmax(120px, 1fr);
-      gap:12px;
+      grid-template-columns:minmax(132px, .72fr) minmax(150px, 1fr);
+      gap:10px;
+      align-items:stretch;
       border:1px solid var(--line);
       border-radius:8px;
       background:#181b20;
@@ -478,12 +490,36 @@
       text-align:center;
     }
 
+    .prediction-side.is-right{
+      grid-template-columns:minmax(150px, 1fr) minmax(132px, .72fr);
+    }
+
+    .prediction-player-rail{
+      min-width:0;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:12px;
+      align-items:start;
+      justify-items:start;
+      text-align:left;
+    }
+
+    .prediction-side.is-right .prediction-player-rail{
+      justify-items:end;
+      text-align:right;
+    }
+
     .prediction-player-head{
       min-width:0;
       display:flex;
       align-items:center;
-      justify-content:center;
+      justify-content:flex-start;
       gap:10px;
+    }
+
+    .prediction-side.is-right .prediction-player-head{
+      flex-direction:row-reverse;
+      justify-content:flex-end;
     }
 
     .prediction-avatar{
@@ -507,9 +543,13 @@
     .prediction-gpi{
       display:flex;
       align-items:baseline;
-      justify-content:center;
+      justify-content:flex-start;
       gap:7px;
       font-variant-numeric:tabular-nums;
+    }
+
+    .prediction-side.is-right .prediction-gpi{
+      justify-content:flex-end;
     }
 
     .prediction-gpi-label{
@@ -525,7 +565,7 @@
     }
 
     .prediction-probability-panel{
-      min-height:120px;
+      min-height:132px;
       display:grid;
       place-items:center;
       border:1px solid rgba(255,255,255,.08);
@@ -1145,6 +1185,23 @@
         grid-template-columns:1fr;
       }
 
+      .prediction-format-field{
+        width:max-content;
+      }
+
+      .prediction-side,
+      .prediction-side.is-right{
+        grid-template-columns:1fr;
+      }
+
+      .prediction-side.is-right .prediction-probability-panel{
+        grid-row:2;
+      }
+
+      .prediction-side.is-right .prediction-player-rail{
+        grid-row:1;
+      }
+
       .detail-cell{
         flex:0 0 66px;
         min-height:58px;
@@ -1375,7 +1432,7 @@
                 <span class="player-search-results" id="predictionPlayerResultsB" hidden></span>
               </span>
             </label>
-            <label class="prediction-field">
+            <label class="prediction-field prediction-format-field">
               <span class="prediction-label">Match Format</span>
               <select class="prediction-select" id="predictionSeriesLength" aria-label="Select prediction match format">
                 <option value="1" selected>Single match</option>
@@ -2440,7 +2497,11 @@
 
     function renderMatchupPrediction(){
       const { left, right } = selectedPredictionRows();
-      if(!left || !right || left.discord_user_id === right.discord_user_id){
+      if(!left || !right){
+        predictionMatchupEl.innerHTML = "";
+        return;
+      }
+      if(left.discord_user_id === right.discord_user_id){
         predictionMatchupEl.innerHTML = `<div class="prediction-empty">Choose two different players.</div>`;
         return;
       }
@@ -2450,30 +2511,36 @@
       const rightProbability = 1 - leftProbability;
       predictionMatchupEl.innerHTML = `
         <div class="prediction-matchup">
-          <div class="prediction-side">
-            <div class="prediction-player-head">
-              <img class="prediction-avatar" src="${escapeHtml(left.avatarUrl || "/logos/golf.png")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
-              <span class="prediction-player-name">${escapeHtml(left.displayName)}</span>
-            </div>
-            <div class="prediction-gpi">
-              <span class="prediction-gpi-label">GPI</span>
-              <span class="prediction-gpi-value">${escapeHtml(formatRating(left.ratingNumber))}</span>
+          <div class="prediction-side is-left">
+            <div class="prediction-player-rail">
+              <div class="prediction-player-head">
+                <img class="prediction-avatar" src="${escapeHtml(left.avatarUrl || "/logos/golf.png")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                <span class="prediction-player-name">${escapeHtml(left.displayName)}</span>
+              </div>
+              <span></span>
+              <div class="prediction-gpi">
+                <span class="prediction-gpi-label">GPI</span>
+                <span class="prediction-gpi-value">${escapeHtml(formatRating(left.ratingNumber))}</span>
+              </div>
             </div>
             <div class="prediction-probability-panel">
               <span class="prediction-percent">${escapeHtml(formatPercent(leftProbability))}</span>
             </div>
           </div>
-          <div class="prediction-side">
-            <div class="prediction-player-head">
-              <img class="prediction-avatar" src="${escapeHtml(right.avatarUrl || "/logos/golf.png")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
-              <span class="prediction-player-name">${escapeHtml(right.displayName)}</span>
-            </div>
-            <div class="prediction-gpi">
-              <span class="prediction-gpi-label">GPI</span>
-              <span class="prediction-gpi-value">${escapeHtml(formatRating(right.ratingNumber))}</span>
-            </div>
+          <div class="prediction-side is-right">
             <div class="prediction-probability-panel">
               <span class="prediction-percent">${escapeHtml(formatPercent(rightProbability))}</span>
+            </div>
+            <div class="prediction-player-rail">
+              <div class="prediction-player-head">
+                <img class="prediction-avatar" src="${escapeHtml(right.avatarUrl || "/logos/golf.png")}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                <span class="prediction-player-name">${escapeHtml(right.displayName)}</span>
+              </div>
+              <span></span>
+              <div class="prediction-gpi">
+                <span class="prediction-gpi-label">GPI</span>
+                <span class="prediction-gpi-value">${escapeHtml(formatRating(right.ratingNumber))}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -3273,13 +3340,10 @@
 
       preparePredictionSearchRows(predictionRows);
       if(!selectedPredictionPlayers.a || !combinedRowsById.has(selectedPredictionPlayers.a.discord_user_id)){
-        selectedPredictionPlayers.a = predictionRows[0] || null;
+        selectedPredictionPlayers.a = null;
       }
       if(!selectedPredictionPlayers.b || !combinedRowsById.has(selectedPredictionPlayers.b.discord_user_id)){
-        selectedPredictionPlayers.b = predictionRows[1] || predictionRows[0] || null;
-      }
-      if(selectedPredictionPlayers.a?.discord_user_id === selectedPredictionPlayers.b?.discord_user_id && predictionRows[1]){
-        selectedPredictionPlayers.b = predictionRows[1];
+        selectedPredictionPlayers.b = null;
       }
       renderSelectedPredictionInput("a");
       renderSelectedPredictionInput("b");
