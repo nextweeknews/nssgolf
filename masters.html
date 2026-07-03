@@ -337,6 +337,7 @@
     .qualifiers-table th:last-child,
     .qualifiers-table td:last-child{
       text-align:right;
+      padding-right:16px;
     }
     .qualifiers-table tbody tr:last-child td{
       border-bottom:0;
@@ -593,7 +594,8 @@
       .qualifiers-table th:last-child,
       .qualifiers-table td:last-child{
         width:58%;
-        text-align:left;
+        text-align:right;
+        padding-right:10px;
       }
       .qualifier-player-link,
       .qualifier-player-static{
@@ -610,13 +612,11 @@
       .qualification-chips{
         width:100%;
         max-width:100%;
-        flex-wrap:nowrap;
-        justify-content:flex-start;
-        overflow-x:auto;
-        overflow-y:hidden;
-        padding:1px 0 3px;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-width:thin;
+        flex-wrap:wrap;
+        justify-content:flex-end;
+        align-content:center;
+        overflow:visible;
+        padding:2px 0;
       }
       .qualification-chip{
         min-height:22px;
