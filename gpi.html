@@ -1557,6 +1557,8 @@
       bracketRange:"'Bracket'!A:Z",
       roundOrder:["R64", "R32", "R16", "R8", "R4", "Final"],
     };
+    const CHAMPIONSHIP_SERIES_GAMES = 3;
+    const CHAMPIONSHIP_SERIES_WINS_TO_ADVANCE = 2;
     const CHAMPIONSHIP_ROUND_LABELS = {
       R64:"Round of 64",
       R32:"Round of 32",
@@ -2127,6 +2129,25 @@
       return leftRating >= rightRating ? favoriteProbability : 1 - favoriteProbability;
     }
 
+    function combinationCount(total, selected){
+      if(selected < 0 || selected > total) return 0;
+      const picks = Math.min(selected, total - selected);
+      let result = 1;
+      for(let index = 1; index <= picks; index += 1){
+        result = (result * (total - picks + index)) / index;
+      }
+      return result;
+    }
+
+    function seriesWinProbability(singleGameProbability, games = CHAMPIONSHIP_SERIES_GAMES, winsToAdvance = CHAMPIONSHIP_SERIES_WINS_TO_ADVANCE){
+      const p = Math.max(0, Math.min(1, Number(singleGameProbability)));
+      let probability = 0;
+      for(let wins = winsToAdvance; wins <= games; wins += 1){
+        probability += combinationCount(games, wins) * (p ** wins) * ((1 - p) ** (games - wins));
+      }
+      return probability;
+    }
+
     function predictionConfidenceLabel(delta){
       const cleanDelta = Math.abs(Number(delta) || 0);
       if(cleanDelta < 25) return "Toss-up";
@@ -2506,7 +2527,7 @@
 
     function participantWinProbability(leftParticipant, rightParticipant){
       if(!leftParticipant?.row || !rightParticipant?.row) return 0.5;
-      return predictionProbability(leftParticipant.row, rightParticipant.row);
+      return seriesWinProbability(predictionProbability(leftParticipant.row, rightParticipant.row));
     }
 
     function distributionFromSlot(slot, participantsByKey){
@@ -2649,7 +2670,6 @@
       tournamentProjectionEl.innerHTML = `
         <div class="projection-summary">
           <span><strong>${escapeHtml(formatInteger(projection.rows.length))}</strong> players, <strong>${escapeHtml(formatInteger(projection.matchesCompleted))}</strong> of <strong>${escapeHtml(formatInteger(projection.matchesTotal))}</strong> bracket matches complete.</span>
-          <span>Completed matches are locked; open matches use GPI win probabilities.</span>
         </div>
         <div class="table-shell">
           <table class="projection-table">
