@@ -277,6 +277,155 @@
       gap:12px;
     }
 
+    .player-search{
+      position:relative;
+    }
+
+    .player-search-input{
+      width:100%;
+      min-height:44px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#111827;
+      color:var(--text);
+      font:inherit;
+      font-size:14px;
+      padding:0 44px 0 12px;
+      outline:none;
+    }
+
+    .player-search-input::-webkit-search-cancel-button{
+      appearance:none;
+      display:none;
+    }
+
+    .player-search-input::placeholder{
+      color:rgba(156,163,199,.72);
+    }
+
+    .player-search-input:focus{
+      border-color:rgba(110,231,183,.58);
+      box-shadow:0 0 0 3px rgba(110,231,183,.12);
+    }
+
+    .player-search-actions{
+      position:absolute;
+      top:50%;
+      right:9px;
+      transform:translateY(-50%);
+    }
+
+    .player-search-clear{
+      width:26px;
+      height:26px;
+      display:grid;
+      place-items:center;
+      border:1px solid rgba(148,163,184,.22);
+      border-radius:999px;
+      background:rgba(15,23,42,.82);
+      color:rgba(226,232,240,.88);
+      cursor:pointer;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .14s ease, border-color .14s ease, color .14s ease;
+    }
+
+    .player-search[data-has-value="true"]:focus-within .player-search-clear{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .player-search-clear:hover,
+    .player-search-clear:focus-visible{
+      border-color:rgba(203,213,225,.58);
+      color:#fff;
+      outline:none;
+    }
+
+    .player-search-clear svg{
+      width:14px;
+      height:14px;
+      display:block;
+    }
+
+    .player-search-results{
+      position:absolute;
+      z-index:20;
+      top:calc(100% + 8px);
+      left:0;
+      right:0;
+      max-height:320px;
+      overflow:auto;
+      border:1px solid rgba(148,163,184,.32);
+      border-radius:8px;
+      background:rgba(10,19,34,.98);
+      box-shadow:0 18px 32px rgba(0,0,0,.40);
+      padding:6px;
+    }
+
+    .player-search-results[hidden]{
+      display:none;
+    }
+
+    .player-search-result{
+      width:100%;
+      display:grid;
+      grid-template-columns:34px minmax(0, 1fr);
+      gap:10px;
+      align-items:center;
+      border:0;
+      border-radius:7px;
+      background:transparent;
+      color:var(--text);
+      padding:8px;
+      text-align:left;
+      cursor:pointer;
+      font:inherit;
+    }
+
+    .player-search-result:hover,
+    .player-search-result:focus-visible{
+      background:rgba(148,163,184,.13);
+      outline:none;
+    }
+
+    .player-search-avatar{
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:#242832;
+      object-fit:cover;
+    }
+
+    .player-search-copy{
+      min-width:0;
+      display:grid;
+      gap:2px;
+    }
+
+    .player-search-display{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-weight:850;
+    }
+
+    .player-search-username{
+      overflow:hidden;
+      color:var(--muted);
+      font-size:12px;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .player-search-empty{
+      margin:0;
+      padding:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
     .prediction-field{
       display:grid;
       gap:7px;
@@ -413,99 +562,69 @@
       font-variant-numeric:tabular-nums;
     }
 
-    .bracket-controls{
-      display:flex;
-      align-items:end;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .bracket-slots{
-      display:grid;
-      grid-template-columns:repeat(2, minmax(0, 1fr));
-      gap:8px;
-    }
-
-    .bracket-slot{
-      display:grid;
-      gap:6px;
-      min-width:0;
-    }
-
-    .bracket-slot-label{
-      color:var(--muted);
-      font-size:10px;
-      font-weight:850;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-    }
-
-    .bracket-results{
+    .tournament-projection{
       display:grid;
       gap:14px;
     }
 
-    .bracket-rounds{
-      display:grid;
-      gap:8px;
-    }
-
-    .bracket-round{
-      display:grid;
-      grid-template-columns:90px minmax(0, 1fr);
-      gap:8px;
-      align-items:start;
-    }
-
-    .bracket-round-name{
-      color:var(--muted);
-      font-size:11px;
-      font-weight:850;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-      padding-top:10px;
-    }
-
-    .bracket-match-list{
-      display:grid;
-      gap:6px;
-    }
-
-    .bracket-match{
-      display:grid;
-      grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
-      gap:8px;
+    .projection-summary{
+      display:flex;
       align-items:center;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#181b20;
-      padding:9px 10px;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      color:var(--muted);
       font-size:13px;
     }
 
-    .bracket-match-player{
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
+    .projection-summary strong{
+      color:var(--text);
     }
 
-    .bracket-match-odds{
-      color:var(--muted);
-      font-size:11px;
+    .projection-link{
+      color:#bbf7d0;
       font-weight:850;
-      font-variant-numeric:tabular-nums;
-      white-space:nowrap;
+      text-decoration:none;
     }
 
-    .bracket-odds-table{
-      min-width:520px;
+    .projection-link:hover,
+    .projection-link:focus-visible{
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+
+    .projection-table{
+      min-width:980px;
       box-shadow:none;
     }
 
-    .bracket-odds-table th,
-    .bracket-odds-table td{
+    .projection-table th,
+    .projection-table td{
       padding:10px 12px;
+    }
+
+    .projection-table .player-cell{
+      min-width:220px;
+      width:260px;
+    }
+
+    .projection-status{
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .projection-probability{
+      text-align:right;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .projection-probability.is-zero{
+      color:rgba(156,163,199,.48);
+    }
+
+    .projection-probability.is-live{
+      color:#bbf7d0;
+      font-weight:850;
     }
 
     .prediction-empty{
@@ -1027,26 +1146,12 @@
 
       .prediction-select-grid,
       .prediction-matchup,
-      .prediction-meta-grid,
-      .bracket-slots{
+      .prediction-meta-grid{
         grid-template-columns:1fr;
       }
 
       .prediction-percent{
         font-size:24px;
-      }
-
-      .bracket-round{
-        grid-template-columns:1fr;
-      }
-
-      .bracket-round-name{
-        padding-top:0;
-      }
-
-      .bracket-match{
-        grid-template-columns:1fr;
-        text-align:center;
       }
 
       .detail-cell{
@@ -1257,36 +1362,44 @@
           <div class="prediction-select-grid">
             <label class="prediction-field">
               <span class="prediction-label">Player 1</span>
-              <select id="predictionPlayerA" class="prediction-select"></select>
+              <span class="player-search" id="predictionSearchA">
+                <input class="player-search-input" id="predictionPlayerA" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search first player" aria-expanded="false" />
+                <span class="player-search-actions">
+                  <button class="player-search-clear" id="predictionClearA" type="button" aria-label="Clear first player search">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                      <path d="M5.3 5.3 10 10l4.7-4.7 1.1 1.1-4.7 4.7 4.7 4.7-1.1 1.1L10 12.1l-4.7 4.8-1.1-1.1 4.7-4.7-4.7-4.7 1.1-1.1Z" fill="currentColor" />
+                    </svg>
+                  </button>
+                </span>
+                <span class="player-search-results" id="predictionPlayerResultsA" hidden></span>
+              </span>
             </label>
             <label class="prediction-field">
               <span class="prediction-label">Player 2</span>
-              <select id="predictionPlayerB" class="prediction-select"></select>
+              <span class="player-search" id="predictionSearchB">
+                <input class="player-search-input" id="predictionPlayerB" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search second player" aria-expanded="false" />
+                <span class="player-search-actions">
+                  <button class="player-search-clear" id="predictionClearB" type="button" aria-label="Clear second player search">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                      <path d="M5.3 5.3 10 10l4.7-4.7 1.1 1.1-4.7 4.7 4.7 4.7-1.1 1.1L10 12.1l-4.7 4.8-1.1-1.1 4.7-4.7-4.7-4.7 1.1-1.1Z" fill="currentColor" />
+                    </svg>
+                  </button>
+                </span>
+                <span class="player-search-results" id="predictionPlayerResultsB" hidden></span>
+              </span>
             </label>
           </div>
           <div id="predictionMatchup" class="prediction-result"></div>
         </div>
       </section>
 
-      <section class="prediction-tool" aria-label="Bracket builder">
+      <section class="prediction-tool" aria-label="Live tournament projection">
         <header class="prediction-tool-head">
-          <h2>Bracket Builder</h2>
-          <div class="prediction-actions">
-            <label class="prediction-field">
-              <span class="prediction-label">Size</span>
-              <select id="bracketSize" class="prediction-select">
-                <option value="4">4 players</option>
-                <option value="8" selected>8 players</option>
-                <option value="16">16 players</option>
-              </select>
-            </label>
-            <button id="bracketFillTop" class="pager-button" type="button">Fill Top Rated</button>
-            <button id="bracketClear" class="pager-button" type="button">Clear</button>
-          </div>
+          <h2>Live Tournament Projection</h2>
+          <a class="projection-link" href="/championship.html">World Championship</a>
         </header>
         <div class="prediction-tool-body">
-          <div id="bracketSlots" class="bracket-slots"></div>
-          <div id="bracketResults" class="bracket-results"></div>
+          <div id="tournamentProjection" class="tournament-projection"></div>
         </div>
       </section>
     </section>
@@ -1412,13 +1525,15 @@
     const predictionPanelEl = document.getElementById("predictionPanel");
     const predictionPlayerAEl = document.getElementById("predictionPlayerA");
     const predictionPlayerBEl = document.getElementById("predictionPlayerB");
+    const predictionSearchAEl = document.getElementById("predictionSearchA");
+    const predictionSearchBEl = document.getElementById("predictionSearchB");
+    const predictionPlayerResultsAEl = document.getElementById("predictionPlayerResultsA");
+    const predictionPlayerResultsBEl = document.getElementById("predictionPlayerResultsB");
+    const predictionClearAEl = document.getElementById("predictionClearA");
+    const predictionClearBEl = document.getElementById("predictionClearB");
     const predictionSwapEl = document.getElementById("predictionSwap");
     const predictionMatchupEl = document.getElementById("predictionMatchup");
-    const bracketSizeEl = document.getElementById("bracketSize");
-    const bracketSlotsEl = document.getElementById("bracketSlots");
-    const bracketResultsEl = document.getElementById("bracketResults");
-    const bracketFillTopEl = document.getElementById("bracketFillTop");
-    const bracketClearEl = document.getElementById("bracketClear");
+    const tournamentProjectionEl = document.getElementById("tournamentProjection");
     const runMetaEl = document.getElementById("runMeta");
     const pageInfoEl = document.getElementById("pageInfo");
     const prevPageEl = document.getElementById("prevPage");
@@ -1433,6 +1548,39 @@
     const COMBINED_TANH_SCALE = 1.5;
     const COMBINED_POSITIVE_SCALE = 120;
     const COMBINED_NEGATIVE_SCALE = 60;
+    const PLAYER_SEARCH_LIMIT = 8;
+    const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const FETCH_NO_STORE = { cache:"no-store" };
+    const CHAMPIONSHIP_BRACKET = {
+      sheetId:"10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q",
+      fieldRange:"'Field'!B:C",
+      bracketRange:"'Bracket'!A:Z",
+      roundOrder:["R64", "R32", "R16", "R8", "R4", "Final"],
+    };
+    const CHAMPIONSHIP_ROUND_LABELS = {
+      R64:"Round of 64",
+      R32:"Round of 32",
+      R16:"Round of 16",
+      R8:"Quarterfinals",
+      R4:"Semifinals",
+      Final:"Final",
+    };
+    const CHAMPIONSHIP_ADVANCEMENT_COLUMNS = [
+      { key:"R32", label:"R32" },
+      { key:"R16", label:"R16" },
+      { key:"R8", label:"QF" },
+      { key:"R4", label:"SF" },
+      { key:"Final", label:"Final" },
+      { key:"Champion", label:"Champion" },
+    ];
+    const CHAMPIONSHIP_ADVANCEMENT_BY_ROUND = {
+      R64:"R32",
+      R32:"R16",
+      R16:"R8",
+      R8:"R4",
+      R4:"Final",
+      Final:"Champion",
+    };
     const VIEW_CONFIG = {
       gpi: {
         kind: "combined",
@@ -1502,6 +1650,8 @@
     let loadRequestId = 0;
     let combinedRowsById = new Map();
     let predictionRows = [];
+    let predictionSearchRows = [];
+    let selectedPredictionPlayers = { a:null, b:null };
     const HISTORICAL_GPI_WIN_CURVE = [
       { delta:0, probability:.5 },
       { delta:25, probability:.5 },
@@ -1513,6 +1663,20 @@
       { delta:300, probability:.827 },
       { delta:400, probability:.928 },
     ];
+    const predictionPickers = {
+      a: {
+        input: predictionPlayerAEl,
+        root: predictionSearchAEl,
+        results: predictionPlayerResultsAEl,
+        clearButton: predictionClearAEl,
+      },
+      b: {
+        input: predictionPlayerBEl,
+        root: predictionSearchBEl,
+        results: predictionPlayerResultsBEl,
+        clearButton: predictionClearBEl,
+      },
+    };
 
     function activeConfig(){
       return VIEW_CONFIG[currentView] || VIEW_CONFIG.ranked;
@@ -1546,6 +1710,10 @@
     function normalizeDiscordId(value){
       const cleanValue = normalizeText(value);
       return /^[0-9]+$/.test(cleanValue) ? cleanValue : "";
+    }
+
+    function normalizeNameKey(value){
+      return normalizeText(value).toLowerCase().replace(/\s+/g, " ");
     }
 
     function escapeHtml(value){
@@ -1972,26 +2140,142 @@
       return row ? `${row.displayName} (${formatRating(row.ratingNumber)})` : "";
     }
 
-    function predictionOptionHtml(row){
-      return `<option value="${escapeHtml(row.discord_user_id)}">${escapeHtml(predictionPlayerLabel(row))}</option>`;
+    function predictionUsername(row){
+      return normalizeText(row?.member?.username) || normalizeDiscordId(row?.discord_user_id);
     }
 
-    function populatePredictionSelect(selectEl, rows, selectedId, { includeEmpty = false } = {}){
-      const emptyOption = includeEmpty ? `<option value="">Open slot</option>` : "";
-      selectEl.innerHTML = `${emptyOption}${rows.map(predictionOptionHtml).join("")}`;
-      if(selectedId && rows.some((row) => row.discord_user_id === selectedId)){
-        selectEl.value = selectedId;
-      }else if(!includeEmpty && rows.length){
-        selectEl.value = rows[0].discord_user_id;
-      }else{
-        selectEl.value = "";
+    function preparePredictionSearchRows(rows){
+      predictionSearchRows = rows.map((row) => ({
+        ...row,
+        displaySearch: normalizeNameKey(row.displayName),
+        usernameSearch: normalizeNameKey(predictionUsername(row)),
+      }));
+    }
+
+    function updatePredictionClearState(key){
+      const picker = predictionPickers[key];
+      picker.root.dataset.hasValue = normalizeText(picker.input.value) ? "true" : "false";
+    }
+
+    function scorePredictionSearchResult(row, query){
+      const display = row.displaySearch;
+      const username = row.usernameSearch;
+      if(!query) return 0;
+      if(display === query) return 120;
+      if(username === query) return 110;
+      if(display.startsWith(query)) return 95;
+      if(username.startsWith(query)) return 85;
+      if(display.includes(query)) return 65;
+      if(username.includes(query)) return 55;
+      return 0;
+    }
+
+    function hidePredictionResults(key){
+      const picker = predictionPickers[key];
+      picker.results.hidden = true;
+      picker.input.setAttribute("aria-expanded", "false");
+    }
+
+    function showPredictionResults(key){
+      const picker = predictionPickers[key];
+      picker.results.hidden = false;
+      picker.input.setAttribute("aria-expanded", "true");
+    }
+
+    function renderPredictionSearchResults(key, results, query){
+      const picker = predictionPickers[key];
+      picker.results.innerHTML = "";
+      if(!query){
+        hidePredictionResults(key);
+        return;
       }
+
+      if(!results.length){
+        const empty = document.createElement("p");
+        empty.className = "player-search-empty";
+        empty.textContent = "No GPI players found.";
+        picker.results.appendChild(empty);
+        showPredictionResults(key);
+        return;
+      }
+
+      for(const row of results){
+        const button = document.createElement("button");
+        button.className = "player-search-result";
+        button.type = "button";
+        button.dataset.playerId = row.discord_user_id;
+
+        const avatar = document.createElement("img");
+        avatar.className = "player-search-avatar";
+        avatar.src = row.avatarUrl || "/logos/golf.png";
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.decoding = "async";
+        avatar.referrerPolicy = "no-referrer";
+
+        const copy = document.createElement("span");
+        copy.className = "player-search-copy";
+
+        const displayName = document.createElement("span");
+        displayName.className = "player-search-display";
+        displayName.textContent = predictionPlayerLabel(row);
+
+        const username = document.createElement("span");
+        username.className = "player-search-username";
+        username.textContent = predictionUsername(row);
+
+        copy.append(displayName, username);
+        button.append(avatar, copy);
+        picker.results.appendChild(button);
+      }
+
+      showPredictionResults(key);
+    }
+
+    function updatePredictionSearch(key){
+      const query = normalizeNameKey(predictionPickers[key].input.value);
+      if(!query){
+        hidePredictionResults(key);
+        return;
+      }
+
+      const results = predictionSearchRows
+        .map(row => ({ row, score:scorePredictionSearchResult(row, query) }))
+        .filter(result => result.score > 0)
+        .sort((left, right) => {
+          if(right.score !== left.score) return right.score - left.score;
+          return left.row.displayName.localeCompare(right.row.displayName);
+        })
+        .slice(0, PLAYER_SEARCH_LIMIT)
+        .map(result => result.row);
+      renderPredictionSearchResults(key, results, query);
+    }
+
+    function renderSelectedPredictionInput(key){
+      const picker = predictionPickers[key];
+      const row = selectedPredictionPlayers[key];
+      picker.input.value = row ? predictionPlayerLabel(row) : "";
+      updatePredictionClearState(key);
+    }
+
+    function selectPredictionPlayer(key, row){
+      selectedPredictionPlayers[key] = row || null;
+      renderSelectedPredictionInput(key);
+      hidePredictionResults(key);
+      renderMatchupPrediction();
+    }
+
+    function clearPredictionPlayer(key){
+      selectedPredictionPlayers[key] = null;
+      renderSelectedPredictionInput(key);
+      hidePredictionResults(key);
+      renderMatchupPrediction();
     }
 
     function selectedPredictionRows(){
       return {
-        left: combinedRowsById.get(normalizeDiscordId(predictionPlayerAEl.value)) || null,
-        right: combinedRowsById.get(normalizeDiscordId(predictionPlayerBEl.value)) || null,
+        left: selectedPredictionPlayers.a,
+        right: selectedPredictionPlayers.b,
       };
     }
 
@@ -2037,50 +2321,222 @@
       `;
     }
 
-    function seedOrder(size){
-      if(size <= 1) return [1];
-      const previous = seedOrder(size / 2);
-      return previous.flatMap((seed) => [seed, size + 1 - seed]);
+    function normalizeValues(resp){
+      if(!resp) return [];
+      if(Array.isArray(resp)) return resp;
+      if(Array.isArray(resp.values)) return resp.values;
+      if(Array.isArray(resp.data?.values)) return resp.data.values;
+      if(Array.isArray(resp.result?.values)) return resp.result.values;
+      return [];
     }
 
-    function currentBracketSelections(){
-      return [...bracketSlotsEl.querySelectorAll("select[data-bracket-slot]")]
-        .sort((left, right) => Number(left.dataset.bracketSlot) - Number(right.dataset.bracketSlot))
-        .map((select) => normalizeDiscordId(select.value));
+    async function fetchSheetRange(sheetId, range){
+      const payload = { sheetId, range };
+      try{
+        const response = await fetch(WORKER_URL, {
+          ...FETCH_NO_STORE,
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body:JSON.stringify(payload),
+        });
+        if(response.ok) return normalizeValues(await response.json());
+      }catch{
+      }
+
+      try{
+        const url = new URL(WORKER_URL);
+        url.searchParams.set("sheetId", sheetId);
+        url.searchParams.set("range", range);
+        const response = await fetch(url.toString(), FETCH_NO_STORE);
+        if(response.ok) return normalizeValues(await response.json());
+      }catch{
+      }
+
+      return fetchSheetRangeGviz(sheetId, range);
     }
 
-    function renderBracketSlots(selectedIds = currentBracketSelections()){
-      const size = Number(bracketSizeEl.value) || 8;
-      const rows = predictionRows;
-      bracketSlotsEl.innerHTML = Array.from({ length:size }, (_, index) => {
-        const seed = index + 1;
-        const selectedId = selectedIds[index] || "";
-        return `
-          <label class="bracket-slot">
-            <span class="bracket-slot-label">Seed ${seed}</span>
-            <select class="prediction-select" data-bracket-slot="${seed}">
-              <option value="">Open slot</option>
-              ${rows.map((row) => `<option value="${escapeHtml(row.discord_user_id)}"${row.discord_user_id === selectedId ? " selected" : ""}>${escapeHtml(predictionPlayerLabel(row))}</option>`).join("")}
-            </select>
-          </label>
-        `;
-      }).join("");
-      renderBracketPrediction();
+    function parseSheetRange(range){
+      const text = normalizeText(range);
+      const match = text.match(/^'([^']+)'!(.+)$/) || text.match(/^([^!]+)!(.+)$/);
+      if(match) return { sheetName:match[1], a1:match[2] };
+      return { sheetName:"", a1:text };
     }
 
-    function combineEntrants(leftMap, rightMap){
+    function parseGvizResponse(text){
+      const match = String(text || "").match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/s);
+      if(!match) throw new Error("Unable to parse Google Sheets response.");
+      const payload = JSON.parse(match[1]);
+      const rows = payload?.table?.rows ?? [];
+      return rows.map(row => (row.c ?? []).map(cell => cell?.v ?? ""));
+    }
+
+    async function fetchSheetRangeGviz(sheetId, range){
+      const { sheetName, a1 } = parseSheetRange(range);
+      const url = new URL(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq`);
+      url.searchParams.set("tqx", "out:json");
+      if(sheetName) url.searchParams.set("sheet", sheetName);
+      if(a1) url.searchParams.set("range", a1);
+      const response = await fetch(url.toString(), FETCH_NO_STORE);
+      if(!response.ok) throw new Error(`Google Sheets request failed (${response.status}).`);
+      return parseGvizResponse(await response.text());
+    }
+
+    function normalizeChampionshipRound(value){
+      const text = normalizeText(value);
+      const normalized = text.toLowerCase().replace(/[\s_-]+/g, "");
+      if(["r64", "roundof64", "64"].includes(normalized)) return "R64";
+      if(["r32", "roundof32", "32"].includes(normalized)) return "R32";
+      if(["r16", "roundof16", "16"].includes(normalized)) return "R16";
+      if(["r8", "roundof8", "quarterfinal", "quarterfinals", "qf", "8"].includes(normalized)) return "R8";
+      if(["r4", "roundof4", "semifinal", "semifinals", "sf", "4"].includes(normalized)) return "R4";
+      if(["f", "final", "finals", "championship"].includes(normalized)) return "Final";
+      return text;
+    }
+
+    function bracketSeed(value){
+      const text = normalizeText(value);
+      if(!text) return null;
+      const number = Number(text);
+      return Number.isFinite(number) ? number : text;
+    }
+
+    function bracketScore(value){
+      const text = normalizeText(value);
+      if(!text) return "";
+      const number = Number(text);
+      return Number.isFinite(number) ? String(number) : text;
+    }
+
+    function championshipBracketSlot(row, { seedIndex, nameIndex, scoreIndex }, discordIdsByName){
+      const name = normalizeText(row?.[nameIndex]);
+      const discordId = discordIdsByName.get(normalizeNameKey(name)) || "";
+      return {
+        seed:bracketSeed(row?.[seedIndex]),
+        name,
+        discordId,
+        score:bracketScore(row?.[scoreIndex]),
+      };
+    }
+
+    function slotIdentityKey(slot){
+      const discordId = normalizeDiscordId(slot?.discordId);
+      if(discordId) return `id:${discordId}`;
+      const nameKey = normalizeNameKey(slot?.name);
+      return nameKey ? `name:${nameKey}` : "";
+    }
+
+    function parseChampionshipFieldDiscordIds(rows){
+      const discordIdsByName = new Map();
+      rows.forEach((row, index) => {
+        const name = normalizeText(row?.[0]);
+        const discordId = normalizeDiscordId(row?.[1]);
+        if(index < 2 && /^player/i.test(name)) return;
+        if(!name || !discordId) return;
+        discordIdsByName.set(normalizeNameKey(name), discordId);
+      });
+      return discordIdsByName;
+    }
+
+    function championshipBracketWinnerKey(match){
+      const topScore = Number(match?.top?.score);
+      const bottomScore = Number(match?.bottom?.score);
+      if(!Number.isFinite(topScore) || !Number.isFinite(bottomScore) || topScore === bottomScore) return "";
+      return slotIdentityKey(topScore > bottomScore ? match.top : match.bottom);
+    }
+
+    function parseChampionshipBracketMatches(rows, discordIdsByName){
+      return rows.map((row) => {
+        const match = {
+          id:Number(row?.[0]),
+          round:normalizeChampionshipRound(row?.[1]),
+          top:championshipBracketSlot(row, {
+            seedIndex:2,
+            nameIndex:3,
+            scoreIndex:4,
+          }, discordIdsByName),
+          bottom:championshipBracketSlot(row, {
+            seedIndex:14,
+            nameIndex:15,
+            scoreIndex:16,
+          }, discordIdsByName),
+          winnerKey:"",
+        };
+        match.winnerKey = championshipBracketWinnerKey(match);
+        return match;
+      }).filter(match => (
+        Number.isFinite(match.id) &&
+        CHAMPIONSHIP_BRACKET.roundOrder.includes(match.round)
+      )).sort((left, right) => left.id - right.id);
+    }
+
+    async function loadChampionshipBracketMatches(){
+      const [fieldRows, bracketRows] = await Promise.all([
+        fetchSheetRange(CHAMPIONSHIP_BRACKET.sheetId, CHAMPIONSHIP_BRACKET.fieldRange),
+        fetchSheetRange(CHAMPIONSHIP_BRACKET.sheetId, CHAMPIONSHIP_BRACKET.bracketRange),
+      ]);
+      const discordIdsByName = parseChampionshipFieldDiscordIds(fieldRows);
+      return parseChampionshipBracketMatches(bracketRows, discordIdsByName);
+    }
+
+    function participantFromSlot(slot){
+      const key = slotIdentityKey(slot);
+      if(!key) return null;
+      const discordId = normalizeDiscordId(slot.discordId);
+      const row = discordId ? combinedRowsById.get(discordId) : null;
+      return {
+        key,
+        discordId,
+        seed: slot.seed,
+        name: row?.displayName || normalizeText(slot.name) || "Player",
+        row,
+      };
+    }
+
+    function participantDisplayName(participant){
+      return participant?.row?.displayName || participant?.name || "Player";
+    }
+
+    function participantAvatarUrl(participant){
+      return participant?.row?.avatarUrl || "/logos/golf.png";
+    }
+
+    function participantRating(participant){
+      return Number(participant?.row?.ratingNumber);
+    }
+
+    function participantWinProbability(leftParticipant, rightParticipant){
+      if(!leftParticipant?.row || !rightParticipant?.row) return 0.5;
+      return predictionProbability(leftParticipant.row, rightParticipant.row);
+    }
+
+    function distributionFromSlot(slot, participantsByKey){
+      const participant = participantFromSlot(slot);
+      if(!participant) return new Map();
+      const existing = participantsByKey.get(participant.key);
+      participantsByKey.set(participant.key, {
+        ...participant,
+        seed: existing?.seed ?? participant.seed,
+        row: existing?.row || participant.row,
+      });
+      return new Map([[participant.key, 1]]);
+    }
+
+    function combineEntrants(leftMap, rightMap, participantsByKey, forcedWinnerKey = ""){
       const result = new Map();
       if(!leftMap.size && !rightMap.size) return result;
       if(!leftMap.size) return new Map(rightMap);
       if(!rightMap.size) return new Map(leftMap);
+      if(forcedWinnerKey){
+        return new Map([[forcedWinnerKey, 1]]);
+      }
 
       for(const [leftId, leftChance] of leftMap.entries()){
-        const leftRow = combinedRowsById.get(leftId);
+        const leftParticipant = participantsByKey.get(leftId);
         for(const [rightId, rightChance] of rightMap.entries()){
-          const rightRow = combinedRowsById.get(rightId);
-          if(!leftRow || !rightRow) continue;
+          const rightParticipant = participantsByKey.get(rightId);
+          if(!leftParticipant || !rightParticipant) continue;
           const pairChance = leftChance * rightChance;
-          const leftWin = predictionProbability(leftRow, rightRow);
+          const leftWin = participantWinProbability(leftParticipant, rightParticipant);
           result.set(leftId, (result.get(leftId) || 0) + pairChance * leftWin);
           result.set(rightId, (result.get(rightId) || 0) + pairChance * (1 - leftWin));
         }
@@ -2088,107 +2544,133 @@
       return result;
     }
 
-    function topEntry(distribution){
-      return [...distribution.entries()]
-        .sort((left, right) => right[1] - left[1])
-        .map(([id, probability]) => ({ row: combinedRowsById.get(id), probability }))
-        .find((entry) => entry.row) || null;
+    function fallbackEntrantsFromMatches(matches, participantsByKey){
+      return matches.flatMap((match) => [
+        distributionFromSlot(match.top, participantsByKey),
+        distributionFromSlot(match.bottom, participantsByKey),
+      ]);
     }
 
-    function bracketRoundName(roundIndex, totalRounds){
-      if(roundIndex === totalRounds - 1) return "Final";
-      if(roundIndex === totalRounds - 2) return "Semis";
-      if(roundIndex === totalRounds - 3) return "Quarters";
-      return `Round ${roundIndex + 1}`;
+    function addAdvancementProbability(probabilitiesByKey, roundKey, distribution){
+      for(const [key, probability] of distribution.entries()){
+        if(!probabilitiesByKey.has(key)) probabilitiesByKey.set(key, {});
+        const probabilities = probabilitiesByKey.get(key);
+        probabilities[roundKey] = (probabilities[roundKey] || 0) + probability;
+      }
     }
 
-    function renderBracketPrediction(){
-      if(!predictionRows.length){
-        bracketResultsEl.innerHTML = `<div class="prediction-empty">No GPI players available.</div>`;
-        return;
+    function buildChampionshipProjection(matches){
+      const participantsByKey = new Map();
+      const probabilitiesByKey = new Map();
+      const groups = CHAMPIONSHIP_BRACKET.roundOrder
+        .map(round => ({ round, matches:matches.filter(match => match.round === round) }))
+        .filter(group => group.matches.length);
+      if(!groups.length) return { rows:[], matchesCompleted:0, matchesTotal:0 };
+
+      let entrants = fallbackEntrantsFromMatches(groups[0].matches, participantsByKey);
+      for(const key of participantsByKey.keys()){
+        probabilitiesByKey.set(key, {});
       }
 
-      const size = Number(bracketSizeEl.value) || 8;
-      const selectedIds = currentBracketSelections();
-      const duplicateIds = selectedIds.filter(Boolean).filter((id, index, values) => values.indexOf(id) !== index);
-      if(duplicateIds.length){
-        bracketResultsEl.innerHTML = `<div class="prediction-empty">Each player can only appear once.</div>`;
-        return;
-      }
-
-      const activeIds = selectedIds.filter(Boolean);
-      if(activeIds.length < 2){
-        bracketResultsEl.innerHTML = `<div class="prediction-empty">Add at least two players.</div>`;
-        return;
-      }
-
-      let entrants = seedOrder(size).map((seed) => {
-        const id = selectedIds[seed - 1];
-        return id ? new Map([[id, 1]]) : new Map();
-      });
-      const totalRounds = Math.log2(size);
-      const roundMarkup = [];
-
-      for(let roundIndex = 0; roundIndex < totalRounds; roundIndex += 1){
-        const nextEntrants = [];
-        const matchMarkup = [];
-
-        for(let index = 0; index < entrants.length; index += 2){
-          const left = entrants[index] || new Map();
-          const right = entrants[index + 1] || new Map();
-          const leftTop = topEntry(left);
-          const rightTop = topEntry(right);
-          const next = combineEntrants(left, right);
-          nextEntrants.push(next);
-
-          let oddsMarkup = "Bye";
-          if(leftTop && rightTop){
-            const leftVsRight = predictionProbability(leftTop.row, rightTop.row);
-            oddsMarkup = `${formatPercent(leftVsRight)} / ${formatPercent(1 - leftVsRight)}`;
-          }else if(!leftTop && !rightTop){
-            oddsMarkup = "Open";
-          }
-
-          matchMarkup.push(`
-            <div class="bracket-match">
-              <span class="bracket-match-player">${escapeHtml(leftTop?.row?.displayName || "Open")}</span>
-              <span class="bracket-match-odds">${escapeHtml(oddsMarkup)}</span>
-              <span class="bracket-match-player">${escapeHtml(rightTop?.row?.displayName || "Open")}</span>
-            </div>
-          `);
+      let matchesCompleted = 0;
+      let matchesTotal = 0;
+      for(const group of groups){
+        if(entrants.length !== group.matches.length * 2){
+          entrants = fallbackEntrantsFromMatches(group.matches, participantsByKey);
         }
+        const nextEntrants = [];
+        const advancementKey = CHAMPIONSHIP_ADVANCEMENT_BY_ROUND[group.round];
 
-        roundMarkup.push(`
-          <div class="bracket-round">
-            <div class="bracket-round-name">${escapeHtml(bracketRoundName(roundIndex, totalRounds))}</div>
-            <div class="bracket-match-list">${matchMarkup.join("")}</div>
-          </div>
-        `);
+        group.matches.forEach((match, index) => {
+          matchesTotal += 1;
+          if(match.winnerKey) matchesCompleted += 1;
+          const left = entrants[index * 2] || distributionFromSlot(match.top, participantsByKey);
+          const right = entrants[(index * 2) + 1] || distributionFromSlot(match.bottom, participantsByKey);
+          const next = combineEntrants(left, right, participantsByKey, match.winnerKey);
+          nextEntrants.push(next);
+          if(advancementKey) addAdvancementProbability(probabilitiesByKey, advancementKey, next);
+        });
+
         entrants = nextEntrants;
       }
 
-      const championOdds = [...(entrants[0] || new Map()).entries()]
-        .map(([id, probability]) => ({ row: combinedRowsById.get(id), probability }))
-        .filter((entry) => entry.row)
-        .sort((left, right) => right.probability - left.probability);
+      const rows = [...participantsByKey.entries()].map(([key, participant]) => {
+        const probabilities = probabilitiesByKey.get(key) || {};
+        const champion = probabilities.Champion || 0;
+        const eliminated = CHAMPIONSHIP_ADVANCEMENT_COLUMNS.every(column => (probabilities[column.key] || 0) <= 0);
+        return {
+          key,
+          participant,
+          probabilities,
+          champion,
+          eliminated,
+        };
+      }).sort((left, right) =>
+        right.champion - left.champion ||
+        (Number(left.participant.seed) || 9999) - (Number(right.participant.seed) || 9999) ||
+        participantDisplayName(left.participant).localeCompare(participantDisplayName(right.participant))
+      );
 
-      bracketResultsEl.innerHTML = `
-        <div class="bracket-rounds">${roundMarkup.join("")}</div>
+      return { rows, matchesCompleted, matchesTotal };
+    }
+
+    function projectionStatus(row){
+      if(row.champion >= .999999) return "Champion";
+      if(row.eliminated) return "Eliminated";
+      return "Active";
+    }
+
+    function probabilityClass(value){
+      const number = Number(value) || 0;
+      if(number <= 0) return "projection-probability is-zero";
+      if(number >= .9995) return "projection-probability is-live";
+      return "projection-probability";
+    }
+
+    function renderProjectionPlayer(participant){
+      const rating = participantRating(participant);
+      return `
+        <div class="player">
+          <img class="avatar" src="${escapeHtml(participantAvatarUrl(participant))}" alt="" loading="lazy" decoding="async" />
+          <span>
+            <span class="player-name">${escapeHtml(participantDisplayName(participant))}</span>
+            <span class="player-id">${Number.isFinite(rating) ? `GPI ${escapeHtml(formatRating(rating))}` : "No current GPI"}</span>
+          </span>
+        </div>
+      `;
+    }
+
+    function renderTournamentProjection(projection){
+      if(!projection.rows.length){
+        tournamentProjectionEl.innerHTML = `<div class="prediction-empty">No live championship bracket is available.</div>`;
+        return;
+      }
+
+      tournamentProjectionEl.innerHTML = `
+        <div class="projection-summary">
+          <span><strong>${escapeHtml(formatInteger(projection.rows.length))}</strong> players, <strong>${escapeHtml(formatInteger(projection.matchesCompleted))}</strong> of <strong>${escapeHtml(formatInteger(projection.matchesTotal))}</strong> bracket matches complete.</span>
+          <span>Completed matches are locked; open matches use GPI win probabilities.</span>
+        </div>
         <div class="table-shell">
-          <table class="bracket-odds-table">
+          <table class="projection-table">
             <thead>
               <tr>
+                <th class="rank-cell">Seed</th>
                 <th>Player</th>
-                <th class="right">GPI</th>
-                <th class="right">Title Odds</th>
+                <th>Status</th>
+                ${CHAMPIONSHIP_ADVANCEMENT_COLUMNS.map(column => `<th class="right">${escapeHtml(column.label)}</th>`).join("")}
               </tr>
             </thead>
             <tbody>
-              ${championOdds.map((entry) => `
+              ${projection.rows.map((row) => `
                 <tr>
-                  <td>${escapeHtml(entry.row.displayName)}</td>
-                  <td class="right">${escapeHtml(formatRating(entry.row.ratingNumber))}</td>
-                  <td class="right">${escapeHtml(formatPercent(entry.probability))}</td>
+                  <td class="rank-cell">${escapeHtml(row.participant.seed ?? "")}</td>
+                  <td class="player-cell">${renderProjectionPlayer(row.participant)}</td>
+                  <td class="projection-status">${escapeHtml(projectionStatus(row))}</td>
+                  ${CHAMPIONSHIP_ADVANCEMENT_COLUMNS.map((column) => {
+                    const value = row.probabilities[column.key] || 0;
+                    return `<td class="${probabilityClass(value)}">${escapeHtml(formatPercent(value))}</td>`;
+                  }).join("")}
                 </tr>
               `).join("")}
             </tbody>
@@ -2598,7 +3080,11 @@
       runMetaEl.innerHTML = "";
       setStatus("Loading predictions...");
 
-      predictionRows = await loadPredictionRows();
+      const [rows, championshipMatches] = await Promise.all([
+        loadPredictionRows(),
+        loadChampionshipBracketMatches(),
+      ]);
+      predictionRows = rows;
       if(requestId !== loadRequestId) return;
 
       if(!predictionRows.length){
@@ -2606,22 +3092,21 @@
         return;
       }
 
-      const currentA = normalizeDiscordId(predictionPlayerAEl.value);
-      const currentB = normalizeDiscordId(predictionPlayerBEl.value);
-      populatePredictionSelect(predictionPlayerAEl, predictionRows, currentA || predictionRows[0]?.discord_user_id);
-      populatePredictionSelect(predictionPlayerBEl, predictionRows, currentB || predictionRows[1]?.discord_user_id || predictionRows[0]?.discord_user_id);
-      if(predictionPlayerAEl.value === predictionPlayerBEl.value && predictionRows[1]){
-        predictionPlayerBEl.value = predictionRows[1].discord_user_id;
+      preparePredictionSearchRows(predictionRows);
+      if(!selectedPredictionPlayers.a || !combinedRowsById.has(selectedPredictionPlayers.a.discord_user_id)){
+        selectedPredictionPlayers.a = predictionRows[0] || null;
       }
+      if(!selectedPredictionPlayers.b || !combinedRowsById.has(selectedPredictionPlayers.b.discord_user_id)){
+        selectedPredictionPlayers.b = predictionRows[1] || predictionRows[0] || null;
+      }
+      if(selectedPredictionPlayers.a?.discord_user_id === selectedPredictionPlayers.b?.discord_user_id && predictionRows[1]){
+        selectedPredictionPlayers.b = predictionRows[1];
+      }
+      renderSelectedPredictionInput("a");
+      renderSelectedPredictionInput("b");
 
       renderMatchupPrediction();
-      const currentSlots = currentBracketSelections();
-      const bracketSize = Number(bracketSizeEl.value) || 8;
-      renderBracketSlots(
-        currentSlots.some(Boolean)
-          ? currentSlots
-          : predictionRows.slice(0, bracketSize).map((row) => row.discord_user_id)
-      );
+      renderTournamentProjection(buildChampionshipProjection(championshipMatches));
       renderRunMeta(latestRun);
       predictionPanelEl.hidden = false;
       hideStatus();
@@ -2710,28 +3195,43 @@
       });
     });
 
-    predictionPlayerAEl.addEventListener("change", renderMatchupPrediction);
-    predictionPlayerBEl.addEventListener("change", renderMatchupPrediction);
+    Object.entries(predictionPickers).forEach(([key, picker]) => {
+      picker.input.addEventListener("focus", () => {
+        updatePredictionClearState(key);
+        updatePredictionSearch(key);
+      });
+      picker.input.addEventListener("input", () => {
+        selectedPredictionPlayers[key] = null;
+        updatePredictionClearState(key);
+        updatePredictionSearch(key);
+        renderMatchupPrediction();
+      });
+      picker.results.addEventListener("click", (event) => {
+        const result = event.target.closest(".player-search-result[data-player-id]");
+        if(!result) return;
+        const row = combinedRowsById.get(normalizeDiscordId(result.dataset.playerId));
+        if(row) selectPredictionPlayer(key, row);
+      });
+      picker.clearButton.addEventListener("click", () => {
+        clearPredictionPlayer(key);
+        picker.input.focus();
+      });
+    });
+
     predictionSwapEl.addEventListener("click", () => {
-      const leftValue = predictionPlayerAEl.value;
-      predictionPlayerAEl.value = predictionPlayerBEl.value;
-      predictionPlayerBEl.value = leftValue;
+      const leftPlayer = selectedPredictionPlayers.a;
+      selectedPredictionPlayers.a = selectedPredictionPlayers.b;
+      selectedPredictionPlayers.b = leftPlayer;
+      renderSelectedPredictionInput("a");
+      renderSelectedPredictionInput("b");
       renderMatchupPrediction();
     });
 
-    bracketSizeEl.addEventListener("change", () => {
-      renderBracketSlots(currentBracketSelections());
-    });
-    bracketFillTopEl.addEventListener("click", () => {
-      const size = Number(bracketSizeEl.value) || 8;
-      renderBracketSlots(predictionRows.slice(0, size).map((row) => row.discord_user_id));
-    });
-    bracketClearEl.addEventListener("click", () => {
-      renderBracketSlots([]);
-    });
-    bracketSlotsEl.addEventListener("change", (event) => {
-      if(!event.target.closest("select[data-bracket-slot]")) return;
-      renderBracketPrediction();
+    document.addEventListener("click", (event) => {
+      Object.entries(predictionPickers).forEach(([key, picker]) => {
+        if(picker.root.contains(event.target)) return;
+        hidePredictionResults(key);
+      });
     });
 
     window.addEventListener("popstate", () => {
