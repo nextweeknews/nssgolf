@@ -1875,6 +1875,14 @@
       }).format(number);
     }
 
+    function formatPredictionPercent(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "";
+      const roundedPercent = Math.round(number * 1000) / 10;
+      if(roundedPercent >= 100) return "100%";
+      return formatPercent(number);
+    }
+
     async function loadLatestRunByModel(model, config = activeConfig()){
       const { data, error } = await supabase
         .from(config.runTable)
@@ -2547,12 +2555,12 @@
               </div>
             </div>
             <div class="prediction-probability-panel">
-              <span class="prediction-percent">${escapeHtml(formatPercent(leftProbability))}</span>
+              <span class="prediction-percent">${escapeHtml(formatPredictionPercent(leftProbability))}</span>
             </div>
           </div>
           <div class="prediction-side is-right">
             <div class="prediction-probability-panel">
-              <span class="prediction-percent">${escapeHtml(formatPercent(rightProbability))}</span>
+              <span class="prediction-percent">${escapeHtml(formatPredictionPercent(rightProbability))}</span>
             </div>
             <div class="prediction-player-rail">
               <div class="prediction-player-head">
