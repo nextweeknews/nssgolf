@@ -533,6 +533,100 @@
       justify-content: center;
       width: 100%;
     }
+    .calendar-section{
+      margin-top: 18px;
+    }
+    .calendar-pinned-actions{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+      justify-content: center;
+      padding-top: 6px;
+    }
+    .calendar-separator{
+      width: min(520px, 100%);
+      height: 1px;
+      margin: 16px auto 14px;
+      background: linear-gradient(90deg, transparent, rgba(148,163,184,0.28), transparent);
+    }
+    .calendar-view{
+      width: min(520px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 12px;
+      justify-items: stretch;
+    }
+    .calendar-row{
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      align-items: start;
+      gap: 10px;
+    }
+    .calendar-event{
+      min-width:0;
+      display:grid;
+      gap: 7px;
+    }
+    .calendar-event .btn{
+      justify-content:center;
+      width:100%;
+      text-align:center;
+    }
+    .event-status{
+      min-height: 24px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 7px;
+      color: rgba(148,163,184,0.90);
+      font-size: 11px;
+      font-weight: 850;
+      line-height: 1.2;
+      letter-spacing: .035em;
+      text-align:center;
+    }
+    .event-status.is-live{
+      color: #5eead4;
+    }
+    .event-status.is-finished{
+      color: rgba(253,230,138,0.96);
+    }
+    .event-status-icon{
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+      display:block;
+    }
+    .event-live-dot{
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+      background: #34d399;
+      box-shadow: 0 0 0 0 rgba(52,211,153,0.55), 0 0 12px rgba(45,212,191,0.55);
+      animation: livePulse 1.45s ease-out infinite;
+    }
+    .event-winner-avatar{
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(253,230,138,0.48);
+      background: rgba(255,255,255,0.08);
+      flex: 0 0 auto;
+    }
+    .event-status-text{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    @keyframes livePulse{
+      0%{ box-shadow: 0 0 0 0 rgba(52,211,153,0.55), 0 0 12px rgba(45,212,191,0.55); }
+      70%{ box-shadow: 0 0 0 8px rgba(52,211,153,0), 0 0 16px rgba(45,212,191,0.42); }
+      100%{ box-shadow: 0 0 0 0 rgba(52,211,153,0), 0 0 12px rgba(45,212,191,0.55); }
+    }
     .btn-icon path{
       fill: currentColor;
     }
@@ -616,6 +710,30 @@
       .schedule-row{
         grid-template-columns: max-content minmax(0, 1fr);
       }
+      .calendar-pinned-actions{
+        flex-direction: column;
+        align-items: stretch;
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      .calendar-pinned-actions .btn{
+        width:100%;
+        justify-content:center;
+        min-height:44px;
+      }
+      .calendar-view{
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      .calendar-row{
+        grid-template-columns: max-content minmax(0, 1fr);
+      }
+      .calendar-event .btn{
+        min-height:44px;
+      }
+      .event-status-text{
+        white-space:normal;
+      }
       .schedule-row .btn,
       .archive-actions .btn{
         min-height: 44px;
@@ -693,8 +811,8 @@
       <h1 class="headline league-headline">Leagues &amp; Events</h1>
       <div class="league-tabs" id="leagueTabs"></div>
 
-      <div class="league-section" id="happening-now-section" role="tabpanel" aria-labelledby="happening-now-tab">
-        <div class="actions">
+      <div class="league-section calendar-section" id="calendar-section" role="tabpanel" aria-labelledby="year-tab-2026">
+        <div class="calendar-pinned-actions">
           <a class="btn neon-red" id="rankedLeagueButton" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
             Ranked League
           </a>
@@ -702,48 +820,9 @@
           <a class="btn neon-blue" href="/proleague" aria-label="Go to Pro League">
             Shotgun Pro League
           </a>
-
-          <a class="btn indigo" href="/noptational.html" aria-label="Go to The Noptational">
-            The Noptational
-          </a>
-
-          <a class="btn neon-purple" href="/superleague/index.html" aria-label="Go to Super League">
-            Super League
-          </a>
-
-          <a class="btn neon-yellow" href="/lightningcup/index.html" aria-label="Go to Lightning Cup">
-            Lightning Cup
-          </a>
-
-          <a class="btn light-green" href="/championship.html" aria-label="Go to World Championship">
-            World Championship
-          </a>
         </div>
-      </div>
-
-      <div class="league-section" id="upcoming-section" role="tabpanel" aria-labelledby="upcoming-tab" hidden>
-        <div class="upcoming-schedule">
-          <div class="schedule-row">
-            <span class="schedule-month">AUG</span>
-            <a class="btn gold" href="/masters.html" aria-label="Go to World Golf Masters">
-              World Golf Masters
-            </a>
-          </div>
-          <div class="schedule-row">
-            <span class="schedule-month">NOV</span>
-            <a class="btn royal-blue" href="/worldcup.html" aria-label="Go to World Cup">
-              World Cup
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="league-section" id="archive-section" role="tabpanel" aria-labelledby="archive-tab" hidden>
-        <div class="actions">
-          <a class="btn neon-green" href="/worldopen" aria-label="Go to World Open">
-            World Open
-          </a>
-        </div>
+        <div class="calendar-separator" aria-hidden="true"></div>
+        <div class="calendar-view" id="calendarView" aria-live="polite"></div>
       </div>
 
     </div>
@@ -775,10 +854,17 @@
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
     import { mountHomeLeagueTabs } from "/home-tabs.bundle.js";
     import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
+    import {
+      fetchWorldCupValues,
+      parseWorldCupSheet,
+      getWorldCupMatchOutcome,
+      worldCupFlagForTeam,
+    } from "/worldcup-data.js";
 
     const supabase = createBrowserSupabaseClient();
     const leagueTabsEl = document.getElementById("leagueTabs");
-    const leagueSections = Array.from(document.querySelectorAll("#happening-now-section, #upcoming-section, #archive-section"));
+    const calendarSection = document.getElementById("calendar-section");
+    const calendarView = document.getElementById("calendarView");
     const rankedLeagueButton = document.getElementById("rankedLeagueButton");
     const playerSearchEl = document.getElementById("playerSearch");
     const playerSearchInput = document.getElementById("playerSearchInput");
@@ -786,55 +872,47 @@
     const discordInviteEls = Array.from(document.querySelectorAll('a.discord-button[href*="discord.gg"]'));
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
-    const LEAGUE_TABS = [
-      {
-        id: "happening-now-tab",
-        value: "happening-now-section",
-        controls: "happening-now-section",
-        label: "Happening Now",
-      },
-      {
-        id: "upcoming-tab",
-        value: "upcoming-section",
-        controls: "upcoming-section",
-        label: "Upcoming",
-      },
-      {
-        id: "archive-tab",
-        value: "archive-section",
-        controls: "archive-section",
-        label: "Archive",
-      },
+    const SHEET_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
+    const CURRENT_DATE = new Date();
+    const CURRENT_YEAR = CURRENT_DATE.getFullYear();
+    const CURRENT_MONTH_INDEX = CURRENT_DATE.getMonth();
+    const YEAR_TABS = [2024, 2025, CURRENT_YEAR].filter((year, index, years) => years.indexOf(year) === index);
+    const MONTH_LABELS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+    const CALENDAR_TABS = YEAR_TABS.map((year) => ({
+      id: `year-tab-${year}`,
+      value: String(year),
+      controls: "calendar-section",
+      label: String(year),
+    }));
+    const CALENDAR_EVENTS = [
+      { year:2024, month:10, title:"World Cup", href:"/worldcup.html?year=2024", className:"royal-blue", winnerLoader:"worldCup2024" },
+      { year:2025, month:10, title:"World Cup", href:"/worldcup.html?year=2025", className:"royal-blue", winnerLoader:"worldCup2025" },
+      { year:CURRENT_YEAR, month:0, title:"World Open", href:"/worldopen", className:"neon-green", winnerLoader:"worldOpen2026" },
+      { year:CURRENT_YEAR, month:3, title:"Super League S6", href:"/superleague/index.html", className:"neon-purple", winnerLoader:"superLeagueS6" },
+      { year:CURRENT_YEAR, month:4, title:"Lightning Cup", href:"/lightningcup/index.html", className:"neon-yellow", winnerLoader:"lightningCup2026" },
+      { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026" },
+      { year:CURRENT_YEAR, month:6, title:"World Championship", href:"/championship.html", className:"light-green", winnerLoader:"worldChampionship2026" },
+      { year:CURRENT_YEAR, month:7, title:"World Golf Masters", href:"/masters.html", className:"gold" },
+      { year:CURRENT_YEAR, month:8, title:"Super League S7", href:"/superleague/index.html", className:"neon-purple" },
+      { year:CURRENT_YEAR, month:10, title:"World Cup", href:"/worldcup.html", className:"royal-blue" },
     ];
+    const WINNER_LOADERS = {
+      worldCup2024:() => loadWorldCupWinner(2024),
+      worldCup2025:() => loadWorldCupWinner(2025),
+      worldOpen2026:loadWorldOpenWinner,
+      superLeagueS6:() => loadSuperLeagueWinner("Season 6"),
+      lightningCup2026:loadLightningCupWinner,
+      noptational2026:loadNoptationalWinner,
+      worldChampionship2026:loadWorldChampionshipWinner,
+    };
+    const winnerCache = new Map();
+    let activeCalendarYear = String(CURRENT_YEAR);
     let memberSearchRows = [];
     let memberSearchPromise = null;
 
     if(rankedLeagueButton){
       rankedLeagueButton.href = RANKED_LEAGUE_TEAMUP_URL;
     }
-
-    function setActiveLeagueTab(targetId){
-      for(const section of leagueSections){
-        const isActive = section.id === targetId;
-        section.hidden = !isActive;
-        section.setAttribute("aria-hidden", isActive ? "false" : "true");
-      }
-    }
-
-    function initLeagueTabs(){
-      if(!leagueTabsEl) return;
-      const targetIds = new Set(leagueSections.map(section => section.id));
-      const initialTab = LEAGUE_TABS.find(tab => targetIds.has(tab.value))?.value || "happening-now-section";
-
-      setActiveLeagueTab(initialTab);
-      mountHomeLeagueTabs(leagueTabsEl, {
-        tabs: LEAGUE_TABS.filter(tab => targetIds.has(tab.value)),
-        initialTab,
-        onTabChange: setActiveLeagueTab,
-      });
-    }
-
-    initLeagueTabs();
 
     function normalizeSearchText(value){
       return String(value || "").trim();
@@ -847,6 +925,353 @@
     function normalizeDiscordId(value){
       return normalizeSearchText(value).replace(/[^\d]/g, "");
     }
+
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizeNameKey(value){
+      return normalizeSearchText(value).toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function sheetNameEscape(value){
+      return String(value || "").replace(/'/g, "''");
+    }
+
+    function sheetRange(sheetName, range){
+      return `'${sheetNameEscape(sheetName)}'!${range}`;
+    }
+
+    function normalizeSheetValues(payload){
+      if(Array.isArray(payload)) return payload;
+      if(Array.isArray(payload?.values)) return payload.values;
+      if(Array.isArray(payload?.data?.values)) return payload.data.values;
+      if(Array.isArray(payload?.result?.values)) return payload.result.values;
+      return [];
+    }
+
+    async function fetchSheetRange(sheetId, range){
+      const url = new URL(SHEET_WORKER_URL);
+      url.searchParams.set("sheetId", sheetId);
+      url.searchParams.set("range", range);
+      const response = await fetch(url.toString());
+      if(!response.ok) throw new Error(`Sheet request failed (${response.status})`);
+      return normalizeSheetValues(await response.json());
+    }
+
+    function statusIconSvg(kind){
+      if(kind === "trophy"){
+        return `<svg class="event-status-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 4h10v2h3v3a5 5 0 0 1-4.3 4.95A5.01 5.01 0 0 1 13 16.9V19h3v2H8v-2h3v-2.1a5.01 5.01 0 0 1-2.7-2.95A5 5 0 0 1 4 9V6h3V4Zm10 4v3.83A3 3 0 0 0 18 6.17V8h-1ZM6 6.17A3 3 0 0 0 7 11.83V8H6V6.17Z"/></svg>`;
+      }
+      return `<svg class="event-status-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 5h-2v6l5 3 .95-1.76L13 11.9V7Z"/></svg>`;
+    }
+
+    function eventBaseStatus(event){
+      if(event.year < CURRENT_YEAR) return "past";
+      if(event.year > CURRENT_YEAR) return "upcoming";
+      if(event.month <= CURRENT_MONTH_INDEX) return "live";
+      return "upcoming";
+    }
+
+    function statusMarkup(event, winner = null){
+      if(winner?.name){
+        const avatar = winner.avatarUrl || "/logos/golf.png";
+        return `
+          <div class="event-status is-finished">
+            ${statusIconSvg("trophy")}
+            <img class="event-winner-avatar" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+            <span class="event-status-text">${escapeHtml(winner.displayName || winner.name)}</span>
+          </div>
+        `;
+      }
+
+      if(eventBaseStatus(event) === "upcoming"){
+        return `
+          <div class="event-status">
+            ${statusIconSvg("clock")}
+            <span class="event-status-text">Upcoming</span>
+          </div>
+        `;
+      }
+
+      if(eventBaseStatus(event) === "past"){
+        return `
+          <div class="event-status">
+            ${statusIconSvg("clock")}
+            <span class="event-status-text">Results pending</span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="event-status is-live">
+          <span class="event-live-dot" aria-hidden="true"></span>
+          <span class="event-status-text">Happening Now</span>
+        </div>
+      `;
+    }
+
+    function calendarEventId(event){
+      return `calendar-event-${event.year}-${event.month}-${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    }
+
+    function calendarRowMarkup(event){
+      return `
+        <div class="calendar-row" id="${calendarEventId(event)}" data-winner-loader="${escapeHtml(event.winnerLoader || "")}">
+          <span class="schedule-month">${MONTH_LABELS[event.month] || ""}</span>
+          <div class="calendar-event">
+            <a class="btn ${escapeHtml(event.className)}" href="${escapeHtml(event.href)}" aria-label="Go to ${escapeHtml(event.title)}">
+              ${escapeHtml(event.title)}
+            </a>
+            ${statusMarkup(event)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCalendarYear(yearValue){
+      activeCalendarYear = String(yearValue);
+      if(calendarSection){
+        calendarSection.setAttribute("aria-labelledby", `year-tab-${activeCalendarYear}`);
+      }
+      if(!calendarView) return;
+      const year = Number(yearValue);
+      const events = CALENDAR_EVENTS
+        .filter(event => event.year === year)
+        .sort((left, right) => left.month - right.month || left.title.localeCompare(right.title));
+
+      calendarView.innerHTML = events.length
+        ? events.map(calendarRowMarkup).join("")
+        : `<p class="league-placeholder">No tournaments listed for ${escapeHtml(yearValue)}.</p>`;
+
+      events.forEach((event) => {
+        void hydrateEventWinner(event);
+      });
+    }
+
+    function initLeagueTabs(){
+      renderCalendarYear(activeCalendarYear);
+      if(!leagueTabsEl) return;
+      mountHomeLeagueTabs(leagueTabsEl, {
+        tabs: CALENDAR_TABS,
+        initialTab: activeCalendarYear,
+        onTabChange: renderCalendarYear,
+      });
+    }
+
+    function updateEventStatus(event, winner){
+      const row = document.getElementById(calendarEventId(event));
+      if(!row) return;
+      const status = row.querySelector(".event-status");
+      if(!status) return;
+      status.outerHTML = statusMarkup(event, winner);
+    }
+
+    async function hydrateEventWinner(event){
+      if(!event.winnerLoader || !WINNER_LOADERS[event.winnerLoader]) return;
+      try{
+        if(!winnerCache.has(event.winnerLoader)){
+          winnerCache.set(event.winnerLoader, Promise.resolve(WINNER_LOADERS[event.winnerLoader]()).catch(() => null));
+        }
+        const winner = await winnerCache.get(event.winnerLoader);
+        if(String(event.year) !== activeCalendarYear) return;
+        if(winner?.name){
+          updateEventStatus(event, await enrichWinnerProfile(winner));
+        }
+      }catch{
+        // Keep the deterministic month-based status if a tournament source is unavailable.
+      }
+    }
+
+    async function enrichWinnerProfile(winner){
+      const discordId = normalizeDiscordId(winner?.discordId);
+      const nameKey = normalizeNameKey(winner?.name);
+      let member = null;
+
+      if(discordId){
+        try{
+          const { data } = await supabase
+            .from("discord_guild_members")
+            .select("discord_user_id,username,display_name,server_avatar_url,avatar_url")
+            .eq("discord_user_id", discordId)
+            .maybeSingle();
+          member = data || null;
+        }catch{
+          member = null;
+        }
+      }
+
+      if(!member && nameKey){
+        try{
+          const rows = await loadMemberSearchRows();
+          member = rows.find(row => (
+            normalizeNameKey(row.display_name) === nameKey ||
+            normalizeNameKey(row.username) === nameKey
+          )) || null;
+        }catch{
+          member = null;
+        }
+      }
+
+      return {
+        ...winner,
+        displayName: memberDisplayName(member, winner.name),
+        avatarUrl: member ? avatarUrlForMember(member) : (winner.avatarUrl || "/logos/golf.png"),
+      };
+    }
+
+    function orderedMatchTeams(match){
+      return [match?.team1, match?.team2].map(team => normalizeSearchText(team)).filter(Boolean);
+    }
+
+    function worldCupMatchWinner(match, fallbackToSheetOrder = false){
+      const teams = orderedMatchTeams(match);
+      if(teams.length < 2) return "";
+      const first = getWorldCupMatchOutcome(match, teams[0]);
+      const second = getWorldCupMatchOutcome(match, teams[1]);
+      if(first?.outcome === "win") return teams[0];
+      if(second?.outcome === "win") return teams[1];
+      return fallbackToSheetOrder ? teams[0] : "";
+    }
+
+    async function loadWorldCupWinner(year){
+      const data = parseWorldCupSheet(await fetchWorldCupValues(year), { year });
+      const finalMatch = (data.bracket || []).find(match => {
+        const round = normalizeSearchText(match.round);
+        return round === "F" || /^final$/i.test(round);
+      });
+      const winner = worldCupMatchWinner(finalMatch, true);
+      if(!winner) return null;
+      return {
+        name:winner,
+        displayName:winner,
+        avatarUrl:`/assets/flag-icons/4x3/${worldCupFlagForTeam(winner)}.svg`,
+      };
+    }
+
+    async function loadWorldOpenWinner(){
+      const sheetId = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
+      const [championRows, discordRows] = await Promise.all([
+        fetchSheetRange(sheetId, sheetRange("2026 Results", "AX2:AX2")),
+        fetchSheetRange(sheetId, sheetRange("Discord IDs", "A:B")).catch(() => []),
+      ]);
+      const name = normalizeSearchText(championRows?.[0]?.[0]);
+      if(!name) return null;
+      const discordId = (discordRows || []).find(row => normalizeNameKey(row?.[0]) === normalizeNameKey(name))?.[1] || "";
+      return { name, discordId };
+    }
+
+    async function loadLightningCupWinner(){
+      const sheetId = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
+      const [bracketRows, seedsRows] = await Promise.all([
+        fetchSheetRange(sheetId, "'Bracket'!A:T"),
+        fetchSheetRange(sheetId, "'Seeds'!C:E").catch(() => []),
+      ]);
+      const finalRow = (bracketRows || []).slice(1).find(row => /^final$/i.test(normalizeSearchText(row?.[1])));
+      const name = normalizeSearchText(finalRow?.[9]);
+      if(!name) return null;
+      const seedRow = (seedsRows || []).find(row => normalizeNameKey(row?.[0]) === normalizeNameKey(name));
+      return { name, discordId:normalizeDiscordId(seedRow?.[2]) };
+    }
+
+    function parseNoptationalScore(value){
+      const raw = normalizeSearchText(value);
+      if(!raw) return null;
+      if(/^e$/i.test(raw)) return 0;
+      const cleaned = raw.replace(/[^\d.+-]/g, "");
+      if(!cleaned || cleaned === "+" || cleaned === "-") return null;
+      const number = Number(cleaned);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    function noptationalDisplayParts(rawName){
+      const text = normalizeSearchText(rawName);
+      const match = text.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+      return {
+        display:normalizeSearchText(match ? match[1] : text),
+        username:normalizeSearchText(match ? match[2] : ""),
+      };
+    }
+
+    async function loadNoptationalWinner(){
+      const sheetId = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
+      const courses = [
+        { minimum:-12, columns:[1, 2] },
+        { minimum:-10, columns:[3, 4] },
+        { minimum:-3, columns:[5, 6, 7] },
+        { minimum:-22, columns:[8, 9] },
+      ];
+      const rows = await fetchSheetRange(sheetId, sheetRange("Round Scores (2026)", "A1:J250"));
+      const players = (rows || []).slice(1).map((row) => {
+        const { display, username } = noptationalDisplayParts(row?.[0]);
+        if(!display) return null;
+        let total = 0;
+        let countedCount = 0;
+        let cut = false;
+        courses.forEach((course) => {
+          const scores = course.columns.map(column => parseNoptationalScore(row?.[column])).filter(score => score !== null);
+          total += scores.reduce((sum, score) => sum + score, 0);
+          countedCount += scores.length;
+          if(scores.length && Math.min(...scores) > course.minimum) cut = true;
+        });
+        return { display, username, total, countedCount, cut };
+      }).filter(player => player && player.countedCount > 0 && !player.cut)
+        .sort((left, right) => left.total - right.total || right.countedCount - left.countedCount || left.display.localeCompare(right.display));
+      const winner = players[0];
+      if(!winner) return null;
+      const memberRows = await loadMemberSearchRows().catch(() => []);
+      const member = memberRows.find(row => normalizeNameKey(row.username) === normalizeNameKey(winner.username)) || null;
+      return { name:winner.display, discordId:member?.discord_user_id || "" };
+    }
+
+    function parseSuperLeaguePlayoffRows(values){
+      return (values || []).map((row = []) => ({
+        p1:{ name:normalizeSearchText(row[3]), result:normalizeSearchText(row[10]).toUpperCase() },
+        p2:{ name:normalizeSearchText(row[12]), result:normalizeSearchText(row[19]).toUpperCase() },
+      }));
+    }
+
+    async function loadSuperLeagueWinner(sheetName){
+      const sheetId = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
+      const [playoffRows, discordRows] = await Promise.all([
+        fetchSheetRange(sheetId, sheetRange(sheetName, "I87:AB92")),
+        fetchSheetRange(sheetId, sheetRange("Discord IDs", "A:B")).catch(() => []),
+      ]);
+      const championship = parseSuperLeaguePlayoffRows(playoffRows)[2];
+      const name = championship?.p1?.result === "W" ? championship.p1.name : championship?.p2?.result === "W" ? championship.p2.name : "";
+      if(!name) return null;
+      const discordId = (discordRows || []).find(row => normalizeNameKey(row?.[1]) === normalizeNameKey(name))?.[0] || "";
+      return { name, discordId };
+    }
+
+    function parseChampionshipBracketWinner(row){
+      const topName = normalizeSearchText(row?.[3]);
+      const topScore = Number(row?.[4]);
+      const bottomName = normalizeSearchText(row?.[15]);
+      const bottomScore = Number(row?.[16]);
+      if(!topName || !bottomName || !Number.isFinite(topScore) || !Number.isFinite(bottomScore) || topScore === bottomScore) return "";
+      return topScore > bottomScore ? topName : bottomName;
+    }
+
+    async function loadWorldChampionshipWinner(){
+      const sheetId = "10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q";
+      const [fieldRows, bracketRows] = await Promise.all([
+        fetchSheetRange(sheetId, "'Field'!B:C").catch(() => []),
+        fetchSheetRange(sheetId, "'Bracket'!A:Z"),
+      ]);
+      const finalRow = (bracketRows || []).find(row => /^final$/i.test(normalizeSearchText(row?.[1])));
+      const name = parseChampionshipBracketWinner(finalRow);
+      if(!name) return null;
+      const discordId = (fieldRows || []).find(row => normalizeNameKey(row?.[0]) === normalizeNameKey(name))?.[1] || "";
+      return { name, discordId };
+    }
+
+    initLeagueTabs();
 
     function getDiscordIdentity(user){
       const identities = Array.isArray(user?.identities) ? user.identities : [];
