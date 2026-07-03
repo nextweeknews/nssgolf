@@ -174,6 +174,134 @@
       overflow:hidden;
     }
 
+    .analysis-panel{
+      display:grid;
+      gap:14px;
+    }
+
+    .analysis-card{
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:var(--panel);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .analysis-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      padding:16px 18px;
+      border-bottom:1px solid var(--line);
+      background:var(--panel-2);
+    }
+
+    .analysis-head h2{
+      margin:0;
+      font-size:18px;
+      line-height:1.2;
+      letter-spacing:0;
+    }
+
+    .analysis-note{
+      max-width:72ch;
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .analysis-verdict{
+      flex:0 0 auto;
+      border:1px solid rgba(110,231,183,.38);
+      border-radius:999px;
+      background:rgba(16,185,129,.12);
+      color:#bbf7d0;
+      padding:7px 10px;
+      font-size:12px;
+      font-weight:850;
+      white-space:nowrap;
+    }
+
+    .analysis-body{
+      display:grid;
+      gap:16px;
+      padding:16px 18px 18px;
+    }
+
+    .metric-grid{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:8px;
+    }
+
+    .metric-cell{
+      min-width:0;
+      min-height:82px;
+      display:grid;
+      align-content:center;
+      gap:6px;
+      padding:12px 10px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+      text-align:center;
+    }
+
+    .metric-label{
+      color:var(--muted);
+      font-size:10px;
+      font-weight:850;
+      line-height:1.18;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+
+    .metric-value{
+      color:var(--text);
+      font-size:20px;
+      font-weight:900;
+      line-height:1.05;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .analysis-table-wrap{
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#181b20;
+    }
+
+    .analysis-table{
+      min-width:640px;
+      box-shadow:none;
+    }
+
+    .analysis-table th,
+    .analysis-table td{
+      padding:10px 12px;
+      text-align:right;
+    }
+
+    .analysis-table th:first-child,
+    .analysis-table td:first-child{
+      text-align:left;
+    }
+
+    .analysis-summary{
+      display:grid;
+      gap:7px;
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+    }
+
+    .analysis-summary strong{
+      color:var(--text);
+    }
+
     .about-section{
       padding:20px;
       border-bottom:1px solid var(--line);
@@ -726,6 +854,22 @@
         margin-bottom:12px;
       }
 
+      .analysis-head{
+        display:grid;
+      }
+
+      .analysis-verdict{
+        justify-self:start;
+      }
+
+      .metric-grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+
+      .metric-value{
+        font-size:17px;
+      }
+
       .detail-cell{
         flex:0 0 66px;
         min-height:58px;
@@ -898,6 +1042,7 @@
       <button class="gpi-tab" type="button" role="tab" data-view="gpi" aria-selected="true">GPI</button>
       <button class="gpi-tab" type="button" role="tab" data-view="ranked" aria-selected="false">Ranked League</button>
       <button class="gpi-tab" type="button" role="tab" data-view="tournament" aria-selected="false">Tournaments</button>
+      <button class="gpi-tab" type="button" role="tab" data-view="analysis" aria-selected="false">Analysis</button>
       <button class="gpi-tab" type="button" role="tab" data-view="about" aria-selected="false">About GPI</button>
     </div>
 
@@ -1012,6 +1157,8 @@
         </ul>
       </div>
     </section>
+
+    <section id="analysisPanel" class="analysis-panel" hidden aria-label="NSS GPI prediction analysis"></section>
   </main>
 
   <div id="playerModal" class="modal-backdrop" hidden>
@@ -1039,6 +1186,7 @@
     const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
     const aboutPanelEl = document.getElementById("aboutPanel");
+    const analysisPanelEl = document.getElementById("analysisPanel");
     const runMetaEl = document.getElementById("runMeta");
     const pageInfoEl = document.getElementById("pageInfo");
     const prevPageEl = document.getElementById("prevPage");
@@ -1068,6 +1216,15 @@
       about: {
         kind: "about",
         subtitle: "How NSS GPI is calculated",
+      },
+      analysis: {
+        kind: "analysis",
+        subtitle: "Historical 1v1 prediction analysis",
+        meta(run){
+          return [
+            `${formatInteger((Number(run.ranked.match_count) || 0) + (Number(run.tournament.match_count) || 0))} Matches Tracked`,
+          ];
+        },
       },
       ranked: {
         kind: "standard",
@@ -1227,6 +1384,464 @@
         minimumFractionDigits:1,
         maximumFractionDigits:1,
       }).format(number);
+    }
+
+    function expectedWinProbability(leftRating, rightRating){
+      const left = Number(leftRating);
+      const right = Number(rightRating);
+      if(!Number.isFinite(left) || !Number.isFinite(right)) return 0.5;
+      return 1 / (1 + (10 ** ((right - left) / 400)));
+    }
+
+    function clampProbability(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return 0.5;
+      return Math.min(.999999, Math.max(.000001, number));
+    }
+
+    function formatDecimal(value, digits = 3){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "";
+      return new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+      }).format(number);
+    }
+
+    function predictionBucket(confidence){
+      const pct = Math.max(50, Math.min(100, Number(confidence) * 100));
+      if(pct < 55) return "50-55%";
+      if(pct < 60) return "55-60%";
+      if(pct < 65) return "60-65%";
+      if(pct < 70) return "65-70%";
+      return "70%+";
+    }
+
+    function emptyPredictionSummary(label, note){
+      return {
+        label,
+        note,
+        totalMatches: 0,
+        eligibleMatches: 0,
+        skippedMatches: 0,
+        noPickMatches: 0,
+        correctPicks: 0,
+        brierSum: 0,
+        logLossSum: 0,
+        confidenceSum: 0,
+        buckets: new Map(),
+        misses: [],
+      };
+    }
+
+    function bucketForSummary(summary, label){
+      if(!summary.buckets.has(label)){
+        summary.buckets.set(label, {
+          label,
+          count: 0,
+          correct: 0,
+          confidenceSum: 0,
+          brierSum: 0,
+        });
+      }
+      return summary.buckets.get(label);
+    }
+
+    function addPrediction(summary, prediction){
+      summary.totalMatches += 1;
+      if(!prediction.eligible){
+        summary.skippedMatches += 1;
+        return;
+      }
+
+      const actualA = prediction.winnerId === prediction.playerAId ? 1 : 0;
+      const probA = clampProbability(prediction.probabilityA);
+      const confidence = Math.max(probA, 1 - probA);
+      const predictedA = probA > 0.5;
+      const predictedB = probA < 0.5;
+      const hasPick = predictedA || predictedB;
+      const correct = hasPick && ((predictedA && actualA === 1) || (predictedB && actualA === 0));
+      const actualProb = actualA === 1 ? probA : 1 - probA;
+      const brier = (probA - actualA) ** 2;
+
+      summary.eligibleMatches += 1;
+      summary.brierSum += brier;
+      summary.logLossSum += -Math.log(clampProbability(actualProb));
+
+      if(!hasPick){
+        summary.noPickMatches += 1;
+        return;
+      }
+
+      summary.confidenceSum += confidence;
+      if(correct) summary.correctPicks += 1;
+
+      const bucket = bucketForSummary(summary, predictionBucket(confidence));
+      bucket.count += 1;
+      bucket.correct += correct ? 1 : 0;
+      bucket.confidenceSum += confidence;
+      bucket.brierSum += brier;
+
+      if(!correct){
+        summary.misses.push({
+          ...prediction,
+          confidence,
+          actualProb,
+          brier,
+        });
+        summary.misses.sort((left, right) => left.actualProb - right.actualProb);
+        summary.misses = summary.misses.slice(0, 8);
+      }
+    }
+
+    function finalizePredictionSummary(summary){
+      const picked = summary.eligibleMatches - summary.noPickMatches;
+      const brier = summary.eligibleMatches ? summary.brierSum / summary.eligibleMatches : 0;
+      const logLoss = summary.eligibleMatches ? summary.logLossSum / summary.eligibleMatches : 0;
+      const accuracy = picked ? summary.correctPicks / picked : 0;
+      const averageConfidence = picked ? summary.confidenceSum / picked : 0;
+      const eceNumerator = [...summary.buckets.values()].reduce((sum, bucket) => {
+        if(!bucket.count) return sum;
+        const hitRate = bucket.correct / bucket.count;
+        const avgConfidence = bucket.confidenceSum / bucket.count;
+        return sum + (Math.abs(hitRate - avgConfidence) * bucket.count);
+      }, 0);
+      const calibrationError = picked ? eceNumerator / picked : 0;
+      return {
+        ...summary,
+        picked,
+        coverage: summary.totalMatches ? summary.eligibleMatches / summary.totalMatches : 0,
+        pickCoverage: summary.eligibleMatches ? picked / summary.eligibleMatches : 0,
+        accuracy,
+        averageConfidence,
+        brier,
+        logLoss,
+        calibrationError,
+      };
+    }
+
+    function reliabilityLabel(summary){
+      if(summary.picked < 20) return "Small sample";
+      if(summary.accuracy >= .60 && summary.brier <= .235 && summary.calibrationError <= .08) return "Promising signal";
+      if(summary.accuracy >= .55 && summary.brier <= .25) return "Directional signal";
+      return "Weak standalone signal";
+    }
+
+    function predictionRowsHtml(summary){
+      const order = ["50-55%", "55-60%", "60-65%", "65-70%", "70%+"];
+      return order.map((label) => {
+        const bucket = summary.buckets.get(label) || { count:0, correct:0, confidenceSum:0, brierSum:0 };
+        const hitRate = bucket.count ? bucket.correct / bucket.count : 0;
+        const avgConfidence = bucket.count ? bucket.confidenceSum / bucket.count : 0;
+        const brier = bucket.count ? bucket.brierSum / bucket.count : 0;
+        return `
+          <tr>
+            <td>${escapeHtml(label)}</td>
+            <td>${escapeHtml(formatInteger(bucket.count))}</td>
+            <td>${bucket.count ? escapeHtml(formatPercent(hitRate)) : blankValue()}</td>
+            <td>${bucket.count ? escapeHtml(formatPercent(avgConfidence)) : blankValue()}</td>
+            <td>${bucket.count ? escapeHtml(formatDecimal(brier, 3)) : blankValue()}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function missesRowsHtml(summary){
+      if(!summary.misses.length){
+        return `<tr><td class="delta-neutral" colspan="5">No missed rated picks in this sample.</td></tr>`;
+      }
+      return summary.misses.map((miss) => {
+        const predictedName = miss.probabilityA > 0.5 ? miss.playerAName : miss.playerBName;
+        const winnerName = miss.winnerId === miss.playerAId ? miss.playerAName : miss.playerBName;
+        return `
+          <tr>
+            <td>${escapeHtml(predictedName || "Player")}</td>
+            <td>${escapeHtml(winnerName || "Player")}</td>
+            <td>${escapeHtml(formatPercent(miss.confidence))}</td>
+            <td>${escapeHtml(miss.eventName || "")}</td>
+            <td>${escapeHtml(formatTournamentRoundLabel(miss.roundLabel || ""))}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function metricCard(label, value){
+      return `
+        <div class="metric-cell">
+          <span class="metric-label">${escapeHtml(label)}</span>
+          <span class="metric-value">${value}</span>
+        </div>
+      `;
+    }
+
+    function analysisCardHtml(summary){
+      const verdict = reliabilityLabel(summary);
+      const coinBrier = .25;
+      const coinLogLoss = Math.log(2);
+      return `
+        <article class="analysis-card">
+          <header class="analysis-head">
+            <div>
+              <h2>${escapeHtml(summary.label)}</h2>
+              <p class="analysis-note">${escapeHtml(summary.note)}</p>
+            </div>
+            <div class="analysis-verdict">${escapeHtml(verdict)}</div>
+          </header>
+          <div class="analysis-body">
+            <div class="metric-grid">
+              ${metricCard("Rated Matches", escapeHtml(formatInteger(summary.eligibleMatches)))}
+              ${metricCard("Pick Accuracy", summary.picked ? escapeHtml(formatPercent(summary.accuracy)) : blankValue())}
+              ${metricCard("Brier Score", escapeHtml(formatDecimal(summary.brier, 3)))}
+              ${metricCard("Log Loss", escapeHtml(formatDecimal(summary.logLoss, 3)))}
+              ${metricCard("Calibration Error", summary.picked ? escapeHtml(formatPercent(summary.calibrationError)) : blankValue())}
+            </div>
+            <p class="analysis-summary">
+              <span><strong>${escapeHtml(formatInteger(summary.correctPicks))}</strong> correct picks from <strong>${escapeHtml(formatInteger(summary.picked))}</strong> non-even predictions. Coverage was <strong>${escapeHtml(formatPercent(summary.coverage))}</strong> of tracked tournament 1v1 matches.</span>
+              <span>Coin-flip baselines are 50.0% accuracy, ${escapeHtml(formatDecimal(coinBrier, 3))} Brier, and ${escapeHtml(formatDecimal(coinLogLoss, 3))} log loss.</span>
+            </p>
+            <div class="analysis-table-wrap">
+              <table class="analysis-table">
+                <thead>
+                  <tr>
+                    <th>Confidence</th>
+                    <th>Matches</th>
+                    <th>Hit Rate</th>
+                    <th>Avg Confidence</th>
+                    <th>Brier</th>
+                  </tr>
+                </thead>
+                <tbody>${predictionRowsHtml(summary)}</tbody>
+              </table>
+            </div>
+            <div class="analysis-table-wrap">
+              <table class="analysis-table">
+                <thead>
+                  <tr>
+                    <th>Picked</th>
+                    <th>Winner</th>
+                    <th>Confidence</th>
+                    <th>Tournament</th>
+                    <th>Round</th>
+                  </tr>
+                </thead>
+                <tbody>${missesRowsHtml(summary)}</tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function normalizeTournamentMatch(row){
+      const playerAId = normalizeDiscordId(row.player_a_discord_user_id);
+      const playerBId = normalizeDiscordId(row.player_b_discord_user_id);
+      const winnerId = normalizeDiscordId(row.winner_discord_user_id);
+      if(!playerAId || !playerBId || !winnerId || playerAId === playerBId) return null;
+      if(winnerId !== playerAId && winnerId !== playerBId) return null;
+      return {
+        matchHash: normalizeText(row.match_hash),
+        eventName: normalizeText(row.event_name),
+        roundLabel: normalizeText(row.round_label),
+        eventOrder: Number(row.event_order) || 0,
+        matchOrder: Number(row.match_order) || 0,
+        timestampMs: Number(row.timestamp_ms) || 0,
+        playerAId,
+        playerAName: normalizeText(row.player_a_name),
+        playerBId,
+        playerBName: normalizeText(row.player_b_name),
+        winnerId,
+      };
+    }
+
+    async function loadAllTournamentMatches(){
+      const rows = [];
+      const pageSize = 1000;
+      let from = 0;
+
+      while(true){
+        const { data, error } = await supabase
+          .from("internal_tournament_matches")
+          .select("match_hash,event_name,round_label,event_order,match_order,timestamp_ms,player_a_discord_user_id,player_a_name,player_b_discord_user_id,player_b_name,winner_discord_user_id")
+          .order("event_order", { ascending:true })
+          .order("match_order", { ascending:true })
+          .range(from, from + pageSize - 1);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return rows
+        .map(normalizeTournamentMatch)
+        .filter(Boolean)
+        .sort((left, right) =>
+          left.eventOrder - right.eventOrder ||
+          left.matchOrder - right.matchOrder ||
+          left.timestampMs - right.timestampMs ||
+          left.matchHash.localeCompare(right.matchHash)
+        );
+    }
+
+    function summarizeCurrentRatingPredictions(matches, ratingsById, ratingKey, label, note){
+      const summary = emptyPredictionSummary(label, note);
+      for(const match of matches){
+        const left = ratingsById.get(match.playerAId);
+        const right = ratingsById.get(match.playerBId);
+        const leftRating = Number(left?.[ratingKey]);
+        const rightRating = Number(right?.[ratingKey]);
+        addPrediction(summary, {
+          ...match,
+          eligible: Number.isFinite(leftRating) && Number.isFinite(rightRating),
+          probabilityA: expectedWinProbability(leftRating, rightRating),
+        });
+      }
+      return finalizePredictionSummary(summary);
+    }
+
+    function reliabilityForWeightedMatches(weightedMatches){
+      const matches = Number(weightedMatches);
+      if(!Number.isFinite(matches) || matches <= 0) return 0;
+      return Math.min(1, matches / COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES);
+    }
+
+    function priorStrengthForWeightedMatches(weightedMatches){
+      const maxPrior = 20;
+      const priorFloor = 1;
+      return priorFloor + (maxPrior - priorFloor) * (1 - reliabilityForWeightedMatches(weightedMatches));
+    }
+
+    function fitTournamentRatings(matches){
+      const baseRating = 1200;
+      const ratingScale = 400 / Math.log(10);
+      const playerStats = new Map();
+
+      function stateFor(id, displayName){
+        if(!playerStats.has(id)){
+          playerStats.set(id, {
+            displayName,
+            matches: 0,
+            weightedMatches: 0,
+          });
+        }
+        const state = playerStats.get(id);
+        state.displayName = state.displayName || displayName;
+        return state;
+      }
+
+      for(const match of matches){
+        stateFor(match.playerAId, match.playerAName).matches += 1;
+        stateFor(match.playerAId, match.playerAName).weightedMatches += 2;
+        stateFor(match.playerBId, match.playerBName).matches += 1;
+        stateFor(match.playerBId, match.playerBName).weightedMatches += 2;
+      }
+
+      const playerIds = [...playerStats.keys()].sort();
+      const abilities = new Map(playerIds.map((id) => [id, 1]));
+      if(playerIds.length < 2) return new Map();
+
+      for(let iteration = 0; iteration < 120; iteration += 1){
+        const numerators = new Map();
+        const denominators = new Map();
+        for(const id of playerIds){
+          const prior = priorStrengthForWeightedMatches(playerStats.get(id).weightedMatches);
+          numerators.set(id, prior);
+          denominators.set(id, prior);
+        }
+
+        for(const match of matches){
+          const winnerId = match.winnerId;
+          const loserId = winnerId === match.playerAId ? match.playerBId : match.playerAId;
+          const denominator = (abilities.get(winnerId) || 1) + (abilities.get(loserId) || 1);
+          if(denominator <= 0) continue;
+          numerators.set(winnerId, numerators.get(winnerId) + 2);
+          denominators.set(winnerId, denominators.get(winnerId) + (2 / denominator));
+          denominators.set(loserId, denominators.get(loserId) + (2 / denominator));
+        }
+
+        const next = new Map();
+        let logTotal = 0;
+        for(const id of playerIds){
+          const ability = numerators.get(id) / denominators.get(id);
+          next.set(id, ability);
+          logTotal += Math.log(ability);
+        }
+
+        const geometricMean = Math.exp(logTotal / playerIds.length);
+        let maxChange = 0;
+        for(const id of playerIds){
+          const ability = next.get(id) / geometricMean;
+          maxChange = Math.max(maxChange, Math.abs(Math.log(ability) - Math.log(abilities.get(id))));
+          abilities.set(id, ability);
+        }
+        if(maxChange < .000001) break;
+      }
+
+      return new Map(playerIds.map((id) => {
+        const state = playerStats.get(id);
+        const rawRating = baseRating + ratingScale * Math.log(abilities.get(id));
+        const reliability = reliabilityForWeightedMatches(state.weightedMatches);
+        return [id, {
+          rating: baseRating + reliability * (rawRating - baseRating),
+          matches: state.matches,
+        }];
+      }));
+    }
+
+    async function summarizeWalkForwardTournamentPredictions(matches){
+      const summary = emptyPredictionSummary(
+        "Walk-forward tournament rating",
+        "Each match is predicted from tournament results that happened before it. This avoids using the match being tested to rate either player."
+      );
+      const prefix = [];
+
+      for(let index = 0; index < matches.length; index += 1){
+        const match = matches[index];
+        const ratings = fitTournamentRatings(prefix);
+        const left = ratings.get(match.playerAId);
+        const right = ratings.get(match.playerBId);
+        const leftRating = Number(left?.rating ?? 1200);
+        const rightRating = Number(right?.rating ?? 1200);
+        const hasHistory = (Number(left?.matches) || 0) > 0 || (Number(right?.matches) || 0) > 0;
+
+        addPrediction(summary, {
+          ...match,
+          eligible: hasHistory,
+          probabilityA: expectedWinProbability(leftRating, rightRating),
+        });
+        prefix.push(match);
+
+        if(index > 0 && index % 25 === 0){
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        }
+      }
+
+      return finalizePredictionSummary(summary);
+    }
+
+    async function loadCombinedRowsForAnalysis(){
+      const rankedConfig = VIEW_CONFIG.ranked;
+      const tournamentConfig = VIEW_CONFIG.tournament;
+      const [rankedRun, tournamentRun] = await Promise.all([
+        loadLatestRunByModel(rankedConfig.model, rankedConfig),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
+      ]);
+      if(!rankedRun || !tournamentRun){
+        throw new Error(VIEW_CONFIG.gpi.noRunMessage);
+      }
+
+      latestRun = { ranked: rankedRun, tournament: tournamentRun };
+      const [rankedRatings, tournamentRatings] = await Promise.all([
+        loadRatingsForRun(rankedRun.id, rankedConfig),
+        loadRatingsForRun(tournamentRun.id, tournamentConfig),
+      ]);
+      const membersById = await loadMembers(rankedRatings.map(row => row.discord_user_id));
+      const combinedRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById);
+      cacheCombinedRows(combinedRows);
+
+      return {
+        combinedRows,
+        tournamentRatings,
+      };
     }
 
     async function loadLatestRunByModel(model, config = activeConfig()){
@@ -1836,10 +2451,15 @@
       const requestId = ++loadRequestId;
       const config = activeConfig();
       aboutPanelEl.hidden = true;
+      analysisPanelEl.hidden = true;
       renderTableHeader();
       pageSubtitleEl.textContent = config.subtitle;
       if(config.kind === "about"){
         renderAboutPage();
+        return;
+      }
+      if(config.kind === "analysis"){
+        await renderAnalysisPage();
         return;
       }
       if(config.kind === "combined"){
@@ -1899,10 +2519,63 @@
       return true;
     }
 
+    async function renderAnalysisPage(){
+      latestRun = null;
+      leaderboardEl.hidden = true;
+      leaderboardBodyEl.innerHTML = "";
+      aboutPanelEl.hidden = true;
+      analysisPanelEl.hidden = true;
+      runMetaEl.hidden = true;
+      runMetaEl.innerHTML = "";
+      setStatus("Running historical 1v1 analysis...");
+
+      const [{ combinedRows, tournamentRatings }, matches] = await Promise.all([
+        loadCombinedRowsForAnalysis(),
+        loadAllTournamentMatches(),
+      ]);
+
+      const combinedById = new Map(combinedRows.map((row) => [row.discord_user_id, row]));
+      const tournamentById = new Map(
+        tournamentRatings
+          .map((row) => [normalizeDiscordId(row.discord_user_id), {
+            ...row,
+            tournamentRating: Number(row.rating),
+          }])
+          .filter(([id]) => id)
+      );
+
+      const currentGpi = summarizeCurrentRatingPredictions(
+        matches,
+        combinedById,
+        "ratingNumber",
+        "Current GPI retrospective fit",
+        "Uses each player's current overall GPI against historical tournament 1v1 results. Useful as a sanity check, but it includes hindsight."
+      );
+      const currentTournament = summarizeCurrentRatingPredictions(
+        matches,
+        tournamentById,
+        "tournamentRating",
+        "Current tournament rating retrospective fit",
+        "Uses the current tournament-only rating against the same historical results. This is also retrospective and should not be read as a clean forecast test."
+      );
+      const walkForward = await summarizeWalkForwardTournamentPredictions(matches);
+
+      analysisPanelEl.innerHTML = [
+        analysisCardHtml(currentGpi),
+        analysisCardHtml(walkForward),
+        analysisCardHtml(currentTournament),
+      ].join("");
+      analysisPanelEl.hidden = false;
+      renderRunMeta(latestRun);
+      hideStatus();
+    }
+
     function renderAboutPage(){
       latestRun = null;
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
+      analysisPanelEl.hidden = true;
+      analysisPanelEl.innerHTML = "";
       runMetaEl.hidden = true;
       runMetaEl.innerHTML = "";
       hideStatus();
@@ -1922,6 +2595,8 @@
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
       aboutPanelEl.hidden = true;
+      analysisPanelEl.hidden = true;
+      analysisPanelEl.innerHTML = "";
       runMetaEl.hidden = true;
       runMetaEl.innerHTML = "";
       setStatus("Loading...");
