@@ -4,8 +4,6 @@ const assert = require("node:assert/strict");
 const {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
-  createExternalIdentity,
-  externalDiscordIdForName,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
@@ -51,12 +49,6 @@ const identityMap = {
 
   assert.equal(resolveIdentity(sheetIdentityMap, "Dylan3594")?.discordUserId, "123456789012345678");
   assert.equal(resolveIdentity(sheetIdentityMap, "alexcat27")?.discordUserId, "987654321098765432");
-}
-
-{
-  assert.equal(externalDiscordIdForName("Mr. E"), externalDiscordIdForName("Mr. E"));
-  assert.match(externalDiscordIdForName("Mr. E"), /^9[0-9]{18}$/);
-  assert.equal(createExternalIdentity("Mr. E")?.source, "external_tournament_placeholder");
 }
 
 {
@@ -135,10 +127,9 @@ const identityMap = {
     0
   );
 
-  assert.equal(parsed.matches.length, 1);
+  assert.equal(parsed.matches.length, 0);
   assert.equal(parsed.warnings.length, 1);
-  assert.match(parsed.warnings[0].reason, /placeholder identity used/);
-  assert.match(parsed.matches[0].player_b_discord_user_id, /^9[0-9]{18}$/);
+  assert.match(parsed.warnings[0].reason, /unresolved player identity/);
 }
 
 {

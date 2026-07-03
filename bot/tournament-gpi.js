@@ -267,22 +267,11 @@ function addIdentity(identityMap, name, discordUserId, source) {
   identityMap.key.set(aliasKey, { discordUserId: cleanDiscordId, displayName: cleanName, source });
 }
 
-function externalDiscordIdForName(name) {
-  const cleanName = normalizeName(name);
-  const aliasKey = normalizeAliasKey(cleanName);
-  const hash = crypto.createHash("sha256").update(`external-tournament-player:${aliasKey || cleanName}`).digest("hex");
-  const numeric = BigInt(`0x${hash.slice(0, 16)}`) % 1_000_000_000_000_000_000n;
-  return `9${numeric.toString().padStart(18, "0")}`;
-}
-
-function createExternalIdentity(name) {
-  const cleanName = normalizeName(name);
-  if (!cleanName) return null;
+function cloneIdentityMap(identityMap) {
   return {
-    discordUserId: externalDiscordIdForName(cleanName),
-    displayName: cleanName,
-    source: "external_tournament_placeholder",
-    isExternal: true,
+    exact: new Map(identityMap.exact),
+    key: new Map(identityMap.key),
+    ambiguousKeys: new Set(identityMap.ambiguousKeys),
   };
 }
 
@@ -308,36 +297,19 @@ function resolveIdentity(identityMap, name) {
   return identityMap.key.get(aliasKey) || null;
 }
 
-async function loadSupabaseIdentities(supabase, identityMap) {
-  const [aliasesResult, membersResult] = await Promise.all([
-    supabase
-      .from("player_league_aliases")
-      .select("league_player_name,discord_user_id,active")
-      .eq("active", true),
-    supabase
-      .from("discord_guild_members")
-      .select("discord_user_id,username,global_name,display_name,nickname,is_current_member,is_bot")
-      .eq("is_current_member", true)
-      .eq("is_bot", false),
-  ]);
+async function loadInternalAliasIdentities(supabase, identityMap) {
+  const { data, error } = await supabase
+    .from("player_league_aliases")
+    .select("league_player_name,discord_user_id,active")
+    .eq("active", true);
 
-  if (!aliasesResult.error) {
-    for (const row of aliasesResult.data || []) {
-      addIdentity(identityMap, row.league_player_name, row.discord_user_id, "player_league_aliases");
-    }
-  } else {
-    console.warn(`Could not load player_league_aliases: ${aliasesResult.error.message}`);
-  }
-
-  if (membersResult.error) {
-    console.warn(`Could not load discord_guild_members: ${membersResult.error.message}`);
+  if (error) {
+    console.warn(`Could not load player_league_aliases: ${error.message}`);
     return;
   }
 
-  for (const row of membersResult.data || []) {
-    for (const name of [row.display_name, row.nickname, row.global_name, row.username]) {
-      addIdentity(identityMap, name, row.discord_user_id, "discord_guild_members");
-    }
+  for (const row of data || []) {
+    addIdentity(identityMap, row.league_player_name, row.discord_user_id, "player_league_aliases");
   }
 }
 
@@ -438,9 +410,7 @@ function buildTournamentMatch({
     };
   }
 
-  const resolvedPlayerAIdentity = playerAIdentity || createExternalIdentity(playerAName);
-  const resolvedPlayerBIdentity = playerBIdentity || createExternalIdentity(playerBName);
-  if (!resolvedPlayerAIdentity || !resolvedPlayerBIdentity) {
+  if (missing.length) {
     return {
       row: null,
       warning: {
@@ -453,10 +423,10 @@ function buildTournamentMatch({
   }
 
   const timestampMs = syntheticStartMs + eventIndex * 1_000_000 + localOrder * 1000;
-  const playerA = { discordUserId: resolvedPlayerAIdentity.discordUserId, displayName: playerAName };
-  const playerB = { discordUserId: resolvedPlayerBIdentity.discordUserId, displayName: playerBName };
+  const playerA = { discordUserId: playerAIdentity.discordUserId, displayName: playerAName };
+  const playerB = { discordUserId: playerBIdentity.discordUserId, displayName: playerBName };
   const winnerDiscordUserId =
-    winnerSide === "a" ? resolvedPlayerAIdentity.discordUserId : resolvedPlayerBIdentity.discordUserId;
+    winnerSide === "a" ? playerAIdentity.discordUserId : playerBIdentity.discordUserId;
   const rawMatch = rawMatchFromSides({ timestampMs, playerA, playerB, winnerSide });
   const row = {
     match_hash: "",
@@ -468,10 +438,10 @@ function buildTournamentMatch({
     round_label: roundLabel,
     timestamp_ms: timestampMs,
     played_at: new Date(timestampMs).toISOString(),
-    player_a_discord_user_id: resolvedPlayerAIdentity.discordUserId,
+    player_a_discord_user_id: playerAIdentity.discordUserId,
     player_a_name: playerAName,
     player_a_score: normalizeName(scoreA),
-    player_b_discord_user_id: resolvedPlayerBIdentity.discordUserId,
+    player_b_discord_user_id: playerBIdentity.discordUserId,
     player_b_name: playerBName,
     player_b_score: normalizeName(scoreB),
     winner_discord_user_id: winnerDiscordUserId,
@@ -481,14 +451,7 @@ function buildTournamentMatch({
   row.match_hash = tournamentMatchHash(row);
   return {
     row,
-    warning: missing.length
-      ? {
-          event_key: event.key,
-          source_match_id: sourceMatchId,
-          players: [playerAName, playerBName],
-          reason: `placeholder identity used for unresolved player: ${missing.join(", ")}`,
-        }
-      : null,
+    warning: null,
   };
 }
 
@@ -705,12 +668,16 @@ async function fetchLightningCupEvent(event, eventIndex, identityMap) {
 }
 
 async function collectTournamentMatches(supabase) {
-  const identityMap = createEmptyIdentityMap();
+  const internalIdentityMap = createEmptyIdentityMap();
+  await loadInternalAliasIdentities(supabase, internalIdentityMap);
+
+  const superLeagueIdentityMap = cloneIdentityMap(internalIdentityMap);
+  const worldOpenIdentityMap = cloneIdentityMap(internalIdentityMap);
+  const lightningIdentityMap = cloneIdentityMap(internalIdentityMap);
   await Promise.all([
-    loadSupabaseIdentities(supabase, identityMap),
-    loadSuperLeagueIdentitySheet(identityMap),
-    loadWorldOpenIdentitySheet(identityMap),
-    loadLightningIdentitySheet(identityMap),
+    loadSuperLeagueIdentitySheet(superLeagueIdentityMap),
+    loadWorldOpenIdentitySheet(worldOpenIdentityMap),
+    loadLightningIdentitySheet(lightningIdentityMap),
   ]);
 
   const results = [];
@@ -718,13 +685,13 @@ async function collectTournamentMatches(supabase) {
     const event = eventOrder[eventIndex];
     console.log(`Fetching ${event.name}`);
     if (event.key === "super_league_s5") {
-      results.push(await fetchSuperLeagueEvent(5, event, eventIndex, identityMap));
+      results.push(await fetchSuperLeagueEvent(5, event, eventIndex, superLeagueIdentityMap));
     } else if (event.key === "world_open_2026") {
-      results.push(await fetchWorldOpenEvent(event, eventIndex, identityMap));
+      results.push(await fetchWorldOpenEvent(event, eventIndex, worldOpenIdentityMap));
     } else if (event.key === "lightning_cup_2026") {
-      results.push(await fetchLightningCupEvent(event, eventIndex, identityMap));
+      results.push(await fetchLightningCupEvent(event, eventIndex, lightningIdentityMap));
     } else if (event.key === "super_league_s6") {
-      results.push(await fetchSuperLeagueEvent(6, event, eventIndex, identityMap));
+      results.push(await fetchSuperLeagueEvent(6, event, eventIndex, superLeagueIdentityMap));
     }
   }
 
@@ -954,8 +921,6 @@ if (require.main === module) {
 module.exports = {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
-  createExternalIdentity,
-  externalDiscordIdForName,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
