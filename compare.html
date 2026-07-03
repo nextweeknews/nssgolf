@@ -536,6 +536,10 @@
       white-space:nowrap;
     }
 
+    .h2h-counts-no-ties{
+      grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+    }
+
     .h2h-summary-overall .h2h-counts{
       font-size:12px;
       letter-spacing:.07em;
@@ -993,12 +997,13 @@
       return record.wins + record.losses + record.ties;
     }
 
-    function h2hPercentages(record){
-      const total = recordTotal(record);
+    function h2hPercentages(record, options = {}){
+      const showTies = options.showTies !== false;
+      const total = record.wins + record.losses + (showTies ? record.ties : 0);
       if(total <= 0) return { wins:0, losses:0, ties:0 };
       return {
         wins:(record.wins / total) * 100,
-        ties:(record.ties / total) * 100,
+        ties:showTies ? (record.ties / total) * 100 : 0,
         losses:(record.losses / total) * 100,
       };
     }
@@ -1017,7 +1022,8 @@
 
     function h2hSummaryHtml(label, record, options = {}){
       const total = recordTotal(record);
-      const percentages = h2hPercentages(record);
+      const showTies = options.showTies !== false;
+      const percentages = h2hPercentages(record, { showTies });
       const shouldShowTitle = options.showTitle !== false;
       const shouldShowTotal = options.showTotal === true;
       const emptyText = total === 0 ? normalizeText(options.emptyText) : "";
@@ -1025,12 +1031,12 @@
         ${shouldShowTitle ? `<div class="h2h-summary-title"><span>${escapeHtml(label)}</span>${shouldShowTotal ? `<span class="h2h-summary-title-meta">${escapeHtml(matchTotalLabel(total))}</span>` : ""}</div>` : ""}
         <div class="h2h-progress" data-empty="${total === 0 ? "true" : "false"}" aria-label="${escapeHtml(label)} head-to-head win distribution">
           <span class="h2h-fill h2h-fill-a" style="width:${percentages.wins}%"></span>
-          <span class="h2h-fill h2h-fill-ties" style="width:${percentages.ties}%"></span>
+          ${showTies ? `<span class="h2h-fill h2h-fill-ties" style="width:${percentages.ties}%"></span>` : ""}
           <span class="h2h-fill h2h-fill-b" style="width:${percentages.losses}%"></span>
         </div>
-        ${emptyText ? `<div class="h2h-empty-label">${escapeHtml(emptyText)}</div>` : `<div class="h2h-counts">
+        ${emptyText ? `<div class="h2h-empty-label">${escapeHtml(emptyText)}</div>` : `<div class="h2h-counts ${showTies ? "" : "h2h-counts-no-ties"}">
           <span class="h2h-count-a">${escapeHtml(winLabel(record.wins))}</span>
-          <span class="h2h-count-ties">${escapeHtml(tieLabel(record.ties))}</span>
+          ${showTies ? `<span class="h2h-count-ties">${escapeHtml(tieLabel(record.ties))}</span>` : ""}
           <span class="h2h-count-b">${escapeHtml(winLabel(record.losses))}</span>
         </div>`}
       `;
@@ -1380,7 +1386,7 @@
       rankedSummaryEl.className = "h2h-summary h2h-summary-overall";
       tournamentSummaryEl.className = "h2h-summary";
       rankedSummaryEl.innerHTML = h2hSummaryHtml("Overall", ranked.total, { showTotal:true });
-      tournamentSummaryEl.innerHTML = h2hSummaryHtml("Tournaments", tournament.total, { showTitle:false, emptyText:"NO MATCHES" });
+      tournamentSummaryEl.innerHTML = h2hSummaryHtml("Tournaments", tournament.total, { showTitle:false, showTies:false, emptyText:"NO MATCHES" });
       renderSeasonRows(ranked.seasons);
       renderTournamentRows(playerA, playerB, tournament.rows);
       hideStatus();
