@@ -273,7 +273,7 @@
 
     .prediction-select-grid{
       display:grid;
-      grid-template-columns:repeat(2, minmax(0, 1fr));
+      grid-template-columns:repeat(3, minmax(0, 1fr));
       gap:12px;
     }
 
@@ -528,38 +528,6 @@
     .prediction-fill-b{
       height:100%;
       background:#93c5fd;
-    }
-
-    .prediction-meta-grid{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(0, 1fr));
-      gap:8px;
-    }
-
-    .prediction-meta{
-      min-width:0;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:#181b20;
-      padding:10px;
-      text-align:center;
-    }
-
-    .prediction-meta-label{
-      display:block;
-      color:var(--muted);
-      font-size:10px;
-      font-weight:850;
-      letter-spacing:.06em;
-      text-transform:uppercase;
-    }
-
-    .prediction-meta-value{
-      display:block;
-      margin-top:4px;
-      color:var(--text);
-      font-weight:900;
-      font-variant-numeric:tabular-nums;
     }
 
     .tournament-projection{
@@ -1145,8 +1113,7 @@
       }
 
       .prediction-select-grid,
-      .prediction-matchup,
-      .prediction-meta-grid{
+      .prediction-matchup{
         grid-template-columns:1fr;
       }
 
@@ -1388,6 +1355,15 @@
                 <span class="player-search-results" id="predictionPlayerResultsB" hidden></span>
               </span>
             </label>
+            <label class="prediction-field">
+              <span class="prediction-label">Match Format</span>
+              <select class="prediction-select" id="predictionSeriesLength" aria-label="Select prediction match format">
+                <option value="3" selected>Best of 3</option>
+                <option value="5">Best of 5</option>
+                <option value="7">Best of 7</option>
+                <option value="9">Best of 9</option>
+              </select>
+            </label>
           </div>
           <div id="predictionMatchup" class="prediction-result"></div>
         </div>
@@ -1532,6 +1508,7 @@
     const predictionClearAEl = document.getElementById("predictionClearA");
     const predictionClearBEl = document.getElementById("predictionClearB");
     const predictionSwapEl = document.getElementById("predictionSwap");
+    const predictionSeriesLengthEl = document.getElementById("predictionSeriesLength");
     const predictionMatchupEl = document.getElementById("predictionMatchup");
     const tournamentProjectionEl = document.getElementById("tournamentProjection");
     const runMetaEl = document.getElementById("runMeta");
@@ -1558,7 +1535,6 @@
       roundOrder:["R64", "R32", "R16", "R8", "R4", "Final"],
     };
     const CHAMPIONSHIP_SERIES_GAMES = 3;
-    const CHAMPIONSHIP_SERIES_WINS_TO_ADVANCE = 2;
     const CHAMPIONSHIP_ROUND_LABELS = {
       R64:"Round of 64",
       R32:"Round of 32",
@@ -1582,6 +1558,14 @@
       R8:"R4",
       R4:"Final",
       Final:"Champion",
+    };
+    const CHAMPIONSHIP_SERIES_GAMES_BY_ROUND = {
+      R64:3,
+      R32:3,
+      R16:5,
+      R8:5,
+      R4:7,
+      Final:9,
     };
     const VIEW_CONFIG = {
       gpi: {
@@ -1654,6 +1638,7 @@
     let predictionRows = [];
     let predictionSearchRows = [];
     let selectedPredictionPlayers = { a:null, b:null };
+    let predictionSeriesGames = CHAMPIONSHIP_SERIES_GAMES;
     const HISTORICAL_GPI_WIN_CURVE = [
       { delta:0, probability:.5 },
       { delta:25, probability:.5 },
@@ -2129,6 +2114,10 @@
       return leftRating >= rightRating ? favoriteProbability : 1 - favoriteProbability;
     }
 
+    function winsNeededForSeries(games){
+      return Math.floor(games / 2) + 1;
+    }
+
     function combinationCount(total, selected){
       if(selected < 0 || selected > total) return 0;
       const picks = Math.min(selected, total - selected);
@@ -2139,13 +2128,22 @@
       return result;
     }
 
-    function seriesWinProbability(singleGameProbability, games = CHAMPIONSHIP_SERIES_GAMES, winsToAdvance = CHAMPIONSHIP_SERIES_WINS_TO_ADVANCE){
+    function seriesWinProbability(singleGameProbability, games = CHAMPIONSHIP_SERIES_GAMES, winsToAdvance = winsNeededForSeries(games)){
       const p = Math.max(0, Math.min(1, Number(singleGameProbability)));
       let probability = 0;
       for(let wins = winsToAdvance; wins <= games; wins += 1){
         probability += combinationCount(games, wins) * (p ** wins) * ((1 - p) ** (games - wins));
       }
       return probability;
+    }
+
+    function selectedPredictionSeriesGames(){
+      const games = Number(predictionSeriesLengthEl?.value || predictionSeriesGames);
+      return [3, 5, 7, 9].includes(games) ? games : CHAMPIONSHIP_SERIES_GAMES;
+    }
+
+    function championshipSeriesGamesForRound(round){
+      return CHAMPIONSHIP_SERIES_GAMES_BY_ROUND[round] || CHAMPIONSHIP_SERIES_GAMES;
     }
 
     function predictionConfidenceLabel(delta){
@@ -2307,7 +2305,8 @@
         return;
       }
 
-      const leftProbability = predictionProbability(left, right);
+      const seriesGames = selectedPredictionSeriesGames();
+      const leftProbability = seriesWinProbability(predictionProbability(left, right), seriesGames);
       const rightProbability = 1 - leftProbability;
       const delta = Number(left.ratingNumber) - Number(right.ratingNumber);
       const favorite = delta >= 0 ? left : right;
@@ -2320,9 +2319,9 @@
             <span class="prediction-percent">${escapeHtml(formatPercent(leftProbability))}</span>
           </div>
           <div class="prediction-center">
-            <span class="prediction-center-label">Favorite</span>
+            <span class="prediction-center-label">Series Favorite</span>
             <span class="prediction-player-name">${escapeHtml(favorite.displayName)}</span>
-            <span class="prediction-rating">${escapeHtml(confidence)}</span>
+            <span class="prediction-rating">Best of ${escapeHtml(seriesGames)} · ${escapeHtml(confidence)}</span>
           </div>
           <div class="prediction-side">
             <span class="prediction-player-name">${escapeHtml(right.displayName)}</span>
@@ -2333,11 +2332,6 @@
         <div class="prediction-bar" aria-hidden="true">
           <span class="prediction-fill-a" style="width:${Math.max(0, Math.min(100, leftProbability * 100)).toFixed(2)}%"></span>
           <span class="prediction-fill-b" style="width:${Math.max(0, Math.min(100, rightProbability * 100)).toFixed(2)}%"></span>
-        </div>
-        <div class="prediction-meta-grid">
-          <div class="prediction-meta"><span class="prediction-meta-label">GPI Difference</span><span class="prediction-meta-value">${escapeHtml(formatSignedRating(delta))}</span></div>
-          <div class="prediction-meta"><span class="prediction-meta-label">Historical Favorite Win %</span><span class="prediction-meta-value">${escapeHtml(formatPercent(Math.max(leftProbability, rightProbability)))}</span></div>
-          <div class="prediction-meta"><span class="prediction-meta-label">Rating Model</span><span class="prediction-meta-value">GPI curve</span></div>
         </div>
       `;
     }
@@ -2525,9 +2519,9 @@
       return Number(participant?.row?.ratingNumber);
     }
 
-    function participantWinProbability(leftParticipant, rightParticipant){
+    function participantWinProbability(leftParticipant, rightParticipant, seriesGames = CHAMPIONSHIP_SERIES_GAMES){
       if(!leftParticipant?.row || !rightParticipant?.row) return 0.5;
-      return seriesWinProbability(predictionProbability(leftParticipant.row, rightParticipant.row));
+      return seriesWinProbability(predictionProbability(leftParticipant.row, rightParticipant.row), seriesGames);
     }
 
     function distributionFromSlot(slot, participantsByKey){
@@ -2542,7 +2536,7 @@
       return new Map([[participant.key, 1]]);
     }
 
-    function combineEntrants(leftMap, rightMap, participantsByKey, forcedWinnerKey = ""){
+    function combineEntrants(leftMap, rightMap, participantsByKey, forcedWinnerKey = "", seriesGames = CHAMPIONSHIP_SERIES_GAMES){
       const result = new Map();
       if(!leftMap.size && !rightMap.size) return result;
       if(!leftMap.size) return new Map(rightMap);
@@ -2557,7 +2551,7 @@
           const rightParticipant = participantsByKey.get(rightId);
           if(!leftParticipant || !rightParticipant) continue;
           const pairChance = leftChance * rightChance;
-          const leftWin = participantWinProbability(leftParticipant, rightParticipant);
+          const leftWin = participantWinProbability(leftParticipant, rightParticipant, seriesGames);
           result.set(leftId, (result.get(leftId) || 0) + pairChance * leftWin);
           result.set(rightId, (result.get(rightId) || 0) + pairChance * (1 - leftWin));
         }
@@ -2601,13 +2595,14 @@
         }
         const nextEntrants = [];
         const advancementKey = CHAMPIONSHIP_ADVANCEMENT_BY_ROUND[group.round];
+        const seriesGames = championshipSeriesGamesForRound(group.round);
 
         group.matches.forEach((match, index) => {
           matchesTotal += 1;
           if(match.winnerKey) matchesCompleted += 1;
           const left = entrants[index * 2] || distributionFromSlot(match.top, participantsByKey);
           const right = entrants[(index * 2) + 1] || distributionFromSlot(match.bottom, participantsByKey);
-          const next = combineEntrants(left, right, participantsByKey, match.winnerKey);
+          const next = combineEntrants(left, right, participantsByKey, match.winnerKey, seriesGames);
           nextEntrants.push(next);
           if(advancementKey) addAdvancementProbability(probabilitiesByKey, advancementKey, next);
         });
@@ -2670,6 +2665,7 @@
       tournamentProjectionEl.innerHTML = `
         <div class="projection-summary">
           <span><strong>${escapeHtml(formatInteger(projection.rows.length))}</strong> players, <strong>${escapeHtml(formatInteger(projection.matchesCompleted))}</strong> of <strong>${escapeHtml(formatInteger(projection.matchesTotal))}</strong> bracket matches complete.</span>
+          <span>R64/R32 first to 2, R16/QF first to 3, SF first to 4, Final first to 5.</span>
         </div>
         <div class="table-shell">
           <table class="projection-table">
@@ -3236,6 +3232,11 @@
         clearPredictionPlayer(key);
         picker.input.focus();
       });
+    });
+
+    predictionSeriesLengthEl.addEventListener("change", () => {
+      predictionSeriesGames = selectedPredictionSeriesGames();
+      renderMatchupPrediction();
     });
 
     predictionSwapEl.addEventListener("click", () => {
