@@ -2303,6 +2303,15 @@
       combinedRowsById = new Map(rows.map((row) => [row.discord_user_id, row]));
     }
 
+    function probabilityLogit(probability){
+      const p = Math.max(.000001, Math.min(.999999, Number(probability)));
+      return Math.log(p / (1 - p));
+    }
+
+    function probabilityFromLogit(logit){
+      return 1 / (1 + Math.exp(-logit));
+    }
+
     function calibratedFavoriteProbability(delta){
       const cleanDelta = Math.max(0, Math.abs(Number(delta) || 0));
       const curve = HISTORICAL_GPI_WIN_CURVE;
@@ -2315,7 +2324,15 @@
           return previous.probability + ((next.probability - previous.probability) * progress);
         }
       }
-      return curve[curve.length - 1].probability;
+
+      const previous = curve[curve.length - 2];
+      const last = curve[curve.length - 1];
+      const logitSlope =
+        (probabilityLogit(last.probability) - probabilityLogit(previous.probability)) /
+        (last.delta - previous.delta);
+      return probabilityFromLogit(
+        probabilityLogit(last.probability) + ((cleanDelta - last.delta) * logitSlope)
+      );
     }
 
     function predictionProbability(leftRow, rightRow){
