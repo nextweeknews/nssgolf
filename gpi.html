@@ -1156,6 +1156,12 @@
       }[char]));
     }
 
+    function formatTournamentRoundLabel(value){
+      const clean = normalizeText(value);
+      const match = clean.match(/^Week\s+(\d+)\s+(\d+)$/i);
+      return match ? `Week ${match[1]} (D${match[2]})` : clean;
+    }
+
     function setStatus(message, tone = ""){
       statusEl.hidden = false;
       statusEl.className = `status ${tone}`.trim();
@@ -1810,7 +1816,7 @@
                     <td>${escapeHtml(opponentName || "")}</td>
                     <td><span class="match-outcome ${outcomeClass}">${outcome}</span></td>
                     <td>${escapeHtml(match.event_name || "")}</td>
-                    <td>${escapeHtml(match.round_label || "")}</td>
+                    <td>${escapeHtml(formatTournamentRoundLabel(match.round_label))}</td>
                   </tr>
                 `;
               }).join("")}
