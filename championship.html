@@ -739,6 +739,17 @@
       width:var(--qualifier-scorepack-width);
       min-width:var(--qualifier-scorepack-width);
     }
+    .qualifier-player-score-window{
+      position:relative;
+      display:grid;
+      justify-self:end;
+      width:var(--game-score-width, auto);
+      max-width:var(--qualifier-visible-games-width);
+      min-width:0;
+    }
+    .qualifier-player-score-window.is-scrollable{
+      width:var(--qualifier-visible-games-width);
+    }
     .qualifier-player-games{
       display:grid;
       grid-auto-flow:column;
@@ -746,8 +757,8 @@
       align-items:stretch;
       justify-self:end;
       gap:var(--qualifier-score-col-gap);
-      width:var(--game-score-width, auto);
-      max-width:var(--qualifier-visible-games-width);
+      width:100%;
+      max-width:100%;
       min-width:0;
       overflow-x:hidden;
       overflow-y:hidden;
@@ -757,6 +768,44 @@
     .qualifier-player-games.is-scrollable{
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
+    }
+    .qualifier-score-chevron{
+      position:absolute;
+      top:50%;
+      z-index:2;
+      width:12px;
+      height:18px;
+      display:grid;
+      place-items:center;
+      color:rgba(187,247,208,.82);
+      opacity:0;
+      pointer-events:none;
+      transform:translateY(-50%);
+      transition:opacity 120ms ease;
+    }
+    .qualifier-score-chevron::before{
+      content:"";
+      width:6px;
+      height:6px;
+      border-top:1.5px solid currentColor;
+      border-right:1.5px solid currentColor;
+      filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
+    }
+    .qualifier-score-chevron.is-left{
+      left:-8px;
+    }
+    .qualifier-score-chevron.is-left::before{
+      transform:rotate(225deg);
+    }
+    .qualifier-score-chevron.is-right{
+      right:-8px;
+    }
+    .qualifier-score-chevron.is-right::before{
+      transform:rotate(45deg);
+    }
+    .qualifier-player-score-window.has-hidden-left .qualifier-score-chevron.is-left,
+    .qualifier-player-score-window.has-hidden-right .qualifier-score-chevron.is-right{
+      opacity:.82;
     }
     .qualifier-player-set-score{
       width:100%;
@@ -787,14 +836,6 @@
       line-height:1;
       text-align:center;
       white-space:nowrap;
-    }
-    .bracket-scroll-hint{
-      margin:0 0 8px;
-      color:rgba(187,247,208,.88);
-      font-size:11px;
-      font-weight:850;
-      letter-spacing:.03em;
-      text-align:right;
     }
     .bracket-empty-state{
       margin:0;
@@ -1093,7 +1134,6 @@
       </section>
 
       <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab">
-        <p class="bracket-scroll-hint" id="bracketGameScoreHint" hidden>Some matches include more than 5 games. Scroll inside the game scores to view the rest.</p>
         <div class="qualifier-bracket-scroll">
           <div class="qualifier-bracket-grid" id="championshipBracketGrid"></div>
         </div>
@@ -1424,7 +1464,6 @@
       rankedLeagueTable:document.getElementById("rankedLeagueTable"),
       fieldTable:document.getElementById("fieldTable"),
       championshipBracketGrid:document.getElementById("championshipBracketGrid"),
-      bracketGameScoreHint:document.getElementById("bracketGameScoreHint"),
       adminResultsTable:document.getElementById("adminResultsTable"),
       adminLoginBtn:document.getElementById("adminLoginBtn"),
       adminResultsTab:document.getElementById("adminResultsTab"),
@@ -3705,8 +3744,9 @@
       const gameCount = Math.max(0, Math.min(9, Number(match?.gameCount) || 0));
       const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.slice(0, gameCount) : [];
       const scoreWidth = gameCount > 0 ? (gameCount * 28) + ((gameCount - 1) * 2) : 0;
+      const isScrollable = gameCount > 5;
       const gamesMarkup = gameCount > 0
-        ? `<span class="qualifier-player-games${gameCount > 5 ? " is-scrollable" : ""}" style="--game-score-width:${scoreWidth}px;" ${gameCount > 5 ? `tabindex="0" aria-label="${escapeHtml(`${gameCount} game scores. Scroll horizontally to view all scores.`)}"` : ""}>${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}</span>`
+        ? `<span class="qualifier-player-score-window${isScrollable ? " is-scrollable" : ""}" style="--game-score-width:${scoreWidth}px;">${isScrollable ? `<span class="qualifier-score-chevron is-left" aria-hidden="true"></span><span class="qualifier-score-chevron is-right" aria-hidden="true"></span>` : ""}<span class="qualifier-player-games${isScrollable ? " is-scrollable" : ""}" ${isScrollable ? `tabindex="0" aria-label="${escapeHtml(`${gameCount} game scores. Scroll horizontally to view all scores.`)}"` : ""}>${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}</span></span>`
         : "";
       return `<span class="qualifier-player-scorepack">${gamesMarkup}<span class="qualifier-player-final-score">${escapeHtml(slot?.score || "-")}</span></span>`;
     }
@@ -3734,29 +3774,61 @@
       return "";
     }
 
+    function championshipScoreWindowForScroller(scroller){
+      return scroller?.closest?.(".qualifier-player-score-window") || null;
+    }
+
+    function updateChampionshipGameScoreIndicator(scroller){
+      const scoreWindow = championshipScoreWindowForScroller(scroller);
+      if(!scoreWindow) return;
+      const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+      scoreWindow.classList.toggle("has-hidden-left", scroller.scrollLeft > 1);
+      scoreWindow.classList.toggle("has-hidden-right", scroller.scrollLeft < maxScroll - 1);
+    }
+
+    function refreshChampionshipGameScoreIndicators(root = els.championshipBracketGrid){
+      if(!root) return;
+      root.querySelectorAll(".qualifier-player-games.is-scrollable").forEach(updateChampionshipGameScoreIndicator);
+    }
+
+    function syncChampionshipGameScoreScroll(sourceScroller){
+      if(!sourceScroller?.classList?.contains("is-scrollable")) return;
+      const matchCard = sourceScroller.closest(".qualifier-match-card");
+      if(!matchCard) return;
+      const scrollers = [...matchCard.querySelectorAll(".qualifier-player-games.is-scrollable")];
+      if(scrollers.length < 2){
+        updateChampionshipGameScoreIndicator(sourceScroller);
+        return;
+      }
+      const sourceMax = Math.max(0, sourceScroller.scrollWidth - sourceScroller.clientWidth);
+      const scrollRatio = sourceMax > 0 ? sourceScroller.scrollLeft / sourceMax : 0;
+      scrollers.forEach((scroller) => {
+        if(scroller !== sourceScroller){
+          const targetMax = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+          scroller.scrollLeft = Math.round(targetMax * scrollRatio);
+        }
+        updateChampionshipGameScoreIndicator(scroller);
+      });
+    }
+
     function renderBracket(){
       if(!els.championshipBracketGrid) return;
       if(state.bracketLoading){
         els.championshipBracketGrid.dataset.bracketMode = "actual";
         els.championshipBracketGrid.innerHTML = "";
-        if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = true;
         return;
       }
       if(state.bracketError){
         els.championshipBracketGrid.innerHTML = "";
-        if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = true;
         return;
       }
       const matches = state.bracketMatches || [];
       if(!matches.length){
         els.championshipBracketGrid.innerHTML = "";
-        if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = true;
         return;
       }
 
       const groups = championshipBracketGroups(matches);
-      const hasScrollableGameScores = matches.some(match => Number(match.gameCount) > 5);
-      if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = !hasScrollableGameScores;
       const roundLayouts = {
         R64:{ gap:8, top:0 },
         R32:{ gap:48, top:48 },
@@ -3790,6 +3862,7 @@
           </div>
         `;
       }).join("");
+      refreshChampionshipGameScoreIndicators();
     }
 
     function renderQualifierTables(){
@@ -4218,6 +4291,11 @@
         const sortButton = event.target.closest("[data-admin-sort]");
         if(sortButton) setAdminSort(sortButton.dataset.adminSort);
       });
+      els.championshipBracketGrid.addEventListener("scroll", (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const scroller = target?.closest(".qualifier-player-games.is-scrollable");
+        if(scroller) syncChampionshipGameScoreScroll(scroller);
+      }, true);
       document.addEventListener("change", async (event) => {
         const input = event.target.closest("[data-hide-player-key]");
         if(!input || !state.isAdmin) return;
@@ -4283,6 +4361,7 @@
       });
       window.addEventListener("resize", () => {
         syncTableWidths();
+        requestAnimationFrame(() => refreshChampionshipGameScoreIndicators());
       });
       window.addEventListener("popstate", () => {
         applyViewUrlState({ updateUrl:false });
