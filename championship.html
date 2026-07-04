@@ -30,10 +30,10 @@
       --qualifier-match-height:64px;
       --qualifier-seed-col-width:14px;
       --qualifier-score-col-width:28px;
-      --qualifier-score-col-gap:4px;
+      --qualifier-score-col-gap:2px;
       --qualifier-final-score-width:24px;
       --qualifier-visible-game-count:5;
-      --qualifier-visible-games-width:156px;
+      --qualifier-visible-games-width:148px;
       --qualifier-scorepack-width:186px;
     }
 
@@ -3704,7 +3704,7 @@
       if(!hasScore) return "";
       const gameCount = Math.max(0, Math.min(9, Number(match?.gameCount) || 0));
       const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.slice(0, gameCount) : [];
-      const scoreWidth = gameCount > 0 ? (gameCount * 28) + ((gameCount - 1) * 4) : 0;
+      const scoreWidth = gameCount > 0 ? (gameCount * 28) + ((gameCount - 1) * 2) : 0;
       const gamesMarkup = gameCount > 0
         ? `<span class="qualifier-player-games${gameCount > 5 ? " is-scrollable" : ""}" style="--game-score-width:${scoreWidth}px;" ${gameCount > 5 ? `tabindex="0" aria-label="${escapeHtml(`${gameCount} game scores. Scroll horizontally to view all scores.`)}"` : ""}>${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}</span>`
         : "";
