@@ -649,6 +649,10 @@
     .qualifier-match-row.no-score{
       grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr);
     }
+    .qualifier-match-row.has-score{
+      padding-top:0;
+      padding-bottom:0;
+    }
     .qualifier-match-row:first-child{
       border-top-left-radius:10px;
       border-top-right-radius:10px;
@@ -808,7 +812,7 @@
       transform:rotate(225deg);
     }
     .qualifier-score-chevron.is-right{
-      right:4px;
+      right:-1px;
     }
     .qualifier-score-chevron.is-right::before{
       transform:rotate(45deg);
@@ -3766,6 +3770,7 @@
       const hasScore = normalizeText(slot?.score) || (Array.isArray(slot?.gameScores) && slot.gameScores.some(score => normalizeText(score)));
       const rowClasses = [
         "qualifier-match-row",
+        hasScore ? "has-score" : "",
         hasScore ? "" : "no-score",
         isWinner ? "winner" : "",
       ].filter(Boolean).join(" ");
@@ -3821,6 +3826,47 @@
       });
     }
 
+    function centerOfElement(element){
+      const rect = element.getBoundingClientRect();
+      return rect.top + (rect.height / 2);
+    }
+
+    function alignChampionshipBracketRounds(){
+      if(!els.championshipBracketGrid) return;
+      const columnsByTitle = new Map([...els.championshipBracketGrid.querySelectorAll(".qualifier-round-column")].map((column) => [
+        normalizeText(column.querySelector(".qualifier-round-title")?.textContent),
+        column,
+      ]));
+      els.championshipBracketGrid.querySelectorAll(".qualifier-bracket-match").forEach((match) => {
+        match.style.transform = "";
+      });
+
+      [
+        ["Round of 32", "Round of 64"],
+        ["Round of 16", "Round of 32"],
+        ["Quarterfinals", "Round of 16"],
+        ["Semifinals", "Quarterfinals"],
+      ].forEach(([targetTitle, sourceTitle]) => {
+        const targetColumn = columnsByTitle.get(targetTitle);
+        const sourceColumn = columnsByTitle.get(sourceTitle);
+        if(!targetColumn || !sourceColumn) return;
+        const targetMatches = [...targetColumn.querySelectorAll(".qualifier-bracket-match")];
+        const sourceMatches = [...sourceColumn.querySelectorAll(".qualifier-bracket-match")];
+        targetMatches.forEach((targetMatch, index) => {
+          const topSource = sourceMatches[index * 2];
+          const bottomSource = sourceMatches[(index * 2) + 1];
+          if(!topSource || !bottomSource) return;
+          const targetCard = targetMatch.querySelector(".qualifier-match-card");
+          const topSourceCard = topSource.querySelector(".qualifier-match-card");
+          const bottomSourceCard = bottomSource.querySelector(".qualifier-match-card");
+          if(!targetCard || !topSourceCard || !bottomSourceCard) return;
+          const expectedCenter = (centerOfElement(topSourceCard) + centerOfElement(bottomSourceCard)) / 2;
+          const delta = expectedCenter - centerOfElement(targetCard);
+          targetMatch.style.transform = `translateY(${Math.round(delta * 10) / 10}px)`;
+        });
+      });
+    }
+
     function renderBracket(){
       if(!els.championshipBracketGrid) return;
       if(state.bracketLoading){
@@ -3872,6 +3918,7 @@
           </div>
         `;
       }).join("");
+      alignChampionshipBracketRounds();
       refreshChampionshipGameScoreIndicators();
     }
 
@@ -4371,7 +4418,10 @@
       });
       window.addEventListener("resize", () => {
         syncTableWidths();
-        requestAnimationFrame(() => refreshChampionshipGameScoreIndicators());
+        requestAnimationFrame(() => {
+          alignChampionshipBracketRounds();
+          refreshChampionshipGameScoreIndicators();
+        });
       });
       window.addEventListener("popstate", () => {
         applyViewUrlState({ updateUrl:false });
