@@ -29,8 +29,11 @@
       --qualifier-round-column-width:360px;
       --qualifier-match-height:64px;
       --qualifier-seed-col-width:14px;
-      --qualifier-score-col-width:14px;
+      --qualifier-score-col-width:28px;
+      --qualifier-score-col-gap:4px;
       --qualifier-final-score-width:24px;
+      --qualifier-visible-game-count:5;
+      --qualifier-visible-games-width:156px;
       --qualifier-scorepack-width:186px;
     }
 
@@ -570,10 +573,41 @@
     .qualifier-round-stack .qualifier-bracket-match + .qualifier-bracket-match{
       padding-top:var(--qualifier-round-gap, 8px);
     }
+    .qualifier-round-stack .qualifier-bracket-match.has-label + .qualifier-bracket-match.has-label{
+      padding-top:calc(var(--qualifier-round-gap, 8px) + 32px);
+    }
     .qualifier-bracket-match{
       display:block;
       width:100%;
       min-height:var(--qualifier-match-height);
+    }
+    .qualifier-bracket-match.has-label{
+      position:relative;
+    }
+    .qualifier-match-label{
+      position:absolute;
+      left:1px;
+      right:1px;
+      bottom:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:24px;
+      padding:5px 10px 4px;
+      border:1px solid rgba(var(--region-accent-rgb), .26);
+      border-bottom:0;
+      border-top-left-radius:9px;
+      border-top-right-radius:9px;
+      background:rgba(15,23,42,.58);
+      color:rgba(187,247,208,.88);
+      font-size:9px;
+      font-weight:950;
+      letter-spacing:.12em;
+      line-height:1;
+      text-align:center;
+      text-transform:uppercase;
+      pointer-events:none;
+      z-index:0;
     }
     .qualifier-match-card{
       position:relative;
@@ -583,6 +617,9 @@
       overflow:hidden;
       background:rgba(255,255,255,.05);
       isolation:isolate;
+    }
+    .qualifier-match-card.has-label{
+      overflow:visible;
     }
     .qualifier-match-card::before{
       content:"";
@@ -616,11 +653,19 @@
       border-top-left-radius:10px;
       border-top-right-radius:10px;
     }
+    .qualifier-match-card.has-label .qualifier-match-label + .qualifier-match-row{
+      border-top-left-radius:10px;
+      border-top-right-radius:10px;
+      background:rgba(255,255,255,.06);
+    }
     .qualifier-match-row:last-child{
       border-bottom-left-radius:10px;
       border-bottom-right-radius:10px;
     }
     .qualifier-match-row:nth-child(2){
+      background:rgba(255,255,255,.045);
+    }
+    .qualifier-match-card.has-label .qualifier-match-row:last-child{
       background:rgba(255,255,255,.045);
     }
     .qualifier-match-row + .qualifier-match-row{
@@ -685,14 +730,31 @@
       font-weight:650;
     }
     .qualifier-player-scorepack{
-      display:grid;
-      grid-template-columns:repeat(9, var(--qualifier-score-col-width)) var(--qualifier-final-score-width);
-      align-items:stretch;
+      display:flex;
+      align-items:center;
       justify-content:end;
-      justify-items:stretch;
-      gap:4px;
-      width:var(--qualifier-scorepack-width);
-      min-width:var(--qualifier-scorepack-width);
+      gap:6px;
+      width:max-content;
+      max-width:100%;
+      min-width:0;
+    }
+    .qualifier-player-games{
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:var(--qualifier-score-col-width);
+      align-items:stretch;
+      gap:var(--qualifier-score-col-gap);
+      width:var(--game-score-width, auto);
+      max-width:var(--qualifier-visible-games-width);
+      min-width:0;
+      overflow-x:hidden;
+      overflow-y:hidden;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(187,247,208,.62) rgba(15,23,42,.78);
+    }
+    .qualifier-player-games.is-scrollable{
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
     }
     .qualifier-player-set-score{
       width:100%;
@@ -723,6 +785,14 @@
       line-height:1;
       text-align:center;
       white-space:nowrap;
+    }
+    .bracket-scroll-hint{
+      margin:0 0 8px;
+      color:rgba(187,247,208,.88);
+      font-size:11px;
+      font-weight:850;
+      letter-spacing:.03em;
+      text-align:right;
     }
     .bracket-empty-state{
       margin:0;
@@ -919,7 +989,7 @@
         -webkit-overflow-scrolling:touch;
       }
       .qualifier-bracket-grid{
-        grid-auto-columns:336px;
+        grid-auto-columns:minmax(238px, calc(100vw - 82px));
         gap:14px;
         justify-content:flex-start;
         padding-right:34px;
@@ -1021,6 +1091,7 @@
       </section>
 
       <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab">
+        <p class="bracket-scroll-hint" id="bracketGameScoreHint" hidden>Some matches include more than 5 games. Scroll inside the game scores to view the rest.</p>
         <div class="qualifier-bracket-scroll">
           <div class="qualifier-bracket-grid" id="championshipBracketGrid"></div>
         </div>
@@ -1351,6 +1422,7 @@
       rankedLeagueTable:document.getElementById("rankedLeagueTable"),
       fieldTable:document.getElementById("fieldTable"),
       championshipBracketGrid:document.getElementById("championshipBracketGrid"),
+      bracketGameScoreHint:document.getElementById("bracketGameScoreHint"),
       adminResultsTable:document.getElementById("adminResultsTable"),
       adminLoginBtn:document.getElementById("adminLoginBtn"),
       adminResultsTab:document.getElementById("adminResultsTab"),
@@ -1556,6 +1628,16 @@
       return Array.from({ length:9 }, (_, offset) => normalizeText(row?.[startIndex + offset]));
     }
 
+    function championshipBracketGameCount(match){
+      const topScores = Array.isArray(match?.top?.gameScores) ? match.top.gameScores : [];
+      const bottomScores = Array.isArray(match?.bottom?.gameScores) ? match.bottom.gameScores : [];
+      let count = 0;
+      for(let index = 0; index < Math.max(topScores.length, bottomScores.length); index += 1){
+        if(normalizeText(topScores[index]) || normalizeText(bottomScores[index])) count = index + 1;
+      }
+      return count;
+    }
+
     function parseChampionshipFieldDiscordIds(rows){
       const discordIdsByName = new Map();
       rows.forEach((row, index) => {
@@ -1609,6 +1691,7 @@
           winner:"",
         };
         match.winner = championshipBracketWinner(match);
+        match.gameCount = championshipBracketGameCount(match);
         return match;
       }).filter(match => (
         Number.isFinite(match.id) &&
@@ -3579,9 +3662,29 @@
     }
 
     function championshipBracketGroups(matches){
-      return CHAMPIONSHIP_BRACKET.roundOrder
-        .map(round => ({ round, matches:matches.filter(match => match.round === round) }))
-        .filter(group => group.matches.length);
+      const medalMatches = [];
+      const groups = [];
+      CHAMPIONSHIP_BRACKET.roundOrder.forEach((round) => {
+        const roundMatches = matches.filter(match => match.round === round);
+        if(!roundMatches.length) return;
+        if(round === "Final" || round === "3rd"){
+          medalMatches.push(...roundMatches);
+          return;
+        }
+        groups.push({ round, matches:roundMatches });
+      });
+      if(medalMatches.length){
+        const medalOrder = new Map([["Final", 0], ["3rd", 1]]);
+        groups.push({
+          round:"Medal",
+          matches:medalMatches.slice().sort((left, right) => {
+            const leftOrder = medalOrder.get(left.round) ?? 99;
+            const rightOrder = medalOrder.get(right.round) ?? 99;
+            return leftOrder - rightOrder || Number(left.id || 0) - Number(right.id || 0);
+          }),
+        });
+      }
+      return groups;
     }
 
     function renderChampionshipBracketPlayerName(slot){
@@ -3594,12 +3697,16 @@
       return `<a class="qualifier-player-name-link" href="/player.html?id=${encodeURIComponent(discordId)}">${safeName}</a>`;
     }
 
-    function renderChampionshipBracketScorepack(slot){
+    function renderChampionshipBracketScorepack(slot, match){
       const hasScore = normalizeText(slot?.score) || (Array.isArray(slot?.gameScores) && slot.gameScores.some(score => normalizeText(score)));
       if(!hasScore) return "";
-      const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.slice(0, 9) : [];
-      while(gameScores.length < 9) gameScores.push("");
-      return `<span class="qualifier-player-scorepack">${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}<span class="qualifier-player-final-score">${escapeHtml(slot?.score || "-")}</span></span>`;
+      const gameCount = Math.max(0, Math.min(9, Number(match?.gameCount) || 0));
+      const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.slice(0, gameCount) : [];
+      const scoreWidth = gameCount > 0 ? (gameCount * 28) + ((gameCount - 1) * 4) : 0;
+      const gamesMarkup = gameCount > 0
+        ? `<span class="qualifier-player-games${gameCount > 5 ? " is-scrollable" : ""}" style="--game-score-width:${scoreWidth}px;" ${gameCount > 5 ? `tabindex="0" aria-label="${escapeHtml(`${gameCount} game scores. Scroll horizontally to view all scores.`)}"` : ""}>${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score || "-")}</span>`).join("")}</span>`
+        : "";
+      return `<span class="qualifier-player-scorepack">${gamesMarkup}<span class="qualifier-player-final-score">${escapeHtml(slot?.score || "-")}</span></span>`;
     }
 
     function renderChampionshipBracketRow(match, slot){
@@ -3614,9 +3721,15 @@
         <div class="${rowClasses}" data-match-id="${escapeHtml(match.id)}" data-name="${escapeHtml(slot?.name || "")}" data-seed="${escapeHtml(slot?.seed ?? "")}">
           <span class="qualifier-player-seed">${escapeHtml(slot?.seed ?? "")}</span>
           ${renderChampionshipBracketPlayerName(slot)}
-          ${renderChampionshipBracketScorepack(slot)}
+          ${renderChampionshipBracketScorepack(slot, match)}
         </div>
       `;
+    }
+
+    function championshipBracketMatchLabel(match){
+      if(match?.round === "Final") return "Championship";
+      if(match?.round === "3rd") return "3rd Place";
+      return "";
     }
 
     function renderBracket(){
@@ -3624,54 +3737,53 @@
       if(state.bracketLoading){
         els.championshipBracketGrid.dataset.bracketMode = "actual";
         els.championshipBracketGrid.innerHTML = "";
+        if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = true;
         return;
       }
       if(state.bracketError){
         els.championshipBracketGrid.innerHTML = "";
+        if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = true;
         return;
       }
       const matches = state.bracketMatches || [];
       if(!matches.length){
         els.championshipBracketGrid.innerHTML = "";
+        if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = true;
         return;
       }
 
       const groups = championshipBracketGroups(matches);
-      const baseRoundGap = 8;
-      const matchBlockHeight = 64;
-      const baseRoundStep = matchBlockHeight + (baseRoundGap * 2);
-      const roundTopPaddingAdjustments = {
-        R32:8,
-        R16:0,
-        R8:-16,
-        Final:8,
-        "3rd":88,
-      };
-      const roundGapAdjustments = {
-        R16:-8,
+      const hasScrollableGameScores = matches.some(match => Number(match.gameCount) > 5);
+      if(els.bracketGameScoreHint) els.bracketGameScoreHint.hidden = !hasScrollableGameScores;
+      const roundLayouts = {
+        R64:{ gap:8, top:0 },
+        R32:{ gap:48, top:48 },
+        R16:{ gap:120, top:120 },
+        R8:{ gap:264, top:264 },
+        R4:{ gap:552, top:552 },
+        Medal:{ gap:8, top:1128 },
       };
 
       els.championshipBracketGrid.dataset.bracketMode = "actual";
       els.championshipBracketGrid.innerHTML = groups.map((group, roundIndex) => {
-        const effectiveRoundIndex = group.round === "3rd" ? Math.max(0, roundIndex - 1) : roundIndex;
-        const roundMultiplier = 2 ** effectiveRoundIndex;
-        const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2) + (roundGapAdjustments[group.round] || 0);
-        const baseRoundTopPadding = effectiveRoundIndex === 0
-          ? 0
-          : Math.round((baseRoundStep * (roundMultiplier - 1)) / 2);
-        const roundTopPadding = baseRoundTopPadding + (roundTopPaddingAdjustments[group.round] || 0);
+        const layout = roundLayouts[group.round] || { gap:8, top:0 };
+        const roundLabel = group.round === "Medal" ? "Medal Matches" : (CHAMPIONSHIP_ROUND_LABELS[group.round] || group.round);
         return `
-          <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGap}px;--qualifier-round-padding-top:${roundTopPadding}px;">
-            <h3 class="qualifier-round-title">${escapeHtml(CHAMPIONSHIP_ROUND_LABELS[group.round] || group.round)}</h3>
+          <div class="qualifier-round-column" style="--qualifier-round-gap:${layout.gap}px;--qualifier-round-padding-top:${layout.top}px;">
+            <h3 class="qualifier-round-title">${escapeHtml(roundLabel)}</h3>
             <div class="qualifier-round-stack">
-              ${group.matches.map(match => `
-                <div class="qualifier-bracket-match">
-                  <div class="qualifier-match-card">
+              ${group.matches.map(match => {
+                const label = championshipBracketMatchLabel(match);
+                return `
+                <div class="qualifier-bracket-match${label ? " has-label" : ""}">
+                  <div class="qualifier-match-card${label ? " has-label" : ""}">
+                    ${label ? `<div class="qualifier-match-label">${escapeHtml(label)}</div>` : ""}
                     ${renderChampionshipBracketRow(match, match.top)}
                     ${renderChampionshipBracketRow(match, match.bottom)}
                   </div>
                 </div>
-              `).join("")}
+              `;
+              }).join("")}
             </div>
           </div>
         `;
