@@ -730,19 +730,21 @@
       font-weight:650;
     }
     .qualifier-player-scorepack{
-      display:flex;
+      display:grid;
+      grid-template-columns:minmax(0, var(--qualifier-visible-games-width)) var(--qualifier-final-score-width);
       align-items:center;
       justify-content:end;
+      justify-items:end;
       gap:6px;
-      width:max-content;
-      max-width:100%;
-      min-width:0;
+      width:var(--qualifier-scorepack-width);
+      min-width:var(--qualifier-scorepack-width);
     }
     .qualifier-player-games{
       display:grid;
       grid-auto-flow:column;
       grid-auto-columns:var(--qualifier-score-col-width);
       align-items:stretch;
+      justify-self:end;
       gap:var(--qualifier-score-col-gap);
       width:var(--game-score-width, auto);
       max-width:var(--qualifier-visible-games-width);
