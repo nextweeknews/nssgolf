@@ -741,20 +741,24 @@
     }
     .qualifier-player-score-window{
       position:relative;
-      display:grid;
+      display:block;
       justify-self:end;
       width:var(--game-score-width, auto);
       max-width:var(--qualifier-visible-games-width);
       min-width:0;
+      height:24px;
+      overflow:hidden;
     }
     .qualifier-player-score-window.is-scrollable{
       width:var(--qualifier-visible-games-width);
     }
     .qualifier-player-games{
+      position:absolute;
+      inset:0;
       display:grid;
       grid-auto-flow:column;
       grid-auto-columns:var(--qualifier-score-col-width);
-      align-items:stretch;
+      align-items:center;
       justify-self:end;
       gap:var(--qualifier-score-col-gap);
       width:100%;
@@ -762,12 +766,18 @@
       min-width:0;
       overflow-x:hidden;
       overflow-y:hidden;
-      scrollbar-width:thin;
-      scrollbar-color:rgba(187,247,208,.62) rgba(15,23,42,.78);
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+      touch-action:pan-x;
     }
     .qualifier-player-games.is-scrollable{
       overflow-x:auto;
       -webkit-overflow-scrolling:touch;
+    }
+    .qualifier-player-games::-webkit-scrollbar{
+      display:none;
+      width:0;
+      height:0;
     }
     .qualifier-score-chevron{
       position:absolute;
@@ -777,7 +787,7 @@
       height:18px;
       display:grid;
       place-items:center;
-      color:rgba(187,247,208,.82);
+      color:rgba(148,163,184,.78);
       opacity:0;
       pointer-events:none;
       transform:translateY(-50%);
@@ -792,13 +802,13 @@
       filter:drop-shadow(0 1px 2px rgba(0,0,0,.65));
     }
     .qualifier-score-chevron.is-left{
-      left:-8px;
+      left:4px;
     }
     .qualifier-score-chevron.is-left::before{
       transform:rotate(225deg);
     }
     .qualifier-score-chevron.is-right{
-      right:-8px;
+      right:4px;
     }
     .qualifier-score-chevron.is-right::before{
       transform:rotate(45deg);
