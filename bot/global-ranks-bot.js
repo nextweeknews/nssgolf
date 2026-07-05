@@ -403,6 +403,17 @@ function signupDeadlineHasPassed(event) {
   return unixTimestamp != null && unixTimestamp <= Math.floor(Date.now() / 1000);
 }
 
+function formatSignupDeadlineLine(event) {
+  const unixTimestamp = unixTimestampFromIso(event?.deadline_at);
+  if (unixTimestamp == null) {
+    return null;
+  }
+
+  return signupDeadlineHasPassed(event)
+    ? "Closed"
+    : `Closes <t:${unixTimestamp}:R> (<t:${unixTimestamp}:F>)`;
+}
+
 function memberHasRole(member, roleId) {
   const cleanRoleId = normalizeDiscordId(roleId);
   if (!cleanRoleId) {
@@ -1154,9 +1165,9 @@ function subscribeGlobalRankModerationChanges() {
 
 function buildSignupEmbed(event, signupRows) {
   const lines = [`**Sign-ups for ${escapedDisplayName(event.name)}:**`];
-  const deadlineUnix = unixTimestampFromIso(event.deadline_at);
-  if (deadlineUnix != null) {
-    lines.push(`<t:${deadlineUnix}:R>`);
+  const deadlineLine = formatSignupDeadlineLine(event);
+  if (deadlineLine) {
+    lines.push(deadlineLine);
   }
 
   const signupLines = (signupRows || []).map((row) =>
@@ -1380,7 +1391,12 @@ async function handleSignupButtonInteraction(interaction) {
   }
 
   if (signupDeadlineHasPassed(event)) {
-    await interaction.editReply("The signup deadline has passed, so changes are closed.");
+    await refreshSignupDisplayMessage(interaction, event);
+    const content =
+      button.action === "leave"
+        ? "Signups are closed. To remove yourself, contact an Admin."
+        : "Signups are closed.";
+    await interaction.editReply(content);
     return;
   }
 
