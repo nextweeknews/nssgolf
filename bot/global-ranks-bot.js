@@ -410,8 +410,8 @@ function formatSignupDeadlineLine(event) {
   }
 
   return signupDeadlineHasPassed(event)
-    ? "Closed"
-    : `Closes <t:${unixTimestamp}:R> (<t:${unixTimestamp}:F>)`;
+    ? `Closed <t:${unixTimestamp}:F>`
+    : `Closes <t:${unixTimestamp}:F>`;
 }
 
 function memberHasRole(member, roleId) {
