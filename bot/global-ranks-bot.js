@@ -3,6 +3,9 @@
 require("dotenv").config();
 
 const {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   Client,
   EmbedBuilder,
   GatewayIntentBits,
@@ -35,7 +38,7 @@ const supabaseServiceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const missingSetupMessage =
-  "Run bot/discord-member-schema.sql, bot/player-settings-schema.sql, and bot/global-rank-displays-schema.sql in the Supabase SQL editor for this project.";
+  "Run bot/discord-member-schema.sql, bot/player-settings-schema.sql, bot/global-rank-displays-schema.sql, and bot/event-signups-schema.sql in the Supabase SQL editor for this project.";
 
 const leaderboardMessageAuthorName = "nssgolf.com Global Ranks";
 const leaderboardMessageAvatarUrl =
@@ -206,7 +209,87 @@ function slashCommands() {
     }
   );
 
-  return [...displayCommands, ...setCommands].map((command) => command.toJSON());
+  const signupCommands = [
+    new SlashCommandBuilder()
+      .setName("signup_create")
+      .setDescription("Create a signup event.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption((option) =>
+        option
+          .setName("event_name")
+          .setDescription("The event name.")
+          .setRequired(true)
+      )
+      .addRoleOption((option) =>
+        option
+          .setName("required_role")
+          .setDescription("Optional role required to sign up.")
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("deadline")
+          .setDescription("Optional signup deadline as a Unix timestamp in seconds.")
+          .setMinValue(1)
+      ),
+    new SlashCommandBuilder()
+      .setName("signup_display")
+      .setDescription("Post a signup display for an event.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption((option) =>
+        option
+          .setName("event_name")
+          .setDescription("The event name.")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName("signup_delete")
+      .setDescription("Delete a signup event and its signups.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption((option) =>
+        option
+          .setName("event_name")
+          .setDescription("The event name.")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName("signup_manage")
+      .setDescription("Update signup event settings.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption((option) =>
+        option
+          .setName("event_name")
+          .setDescription("The current event name.")
+          .setRequired(true)
+      )
+      .addStringOption((option) =>
+        option
+          .setName("new_event_name")
+          .setDescription("Optional new event name.")
+      )
+      .addRoleOption((option) =>
+        option
+          .setName("required_role")
+          .setDescription("Optional new role required to sign up.")
+      )
+      .addBooleanOption((option) =>
+        option
+          .setName("clear_required_role")
+          .setDescription("Remove the required signup role.")
+      )
+      .addIntegerOption((option) =>
+        option
+          .setName("deadline")
+          .setDescription("Optional new signup deadline as a Unix timestamp in seconds.")
+          .setMinValue(1)
+      )
+      .addBooleanOption((option) =>
+        option
+          .setName("clear_deadline")
+          .setDescription("Remove the signup deadline.")
+      ),
+  ];
+
+  return [...displayCommands, ...setCommands, ...signupCommands].map((command) => command.toJSON());
 }
 
 async function registerSlashCommands() {
@@ -264,6 +347,80 @@ function escapedDisplayName(name) {
   });
 }
 
+function normalizeEventName(value) {
+  const name = String(value || "").trim().replace(/\s+/g, " ");
+  if (!name) {
+    throw new Error("Include an event name.");
+  }
+
+  if (name.length > 100) {
+    throw new Error("Event names must be 100 characters or fewer.");
+  }
+
+  return name;
+}
+
+function eventNameKey(value) {
+  return normalizeEventName(value).toLowerCase();
+}
+
+function deadlineAtFromUnix(unixTimestamp) {
+  if (unixTimestamp == null) {
+    return null;
+  }
+
+  if (!Number.isSafeInteger(unixTimestamp) || unixTimestamp <= 0) {
+    throw new Error("Deadline must be a positive Unix timestamp in seconds.");
+  }
+
+  if (unixTimestamp > 9999999999) {
+    throw new Error("Deadline should be a Unix timestamp in seconds, not milliseconds.");
+  }
+
+  const deadline = new Date(unixTimestamp * 1000);
+  if (Number.isNaN(deadline.getTime())) {
+    throw new Error("Deadline must be a valid Unix timestamp in seconds.");
+  }
+
+  if (deadline.getTime() <= Date.now()) {
+    throw new Error("Deadline must be in the future.");
+  }
+
+  return deadline.toISOString();
+}
+
+function unixTimestampFromIso(value) {
+  if (!value) {
+    return null;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? null : Math.floor(time / 1000);
+}
+
+function signupDeadlineHasPassed(event) {
+  const unixTimestamp = unixTimestampFromIso(event?.deadline_at);
+  return unixTimestamp != null && unixTimestamp <= Math.floor(Date.now() / 1000);
+}
+
+function memberHasRole(member, roleId) {
+  const cleanRoleId = normalizeDiscordId(roleId);
+  if (!cleanRoleId) {
+    return true;
+  }
+
+  if (member?.roles?.cache?.has(cleanRoleId)) {
+    return true;
+  }
+
+  return Array.isArray(member?.roles) && member.roles.includes(cleanRoleId);
+}
+
+function formatRequiredRole(roleId) {
+  const cleanRoleId = normalizeDiscordId(roleId);
+  return cleanRoleId ? `<@&${cleanRoleId}>` : "no required role";
+}
+
 async function upsertDiscordMember(guildMember) {
   if (!guildMember?.guild?.id || !guildMember?.user?.id) {
     return;
@@ -297,6 +454,157 @@ async function upsertDiscordMember(guildMember) {
 async function fetchGuildMember(discordUserId) {
   const guild = await client.guilds.fetch(guildId);
   return guild.members.fetch(discordUserId);
+}
+
+async function loadSignupEventByName(name) {
+  const { data, error } = await supabase
+    .from("events")
+    .select("id,guild_id,name,required_role_id,deadline_at,created_by_discord_user_id,created_at,updated_at")
+    .eq("guild_id", guildId)
+    .eq("name_key", eventNameKey(name))
+    .maybeSingle();
+
+  if (error) {
+    throwSupabaseError("Signup event lookup failed", error);
+  }
+
+  return data || null;
+}
+
+async function loadSignupEventById(eventId) {
+  const { data, error } = await supabase
+    .from("events")
+    .select("id,guild_id,name,required_role_id,deadline_at,created_by_discord_user_id,created_at,updated_at")
+    .eq("guild_id", guildId)
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    throwSupabaseError("Signup event lookup failed", error);
+  }
+
+  return data || null;
+}
+
+async function createSignupEvent({ name, requiredRoleId, deadlineAt, createdByDiscordUserId }) {
+  const { data, error } = await supabase
+    .from("events")
+    .insert({
+      guild_id: guildId,
+      name,
+      required_role_id: requiredRoleId || null,
+      deadline_at: deadlineAt,
+      created_by_discord_user_id: createdByDiscordUserId,
+    })
+    .select("id,guild_id,name,required_role_id,deadline_at,created_by_discord_user_id,created_at,updated_at")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`A signup event named "${name}" already exists.`);
+    }
+
+    throwSupabaseError("Signup event creation failed", error);
+  }
+
+  return data;
+}
+
+async function updateSignupEvent(event, updates) {
+  const { data, error } = await supabase
+    .from("events")
+    .update(updates)
+    .eq("guild_id", guildId)
+    .eq("id", event.id)
+    .select("id,guild_id,name,required_role_id,deadline_at,created_by_discord_user_id,created_at,updated_at")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error(`A signup event named "${updates.name}" already exists.`);
+    }
+
+    throwSupabaseError("Signup event update failed", error);
+  }
+
+  return data;
+}
+
+async function deleteSignupEvent(event) {
+  const { error } = await supabase
+    .from("events")
+    .delete()
+    .eq("guild_id", guildId)
+    .eq("id", event.id);
+
+  if (error) {
+    throwSupabaseError("Signup event deletion failed", error);
+  }
+}
+
+async function loadSignupRows(eventId) {
+  const { data, error } = await supabase
+    .from("event_signups")
+    .select("event_id,event_name,discord_user_id,username,display_name,signed_up_at")
+    .eq("event_id", eventId)
+    .order("signed_up_at", { ascending: true });
+
+  if (error) {
+    throwSupabaseError("Signup rows lookup failed", error);
+  }
+
+  return data || [];
+}
+
+async function loadSignupRow(eventId, discordUserId) {
+  const { data, error } = await supabase
+    .from("event_signups")
+    .select("event_id,discord_user_id")
+    .eq("event_id", eventId)
+    .eq("discord_user_id", discordUserId)
+    .maybeSingle();
+
+  if (error) {
+    throwSupabaseError("Signup row lookup failed", error);
+  }
+
+  return data || null;
+}
+
+async function insertSignupRow(event, guildMember) {
+  const { error } = await supabase
+    .from("event_signups")
+    .insert({
+      event_id: event.id,
+      event_name: event.name,
+      guild_id: guildId,
+      discord_user_id: guildMember.user.id,
+      username: guildMember.user.username,
+      display_name: guildMember.displayName || guildMember.user.username,
+    });
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("You're already signed up for this event.");
+    }
+
+    throwSupabaseError("Signup creation failed", error);
+  }
+}
+
+async function deleteSignupRow(eventId, discordUserId) {
+  const { data, error } = await supabase
+    .from("event_signups")
+    .delete()
+    .eq("event_id", eventId)
+    .eq("discord_user_id", discordUserId)
+    .select("event_id,discord_user_id");
+
+  if (error) {
+    throwSupabaseError("Signup removal failed", error);
+  }
+
+  return (data || []).length > 0;
 }
 
 async function loadSettingsByDiscordId(discordUserId) {
@@ -844,6 +1152,271 @@ function subscribeGlobalRankModerationChanges() {
     });
 }
 
+function buildSignupEmbed(event, signupRows) {
+  const lines = [`**Sign-ups for ${escapedDisplayName(event.name)}:**`];
+  const deadlineUnix = unixTimestampFromIso(event.deadline_at);
+  if (deadlineUnix != null) {
+    lines.push(`<t:${deadlineUnix}:R>`);
+  }
+
+  const signupLines = (signupRows || []).map((row) =>
+    escapedDisplayName(row.display_name || row.username || row.discord_user_id)
+  );
+
+  if (signupLines.length) {
+    lines.push(signupLines.join("\n"));
+  }
+
+  return new EmbedBuilder().setDescription(lines.join("\n"));
+}
+
+function signupActionRows(event) {
+  const disabled = signupDeadlineHasPassed(event);
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`signup:join:${event.id}`)
+        .setLabel("Sign up")
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(disabled),
+      new ButtonBuilder()
+        .setCustomId(`signup:leave:${event.id}`)
+        .setLabel("Remove me")
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(disabled)
+    ),
+  ];
+}
+
+async function signupMessagePayload(event) {
+  const signupRows = await loadSignupRows(event.id);
+  return {
+    embeds: [buildSignupEmbed(event, signupRows)],
+    components: signupActionRows(event),
+    allowedMentions: { parse: [] },
+  };
+}
+
+function signupButtonParts(customId) {
+  const match = String(customId || "").match(/^signup:(join|leave):([0-9a-f-]{36})$/i);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    action: match[1],
+    eventId: match[2],
+  };
+}
+
+async function handleSignupCreateInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can create signup events.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const name = normalizeEventName(interaction.options.getString("event_name", true));
+  const requiredRole = interaction.options.getRole("required_role");
+  const deadlineAt = deadlineAtFromUnix(interaction.options.getInteger("deadline"));
+
+  await interaction.deferReply({ ephemeral: true });
+  const event = await createSignupEvent({
+    name,
+    requiredRoleId: requiredRole?.id || null,
+    deadlineAt,
+    createdByDiscordUserId: interaction.user.id,
+  });
+
+  const details = [
+    `Created signup event **${escapedDisplayName(event.name)}**.`,
+    event.required_role_id ? `Required role: ${formatRequiredRole(event.required_role_id)}.` : null,
+    event.deadline_at ? `Deadline: <t:${unixTimestampFromIso(event.deadline_at)}:F>.` : null,
+  ].filter(Boolean);
+
+  await interaction.editReply({
+    content: details.join("\n"),
+    allowedMentions: { parse: [] },
+  });
+}
+
+async function handleSignupDisplayInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can post signup displays.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply();
+  const event = await loadSignupEventByName(interaction.options.getString("event_name", true));
+  if (!event) {
+    await interaction.editReply("No signup event with that name exists.");
+    return;
+  }
+
+  await interaction.editReply(await signupMessagePayload(event));
+}
+
+async function handleSignupDeleteInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can delete signup events.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  const event = await loadSignupEventByName(interaction.options.getString("event_name", true));
+  if (!event) {
+    await interaction.editReply("No signup event with that name exists.");
+    return;
+  }
+
+  await deleteSignupEvent(event);
+  await interaction.editReply({
+    content: `Deleted signup event **${escapedDisplayName(event.name)}** and its signups.`,
+    allowedMentions: { parse: [] },
+  });
+}
+
+async function handleSignupManageInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can manage signup events.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const clearRequiredRole = interaction.options.getBoolean("clear_required_role") === true;
+  const clearDeadline = interaction.options.getBoolean("clear_deadline") === true;
+  const requiredRole = interaction.options.getRole("required_role");
+  const deadline = interaction.options.getInteger("deadline");
+  if (clearRequiredRole && requiredRole) {
+    await interaction.reply({
+      content: "Choose either required_role or clear_required_role, not both.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  if (clearDeadline && deadline != null) {
+    await interaction.reply({
+      content: "Choose either deadline or clear_deadline, not both.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  const event = await loadSignupEventByName(interaction.options.getString("event_name", true));
+  if (!event) {
+    await interaction.editReply("No signup event with that name exists.");
+    return;
+  }
+
+  const updates = {};
+  const newEventName = interaction.options.getString("new_event_name");
+  if (newEventName != null) {
+    updates.name = normalizeEventName(newEventName);
+  }
+
+  if (requiredRole) {
+    updates.required_role_id = requiredRole.id;
+  } else if (clearRequiredRole) {
+    updates.required_role_id = null;
+  }
+
+  if (deadline != null) {
+    updates.deadline_at = deadlineAtFromUnix(deadline);
+  } else if (clearDeadline) {
+    updates.deadline_at = null;
+  }
+
+  if (!Object.keys(updates).length) {
+    await interaction.editReply("No signup event settings were changed.");
+    return;
+  }
+
+  const updatedEvent = await updateSignupEvent(event, updates);
+  const details = [
+    `Updated signup event **${escapedDisplayName(updatedEvent.name)}**.`,
+    `Required role: ${formatRequiredRole(updatedEvent.required_role_id)}.`,
+    updatedEvent.deadline_at
+      ? `Deadline: <t:${unixTimestampFromIso(updatedEvent.deadline_at)}:F>.`
+      : "Deadline: none.",
+  ];
+
+  await interaction.editReply({
+    content: details.join("\n"),
+    allowedMentions: { parse: [] },
+  });
+}
+
+async function refreshSignupDisplayMessage(interaction, event) {
+  try {
+    await interaction.message.edit(await signupMessagePayload(event));
+  } catch (error) {
+    console.warn(`Unable to refresh signup display for ${event.id}.`, error);
+  }
+}
+
+async function handleSignupButtonInteraction(interaction) {
+  const button = signupButtonParts(interaction.customId);
+  if (!button || interaction.guildId !== guildId) {
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  const event = await loadSignupEventById(button.eventId);
+  if (!event) {
+    await interaction.editReply("This signup event no longer exists.");
+    return;
+  }
+
+  if (signupDeadlineHasPassed(event)) {
+    await interaction.editReply("The signup deadline has passed, so changes are closed.");
+    return;
+  }
+
+  const guildMember = await fetchGuildMember(interaction.user.id);
+  await upsertDiscordMember(guildMember);
+
+  if (button.action === "join") {
+    if (event.required_role_id && !memberHasRole(guildMember, event.required_role_id)) {
+      await interaction.editReply({
+        content: `You need ${formatRequiredRole(event.required_role_id)} to sign up for this event.`,
+        allowedMentions: { parse: [] },
+      });
+      return;
+    }
+
+    if (await loadSignupRow(event.id, interaction.user.id)) {
+      await interaction.editReply("You're already signed up for this event.");
+      return;
+    }
+
+    await insertSignupRow(event, guildMember);
+    await refreshSignupDisplayMessage(interaction, event);
+    await interaction.editReply("You're signed up.");
+    return;
+  }
+
+  const removed = await deleteSignupRow(event.id, interaction.user.id);
+  if (!removed) {
+    await interaction.editReply("You're not signed up for this event.");
+    return;
+  }
+
+  await refreshSignupDisplayMessage(interaction, event);
+  await interaction.editReply("Removed your signup.");
+}
+
 async function handleDisplayInteraction(interaction, rankKey) {
   if (!memberIsRankAdmin(interaction.member)) {
     await interaction.reply({
@@ -900,11 +1473,20 @@ async function handleSetInteraction(interaction, operation) {
 }
 
 async function handleInteraction(interaction) {
-  if (!interaction.isChatInputCommand() || interaction.guildId !== guildId) {
+  if (interaction.guildId !== guildId) {
     return;
   }
 
   try {
+    if (interaction.isButton()) {
+      await handleSignupButtonInteraction(interaction);
+      return;
+    }
+
+    if (!interaction.isChatInputCommand()) {
+      return;
+    }
+
     const displayEntry = Object.entries(rankDisplayConfigs).find(
       ([, config]) => config.commandName === interaction.commandName
     );
@@ -916,10 +1498,30 @@ async function handleInteraction(interaction) {
     const operation = slashSetCommandOperations[interaction.commandName];
     if (operation) {
       await handleSetInteraction(interaction, operation);
+      return;
+    }
+
+    if (interaction.commandName === "signup_create") {
+      await handleSignupCreateInteraction(interaction);
+      return;
+    }
+
+    if (interaction.commandName === "signup_display") {
+      await handleSignupDisplayInteraction(interaction);
+      return;
+    }
+
+    if (interaction.commandName === "signup_delete") {
+      await handleSignupDeleteInteraction(interaction);
+      return;
+    }
+
+    if (interaction.commandName === "signup_manage") {
+      await handleSignupManageInteraction(interaction);
     }
   } catch (error) {
     console.error(error);
-    const content = error?.message || "Unable to update global ranks.";
+    const content = error?.message || "Unable to handle interaction.";
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content });
     } else {
