@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Event Signups | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site-topbar.css" />
+  <link rel="stylesheet" href="/settings-page.css?v=20260706-event-signups" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="settings-brand">
+        <a class="settings-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title" aria-label="Event Signups">
+          <svg class="topbar-page-title-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Event Signups</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    <section class="settings-card" aria-labelledby="eventSignupsTitle">
+      <div class="settings-page-head">
+        <div>
+          <p class="settings-kicker">Admin Actions</p>
+          <h1 class="settings-title" id="eventSignupsTitle">Event Signups</h1>
+        </div>
+        <a class="settings-button secondary" href="/admin-settings.html">Admin Actions</a>
+      </div>
+
+      <div class="settings-actions" id="adminLoginActions" hidden>
+        <button class="settings-button" id="adminLoginBtn" type="button">Log In With Discord</button>
+      </div>
+
+      <div class="event-signups-layout" id="eventSignupsPanel" hidden>
+        <aside class="event-list-panel" aria-labelledby="eventsTitle">
+          <h2 class="admin-url-title" id="eventsTitle">Events</h2>
+          <div class="event-list" id="eventsList"></div>
+        </aside>
+
+        <section class="event-signups-panel" aria-labelledby="selectedEventTitle">
+          <div class="event-signups-head">
+            <div>
+              <p class="settings-kicker">Selected Event</p>
+              <h2 class="event-signups-title" id="selectedEventTitle">Choose an event</h2>
+            </div>
+            <p class="event-signups-count" id="eventSignupCount"></p>
+          </div>
+          <div class="admin-url-table-wrap event-signups-table-wrap" id="eventSignupsWrap"></div>
+        </section>
+      </div>
+
+      <p class="settings-status" id="eventSignupsStatus" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js"></script>
+  <script type="module">
+    import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { ADMIN_ROLE_ID } from "/settings-data.js";
+
+    const supabase = createBrowserSupabaseClient();
+    const loginActions = document.getElementById("adminLoginActions");
+    const loginBtn = document.getElementById("adminLoginBtn");
+    const panel = document.getElementById("eventSignupsPanel");
+    const eventsList = document.getElementById("eventsList");
+    const selectedEventTitle = document.getElementById("selectedEventTitle");
+    const eventSignupCount = document.getElementById("eventSignupCount");
+    const signupsWrap = document.getElementById("eventSignupsWrap");
+    const statusEl = document.getElementById("eventSignupsStatus");
+
+    const COMBINED_MIN_TOURNAMENT_MATCHES = 3;
+    const COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES = 20;
+    const COMBINED_TANH_SCALE = 1.5;
+    const COMBINED_POSITIVE_SCALE = 120;
+    const COMBINED_NEGATIVE_SCALE = 60;
+    const COMBINED_PROVISIONAL_TOURNAMENT_WEIGHT = 0.75;
+    const COMBINED_PROVISIONAL_SOS_WEIGHT = 0.25;
+    const GPI_MIN_RANKED_MATCHES = 25;
+
+    const rankedConfig = {
+      runTable: "internal_ranked_gpi_runs",
+      ratingTable: "internal_ranked_gpi_ratings",
+      model: "opponent_aware_weighted_pairwise",
+      runSelect: "id,model,created_at",
+      ratingsSelect: "discord_user_id,display_name,rating,full_history_rating,potential_rating,recent_form_rating,matches_played,rank",
+    };
+    const tournamentConfig = {
+      runTable: "internal_tournament_gpi_runs",
+      ratingTable: "internal_tournament_gpi_ratings",
+      model: "flat_pl",
+      runSelect: "id,model,created_at",
+      ratingsSelect: "discord_user_id,display_name,rating,weighted_matches,matches_played,rank",
+    };
+
+    const state = {
+      events: [],
+      selectedEventId: "",
+      rows: [],
+      sortKey: "seed",
+      sortDirection: "asc",
+      gpiById: new Map(),
+    };
+
+    function normalizeText(value){
+      return String(value || "").trim();
+    }
+
+    function normalizeDiscordId(value){
+      return normalizeText(value).replace(/[^\d]/g, "");
+    }
+
+    function escapeHtml(value){
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        "\"":"&quot;",
+        "'":"&#39;",
+      }[char]));
+    }
+
+    function setStatus(message, tone = ""){
+      statusEl.textContent = message || "";
+      statusEl.className = `settings-status ${tone}`.trim();
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find(identity => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    async function loadProfileForUser(user){
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("discord_user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function playerHasAdminRole(discordId){
+      const cleanDiscordId = normalizeDiscordId(discordId);
+      if(!cleanDiscordId) return false;
+      const { data, error } = await supabase
+        .from("discord_member_roles")
+        .select("role_id")
+        .eq("discord_user_id", cleanDiscordId)
+        .eq("role_id", ADMIN_ROLE_ID)
+        .maybeSingle();
+      if(error) throw error;
+      return !!data;
+    }
+
+    function memberDisplayName(signup, member, gpiRow){
+      return (
+        normalizeText(member?.display_name) ||
+        normalizeText(member?.username) ||
+        normalizeText(signup?.display_name) ||
+        normalizeText(signup?.username) ||
+        normalizeText(gpiRow?.displayName) ||
+        normalizeDiscordId(signup?.discord_user_id) ||
+        "Player"
+      );
+    }
+
+    function memberAvatarUrl(member){
+      return normalizeText(member?.server_avatar_url) || normalizeText(member?.avatar_url) || "/logos/golf.png";
+    }
+
+    function formatRating(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "";
+      return new Intl.NumberFormat("en-US", {
+        useGrouping: false,
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }).format(number);
+    }
+
+    function formatLocalTime(value){
+      if(!value) return "";
+      const date = new Date(value);
+      if(Number.isNaN(date.getTime())) return "";
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(date);
+    }
+
+    async function loadSignupEvents(){
+      const { data, error } = await supabase
+        .from("events")
+        .select("id,name,created_at,deadline_at")
+        .order("created_at", { ascending: false });
+      if(error) throw error;
+      return data || [];
+    }
+
+    async function loadSignupRows(eventId){
+      const { data, error } = await supabase
+        .from("event_signups")
+        .select("event_id,discord_user_id,username,display_name,signed_up_at")
+        .eq("event_id", eventId)
+        .order("signed_up_at", { ascending: true });
+      if(error) throw error;
+      return data || [];
+    }
+
+    async function loadMembers(discordIds){
+      const uniqueIds = [...new Set(discordIds.map(normalizeDiscordId).filter(Boolean))];
+      const members = [];
+      for(let index = 0; index < uniqueIds.length; index += 100){
+        const ids = uniqueIds.slice(index, index + 100);
+        const { data, error } = await supabase
+          .from("discord_guild_members")
+          .select("discord_user_id,username,display_name,avatar_url,server_avatar_url,is_current_member")
+          .in("discord_user_id", ids);
+        if(error) throw error;
+        members.push(...(data || []));
+      }
+      return new Map(members.map(member => [normalizeDiscordId(member.discord_user_id), member]));
+    }
+
+    async function loadLatestRun(config){
+      const { data, error } = await supabase
+        .from(config.runTable)
+        .select(config.runSelect)
+        .eq("model", config.model)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function loadRatingsForRun(runId, config){
+      const rows = [];
+      for(let from = 0; ; from += 1000){
+        const { data, error } = await supabase
+          .from(config.ratingTable)
+          .select(config.ratingsSelect)
+          .eq("run_id", runId)
+          .order("rank", { ascending: true })
+          .range(from, from + 999);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < 1000) break;
+      }
+      return rows;
+    }
+
+    async function loadTournamentStrengthMatches(){
+      const rows = [];
+      for(let from = 0; ; from += 1000){
+        const { data, error } = await supabase
+          .from("internal_tournament_matches")
+          .select("match_hash,event_order,match_order,player_a_discord_user_id,player_b_discord_user_id")
+          .order("event_order", { ascending: true })
+          .order("match_order", { ascending: true })
+          .order("match_hash", { ascending: true })
+          .range(from, from + 999);
+        if(error) throw error;
+        rows.push(...(data || []));
+        if(!data || data.length < 1000) break;
+      }
+      return rows;
+    }
+
+    function numericStats(values){
+      const cleanValues = values.map(Number).filter(Number.isFinite);
+      if(!cleanValues.length) return { mean: 0, std: 1 };
+      const mean = cleanValues.reduce((sum, value) => sum + value, 0) / cleanValues.length;
+      const variance = cleanValues.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / cleanValues.length;
+      const std = Math.sqrt(variance);
+      return { mean, std: std > 0 ? std : 1 };
+    }
+
+    function zScore(value, stats){
+      return (Number(value) - stats.mean) / stats.std;
+    }
+
+    function normalizeRatingToStats(value, sourceStats, targetStats){
+      return targetStats.mean + (zScore(value, sourceStats) * targetStats.std);
+    }
+
+    function tournamentAdjustmentFromDelta(deltaZ, reliability){
+      const scale = deltaZ >= 0 ? COMBINED_POSITIVE_SCALE : COMBINED_NEGATIVE_SCALE;
+      return reliability * scale * Math.tanh(deltaZ / COMBINED_TANH_SCALE);
+    }
+
+    function buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches){
+      const ratingById = new Map(
+        tournamentRatings
+          .map((row) => [normalizeDiscordId(row.discord_user_id), Number(row.rating)])
+          .filter(([discordId, rating]) => discordId && Number.isFinite(rating))
+      );
+      const scheduleById = new Map();
+      const addOpponent = (discordId, opponentRating) => {
+        if(!discordId || !Number.isFinite(opponentRating)) return;
+        const current = scheduleById.get(discordId) || { total: 0, count: 0 };
+        current.total += opponentRating;
+        current.count += 1;
+        scheduleById.set(discordId, current);
+      };
+      for(const match of tournamentMatches || []){
+        const playerA = normalizeDiscordId(match.player_a_discord_user_id);
+        const playerB = normalizeDiscordId(match.player_b_discord_user_id);
+        addOpponent(playerA, ratingById.get(playerB));
+        addOpponent(playerB, ratingById.get(playerA));
+      }
+      return new Map([...scheduleById.entries()].map(([discordId, schedule]) => [
+        discordId,
+        schedule.count > 0 ? schedule.total / schedule.count : null,
+      ]));
+    }
+
+    function buildCombinedGpiRows(rankedRatings, tournamentRatings, tournamentMatches, membersById){
+      const tournamentById = new Map(
+        tournamentRatings.map(row => [normalizeDiscordId(row.discord_user_id), row]).filter(([discordId]) => discordId)
+      );
+      const rankedRows = [];
+      for(const row of rankedRatings){
+        const discordId = normalizeDiscordId(row.discord_user_id);
+        const member = membersById.get(discordId);
+        const rankedMatches = Number(row.matches_played) || 0;
+        if(!discordId || member?.is_current_member !== true || rankedMatches < GPI_MIN_RANKED_MATCHES) continue;
+        rankedRows.push({
+          rankedRow: row,
+          tournamentRow: tournamentById.get(discordId) || null,
+          discord_user_id: discordId,
+          member,
+          displayName: memberDisplayName(row, member, null),
+          rankedRating: Number(row.rating) || 0,
+          rankedMatches,
+        });
+      }
+
+      const qualifiedRankedIds = new Set(rankedRows.map(row => row.discord_user_id));
+      const bridgeRows = rankedRows.filter(row =>
+        row.tournamentRow && (Number(row.tournamentRow.matches_played) || 0) >= COMBINED_MIN_TOURNAMENT_MATCHES
+      );
+      const rankedStats = numericStats(bridgeRows.map(row => row.rankedRating));
+      const tournamentStats = numericStats(bridgeRows.map(row => Number(row.tournamentRow.rating) || 0));
+      const tournamentStrengthById = buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches);
+      const hasBridge = bridgeRows.length >= 2;
+
+      const rows = rankedRows.map((row) => {
+        const tournamentRow = row.tournamentRow;
+        const tournamentMatchesCount = Number(tournamentRow?.matches_played) || 0;
+        const tournamentWeightedMatches = Number(tournamentRow?.weighted_matches) || 0;
+        let tournamentDelta = 0;
+        if(hasBridge && tournamentRow && tournamentMatchesCount >= COMBINED_MIN_TOURNAMENT_MATCHES){
+          const tournamentRating = Number(tournamentRow.rating) || 0;
+          const reliability = Math.min(1, Math.max(0, tournamentWeightedMatches / COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES));
+          const deltaZ = zScore(tournamentRating, tournamentStats) - zScore(row.rankedRating, rankedStats);
+          tournamentDelta = tournamentAdjustmentFromDelta(deltaZ, reliability);
+        }
+        return {
+          discord_user_id: row.discord_user_id,
+          displayName: row.displayName,
+          ratingNumber: row.rankedRating + tournamentDelta,
+        };
+      });
+
+      for(const tournamentRow of tournamentRatings){
+        const discordId = normalizeDiscordId(tournamentRow.discord_user_id);
+        const member = membersById.get(discordId);
+        const tournamentMatchesCount = Number(tournamentRow.matches_played) || 0;
+        if(!discordId || member?.is_current_member !== true || qualifiedRankedIds.has(discordId)) continue;
+        if(tournamentMatchesCount < COMBINED_MIN_TOURNAMENT_MATCHES) continue;
+
+        const tournamentRating = Number(tournamentRow.rating) || 0;
+        const tournamentStrengthOfSchedule = tournamentStrengthById.get(discordId);
+        const normalizedTournamentRating = hasBridge
+          ? normalizeRatingToStats(tournamentRating, tournamentStats, rankedStats)
+          : tournamentRating;
+        const normalizedStrengthOfSchedule = Number.isFinite(tournamentStrengthOfSchedule)
+          ? (hasBridge ? normalizeRatingToStats(tournamentStrengthOfSchedule, tournamentStats, rankedStats) : tournamentStrengthOfSchedule)
+          : normalizedTournamentRating;
+        rows.push({
+          discord_user_id: discordId,
+          displayName: memberDisplayName(tournamentRow, member, null),
+          ratingNumber:
+            (COMBINED_PROVISIONAL_TOURNAMENT_WEIGHT * normalizedTournamentRating) +
+            (COMBINED_PROVISIONAL_SOS_WEIGHT * normalizedStrengthOfSchedule),
+        });
+      }
+
+      rows.sort((left, right) =>
+        right.ratingNumber - left.ratingNumber ||
+        left.displayName.localeCompare(right.displayName)
+      );
+      rows.forEach((row, index) => {
+        row.gpiRank = index + 1;
+      });
+      return rows;
+    }
+
+    async function loadCombinedGpiById(){
+      try{
+        const [rankedRun, tournamentRun] = await Promise.all([
+          loadLatestRun(rankedConfig),
+          loadLatestRun(tournamentConfig),
+        ]);
+        if(!rankedRun || !tournamentRun) return new Map();
+        const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
+          loadRatingsForRun(rankedRun.id, rankedConfig),
+          loadRatingsForRun(tournamentRun.id, tournamentConfig),
+          loadTournamentStrengthMatches(),
+        ]);
+        const ids = [
+          ...rankedRatings.map(row => row.discord_user_id),
+          ...tournamentRatings.map(row => row.discord_user_id),
+        ];
+        const membersById = await loadMembers(ids);
+        const rows = buildCombinedGpiRows(rankedRatings, tournamentRatings, tournamentMatches, membersById);
+        return new Map(rows.map(row => [row.discord_user_id, row]));
+      }catch(error){
+        console.warn("Unable to load combined GPI ratings.", error);
+        return new Map();
+      }
+    }
+
+    function createEmptyTableMessage(message){
+      const empty = document.createElement("div");
+      empty.className = "placeholder-panel event-signups-empty";
+      const copy = document.createElement("p");
+      copy.textContent = message;
+      empty.appendChild(copy);
+      return empty;
+    }
+
+    function renderEvents(){
+      eventsList.replaceChildren();
+      if(!state.events.length){
+        eventsList.appendChild(createEmptyTableMessage("No signup events have been created yet."));
+        return;
+      }
+
+      for(const event of state.events){
+        const button = document.createElement("button");
+        button.className = "event-list-item";
+        button.type = "button";
+        button.dataset.eventId = event.id;
+        button.setAttribute("aria-pressed", event.id === state.selectedEventId ? "true" : "false");
+        button.innerHTML = `
+          <span class="event-list-name">${escapeHtml(event.name)}</span>
+          <span class="event-list-meta">${escapeHtml(formatLocalTime(event.created_at) || "Created date unknown")}</span>
+        `;
+        button.addEventListener("click", () => selectEvent(event.id));
+        eventsList.appendChild(button);
+      }
+    }
+
+    function seedCompare(left, right){
+      const leftRating = Number(left.gpi?.ratingNumber);
+      const rightRating = Number(right.gpi?.ratingNumber);
+      const leftHasRating = Number.isFinite(leftRating);
+      const rightHasRating = Number.isFinite(rightRating);
+      if(leftHasRating !== rightHasRating) return leftHasRating ? -1 : 1;
+      if(leftHasRating && rightRating !== leftRating) return rightRating - leftRating;
+      return left.displayName.localeCompare(right.displayName) || left.signupTime - right.signupTime;
+    }
+
+    function assignSeeds(rows){
+      [...rows].sort(seedCompare).forEach((row, index) => {
+        row.seed = index + 1;
+      });
+    }
+
+    function sortedRows(){
+      const direction = state.sortDirection === "desc" ? -1 : 1;
+      return [...state.rows].sort((left, right) => {
+        if(state.sortKey === "time"){
+          return direction * (
+            (left.signupTime - right.signupTime) ||
+            left.displayName.localeCompare(right.displayName)
+          );
+        }
+        return direction * ((left.seed - right.seed) || left.displayName.localeCompare(right.displayName));
+      });
+    }
+
+    function renderSortButton(label, key){
+      const active = state.sortKey === key;
+      const ariaSort = active
+        ? (state.sortDirection === "asc" ? "ascending" : "descending")
+        : "none";
+      return `<button class="signup-sort-button" type="button" data-sort="${escapeHtml(key)}" aria-sort="${ariaSort}">${escapeHtml(label)}</button>`;
+    }
+
+    function renderSignupTable(){
+      signupsWrap.replaceChildren();
+      const event = state.events.find(item => item.id === state.selectedEventId);
+      selectedEventTitle.textContent = event?.name || "Choose an event";
+      eventSignupCount.textContent = event ? `${state.rows.length} signup${state.rows.length === 1 ? "" : "s"}` : "";
+
+      if(!event){
+        signupsWrap.appendChild(createEmptyTableMessage("Select an event to view signups."));
+        return;
+      }
+
+      if(!state.rows.length){
+        signupsWrap.appendChild(createEmptyTableMessage("No players have signed up for this event yet."));
+        return;
+      }
+
+      const bodyHtml = sortedRows().map((row) => {
+        const profileUrl = `/player.html?id=${encodeURIComponent(row.discordId)}`;
+        return `
+          <tr>
+            <td class="event-seed-cell">${escapeHtml(row.seed)}</td>
+            <td class="event-time-cell">${escapeHtml(formatLocalTime(row.signedUpAt) || "Unknown")}</td>
+            <td class="event-player-cell">
+              <a class="event-player-link" href="${escapeHtml(profileUrl)}" aria-label="View ${escapeHtml(row.displayName)} player page">
+                <img class="event-player-avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+                <span class="event-player-copy">
+                  <span class="event-player-name">${escapeHtml(row.displayName)}</span>
+                  ${row.username ? `<span class="event-player-user">@${escapeHtml(row.username.replace(/^@/, ""))}</span>` : ""}
+                </span>
+              </a>
+            </td>
+            <td class="event-gpi-rank-cell">${row.gpi?.gpiRank ? escapeHtml(row.gpi.gpiRank) : `<span class="admin-url-muted">-</span>`}</td>
+            <td class="event-gpi-cell">${Number.isFinite(Number(row.gpi?.ratingNumber)) ? escapeHtml(formatRating(row.gpi.ratingNumber)) : `<span class="admin-url-muted">-</span>`}</td>
+          </tr>
+        `;
+      }).join("");
+
+      const table = document.createElement("table");
+      table.className = "admin-url-table event-signups-table";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th class="event-seed-cell">${renderSortButton("Seed", "seed")}</th>
+            <th class="event-time-cell">${renderSortButton("Time", "time")}</th>
+            <th>Avatar/name</th>
+            <th class="event-gpi-rank-cell">GPI Rank</th>
+            <th class="event-gpi-cell">GPI</th>
+          </tr>
+        </thead>
+        <tbody>${bodyHtml}</tbody>
+      `;
+      table.querySelectorAll("[data-sort]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = button.dataset.sort;
+          if(state.sortKey === key){
+            state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+          }else{
+            state.sortKey = key;
+            state.sortDirection = "asc";
+          }
+          renderSignupTable();
+        });
+      });
+      signupsWrap.appendChild(table);
+    }
+
+    async function selectEvent(eventId){
+      state.selectedEventId = eventId;
+      state.sortKey = "seed";
+      state.sortDirection = "asc";
+      const url = new URL(window.location.href);
+      url.searchParams.set("event", eventId);
+      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      renderEvents();
+      setStatus("Loading signups...");
+      const signups = await loadSignupRows(eventId);
+      const membersById = await loadMembers(signups.map(row => row.discord_user_id));
+      state.rows = signups.map((signup) => {
+        const discordId = normalizeDiscordId(signup.discord_user_id);
+        const member = membersById.get(discordId);
+        const gpi = state.gpiById.get(discordId) || null;
+        const displayName = memberDisplayName(signup, member, gpi);
+        return {
+          discordId,
+          username: normalizeText(member?.username) || normalizeText(signup.username),
+          displayName,
+          avatarUrl: memberAvatarUrl(member),
+          signedUpAt: signup.signed_up_at,
+          signupTime: new Date(signup.signed_up_at).getTime() || 0,
+          gpi,
+          seed: 0,
+        };
+      });
+      assignSeeds(state.rows);
+      renderSignupTable();
+      setStatus("");
+    }
+
+    async function initialize(){
+      const { data: sessionData } = await supabase.auth.getSession();
+      if(!sessionData?.session?.user){
+        loginActions.hidden = false;
+        setStatus("Log in with Discord to access event signups.");
+        return;
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if(userError) throw userError;
+      const profile = await loadProfileForUser(userData.user);
+      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
+      const isAdmin = await playerHasAdminRole(discordId);
+      if(!isAdmin){
+        panel.hidden = true;
+        setStatus("Your Discord account does not have the administrator role.", "error");
+        return;
+      }
+
+      panel.hidden = false;
+      setStatus("Loading events...");
+      const [events, gpiById] = await Promise.all([
+        loadSignupEvents(),
+        loadCombinedGpiById(),
+      ]);
+      state.events = events;
+      state.gpiById = gpiById;
+      const requestedEventId = normalizeText(new URLSearchParams(window.location.search).get("event"));
+      state.selectedEventId = events.some(event => event.id === requestedEventId)
+        ? requestedEventId
+        : (events[0]?.id || "");
+      renderEvents();
+      if(state.selectedEventId){
+        await selectEvent(state.selectedEventId);
+      }else{
+        renderSignupTable();
+        setStatus("");
+      }
+    }
+
+    loginBtn.addEventListener("click", async () => {
+      setStatus("Opening Discord login...");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "discord",
+        options: { redirectTo: buildAuthRedirectTo("/event-signups.html") },
+      });
+      if(error) setStatus(error.message || "Unable to start Discord login.", "error");
+    });
+
+    initialize().catch((error) => {
+      console.error(error);
+      setStatus(error?.message || "Unable to load event signups.", "error");
+    });
+  </script>
+</body>
+</html>

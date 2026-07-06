@@ -135,6 +135,13 @@ a{ color:inherit; }
   letter-spacing:.045em;
   text-transform:uppercase;
 }
+.settings-page-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+}
 .settings-copy{
   margin:6px 0 0;
   color:rgba(233,238,248,0.76);
@@ -467,6 +474,184 @@ a{ color:inherit; }
   display:flex;
   gap:8px;
   flex-wrap:wrap;
+}
+.event-signups-layout{
+  margin-top:24px;
+  display:grid;
+  grid-template-columns:minmax(220px, 280px) minmax(0, 1fr);
+  gap:18px;
+  align-items:start;
+}
+.event-list-panel,
+.event-signups-panel{
+  min-width:0;
+}
+.event-list-panel{
+  display:grid;
+  gap:10px;
+}
+.event-list{
+  display:grid;
+  gap:8px;
+}
+.event-list-item{
+  width:100%;
+  border:1px solid rgba(255,255,255,0.11);
+  border-radius:10px;
+  background:rgba(255,255,255,0.05);
+  color:var(--text);
+  padding:11px 12px;
+  text-align:left;
+  cursor:pointer;
+}
+.event-list-item:hover,
+.event-list-item:focus-visible{
+  border-color:rgba(125,211,252,0.44);
+  background:rgba(125,211,252,0.08);
+  outline:0;
+}
+.event-list-item[aria-pressed="true"]{
+  border-color:rgba(99,102,241,0.72);
+  background:rgba(79,70,229,0.24);
+}
+.event-list-name,
+.event-list-meta{
+  display:block;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.event-list-name{
+  color:#fff;
+  font-size:13px;
+  font-weight:950;
+}
+.event-list-meta{
+  margin-top:4px;
+  color:rgba(233,238,248,0.56);
+  font-size:11px;
+  font-weight:750;
+}
+.event-signups-panel{
+  display:grid;
+  gap:12px;
+}
+.event-signups-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+}
+.event-signups-title{
+  margin:0;
+  color:#fff;
+  font-size:18px;
+  font-weight:950;
+  line-height:1.15;
+}
+.event-signups-count{
+  margin:0;
+  color:rgba(233,238,248,0.62);
+  font-size:12px;
+  font-weight:850;
+  white-space:nowrap;
+}
+.event-signups-table{
+  min-width:820px;
+}
+.event-signups-table th,
+.event-signups-table td{
+  white-space:nowrap;
+}
+.event-signups-table .event-player-cell{
+  min-width:260px;
+  white-space:normal;
+}
+.event-seed-cell,
+.event-gpi-rank-cell,
+.event-gpi-cell{
+  width:88px;
+  text-align:right !important;
+  font-variant-numeric:tabular-nums;
+}
+.event-time-cell{
+  width:190px;
+  color:rgba(233,238,248,0.68);
+  font-variant-numeric:tabular-nums;
+}
+.event-player-link{
+  display:inline-flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  color:inherit;
+  text-decoration:none;
+}
+.event-player-link:hover .event-player-name,
+.event-player-link:focus-visible .event-player-name{
+  color:var(--accent-blue);
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+.event-player-avatar{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,0.14);
+  background:#242832;
+  object-fit:cover;
+  flex:0 0 auto;
+}
+.event-player-copy{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+.event-player-name{
+  color:#fff;
+  font-size:13px;
+  font-weight:950;
+  line-height:1.15;
+}
+.event-player-user{
+  color:rgba(233,238,248,0.52);
+  font-size:11px;
+  font-weight:750;
+}
+.signup-sort-button{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  border:0;
+  background:transparent;
+  color:inherit;
+  padding:0;
+  font:inherit;
+  letter-spacing:inherit;
+  text-transform:inherit;
+  cursor:pointer;
+}
+.signup-sort-button::after{
+  content:"";
+  width:0;
+  height:0;
+  border-left:4px solid transparent;
+  border-right:4px solid transparent;
+  border-top:5px solid rgba(233,238,248,0.48);
+  opacity:.5;
+}
+.signup-sort-button[aria-sort="ascending"]::after{
+  border-top:0;
+  border-bottom:5px solid var(--accent-blue);
+  opacity:1;
+}
+.signup-sort-button[aria-sort="descending"]::after{
+  border-top:5px solid var(--accent-blue);
+  opacity:1;
+}
+.event-signups-empty{
+  margin-top:0;
 }
 .settings-button.small{
   min-height:34px;
@@ -948,6 +1133,16 @@ a{ color:inherit; }
   }
   .settings-grid{
     grid-template-columns:1fr;
+  }
+  .event-signups-layout{
+    grid-template-columns:1fr;
+  }
+  .event-signups-head{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .event-signups-table{
+    min-width:720px;
   }
   .settings-input-wrap{
     grid-template-columns:minmax(0, 1fr) auto;
