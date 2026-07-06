@@ -247,6 +247,38 @@ function slashCommands() {
           .setRequired(true)
       ),
     new SlashCommandBuilder()
+      .setName("signup_add")
+      .setDescription("Manually add a user to a signup event.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption((option) =>
+        option
+          .setName("event_name")
+          .setDescription("The event name.")
+          .setRequired(true)
+      )
+      .addUserOption((option) =>
+        option
+          .setName("player")
+          .setDescription("The Discord user to add.")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
+      .setName("signup_remove")
+      .setDescription("Manually remove a user from a signup event.")
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+      .addStringOption((option) =>
+        option
+          .setName("event_name")
+          .setDescription("The event name.")
+          .setRequired(true)
+      )
+      .addUserOption((option) =>
+        option
+          .setName("player")
+          .setDescription("The Discord user to remove.")
+          .setRequired(true)
+      ),
+    new SlashCommandBuilder()
       .setName("signup_delete")
       .setDescription("Delete a signup event and its signups.")
       .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
@@ -1071,6 +1103,13 @@ const displayPermissionChecks = [
   ["Manage Webhooks", PermissionFlagsBits.ManageWebhooks],
 ];
 
+const signupDisplayPermissionChecks = [
+  ["View Channel", PermissionFlagsBits.ViewChannel],
+  ["Send Messages", PermissionFlagsBits.SendMessages],
+  ["Embed Links", PermissionFlagsBits.EmbedLinks],
+  ["Read Message History", PermissionFlagsBits.ReadMessageHistory],
+];
+
 function missingDisplayPermissions(channel) {
   const permissions = channel?.permissionsFor?.(client.user);
   if (!permissions) {
@@ -1090,6 +1129,28 @@ function assertDisplayPermissions(channel) {
 
   throw new Error(
     `I need these channel permissions to create the public leaderboard webhook message: ${missingPermissions.join(", ")}.`
+  );
+}
+
+function missingSignupDisplayPermissions(channel) {
+  const permissions = channel?.permissionsFor?.(client.user);
+  if (!permissions) {
+    return signupDisplayPermissionChecks.map(([label]) => label);
+  }
+
+  return signupDisplayPermissionChecks
+    .filter(([, permission]) => !permissions.has(permission))
+    .map(([label]) => label);
+}
+
+function assertSignupDisplayPermissions(channel) {
+  const missingPermissions = missingSignupDisplayPermissions(channel);
+  if (!missingPermissions.length) {
+    return;
+  }
+
+  throw new Error(
+    `I need these channel permissions to create the signup display message: ${missingPermissions.join(", ")}.`
   );
 }
 
@@ -1258,6 +1319,39 @@ function subscribeGlobalRankModerationChanges() {
     });
 }
 
+function signupEventIdFromPayload(payload) {
+  return payload?.new?.event_id || payload?.old?.event_id || "";
+}
+
+function subscribeSignupChanges() {
+  return supabase
+    .channel("event-signup-changes")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "event_signups",
+      },
+      (payload) => {
+        const eventId = signupEventIdFromPayload(payload);
+        if (!eventId) {
+          return;
+        }
+
+        scheduleSignupDisplayRefresh(eventId);
+      }
+    )
+    .subscribe((status, error) => {
+      if (error) {
+        console.warn("Signup realtime subscription error.", error);
+        return;
+      }
+
+      console.log(`Signup realtime subscription status: ${status}`);
+    });
+}
+
 function buildSignupEmbed(event, signupRows) {
   const lines = [`**Sign-ups for ${escapedDisplayName(event.name)}:**`];
   const deadlineLine = formatSignupDeadlineLine(event);
@@ -1301,6 +1395,156 @@ async function signupMessagePayload(event) {
     components: signupActionRows(event),
     allowedMentions: { parse: [] },
   };
+}
+
+async function loadSignupDisplayRow(channelId, eventId) {
+  const { data, error } = await supabase
+    .from("event_signup_display_messages")
+    .select("event_id,guild_id,channel_id,message_id,created_by_discord_user_id")
+    .eq("guild_id", guildId)
+    .eq("channel_id", channelId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (error) {
+    throwSupabaseError("Signup display lookup failed", error);
+  }
+
+  return data || null;
+}
+
+async function loadSignupDisplayRows(eventId) {
+  const { data, error } = await supabase
+    .from("event_signup_display_messages")
+    .select("event_id,guild_id,channel_id,message_id,created_by_discord_user_id")
+    .eq("guild_id", guildId)
+    .eq("event_id", eventId);
+
+  if (error) {
+    throwSupabaseError("Signup display lookup failed", error);
+  }
+
+  return data || [];
+}
+
+async function saveSignupDisplayRow(row) {
+  const { error } = await supabase
+    .from("event_signup_display_messages")
+    .upsert(row, { onConflict: "event_id,channel_id" });
+
+  if (error) {
+    throwSupabaseError("Signup display save failed", error);
+  }
+}
+
+async function deleteSignupDisplayRow(row) {
+  const { error } = await supabase
+    .from("event_signup_display_messages")
+    .delete()
+    .eq("event_id", row.event_id)
+    .eq("channel_id", row.channel_id);
+
+  if (error) {
+    throwSupabaseError("Signup display cleanup failed", error);
+  }
+}
+
+async function fetchSignupDisplayMessage(row) {
+  const channel = await client.channels.fetch(row.channel_id);
+  if (!channel || typeof channel.messages?.fetch !== "function") {
+    throw new Error("Signup display channel is no longer a readable text channel.");
+  }
+
+  return channel.messages.fetch(row.message_id);
+}
+
+async function deleteSignupDisplayMessage(row) {
+  const message = await fetchSignupDisplayMessage(row);
+  await message.delete();
+}
+
+async function editSignupDisplayRow(row, event) {
+  const message = await fetchSignupDisplayMessage(row);
+  await message.edit(await signupMessagePayload(event));
+}
+
+async function createOrUpdateSignupDisplay(channel, event, createdByDiscordUserId, initialMessage) {
+  if (!channel || typeof channel.send !== "function") {
+    throw new Error("Use this command in a server text channel where the bot can send messages.");
+  }
+
+  assertSignupDisplayPermissions(channel);
+  const existingRow = await loadSignupDisplayRow(channel.id, event.id);
+
+  if (existingRow) {
+    try {
+      await deleteSignupDisplayMessage(existingRow);
+    } catch (error) {
+      console.warn(
+        `Unable to delete existing signup display ${existingRow.message_id}; creating a replacement.`,
+        error
+      );
+    }
+
+    await deleteSignupDisplayRow(existingRow);
+  }
+
+  const message = initialMessage || (await channel.send(await signupMessagePayload(event)));
+  await saveSignupDisplayRow({
+    event_id: event.id,
+    guild_id: guildId,
+    channel_id: channel.id,
+    message_id: message.id,
+    created_by_discord_user_id: createdByDiscordUserId,
+  });
+
+  return { action: existingRow ? "recreated" : "created", messageId: message.id };
+}
+
+async function refreshSignupDisplaysForEvent(eventId) {
+  const event = await loadSignupEventById(eventId);
+  if (!event) {
+    return;
+  }
+
+  const rows = await loadSignupDisplayRows(event.id);
+  for (const row of rows) {
+    try {
+      await editSignupDisplayRow(row, event);
+    } catch (error) {
+      console.warn(`Unable to refresh signup display ${row.message_id}.`, error);
+    }
+  }
+}
+
+async function deleteSignupDisplaysForEvent(eventId) {
+  const rows = await loadSignupDisplayRows(eventId);
+  for (const row of rows) {
+    try {
+      await deleteSignupDisplayMessage(row);
+    } catch (error) {
+      console.warn(`Unable to delete signup display ${row.message_id}.`, error);
+    }
+
+    await deleteSignupDisplayRow(row);
+  }
+}
+
+const signupDisplayRefreshTimers = new Map();
+
+function scheduleSignupDisplayRefresh(eventId) {
+  if (!eventId || signupDisplayRefreshTimers.has(eventId)) {
+    return;
+  }
+
+  const timer = setTimeout(() => {
+    signupDisplayRefreshTimers.delete(eventId);
+    void refreshSignupDisplaysForEvent(eventId).catch((error) => {
+      console.warn(`Unable to refresh signup displays for ${eventId}.`, error);
+    });
+  }, 300);
+
+  signupDisplayRefreshTimers.set(eventId, timer);
 }
 
 function signupButtonParts(customId) {
@@ -1369,6 +1613,7 @@ async function handleSignupDisplayInteraction(interaction) {
     return;
   }
 
+  assertSignupDisplayPermissions(interaction.channel);
   await interaction.deferReply();
   const event = await loadSignupEventByName(interaction.options.getString("event_name", true));
   if (!event) {
@@ -1376,7 +1621,79 @@ async function handleSignupDisplayInteraction(interaction) {
     return;
   }
 
-  await interaction.editReply(await signupMessagePayload(event));
+  const message = await interaction.editReply(await signupMessagePayload(event));
+  await createOrUpdateSignupDisplay(
+    interaction.channel,
+    event,
+    interaction.user.id,
+    message
+  );
+}
+
+async function handleSignupAddInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can manually add signups.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const targetUser = interaction.options.getUser("player", true);
+  if (targetUser.bot) {
+    await interaction.reply({
+      content: "Signup events can only include player accounts.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  const event = await loadSignupEventByName(interaction.options.getString("event_name", true));
+  if (!event) {
+    await interaction.editReply("No signup event with that name exists.");
+    return;
+  }
+
+  const targetMember = await fetchGuildMember(targetUser.id);
+  await upsertDiscordMember(targetMember);
+  await insertSignupRow(event, targetMember);
+  await refreshSignupDisplaysForEvent(event.id);
+
+  await interaction.editReply({
+    content: `Added ${escapedDisplayName(targetMember.displayName || targetUser.username)} to **${escapedDisplayName(event.name)}**.`,
+    allowedMentions: { parse: [] },
+  });
+}
+
+async function handleSignupRemoveInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can manually remove signups.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  const targetUser = interaction.options.getUser("player", true);
+  await interaction.deferReply({ ephemeral: true });
+  const event = await loadSignupEventByName(interaction.options.getString("event_name", true));
+  if (!event) {
+    await interaction.editReply("No signup event with that name exists.");
+    return;
+  }
+
+  const removed = await deleteSignupRow(event.id, targetUser.id);
+  if (!removed) {
+    await interaction.editReply("That user is not signed up for this event.");
+    return;
+  }
+
+  await refreshSignupDisplaysForEvent(event.id);
+  await interaction.editReply({
+    content: `Removed ${escapedDisplayName(targetUser.username)} from **${escapedDisplayName(event.name)}**.`,
+    allowedMentions: { parse: [] },
+  });
 }
 
 async function handleSignupDeleteInteraction(interaction) {
@@ -1395,6 +1712,7 @@ async function handleSignupDeleteInteraction(interaction) {
     return;
   }
 
+  await deleteSignupDisplaysForEvent(event.id);
   await deleteSignupEvent(event);
   await interaction.editReply({
     content: `Deleted signup event **${escapedDisplayName(event.name)}** and its signups.`,
@@ -1532,14 +1850,7 @@ async function handleSignupManageInteraction(interaction) {
     content: details.join("\n"),
     allowedMentions: { parse: [] },
   });
-}
-
-async function refreshSignupDisplayMessage(interaction, event) {
-  try {
-    await interaction.message.edit(await signupMessagePayload(event));
-  } catch (error) {
-    console.warn(`Unable to refresh signup display for ${event.id}.`, error);
-  }
+  await refreshSignupDisplaysForEvent(updatedEvent.id);
 }
 
 async function handleSignupButtonInteraction(interaction) {
@@ -1556,7 +1867,7 @@ async function handleSignupButtonInteraction(interaction) {
   }
 
   if (signupDeadlineHasPassed(event)) {
-    await refreshSignupDisplayMessage(interaction, event);
+    await refreshSignupDisplaysForEvent(event.id);
     const content =
       button.action === "leave"
         ? "Signups are closed. To remove yourself, contact an Admin."
@@ -1593,7 +1904,7 @@ async function handleSignupButtonInteraction(interaction) {
     }
 
     await insertSignupRow(event, guildMember);
-    await refreshSignupDisplayMessage(interaction, event);
+    await refreshSignupDisplaysForEvent(event.id);
     await interaction.editReply("You're signed up.");
     return;
   }
@@ -1604,7 +1915,7 @@ async function handleSignupButtonInteraction(interaction) {
     return;
   }
 
-  await refreshSignupDisplayMessage(interaction, event);
+  await refreshSignupDisplaysForEvent(event.id);
   await interaction.editReply("Removed your signup.");
 }
 
@@ -1702,6 +2013,16 @@ async function handleInteraction(interaction) {
       return;
     }
 
+    if (interaction.commandName === "signup_add") {
+      await handleSignupAddInteraction(interaction);
+      return;
+    }
+
+    if (interaction.commandName === "signup_remove") {
+      await handleSignupRemoveInteraction(interaction);
+      return;
+    }
+
     if (interaction.commandName === "signup_delete") {
       await handleSignupDeleteInteraction(interaction);
       return;
@@ -1768,6 +2089,7 @@ client.once("ready", async () => {
   try {
     await registerSlashCommands();
     subscribeGlobalRankModerationChanges();
+    subscribeSignupChanges();
     console.log(`Logged in as ${client.user.tag}. Global rank commands registered.`);
   } catch (error) {
     console.error("Unable to register global rank slash commands.", error);

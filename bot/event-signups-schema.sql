@@ -55,6 +55,23 @@ on public.event_signups (event_id, signed_up_at, discord_user_id);
 create index if not exists event_signups_user_idx
 on public.event_signups (guild_id, discord_user_id, signed_up_at desc);
 
+create table if not exists public.event_signup_display_messages (
+  event_id uuid not null references public.events(id) on delete cascade,
+  guild_id text not null check (guild_id ~ '^[0-9]+$'),
+  channel_id text not null check (channel_id ~ '^[0-9]+$'),
+  message_id text not null check (message_id ~ '^[0-9]+$'),
+  created_by_discord_user_id text check (
+    created_by_discord_user_id is null
+    or created_by_discord_user_id ~ '^[0-9]+$'
+  ),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (event_id, channel_id)
+);
+
+create index if not exists event_signup_display_messages_event_idx
+on public.event_signup_display_messages (event_id);
+
 create or replace function public.set_signup_event_updated_at()
 returns trigger
 language plpgsql
@@ -70,6 +87,54 @@ create trigger set_signup_event_updated_at
 before update on public.events
 for each row
 execute function public.set_signup_event_updated_at();
+
+create or replace function public.set_event_signup_display_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_event_signup_display_updated_at
+on public.event_signup_display_messages;
+
+create trigger set_event_signup_display_updated_at
+before update on public.event_signup_display_messages
+for each row
+execute function public.set_event_signup_display_updated_at();
+
+create or replace function public.set_event_signup_display_event_fields()
+returns trigger
+language plpgsql
+as $$
+declare
+  matched_event public.events%rowtype;
+begin
+  select *
+  into matched_event
+  from public.events
+  where id = new.event_id;
+
+  if not found then
+    raise exception 'event_id does not reference an event'
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  new.guild_id = matched_event.guild_id;
+  return new;
+end;
+$$;
+
+drop trigger if exists set_event_signup_display_event_fields
+on public.event_signup_display_messages;
+
+create trigger set_event_signup_display_event_fields
+before insert or update of event_id on public.event_signup_display_messages
+for each row
+execute function public.set_event_signup_display_event_fields();
 
 create or replace function public.set_event_blocked_role_event_fields()
 returns trigger
@@ -151,6 +216,7 @@ execute function public.sync_event_signup_event_name();
 alter table public.events enable row level security;
 alter table public.event_blocked_roles enable row level security;
 alter table public.event_signups enable row level security;
+alter table public.event_signup_display_messages enable row level security;
 
 drop policy if exists "discord users can view signup events" on public.events;
 create policy "discord users can view signup events"
@@ -257,6 +323,7 @@ using (
 revoke all on public.events from anon, authenticated;
 revoke all on public.event_blocked_roles from anon, authenticated;
 revoke all on public.event_signups from anon, authenticated;
+revoke all on public.event_signup_display_messages from anon, authenticated;
 
 grant usage on schema public to authenticated;
 grant select on public.events to authenticated;
@@ -266,5 +333,14 @@ grant select, insert, delete on public.event_signups to authenticated;
 grant select, insert, update, delete on public.events to service_role;
 grant select, insert, update, delete on public.event_blocked_roles to service_role;
 grant select, insert, update, delete on public.event_signups to service_role;
+grant select, insert, update, delete on public.event_signup_display_messages to service_role;
+
+do $$
+begin
+  alter publication supabase_realtime add table public.event_signups;
+exception
+  when duplicate_object then null;
+end;
+$$;
 
 notify pgrst, 'reload schema';
