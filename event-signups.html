@@ -56,7 +56,10 @@
               <p class="settings-kicker">Selected Event</p>
               <h2 class="event-signups-title" id="selectedEventTitle">Choose an event</h2>
             </div>
-            <p class="event-signups-count" id="eventSignupCount"></p>
+            <div class="event-signups-actions">
+              <p class="event-signups-count" id="eventSignupCount"></p>
+              <button class="settings-button small secondary" id="exportSignupsBtn" type="button" disabled>Export</button>
+            </div>
           </div>
           <div class="admin-url-table-wrap event-signups-table-wrap" id="eventSignupsWrap"></div>
         </section>
@@ -78,6 +81,7 @@
     const eventsList = document.getElementById("eventsList");
     const selectedEventTitle = document.getElementById("selectedEventTitle");
     const eventSignupCount = document.getElementById("eventSignupCount");
+    const exportSignupsBtn = document.getElementById("exportSignupsBtn");
     const signupsWrap = document.getElementById("eventSignupsWrap");
     const statusEl = document.getElementById("eventSignupsStatus");
 
@@ -214,6 +218,70 @@
         hour: "numeric",
         minute: "2-digit",
       }).format(date);
+    }
+
+    function formatExportTimestamp(value){
+      if(!value) return "";
+      const date = new Date(value);
+      if(Number.isNaN(date.getTime())) return "";
+      return date.toISOString();
+    }
+
+    function tsvCell(value){
+      return String(value ?? "").replace(/[\t\r\n]+/g, " ").trim();
+    }
+
+    function signupExportRows(){
+      return sortedRows().map((row) => [
+        row.seed,
+        row.displayName,
+        row.discordId,
+        row.gpi?.gpiRank || "",
+        Number.isFinite(Number(row.gpi?.ratingNumber)) ? formatRating(row.gpi.ratingNumber) : "",
+        formatExportTimestamp(row.signedUpAt),
+      ]);
+    }
+
+    async function copyTextToClipboard(text){
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        return;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      textarea.style.top = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      textarea.remove();
+      if(!copied){
+        throw new Error("Clipboard copy is not available in this browser.");
+      }
+    }
+
+    async function exportSignupTable(){
+      const event = state.events.find(item => item.id === state.selectedEventId);
+      if(!event || !state.rows.length){
+        setStatus("Select an event with signups to export.", "error");
+        return;
+      }
+
+      const header = ["seed", "display name", "Discord ID", "GPI Rank", "GPI", "signup timestamp"];
+      const lines = [header, ...signupExportRows()]
+        .map(row => row.map(tsvCell).join("\t"))
+        .join("\n");
+
+      try{
+        await copyTextToClipboard(lines);
+        setStatus(`Copied ${state.rows.length} signup${state.rows.length === 1 ? "" : "s"} for ${event.name}.`, "success");
+      }catch(error){
+        console.error(error);
+        setStatus(error?.message || "Unable to copy signup export.", "error");
+      }
     }
 
     async function loadSignupEvents(){
@@ -523,6 +591,7 @@
       const event = state.events.find(item => item.id === state.selectedEventId);
       selectedEventTitle.textContent = event?.name || "Choose an event";
       eventSignupCount.textContent = event ? `${state.rows.length} signup${state.rows.length === 1 ? "" : "s"}` : "";
+      exportSignupsBtn.disabled = !event || !state.rows.length;
 
       if(!event){
         signupsWrap.appendChild(createEmptyTableMessage("Select an event to view signups."));
@@ -663,6 +732,10 @@
         options: { redirectTo: buildAuthRedirectTo("/event-signups.html") },
       });
       if(error) setStatus(error.message || "Unable to start Discord login.", "error");
+    });
+
+    exportSignupsBtn.addEventListener("click", () => {
+      void exportSignupTable();
     });
 
     initialize().catch((error) => {

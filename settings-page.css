@@ -550,6 +550,13 @@ a{ color:inherit; }
   font-weight:950;
   line-height:1.15;
 }
+.event-signups-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
 .event-signups-count{
   margin:0;
   color:rgba(233,238,248,0.62);
@@ -1140,6 +1147,9 @@ a{ color:inherit; }
   .event-signups-head{
     align-items:flex-start;
     flex-direction:column;
+  }
+  .event-signups-actions{
+    justify-content:flex-start;
   }
   .event-signups-table{
     min-width:720px;
