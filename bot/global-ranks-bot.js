@@ -80,6 +80,9 @@ const messageCommandOperations = {
   maxcs: "max_cs",
 };
 
+const signupCreateRoleOptionCount = 5;
+const signupManageRoleOptionCount = 4;
+
 if (!token || !guildId) {
   console.error(
     "Missing DISCORD_BOT_TOKEN or DISCORD_GUILD_ID. Add them to .env before starting the global ranks bot."
@@ -179,6 +182,64 @@ function chunkRows(rows, size = 500) {
   return chunks;
 }
 
+function numberedOptionName(baseName, index) {
+  return index === 1 ? baseName : `${baseName}_${index}`;
+}
+
+function addNumberedRoleOptions(command, baseName, description, count) {
+  for (let index = 1; index <= count; index += 1) {
+    const optionName = numberedOptionName(baseName, index);
+    command.addRoleOption((option) =>
+      option
+        .setName(optionName)
+        .setDescription(index === 1 ? description : `${description} (${index})`)
+    );
+  }
+
+  return command;
+}
+
+function roleIdsFromOptions(options, baseName, count) {
+  const roleIds = [];
+  for (let index = 1; index <= count; index += 1) {
+    const role = options.getRole(numberedOptionName(baseName, index));
+    const roleId = normalizeDiscordId(role?.id);
+    if (roleId && !roleIds.includes(roleId)) {
+      roleIds.push(roleId);
+    }
+  }
+
+  return roleIds;
+}
+
+function firstSharedRoleId(leftRoleIds, rightRoleIds) {
+  return (leftRoleIds || []).find((roleId) => (rightRoleIds || []).includes(roleId)) || null;
+}
+
+function roleIdsAreEqual(leftRoleIds, rightRoleIds) {
+  const left = leftRoleIds || [];
+  const right = rightRoleIds || [];
+  return left.length === right.length && left.every((roleId, index) => roleId === right[index]);
+}
+
+function applyRoleListChanges(existingRoleIds, { addRoleIds = [], removeRoleIds = [], clear = false } = {}) {
+  const nextRoleIds = clear ? [] : [...(existingRoleIds || [])];
+  for (const roleId of removeRoleIds) {
+    const index = nextRoleIds.indexOf(roleId);
+    if (index !== -1) {
+      nextRoleIds.splice(index, 1);
+    }
+  }
+
+  for (const roleId of addRoleIds) {
+    if (!nextRoleIds.includes(roleId)) {
+      nextRoleIds.push(roleId);
+    }
+  }
+
+  return nextRoleIds;
+}
+
 function slashCommands() {
   const displayCommands = Object.values(rankDisplayConfigs).map((config) =>
     new SlashCommandBuilder()
@@ -209,33 +270,99 @@ function slashCommands() {
     }
   );
 
+  const signupCreateCommand = new SlashCommandBuilder()
+    .setName("signup_create")
+    .setDescription("Create a signup event.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption((option) =>
+      option
+        .setName("event_name")
+        .setDescription("The event name.")
+        .setRequired(true)
+    );
+  addNumberedRoleOptions(
+    signupCreateCommand,
+    "required_role",
+    "Optional role permitted to sign up.",
+    signupCreateRoleOptionCount
+  );
+  addNumberedRoleOptions(
+    signupCreateCommand,
+    "blocked_role",
+    "Optional role not permitted to sign up.",
+    signupCreateRoleOptionCount
+  );
+  signupCreateCommand.addIntegerOption((option) =>
+    option
+      .setName("deadline")
+      .setDescription("Optional signup deadline as a Unix timestamp in seconds.")
+      .setMinValue(1)
+  );
+
+  const signupManageCommand = new SlashCommandBuilder()
+    .setName("signup_manage")
+    .setDescription("Update signup event settings.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addStringOption((option) =>
+      option
+        .setName("event_name")
+        .setDescription("The current event name.")
+        .setRequired(true)
+    )
+    .addStringOption((option) =>
+      option
+        .setName("new_event_name")
+        .setDescription("Optional new event name.")
+    );
+  addNumberedRoleOptions(
+    signupManageCommand,
+    "required_role",
+    "Add a role permitted to sign up.",
+    signupManageRoleOptionCount
+  );
+  addNumberedRoleOptions(
+    signupManageCommand,
+    "blocked_role",
+    "Add a role not permitted to sign up.",
+    signupManageRoleOptionCount
+  );
+  addNumberedRoleOptions(
+    signupManageCommand,
+    "remove_required_role",
+    "Remove a role from the required list.",
+    signupManageRoleOptionCount
+  );
+  addNumberedRoleOptions(
+    signupManageCommand,
+    "remove_blocked_role",
+    "Remove a role from the not-permitted list.",
+    signupManageRoleOptionCount
+  );
+  signupManageCommand
+    .addBooleanOption((option) =>
+      option
+        .setName("clear_required_role")
+        .setDescription("Remove all required signup roles.")
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("clear_blocked_roles")
+        .setDescription("Remove all roles from the not-permitted list.")
+    )
+    .addIntegerOption((option) =>
+      option
+        .setName("deadline")
+        .setDescription("Optional new signup deadline as a Unix timestamp in seconds.")
+        .setMinValue(1)
+    )
+    .addBooleanOption((option) =>
+      option
+        .setName("clear_deadline")
+        .setDescription("Remove the signup deadline.")
+    );
+
   const signupCommands = [
-    new SlashCommandBuilder()
-      .setName("signup_create")
-      .setDescription("Create a signup event.")
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addStringOption((option) =>
-        option
-          .setName("event_name")
-          .setDescription("The event name.")
-          .setRequired(true)
-      )
-      .addRoleOption((option) =>
-        option
-          .setName("required_role")
-          .setDescription("Optional role required to sign up.")
-      )
-      .addRoleOption((option) =>
-        option
-          .setName("blocked_role")
-          .setDescription("Optional role not permitted to sign up.")
-      )
-      .addIntegerOption((option) =>
-        option
-          .setName("deadline")
-          .setDescription("Optional signup deadline as a Unix timestamp in seconds.")
-          .setMinValue(1)
-      ),
+    signupCreateCommand,
     new SlashCommandBuilder()
       .setName("signup_display")
       .setDescription("Post a signup display for an event.")
@@ -288,57 +415,7 @@ function slashCommands() {
           .setDescription("The event name.")
           .setRequired(true)
       ),
-    new SlashCommandBuilder()
-      .setName("signup_manage")
-      .setDescription("Update signup event settings.")
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-      .addStringOption((option) =>
-        option
-          .setName("event_name")
-          .setDescription("The current event name.")
-          .setRequired(true)
-      )
-      .addStringOption((option) =>
-        option
-          .setName("new_event_name")
-          .setDescription("Optional new event name.")
-      )
-      .addRoleOption((option) =>
-        option
-          .setName("required_role")
-          .setDescription("Optional new role required to sign up.")
-      )
-      .addRoleOption((option) =>
-        option
-          .setName("blocked_role")
-          .setDescription("Add a role not permitted to sign up.")
-      )
-      .addRoleOption((option) =>
-        option
-          .setName("remove_blocked_role")
-          .setDescription("Remove a role from the not-permitted list.")
-      )
-      .addBooleanOption((option) =>
-        option
-          .setName("clear_blocked_roles")
-          .setDescription("Remove all roles from the not-permitted list.")
-      )
-      .addBooleanOption((option) =>
-        option
-          .setName("clear_required_role")
-          .setDescription("Remove the required signup role.")
-      )
-      .addIntegerOption((option) =>
-        option
-          .setName("deadline")
-          .setDescription("Optional new signup deadline as a Unix timestamp in seconds.")
-          .setMinValue(1)
-      )
-      .addBooleanOption((option) =>
-        option
-          .setName("clear_deadline")
-          .setDescription("Remove the signup deadline.")
-      ),
+    signupManageCommand,
   ];
 
   return [...displayCommands, ...setCommands, ...signupCommands].map((command) => command.toJSON());
@@ -483,11 +560,6 @@ function memberBlockedRoleIds(member, roleIds) {
   return (roleIds || []).filter((roleId) => memberHasRole(member, roleId));
 }
 
-function formatRequiredRole(roleId) {
-  const cleanRoleId = normalizeDiscordId(roleId);
-  return cleanRoleId ? `<@&${cleanRoleId}>` : "no required role";
-}
-
 function formatRoleList(roleIds) {
   const cleanRoleIds = (roleIds || []).map(normalizeDiscordId).filter(Boolean);
   return cleanRoleIds.length
@@ -560,13 +632,13 @@ async function loadSignupEventById(eventId) {
   return data || null;
 }
 
-async function createSignupEvent({ name, requiredRoleId, deadlineAt, createdByDiscordUserId }) {
+async function createSignupEvent({ name, requiredRoleIds = [], deadlineAt, createdByDiscordUserId }) {
   const { data, error } = await supabase
     .from("events")
     .insert({
       guild_id: guildId,
       name,
-      required_role_id: requiredRoleId || null,
+      required_role_id: requiredRoleIds[0] || null,
       deadline_at: deadlineAt,
       created_by_discord_user_id: createdByDiscordUserId,
     })
@@ -582,6 +654,60 @@ async function createSignupEvent({ name, requiredRoleId, deadlineAt, createdByDi
   }
 
   return data;
+}
+
+async function loadRequiredRoleIds(eventId) {
+  const { data, error } = await supabase
+    .from("event_required_roles")
+    .select("role_id")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throwSupabaseError("Required signup roles lookup failed", error);
+  }
+
+  return (data || []).map((row) => normalizeDiscordId(row.role_id)).filter(Boolean);
+}
+
+async function addRequiredRole(event, roleId) {
+  const cleanRoleId = normalizeDiscordId(roleId);
+  if (!cleanRoleId) {
+    throw new Error("Choose a valid required role.");
+  }
+
+  const { error } = await supabase
+    .from("event_required_roles")
+    .upsert(
+      {
+        event_id: event.id,
+        guild_id: guildId,
+        role_id: cleanRoleId,
+      },
+      { onConflict: "event_id,role_id" }
+    );
+
+  if (error) {
+    throwSupabaseError("Required signup role save failed", error);
+  }
+}
+
+async function clearRequiredRoles(event) {
+  const { error } = await supabase
+    .from("event_required_roles")
+    .delete()
+    .eq("event_id", event.id);
+
+  if (error) {
+    throwSupabaseError("Required signup roles clear failed", error);
+  }
+}
+
+async function replaceRequiredRoles(event, roleIds) {
+  await clearRequiredRoles(event);
+  for (const roleId of roleIds) {
+    await addRequiredRole(event, roleId);
+  }
 }
 
 async function loadBlockedRoleIds(eventId) {
@@ -645,6 +771,13 @@ async function clearBlockedRoles(event) {
 
   if (error) {
     throwSupabaseError("Blocked signup roles clear failed", error);
+  }
+}
+
+async function replaceBlockedRoles(event, roleIds) {
+  await clearBlockedRoles(event);
+  for (const roleId of roleIds) {
+    await addBlockedRole(event, roleId);
   }
 }
 
@@ -1569,10 +1702,18 @@ async function handleSignupCreateInteraction(interaction) {
   }
 
   const name = normalizeEventName(interaction.options.getString("event_name", true));
-  const requiredRole = interaction.options.getRole("required_role");
-  const blockedRole = interaction.options.getRole("blocked_role");
+  const requiredRoleIds = roleIdsFromOptions(
+    interaction.options,
+    "required_role",
+    signupCreateRoleOptionCount
+  );
+  const blockedRoleIds = roleIdsFromOptions(
+    interaction.options,
+    "blocked_role",
+    signupCreateRoleOptionCount
+  );
   const deadlineAt = deadlineAtFromUnix(interaction.options.getInteger("deadline"));
-  if (requiredRole && blockedRole && requiredRole.id === blockedRole.id) {
+  if (firstSharedRoleId(requiredRoleIds, blockedRoleIds)) {
     await interaction.reply({
       content: "The same role can't be both required and blocked.",
       ephemeral: true,
@@ -1583,18 +1724,22 @@ async function handleSignupCreateInteraction(interaction) {
   await interaction.deferReply({ ephemeral: true });
   const event = await createSignupEvent({
     name,
-    requiredRoleId: requiredRole?.id || null,
+    requiredRoleIds,
     deadlineAt,
     createdByDiscordUserId: interaction.user.id,
   });
-  if (blockedRole) {
-    await addBlockedRole(event, blockedRole.id);
+  for (const roleId of requiredRoleIds) {
+    await addRequiredRole(event, roleId);
+  }
+
+  for (const roleId of blockedRoleIds) {
+    await addBlockedRole(event, roleId);
   }
 
   const details = [
     `Created signup event **${escapedDisplayName(event.name)}**.`,
-    event.required_role_id ? `Required role: ${formatRequiredRole(event.required_role_id)}.` : null,
-    blockedRole ? `Blocked roles: ${formatRoleList([blockedRole.id])}.` : null,
+    requiredRoleIds.length ? `Required roles: ${formatRoleList(requiredRoleIds)}.` : null,
+    blockedRoleIds.length ? `Blocked roles: ${formatRoleList(blockedRoleIds)}.` : null,
     event.deadline_at ? `Deadline: <t:${unixTimestampFromIso(event.deadline_at)}:F>.` : null,
   ].filter(Boolean);
 
@@ -1729,16 +1874,33 @@ async function handleSignupManageInteraction(interaction) {
     return;
   }
 
-  const clearRequiredRole = interaction.options.getBoolean("clear_required_role") === true;
+  const shouldClearRequiredRoles = interaction.options.getBoolean("clear_required_role") === true;
   const shouldClearBlockedRoles = interaction.options.getBoolean("clear_blocked_roles") === true;
   const clearDeadline = interaction.options.getBoolean("clear_deadline") === true;
-  const requiredRole = interaction.options.getRole("required_role");
-  const blockedRole = interaction.options.getRole("blocked_role");
-  const blockedRoleToRemove = interaction.options.getRole("remove_blocked_role");
+  const requiredRoleIdsToAdd = roleIdsFromOptions(
+    interaction.options,
+    "required_role",
+    signupManageRoleOptionCount
+  );
+  const requiredRoleIdsToRemove = roleIdsFromOptions(
+    interaction.options,
+    "remove_required_role",
+    signupManageRoleOptionCount
+  );
+  const blockedRoleIdsToAdd = roleIdsFromOptions(
+    interaction.options,
+    "blocked_role",
+    signupManageRoleOptionCount
+  );
+  const blockedRoleIdsToRemove = roleIdsFromOptions(
+    interaction.options,
+    "remove_blocked_role",
+    signupManageRoleOptionCount
+  );
   const deadline = interaction.options.getInteger("deadline");
-  if (clearRequiredRole && requiredRole) {
+  if (shouldClearRequiredRoles && (requiredRoleIdsToAdd.length || requiredRoleIdsToRemove.length)) {
     await interaction.reply({
-      content: "Choose either required_role or clear_required_role, not both.",
+      content: "Choose clear_required_role by itself, without required_role or remove_required_role.",
       ephemeral: true,
     });
     return;
@@ -1752,7 +1914,7 @@ async function handleSignupManageInteraction(interaction) {
     return;
   }
 
-  if (shouldClearBlockedRoles && (blockedRole || blockedRoleToRemove)) {
+  if (shouldClearBlockedRoles && (blockedRoleIdsToAdd.length || blockedRoleIdsToRemove.length)) {
     await interaction.reply({
       content: "Choose clear_blocked_roles by itself, without blocked_role or remove_blocked_role.",
       ephemeral: true,
@@ -1760,10 +1922,22 @@ async function handleSignupManageInteraction(interaction) {
     return;
   }
 
-  if (blockedRole && blockedRoleToRemove && blockedRole.id === blockedRoleToRemove.id) {
+  const movedRequiredRoleId = firstSharedRoleId(requiredRoleIdsToAdd, requiredRoleIdsToRemove);
+  if (movedRequiredRoleId) {
     await interaction.reply({
-      content: "Choose different roles for blocked_role and remove_blocked_role.",
+      content: `Choose different roles for required_role and remove_required_role. ${formatRoleList([movedRequiredRoleId])} appears in both.`,
       ephemeral: true,
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+
+  const movedBlockedRoleId = firstSharedRoleId(blockedRoleIdsToAdd, blockedRoleIdsToRemove);
+  if (movedBlockedRoleId) {
+    await interaction.reply({
+      content: `Choose different roles for blocked_role and remove_blocked_role. ${formatRoleList([movedBlockedRoleId])} appears in both.`,
+      ephemeral: true,
+      allowedMentions: { parse: [] },
     });
     return;
   }
@@ -1775,17 +1949,39 @@ async function handleSignupManageInteraction(interaction) {
     return;
   }
 
+  const existingRequiredRoleIds = await loadRequiredRoleIds(event.id);
+  const effectiveExistingRequiredRoleIds = existingRequiredRoleIds.length
+    ? existingRequiredRoleIds
+    : [normalizeDiscordId(event.required_role_id)].filter(Boolean);
   const existingBlockedRoleIds = await loadBlockedRoleIds(event.id);
+  const finalRequiredRoleIds = applyRoleListChanges(effectiveExistingRequiredRoleIds, {
+    addRoleIds: requiredRoleIdsToAdd,
+    removeRoleIds: requiredRoleIdsToRemove,
+    clear: shouldClearRequiredRoles,
+  });
+  const finalBlockedRoleIds = applyRoleListChanges(existingBlockedRoleIds, {
+    addRoleIds: blockedRoleIdsToAdd,
+    removeRoleIds: blockedRoleIdsToRemove,
+    clear: shouldClearBlockedRoles,
+  });
+  const overlappingRoleId = firstSharedRoleId(finalRequiredRoleIds, finalBlockedRoleIds);
+  if (overlappingRoleId) {
+    await interaction.editReply({
+      content: `The same role can't be both required and blocked: ${formatRoleList([overlappingRoleId])}.`,
+      allowedMentions: { parse: [] },
+    });
+    return;
+  }
+
   const updates = {};
   const newEventName = interaction.options.getString("new_event_name");
   if (newEventName != null) {
     updates.name = normalizeEventName(newEventName);
   }
 
-  if (requiredRole) {
-    updates.required_role_id = requiredRole.id;
-  } else if (clearRequiredRole) {
-    updates.required_role_id = null;
+  const requiredRolesChanged = !roleIdsAreEqual(effectiveExistingRequiredRoleIds, finalRequiredRoleIds);
+  if (requiredRolesChanged || finalRequiredRoleIds[0] !== event.required_role_id) {
+    updates.required_role_id = finalRequiredRoleIds[0] || null;
   }
 
   if (deadline != null) {
@@ -1794,29 +1990,8 @@ async function handleSignupManageInteraction(interaction) {
     updates.deadline_at = null;
   }
 
-  const nextRequiredRoleId = Object.hasOwn(updates, "required_role_id")
-    ? updates.required_role_id
-    : event.required_role_id;
-  const removesNextRequiredBlockedRole =
-    shouldClearBlockedRoles ||
-    (blockedRoleToRemove && blockedRoleToRemove.id === nextRequiredRoleId);
-  if (blockedRole && blockedRole.id === nextRequiredRoleId) {
-    await interaction.editReply("The same role can't be both required and blocked.");
-    return;
-  }
-
-  if (
-    nextRequiredRoleId &&
-    existingBlockedRoleIds.includes(nextRequiredRoleId) &&
-    !removesNextRequiredBlockedRole
-  ) {
-    await interaction.editReply(
-      `Remove ${formatRequiredRole(nextRequiredRoleId)} from blocked roles before making it required.`
-    );
-    return;
-  }
-
-  if (!Object.keys(updates).length && !blockedRole && !blockedRoleToRemove && !shouldClearBlockedRoles) {
+  const blockedRolesChanged = !roleIdsAreEqual(existingBlockedRoleIds, finalBlockedRoleIds);
+  if (!Object.keys(updates).length && !requiredRolesChanged && !blockedRolesChanged) {
     await interaction.editReply("No signup event settings were changed.");
     return;
   }
@@ -1824,23 +1999,18 @@ async function handleSignupManageInteraction(interaction) {
   const updatedEvent = Object.keys(updates).length
     ? await updateSignupEvent(event, updates)
     : event;
-  if (shouldClearBlockedRoles) {
-    await clearBlockedRoles(event);
+  if (requiredRolesChanged) {
+    await replaceRequiredRoles(updatedEvent, finalRequiredRoleIds);
   }
 
-  if (blockedRoleToRemove) {
-    await removeBlockedRole(event, blockedRoleToRemove.id);
+  if (blockedRolesChanged) {
+    await replaceBlockedRoles(updatedEvent, finalBlockedRoleIds);
   }
 
-  if (blockedRole) {
-    await addBlockedRole(event, blockedRole.id);
-  }
-
-  const blockedRoleIds = await loadBlockedRoleIds(event.id);
   const details = [
     `Updated signup event **${escapedDisplayName(updatedEvent.name)}**.`,
-    `Required role: ${formatRequiredRole(updatedEvent.required_role_id)}.`,
-    `Blocked roles: ${formatRoleList(blockedRoleIds)}.`,
+    `Required roles: ${formatRoleList(finalRequiredRoleIds)}.`,
+    `Blocked roles: ${formatRoleList(finalBlockedRoleIds)}.`,
     updatedEvent.deadline_at
       ? `Deadline: <t:${unixTimestampFromIso(updatedEvent.deadline_at)}:F>.`
       : "Deadline: none.",
@@ -1890,9 +2060,14 @@ async function handleSignupButtonInteraction(interaction) {
       return;
     }
 
-    if (event.required_role_id && !memberHasRole(guildMember, event.required_role_id)) {
+    const requiredRoleIds = await loadRequiredRoleIds(event.id);
+    const effectiveRequiredRoleIds = requiredRoleIds.length
+      ? requiredRoleIds
+      : [normalizeDiscordId(event.required_role_id)].filter(Boolean);
+    const matchedRequiredRoleIds = memberBlockedRoleIds(guildMember, effectiveRequiredRoleIds);
+    if (effectiveRequiredRoleIds.length && !matchedRequiredRoleIds.length) {
       await interaction.editReply({
-        content: `You need ${formatRequiredRole(event.required_role_id)} to sign up for this event.`,
+        content: `You need one of these roles to sign up for this event: ${formatRoleList(effectiveRequiredRoleIds)}.`,
         allowedMentions: { parse: [] },
       });
       return;

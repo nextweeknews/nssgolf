@@ -27,6 +27,17 @@ on public.events (guild_id, name_key);
 create index if not exists events_guild_created_at_idx
 on public.events (guild_id, created_at desc);
 
+create table if not exists public.event_required_roles (
+  event_id uuid not null references public.events(id) on delete cascade,
+  guild_id text not null check (guild_id ~ '^[0-9]+$'),
+  role_id text not null check (role_id ~ '^[0-9]+$'),
+  created_at timestamptz not null default now(),
+  primary key (event_id, role_id)
+);
+
+create index if not exists event_required_roles_role_idx
+on public.event_required_roles (guild_id, role_id);
+
 create table if not exists public.event_blocked_roles (
   event_id uuid not null references public.events(id) on delete cascade,
   guild_id text not null check (guild_id ~ '^[0-9]+$'),
@@ -136,6 +147,34 @@ before insert or update of event_id on public.event_signup_display_messages
 for each row
 execute function public.set_event_signup_display_event_fields();
 
+create or replace function public.set_event_required_role_event_fields()
+returns trigger
+language plpgsql
+as $$
+declare
+  matched_event public.events%rowtype;
+begin
+  select *
+  into matched_event
+  from public.events
+  where id = new.event_id;
+
+  if not found then
+    raise exception 'event_id does not reference an event'
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  new.guild_id = matched_event.guild_id;
+  return new;
+end;
+$$;
+
+drop trigger if exists set_event_required_role_event_fields on public.event_required_roles;
+create trigger set_event_required_role_event_fields
+before insert or update of event_id on public.event_required_roles
+for each row
+execute function public.set_event_required_role_event_fields();
+
 create or replace function public.set_event_blocked_role_event_fields()
 returns trigger
 language plpgsql
@@ -214,6 +253,7 @@ when (old.name is distinct from new.name)
 execute function public.sync_event_signup_event_name();
 
 alter table public.events enable row level security;
+alter table public.event_required_roles enable row level security;
 alter table public.event_blocked_roles enable row level security;
 alter table public.event_signups enable row level security;
 alter table public.event_signup_display_messages enable row level security;
@@ -221,6 +261,20 @@ alter table public.event_signup_display_messages enable row level security;
 drop policy if exists "discord users can view signup events" on public.events;
 create policy "discord users can view signup events"
 on public.events
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.profiles p
+    where p.user_id = (select auth.uid())
+      and p.discord_user_id is not null
+  )
+);
+
+drop policy if exists "discord users can view event required roles" on public.event_required_roles;
+create policy "discord users can view event required roles"
+on public.event_required_roles
 for select
 to authenticated
 using (
@@ -279,13 +333,31 @@ with check (
       and e.guild_id = event_signups.guild_id
       and (e.deadline_at is null or now() < e.deadline_at)
       and (
-        e.required_role_id is null
-        or exists (
+        exists (
           select 1
-          from public.discord_member_roles r
-          where r.guild_id = e.guild_id
+          from public.event_required_roles rr
+          join public.discord_member_roles r
+            on r.guild_id = rr.guild_id
+            and r.role_id = rr.role_id
             and r.discord_user_id = event_signups.discord_user_id
-            and r.role_id = e.required_role_id
+          where rr.event_id = e.id
+        )
+        or (
+          not exists (
+            select 1
+            from public.event_required_roles rr
+            where rr.event_id = e.id
+          )
+          and (
+            e.required_role_id is null
+            or exists (
+              select 1
+              from public.discord_member_roles r
+              where r.guild_id = e.guild_id
+                and r.discord_user_id = event_signups.discord_user_id
+                and r.role_id = e.required_role_id
+            )
+          )
         )
       )
       and not exists (
@@ -299,6 +371,12 @@ with check (
       )
   )
 );
+
+insert into public.event_required_roles (event_id, guild_id, role_id)
+select id, guild_id, required_role_id
+from public.events
+where required_role_id is not null
+on conflict (event_id, role_id) do nothing;
 
 drop policy if exists "discord users can delete their own event signups" on public.event_signups;
 create policy "discord users can delete their own event signups"
@@ -321,16 +399,19 @@ using (
 );
 
 revoke all on public.events from anon, authenticated;
+revoke all on public.event_required_roles from anon, authenticated;
 revoke all on public.event_blocked_roles from anon, authenticated;
 revoke all on public.event_signups from anon, authenticated;
 revoke all on public.event_signup_display_messages from anon, authenticated;
 
 grant usage on schema public to authenticated;
 grant select on public.events to authenticated;
+grant select on public.event_required_roles to authenticated;
 grant select on public.event_blocked_roles to authenticated;
 grant select, insert, delete on public.event_signups to authenticated;
 
 grant select, insert, update, delete on public.events to service_role;
+grant select, insert, update, delete on public.event_required_roles to service_role;
 grant select, insert, update, delete on public.event_blocked_roles to service_role;
 grant select, insert, update, delete on public.event_signups to service_role;
 grant select, insert, update, delete on public.event_signup_display_messages to service_role;
