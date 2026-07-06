@@ -333,14 +333,24 @@ with check (
       and e.guild_id = event_signups.guild_id
       and (e.deadline_at is null or now() < e.deadline_at)
       and (
-        exists (
-          select 1
-          from public.event_required_roles rr
-          join public.discord_member_roles r
-            on r.guild_id = rr.guild_id
-            and r.role_id = rr.role_id
-            and r.discord_user_id = event_signups.discord_user_id
-          where rr.event_id = e.id
+        (
+          exists (
+            select 1
+            from public.event_required_roles rr
+            where rr.event_id = e.id
+          )
+          and not exists (
+            select 1
+            from public.event_required_roles rr
+            where rr.event_id = e.id
+              and not exists (
+                select 1
+                from public.discord_member_roles r
+                where r.guild_id = rr.guild_id
+                  and r.role_id = rr.role_id
+                  and r.discord_user_id = event_signups.discord_user_id
+              )
+          )
         )
         or (
           not exists (

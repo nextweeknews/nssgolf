@@ -283,7 +283,7 @@ function slashCommands() {
   addNumberedRoleOptions(
     signupCreateCommand,
     "required_role",
-    "Optional role permitted to sign up.",
+    "Optional role required to sign up.",
     signupCreateRoleOptionCount
   );
   addNumberedRoleOptions(
@@ -317,7 +317,7 @@ function slashCommands() {
   addNumberedRoleOptions(
     signupManageCommand,
     "required_role",
-    "Add a role permitted to sign up.",
+    "Add a role required to sign up.",
     signupManageRoleOptionCount
   );
   addNumberedRoleOptions(
@@ -2064,10 +2064,12 @@ async function handleSignupButtonInteraction(interaction) {
     const effectiveRequiredRoleIds = requiredRoleIds.length
       ? requiredRoleIds
       : [normalizeDiscordId(event.required_role_id)].filter(Boolean);
-    const matchedRequiredRoleIds = memberBlockedRoleIds(guildMember, effectiveRequiredRoleIds);
-    if (effectiveRequiredRoleIds.length && !matchedRequiredRoleIds.length) {
+    const missingRequiredRoleIds = effectiveRequiredRoleIds.filter(
+      (roleId) => !memberHasRole(guildMember, roleId)
+    );
+    if (missingRequiredRoleIds.length) {
       await interaction.editReply({
-        content: `You need one of these roles to sign up for this event: ${formatRoleList(effectiveRequiredRoleIds)}.`,
+        content: `You need all of these roles to sign up for this event: ${formatRoleList(effectiveRequiredRoleIds)}.`,
         allowedMentions: { parse: [] },
       });
       return;
