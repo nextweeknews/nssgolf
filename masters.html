@@ -32,6 +32,8 @@
       --qualifier-round-column-width:264px;
       --qualifier-match-height:64px;
       --qualifier-seed-col-width:14px;
+      --qualifier-final-score-width:24px;
+      --qualifier-scorepack-width:24px;
     }
 
     *{ box-sizing:border-box; }
@@ -513,7 +515,7 @@
       position:relative;
       z-index:1;
       display:grid;
-      grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr);
+      grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr) var(--qualifier-scorepack-width);
       align-items:center;
       gap:8px;
       padding:3px 5px 3px 6px;
@@ -522,6 +524,9 @@
       color:var(--muted);
       font-size:10px;
       text-align:left;
+    }
+    .qualifier-match-row.no-score{
+      grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr);
     }
     .qualifier-match-row:first-child{
       border-top-left-radius:10px;
@@ -536,6 +541,35 @@
     }
     .qualifier-match-row + .qualifier-match-row{
       border-top:1px solid rgba(148,163,184,.38);
+    }
+    .qualifier-match-row.winner{
+      background:rgba(var(--region-accent-rgb), .12);
+      border-color:rgba(var(--region-accent-rgb), .55);
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner + .qualifier-match-row{
+      border-top-color:rgba(var(--region-accent-rgb), .44);
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner:first-child::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-top:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
+      border-top-left-radius:inherit;
+      border-top-right-radius:inherit;
+      pointer-events:none;
+    }
+    .qualifier-bracket-grid[data-bracket-mode="actual"] .qualifier-match-row.winner:last-child::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-bottom:1px solid rgba(var(--region-accent-rgb), .44);
+      border-left:1px solid rgba(var(--region-accent-rgb), .44);
+      border-right:1px solid rgba(var(--region-accent-rgb), .44);
+      border-bottom-left-radius:inherit;
+      border-bottom-right-radius:inherit;
+      pointer-events:none;
     }
     .qualifier-match-card:hover::before{
       border-color:rgba(var(--region-accent-rgb), .34);
@@ -556,6 +590,56 @@
       letter-spacing:.02em;
       text-overflow:ellipsis;
       text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .qualifier-player-name,
+    .qualifier-player-name-link{
+      min-width:0;
+      overflow:hidden;
+      color:#fff;
+      font-weight:900;
+      letter-spacing:.02em;
+      text-overflow:ellipsis;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+    .qualifier-player-name-link{
+      text-decoration:none;
+    }
+    .qualifier-player-name-link:hover{
+      color:var(--masters-gold-soft);
+      text-decoration:underline;
+    }
+    .qualifier-player-name.is-placeholder{
+      color:rgba(156,163,199,.72);
+      font-weight:650;
+    }
+    .qualifier-player-scorepack{
+      display:grid;
+      grid-template-columns:var(--qualifier-final-score-width);
+      align-items:center;
+      justify-content:end;
+      justify-items:end;
+      width:var(--qualifier-scorepack-width);
+      min-width:var(--qualifier-scorepack-width);
+    }
+    .qualifier-player-final-score{
+      width:var(--qualifier-final-score-width);
+      height:16px;
+      border:1px solid #fff;
+      border-radius:6px;
+      background:#fff;
+      color:#000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      justify-self:stretch;
+      padding:0;
+      font-size:10px;
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+      line-height:1;
+      text-align:center;
       white-space:nowrap;
     }
     @media (max-width:760px){
@@ -712,7 +796,9 @@
 
         <section class="qualifier-tournament-bracket" aria-labelledby="qualifierTournamentBracketTitle">
           <h2 class="section-title" id="qualifierTournamentBracketTitle">Qualifier Tournament Bracket</h2>
-          <div class="coming-soon">COMING SOON</div>
+          <div class="qualifier-bracket-scroll">
+            <div class="qualifier-bracket-grid" id="qualifierTournamentBracketGrid" data-bracket-mode="actual"></div>
+          </div>
         </section>
       </section>
 
@@ -734,7 +820,7 @@
     const VIEW_QUERY_PARAM = "view";
     const MASTERS_SHEET = {
       sheetId:"16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE",
-      qualifiersRange:"'Qualifiers'!A:C",
+      qualifiersRange:"'Qualifiers'!A:N",
     };
     const BRACKET_ROUNDS = [
       { key:"R16", label:"Round of 16", matches:8 },
@@ -746,6 +832,8 @@
     const state = {
       view:"qualifiers",
       qualifiers:[],
+      qualifierBracketParticipants:[],
+      qualifierBracketMatches:[],
       members:new Map(),
       loading:true,
       error:"",
@@ -758,6 +846,7 @@
       qualifiersTableBody:document.getElementById("qualifiersTableBody"),
       qualifiersPanel:document.getElementById("qualifiersPanel"),
       bracketPanel:document.getElementById("bracketPanel"),
+      qualifierTournamentBracketGrid:document.getElementById("qualifierTournamentBracketGrid"),
       bracketGrid:document.getElementById("mastersBracketGrid"),
     };
 
@@ -770,6 +859,10 @@
       const mentionMatch = text.match(/^<@!?(\d+)>$/);
       const raw = mentionMatch ? mentionMatch[1] : text.replace(/[^\d]/g, "");
       return /^\d{5,}$/.test(raw) ? raw : "";
+    }
+
+    function normalizeNameKey(value){
+      return normalizeText(value).toLowerCase().replace(/\s+/g, " ");
     }
 
     function escapeHtml(value){
@@ -893,6 +986,88 @@
         .filter(row => row.discordId && row.qualifications.length);
     }
 
+    function normalizeBracketRound(value){
+      const text = normalizeText(value);
+      const normalized = text.toLowerCase().replace(/[\s_-]+/g, "");
+      if(["r16", "roundof16", "16"].includes(normalized)) return "R16";
+      if(["r8", "roundof8", "quarterfinal", "quarterfinals", "qf", "8"].includes(normalized)) return "R8";
+      if(["r4", "roundof4", "semifinal", "semifinals", "sf", "4"].includes(normalized)) return "R4";
+      if(["f", "final", "finals", "championship"].includes(normalized)) return "Final";
+      return text;
+    }
+
+    function bracketScore(value){
+      const text = normalizeText(value);
+      if(!text) return "";
+      const number = Number(text);
+      return Number.isFinite(number) ? String(number) : text;
+    }
+
+    function parseQualifierBracketParticipants(rows){
+      const participants = [];
+      rows.forEach((row) => {
+        const bracketDiscordId = normalizeDiscordId(row?.[4]);
+        const bracketName = normalizeText(row?.[5]);
+        if(bracketDiscordId && bracketName) participants.push({ discordId:bracketDiscordId, name:bracketName });
+
+        const qualifierDiscordId = normalizeDiscordId(row?.[0]);
+        const qualifierName = normalizeText(row?.[1]);
+        if(qualifierDiscordId && qualifierName) participants.push({ discordId:qualifierDiscordId, name:qualifierName });
+      });
+      return participants;
+    }
+
+    function qualifierBracketParticipantMap(participants){
+      const discordIdsByName = new Map();
+      participants.forEach((participant) => {
+        discordIdsByName.set(normalizeNameKey(participant.name), participant.discordId);
+      });
+      return discordIdsByName;
+    }
+
+    function qualifierBracketSortValue(match){
+      const idText = normalizeText(match?.id);
+      const exact = Number(idText);
+      if(Number.isFinite(exact)) return exact;
+      const embedded = idText.match(/\d+/);
+      return embedded ? Number(embedded[0]) : Number(match?.sourceIndex || 0);
+    }
+
+    function qualifierBracketSlot({ name, score, discordIdsByName }){
+      return {
+        seed:null,
+        name:normalizeText(name),
+        discordId:discordIdsByName.get(normalizeNameKey(name)) || "",
+        score:bracketScore(score),
+      };
+    }
+
+    function parseQualifierBracketMatches(rows, participants){
+      const discordIdsByName = qualifierBracketParticipantMap(participants);
+      return rows
+        .map((row, index) => ({
+          id:normalizeText(row?.[7]) || `${index + 1}`,
+          sourceIndex:index,
+          round:normalizeBracketRound(row?.[8]),
+          top:qualifierBracketSlot({
+            name:row?.[9],
+            score:row?.[10],
+            discordIdsByName,
+          }),
+          bottom:qualifierBracketSlot({
+            name:row?.[11],
+            score:row?.[12],
+            discordIdsByName,
+          }),
+          winner:normalizeText(row?.[13]),
+        }))
+        .filter(match => (
+          BRACKET_ROUNDS.some(round => round.key === match.round) &&
+          match.id
+        ))
+        .sort((left, right) => qualifierBracketSortValue(left) - qualifierBracketSortValue(right));
+    }
+
     function qualificationKind(qualification){
       const text = normalizeText(qualification);
       if(/^defending champion$/i.test(text)) return "defending";
@@ -956,7 +1131,10 @@
     }
 
     async function loadMembers(){
-      const ids = [...new Set(state.qualifiers.map(row => normalizeDiscordId(row.discordId)).filter(Boolean))];
+      const ids = [...new Set([
+        ...state.qualifiers.map(row => normalizeDiscordId(row.discordId)),
+        ...state.qualifierBracketParticipants.map(row => normalizeDiscordId(row.discordId)),
+      ].filter(Boolean))];
       if(!ids.length) return;
       const chunks = [];
       for(let index = 0; index < ids.length; index += 100){
@@ -1007,6 +1185,70 @@
       `).join("");
     }
 
+    function renderQualifierBracketPlayerName(slot){
+      const name = normalizeText(slot?.name);
+      if(!name) return `<span class="qualifier-player-name is-placeholder">&nbsp;</span>`;
+      const safeName = escapeHtml(name);
+      const discordId = normalizeDiscordId(slot?.discordId);
+      if(!discordId) return `<span class="qualifier-player-name">${safeName}</span>`;
+      return `<a class="qualifier-player-name-link" href="/player.html?id=${encodeURIComponent(discordId)}" aria-label="View ${safeName}'s player page">${safeName}</a>`;
+    }
+
+    function renderQualifierBracketScore(slot){
+      return `<span class="qualifier-player-scorepack"><span class="qualifier-player-final-score">${escapeHtml(slot?.score || "-")}</span></span>`;
+    }
+
+    function renderQualifierBracketRow(match, slot, { showScore = true } = {}){
+      const isWinner = normalizeText(match?.winner) && normalizeNameKey(match.winner) === normalizeNameKey(slot?.name);
+      const rowClasses = [
+        "qualifier-match-row",
+        showScore ? "" : "no-score",
+        isWinner ? "winner" : "",
+      ].filter(Boolean).join(" ");
+      return `
+        <div class="${rowClasses}" data-match-id="${escapeHtml(match?.id || "")}" data-name="${escapeHtml(slot?.name || "")}">
+          <span class="qualifier-player-seed">${escapeHtml(slot?.seed ?? "")}</span>
+          ${renderQualifierBracketPlayerName(slot)}
+          ${showScore ? renderQualifierBracketScore(slot) : ""}
+        </div>
+      `;
+    }
+
+    function emptyQualifierBracketMatch(roundKey, index){
+      return {
+        id:`${roundKey}-${index + 1}`,
+        round:roundKey,
+        top:{ seed:null, name:"", discordId:"", score:"" },
+        bottom:{ seed:null, name:"", discordId:"", score:"" },
+        winner:"",
+      };
+    }
+
+    function qualifierBracketGroups(matches){
+      return BRACKET_ROUNDS.map((round) => {
+        const roundMatches = matches.filter(match => match.round === round.key);
+        const paddedMatches = Array.from({ length:round.matches }, (_, index) => roundMatches[index] || emptyQualifierBracketMatch(round.key, index));
+        return { ...round, matches:paddedMatches };
+      });
+    }
+
+    function renderQualifierTournamentBracket(){
+      if(!els.qualifierTournamentBracketGrid) return;
+      if(state.loading){
+        renderBracketGrid(els.qualifierTournamentBracketGrid, []);
+        return;
+      }
+      if(state.error){
+        els.qualifierTournamentBracketGrid.innerHTML = "";
+        return;
+      }
+      if(!state.qualifierBracketMatches.length){
+        els.qualifierTournamentBracketGrid.innerHTML = `<p class="empty-state">No qualifier bracket data available yet.</p>`;
+        return;
+      }
+      renderBracketGrid(els.qualifierTournamentBracketGrid, state.qualifierBracketMatches);
+    }
+
     function renderQualifiers(){
       if(state.loading){
         els.qualifiersStatus.hidden = false;
@@ -1014,6 +1256,7 @@
         els.qualifiersStatus.textContent = "Loading qualifiers...";
         els.defendingChampionMount.innerHTML = "";
         els.qualifiersTableWrap.hidden = true;
+        renderQualifierTournamentBracket();
         return;
       }
       if(state.error){
@@ -1022,6 +1265,7 @@
         els.qualifiersStatus.textContent = state.error;
         els.defendingChampionMount.innerHTML = "";
         els.qualifiersTableWrap.hidden = true;
+        renderQualifierTournamentBracket();
         return;
       }
       if(!state.qualifiers.length){
@@ -1030,42 +1274,44 @@
         els.qualifiersStatus.textContent = "No qualifiers available yet.";
         els.defendingChampionMount.innerHTML = "";
         els.qualifiersTableWrap.hidden = true;
+        renderQualifierTournamentBracket();
         return;
       }
       els.qualifiersStatus.hidden = true;
       renderDefendingChampion();
       renderQualifierTable();
+      renderQualifierTournamentBracket();
     }
 
-    function renderBlankBracket(){
+    function renderBracketGrid(target, matches = [], { showScores = true } = {}){
+      const groups = qualifierBracketGroups(matches);
       const baseRoundGap = 8;
       const matchBlockHeight = 64;
       const baseRoundStep = matchBlockHeight + (baseRoundGap * 2);
-      els.bracketGrid.innerHTML = BRACKET_ROUNDS.map((round, roundIndex) => {
+      target.dataset.bracketMode = "actual";
+      target.innerHTML = groups.map((round, roundIndex) => {
         const roundMultiplier = 2 ** roundIndex;
         const roundGap = Math.round((baseRoundStep * roundMultiplier - matchBlockHeight) / 2);
         const roundTopPadding = roundIndex === 0 ? 0 : Math.round((baseRoundStep * (roundMultiplier - 1)) / 2);
-        const matches = Array.from({ length:round.matches }, () => `
+        const matchesMarkup = round.matches.map((match) => `
           <div class="qualifier-bracket-match">
             <div class="qualifier-match-card">
-              <div class="qualifier-match-row">
-                <span class="qualifier-player-seed"></span>
-                <span class="qualifier-bracket-player-name">&nbsp;</span>
-              </div>
-              <div class="qualifier-match-row">
-                <span class="qualifier-player-seed"></span>
-                <span class="qualifier-bracket-player-name">&nbsp;</span>
-              </div>
+              ${renderQualifierBracketRow(match, match.top, { showScore:showScores })}
+              ${renderQualifierBracketRow(match, match.bottom, { showScore:showScores })}
             </div>
           </div>
         `).join("");
         return `
           <div class="qualifier-round-column" style="--qualifier-round-gap:${roundGap}px;--qualifier-round-padding-top:${roundTopPadding}px;">
             <h3 class="qualifier-round-title">${escapeHtml(round.label)}</h3>
-            <div class="qualifier-round-stack">${matches}</div>
+            <div class="qualifier-round-stack">${matchesMarkup}</div>
           </div>
         `;
       }).join("");
+    }
+
+    function renderBlankBracket(){
+      renderBracketGrid(els.bracketGrid, [], { showScores:false });
     }
 
     function isValidView(view){
@@ -1104,11 +1350,15 @@
       try{
         const rows = await fetchSheetRange(MASTERS_SHEET.sheetId, MASTERS_SHEET.qualifiersRange);
         state.qualifiers = parseQualifierRows(rows);
+        state.qualifierBracketParticipants = parseQualifierBracketParticipants(rows);
+        state.qualifierBracketMatches = parseQualifierBracketMatches(rows, state.qualifierBracketParticipants);
         await loadMembers();
       }catch(error){
         console.error("Unable to load World Golf Masters qualifiers.", error);
         state.error = error?.message || "Unable to load qualifiers.";
         state.qualifiers = [];
+        state.qualifierBracketParticipants = [];
+        state.qualifierBracketMatches = [];
       }finally{
         state.loading = false;
         renderQualifiers();
