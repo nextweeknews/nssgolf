@@ -1624,6 +1624,7 @@
     const TOURNAMENT_GPI_DISTRIBUTION_SCALE = 1.5;
     const TOURNAMENT_GPI_DISTRIBUTION_SHRINKAGE_WEIGHTED_MATCHES = 20;
     const TOURNAMENT_NEGATIVE_EVIDENCE_FULL_UPSET_LOSSES = 2;
+    const TOURNAMENT_NEGATIVE_EVIDENCE_MIN_UPSET_LOSS = 1;
     const PLAYER_SEARCH_LIMIT = 8;
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const FETCH_NO_STORE = { cache:"no-store" };
@@ -2045,15 +2046,20 @@
         const loserRating = ratingById.get(loser);
         const winnerRating = ratingById.get(winner);
         const expectedWin = tournamentWinProbabilityFromRatings(loserRating, winnerRating);
-        addEvidence(loser, Math.max(0, (expectedWin - 0.5) * 2));
+        if(expectedWin <= 0.5) continue;
+        const upsetStrength = (expectedWin - 0.5) * 2;
+        addEvidence(
+          loser,
+          TOURNAMENT_NEGATIVE_EVIDENCE_MIN_UPSET_LOSS + upsetStrength
+        );
       }
 
       return new Map([...evidenceById.entries()].map(([discordId, evidence]) => {
-        const progress = Math.min(
+        const confidence = Math.min(
           1,
           Math.max(0, evidence / TOURNAMENT_NEGATIVE_EVIDENCE_FULL_UPSET_LOSSES)
         );
-        return [discordId, progress * progress * (3 - (2 * progress))];
+        return [discordId, confidence];
       }));
     }
 
