@@ -1025,6 +1025,8 @@
 
     .qualifier-third-place-match{
       min-height: 56px;
+      display:grid;
+      gap:8px;
     }
 
     .qualifier-qualifications{
@@ -1917,8 +1919,8 @@
                 <div class="qualifier-third-place-match" id="winnerThirdPlaceMatch"></div>
               </section>
 
-              <section class="qualifier-bracket" aria-label="Losers bracket third place game">
-                <h2 class="qualifier-title">Losers Bracket 3rd Place</h2>
+              <section class="qualifier-bracket" id="loserThirdPlaceSection" aria-label="Losers bracket third place game">
+                <h2 class="qualifier-title" id="loserThirdPlaceTitle">Losers Bracket 3rd Place</h2>
                 <div class="qualifier-third-place-match" id="loserThirdPlaceMatch"></div>
               </section>
             </div>
@@ -2090,6 +2092,7 @@
     const WINNER_THIRD_PLACE_RANGE = "A68:H68";
     const LOSER_BRACKET_RANGE = "A4:H62";
     const LOSER_THIRD_PLACE_RANGE = "A62:H62";
+    const LOSER_PLAY_IN_RANGE_S7 = "A62:H63";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "PLAY-IN", "L6", "L7", "L8", "L9"];
     const PLAYOFF_RANGE = "I87:AB92";
@@ -2135,6 +2138,14 @@
 
     function hasWinnersBracketThirdPlace(){
       return getActiveSeasonNumber() < 7;
+    }
+
+    function hasLosersBracketPlayInPanel(){
+      return getActiveSeasonNumber() >= 7;
+    }
+
+    function getLoserPlacementRange(){
+      return hasLosersBracketPlayInPanel() ? LOSER_PLAY_IN_RANGE_S7 : LOSER_THIRD_PLACE_RANGE;
     }
 
     function usesHeadToHeadTiebreaker(){
@@ -3705,31 +3716,45 @@
       updateBracketPagination(config);
     }
 
-    function renderThirdPlaceMatch(values, elementId, emptyLabel, options = {}){
+    function renderPlacementMatches(values, elementId, emptyLabel, options = {}){
       const containerEl = document.getElementById(elementId);
       if(!containerEl) return;
       containerEl.innerHTML = "";
 
-      const matchup = parseQualifierBracketRows(values)[0];
-      if(!matchup){
+      const matchups = parseQualifierBracketRows(values);
+      if(!matchups.length){
         containerEl.innerHTML = `<p class="schedule-empty" style="text-align:center;">No ${escapeHtml(emptyLabel)} data available yet.</p>`;
         return;
       }
 
-      const matchEl = renderQualifierBracketMatch(matchup, {
-        styleLoserPlaceholders: !!options.styleLoserPlaceholders,
+      matchups.forEach((matchup) => {
+        const matchEl = renderQualifierBracketMatch(matchup, {
+          styleLoserPlaceholders: !!options.styleLoserPlaceholders,
+        });
+        containerEl.appendChild(matchEl);
       });
-      containerEl.appendChild(matchEl);
     }
 
     function updateQualifierThirdPlaceLayout(){
       const gridEl = document.querySelector(".qualifier-third-place-grid");
       const winnerSectionEl = document.getElementById("winnerThirdPlaceSection");
+      const loserSectionEl = document.getElementById("loserThirdPlaceSection");
+      const loserTitleEl = document.getElementById("loserThirdPlaceTitle");
       if(!gridEl || !winnerSectionEl) return;
 
       const showWinnerThirdPlace = hasWinnersBracketThirdPlace();
       winnerSectionEl.hidden = !showWinnerThirdPlace;
       gridEl.classList.toggle("is-single", !showWinnerThirdPlace);
+
+      if(loserSectionEl){
+        loserSectionEl.setAttribute(
+          "aria-label",
+          hasLosersBracketPlayInPanel() ? "Losers bracket play-in games" : "Losers bracket third place game",
+        );
+      }
+      if(loserTitleEl){
+        loserTitleEl.textContent = hasLosersBracketPlayInPanel() ? "Losers Bracket Play-in" : "Losers Bracket 3rd Place";
+      }
     }
 
     const winnerBracketConfig = {
@@ -3824,18 +3849,18 @@
           fetchRange(QUALIFIER_BRACKET_RANGE, qualifierBracketSheet),
           fetchRange(LOSER_BRACKET_RANGE, loserBracketSheet),
           hasWinnersBracketThirdPlace() ? fetchRange(WINNER_THIRD_PLACE_RANGE, qualifierBracketSheet) : Promise.resolve([]),
-          fetchRange(LOSER_THIRD_PLACE_RANGE, loserBracketSheet),
+          fetchRange(getLoserPlacementRange(), loserBracketSheet),
         ]);
         updateQualifierThirdPlaceLayout();
         renderQualifierSeeds(qualifierValues);
         renderDivisionQualifications(divisionQualificationValues);
         if(hasWinnersBracketThirdPlace()){
-          renderThirdPlaceMatch(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+          renderPlacementMatches(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
         }else{
           const winnerThirdPlaceEl = document.getElementById("winnerThirdPlaceMatch");
           if(winnerThirdPlaceEl) winnerThirdPlaceEl.innerHTML = "";
         }
-        renderThirdPlaceMatch(loserThirdPlaceValues, "loserThirdPlaceMatch", "losers bracket 3rd place game", {
+        renderPlacementMatches(loserThirdPlaceValues, "loserThirdPlaceMatch", hasLosersBracketPlayInPanel() ? "losers bracket play-in games" : "losers bracket 3rd place game", {
           styleLoserPlaceholders: true,
         });
         renderBracket(winnerBracketValues, winnerBracketConfig);
@@ -3846,12 +3871,12 @@
         renderQualifierSeeds([]);
         renderDivisionQualifications([]);
         if(hasWinnersBracketThirdPlace()){
-          renderThirdPlaceMatch([], "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+          renderPlacementMatches([], "winnerThirdPlaceMatch", "winners bracket 3rd place game");
         }else{
           const winnerThirdPlaceEl = document.getElementById("winnerThirdPlaceMatch");
           if(winnerThirdPlaceEl) winnerThirdPlaceEl.innerHTML = "";
         }
-        renderThirdPlaceMatch([], "loserThirdPlaceMatch", "losers bracket 3rd place game", {
+        renderPlacementMatches([], "loserThirdPlaceMatch", hasLosersBracketPlayInPanel() ? "losers bracket play-in games" : "losers bracket 3rd place game", {
           styleLoserPlaceholders: true,
         });
         renderBracket([], winnerBracketConfig);
