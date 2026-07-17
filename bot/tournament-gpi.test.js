@@ -1,9 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { replayPlackettLuceGpi } = require("./internal-ranked-core");
 const {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
+  buildWorldChampionshipMatchesFromRows,
+  defaultTournamentPlShrinkageMatches,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
@@ -27,6 +30,7 @@ const identityMap = {
 
 {
   assert.equal(superLeagueDiscordIdsRange, "A:B");
+  assert.equal(defaultTournamentPlShrinkageMatches, 0);
   assert.equal(normalizeDiscordId("<@!123456789012345678>"), "123456789012345678");
   assert.equal(normalizeDiscordId("123456789012345678"), "123456789012345678");
   assert.equal(normalizeDiscordId("abc123def"), "");
@@ -57,6 +61,36 @@ const identityMap = {
   assert.equal(winnerFromHigherScore("8", "8"), "");
   assert.equal(winnerFromLowerScore("-3", "-1"), "a");
   assert.equal(winnerFromLowerScore("+2", "0"), "b");
+}
+
+{
+  const replay = replayPlackettLuceGpi([
+    {
+      match_hash: "full-confidence-tournament",
+      season: 1,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: {
+        timestamp: 1_000,
+        versus: "1v1",
+        team_sizes: [1, 1],
+        results: [
+          { place: 1, players: [{ player_id: "100", display_name: "Alice" }] },
+          { place: 2, players: [{ player_id: "200", display_name: "Bob" }] },
+        ],
+      },
+    },
+  ], {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: defaultTournamentPlShrinkageMatches,
+    matchWeightMultiplier: 2,
+    reliabilityBasis: "weighted_matches",
+  });
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+
+  assert.equal(winner.reliability, 1);
+  assert.equal(winner.rating, winner.raw_rating);
 }
 
 {
@@ -141,6 +175,32 @@ const identityMap = {
   assert.equal(matches.length, 1);
   assert.equal(matches[0].id, 1);
   assert.equal(matches[0].winner, "Alice");
+}
+
+{
+  const completed = Array(26).fill("");
+  completed[0] = 64;
+  completed[1] = "Championship";
+  completed[2] = 1;
+  completed[3] = "Alice";
+  completed[4] = "3";
+  completed[5] = "W";
+  completed[14] = 2;
+  completed[15] = "Bob";
+  completed[16] = "1";
+  completed[17] = "L";
+
+  const matches = buildWorldChampionshipMatchesFromRows([
+    ["id", "round"],
+    completed,
+    ["bad", "R64"],
+  ]);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].id, 64);
+  assert.equal(matches[0].round, "Final");
+  assert.equal(matches[0].top.name, "Alice");
+  assert.equal(matches[0].top.gameScores[0], "W");
+  assert.equal(matches[0].bottom.name, "Bob");
 }
 
 console.log("tournament GPI tests passed");
