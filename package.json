@@ -29,7 +29,7 @@
     "proleague:aliases:import": "node bot/proleague-player-aliases.js import",
     "sync:player-shell": "node scripts/sync-player-shell.js --write",
     "test:global-ranks": "node bot/global-ranks-core.test.js",
-    "test:internal-ranked": "node bot/internal-ranked-core.test.js",
+    "test:internal-ranked": "node bot/internal-ranked-core.test.js && node bot/internal-ranked.test.js",
     "test:tournament-gpi": "node bot/tournament-gpi.test.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
