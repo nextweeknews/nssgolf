@@ -1554,6 +1554,10 @@
             <code>tournament_reliability = min(1, tournament_weighted_matches / 20)</code>
           </li>
           <li>
+            <span class="formula-label">Distribution Scale</span>
+            <code>displayed_tournament_rating = base_rating + 2 * (tournament_rating - base_rating)</code>
+          </li>
+          <li>
             <span class="formula-label">Recency</span>
             <code>recency_weight = none</code>
           </li>
@@ -1607,6 +1611,7 @@
     const modalBodyEl = document.getElementById("modalBody");
     const modalCloseEl = document.getElementById("modalClose");
     const PAGE_SIZE = 100;
+    const DEFAULT_GPI_BASE_RATING = 1200;
     const COMBINED_MIN_TOURNAMENT_MATCHES = 3;
     const COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES = 20;
     const COMBINED_TANH_SCALE = 1.5;
@@ -1614,6 +1619,7 @@
     const COMBINED_NEGATIVE_SCALE = 60;
     const COMBINED_PROVISIONAL_TOURNAMENT_WEIGHT = 0.75;
     const COMBINED_PROVISIONAL_SOS_WEIGHT = 0.25;
+    const TOURNAMENT_GPI_DISTRIBUTION_SCALE = 2;
     const PLAYER_SEARCH_LIMIT = 8;
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const FETCH_NO_STORE = { cache:"no-store" };
@@ -1955,6 +1961,19 @@
       return targetStats.mean + (zScore(value, sourceStats) * targetStats.std);
     }
 
+    function tournamentGpiBaseRating(run = latestRun){
+      const tournamentRun = run?.tournament || run;
+      const baseRating = Number(tournamentRun?.base_rating);
+      return Number.isFinite(baseRating) ? baseRating : DEFAULT_GPI_BASE_RATING;
+    }
+
+    function scaleTournamentGpiRating(value, run = latestRun){
+      const rating = Number(value);
+      if(!Number.isFinite(rating)) return value;
+      const baseRating = tournamentGpiBaseRating(run);
+      return baseRating + ((rating - baseRating) * TOURNAMENT_GPI_DISTRIBUTION_SCALE);
+    }
+
     function tournamentAdjustmentFromDelta(deltaZ, reliability){
       const scale = deltaZ >= 0 ? COMBINED_POSITIVE_SCALE : COMBINED_NEGATIVE_SCALE;
       return reliability * scale * Math.tanh(deltaZ / COMBINED_TANH_SCALE);
@@ -2061,7 +2080,10 @@
         const matches = Number(row.matches_played) || 0;
         if(matches < config.minMatches) continue;
 
-        const rating = Number(row.rating) || 0;
+        const storedRating = Number(row.rating) || 0;
+        const rating = currentView === "tournament"
+          ? scaleTournamentGpiRating(storedRating)
+          : storedRating;
         const firstPlaceFinishes = Number(row.first_place_finishes) || 0;
         const wins = Number(row.pairwise_wins) || 0;
         const losses = Number(row.pairwise_losses) || 0;
@@ -2080,7 +2102,8 @@
           rank:"",
           rating,
           ratingNumber: rating,
-          rawRating: Number(row.raw_rating) || rating,
+          storedRating,
+          rawRating: Number(row.raw_rating) || storedRating,
           fullHistoryRating,
           potentialRating,
           recentFormRating,
@@ -2205,6 +2228,9 @@
           tournamentDelta = tournamentAdjustmentFromDelta(tournamentDeltaZ, tournamentReliability);
         }
 
+        const displayedTournamentRating = tournamentRating == null
+          ? null
+          : scaleTournamentGpiRating(tournamentRating, latestRun);
         const rating = row.rankedRating + tournamentDelta;
         return {
           ...row.rankedRow,
@@ -2222,7 +2248,8 @@
           lifetimeRating: Number(row.rankedRow.full_history_rating) || row.rankedRating,
           potentialRating: Number(row.rankedRow.potential_rating) || row.rankedRating,
           recentRating: Number(row.rankedRow.recent_form_rating) || row.rankedRating,
-          tournamentRating,
+          tournamentRating: displayedTournamentRating,
+          storedTournamentRating: tournamentRating,
           tournamentRank: Number(tournamentRow?.rank) || 0,
           tournamentDelta,
           tournamentDeltaNumber: tournamentDelta,
@@ -2246,6 +2273,10 @@
         const tournamentRating = Number(tournamentRow.rating) || 0;
         const tournamentWeightedMatches = Number(tournamentRow.weighted_matches) || 0;
         const tournamentStrengthOfSchedule = tournamentStrengthById.get(discordId);
+        const displayedTournamentRating = scaleTournamentGpiRating(tournamentRating, latestRun);
+        const displayedTournamentStrengthOfSchedule = Number.isFinite(tournamentStrengthOfSchedule)
+          ? scaleTournamentGpiRating(tournamentStrengthOfSchedule, latestRun)
+          : tournamentStrengthOfSchedule;
         const normalizedTournamentRating = hasBridge
           ? normalizeRatingToStats(tournamentRating, tournamentStats, rankedStats)
           : tournamentRating;
@@ -2277,7 +2308,8 @@
           lifetimeRating: null,
           potentialRating: null,
           recentRating: null,
-          tournamentRating,
+          tournamentRating: displayedTournamentRating,
+          storedTournamentRating: tournamentRating,
           tournamentRank: Number(tournamentRow.rank) || 0,
           tournamentDelta: null,
           tournamentDeltaNumber: null,
@@ -2288,7 +2320,8 @@
           ),
           tournamentMatches,
           tournamentWeightedMatches,
-          tournamentStrengthOfSchedule,
+          tournamentStrengthOfSchedule: displayedTournamentStrengthOfSchedule,
+          storedTournamentStrengthOfSchedule: tournamentStrengthOfSchedule,
           matchesNumber: tournamentMatches,
         });
       }
