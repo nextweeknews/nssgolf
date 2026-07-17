@@ -570,6 +570,15 @@
       align-items:start;
     }
 
+    #promotionScheduleGrid{
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      justify-content:center;
+      max-width: 740px;
+      margin-left:auto;
+      margin-right:auto;
+      width:100%;
+    }
+
     .schedule-division{
       border: 1px solid var(--border-lite);
       border-radius: 16px;
@@ -3980,8 +3989,8 @@
       const promotionToD1 = values.slice(2, 7);
       const promotionToD2 = values.slice(9, 13);
       gridEl.innerHTML = "";
-      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 1", "Top 2", promotionToD1, "division-1"));
-      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 2", "Top 2", promotionToD2, "division-2"));
+      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 1", "Rank", promotionToD1, "division-1"));
+      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 2", "Rank", promotionToD2, "division-2"));
     }
 
     function renderPromotionSchedule(values){
