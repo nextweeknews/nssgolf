@@ -1029,6 +1029,10 @@
       gap:8px;
     }
 
+    .qualifier-third-place-match.is-play-in{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .qualifier-qualifications{
       border: 1px solid var(--border-lite);
       border-radius: 16px;
@@ -1619,6 +1623,7 @@
       .division-card{ padding: 10px; }
       .format-table-wrap{ padding: 8px; }
       table.format-table{ min-width: 680px; font-size: 11px; }
+      .qualifier-third-place-match.is-play-in{ grid-template-columns: 1fr; }
       .qualifier-round-stack{ gap: var(--qualifier-round-gap, 8px); }
       .qualifier-round-stack .qualifier-bracket-match:first-child{
         padding-top: var(--qualifier-round-padding-top, 0px);
@@ -3740,6 +3745,7 @@
       const winnerSectionEl = document.getElementById("winnerThirdPlaceSection");
       const loserSectionEl = document.getElementById("loserThirdPlaceSection");
       const loserTitleEl = document.getElementById("loserThirdPlaceTitle");
+      const loserMatchEl = document.getElementById("loserThirdPlaceMatch");
       if(!gridEl || !winnerSectionEl) return;
 
       const showWinnerThirdPlace = hasWinnersBracketThirdPlace();
@@ -3754,6 +3760,9 @@
       }
       if(loserTitleEl){
         loserTitleEl.textContent = hasLosersBracketPlayInPanel() ? "Losers Bracket Play-in" : "Losers Bracket 3rd Place";
+      }
+      if(loserMatchEl){
+        loserMatchEl.classList.toggle("is-play-in", hasLosersBracketPlayInPanel());
       }
     }
 
