@@ -13,7 +13,7 @@ const {
   replayPlackettLuceGpi,
 } = require("./internal-ranked-core");
 
-const CALCULATION_VERSION = "tournament-flat-pl-gpi-v1";
+const CALCULATION_VERSION = "tournament-flat-pl-gpi-v2";
 const defaultSupabaseUrl = "https://kwaprkwemtxizorpnrzq.supabase.co";
 const workerUrl = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const superLeagueSheetId = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
@@ -24,7 +24,7 @@ const superLeagueDiscordIdsRange = "A:B";
 const worldOpenDiscordIdsRange = "A:B";
 const syntheticStartMs = Date.UTC(2026, 0, 1, 0, 0, 0);
 const tournamentMatchWeightMultiplier = 2;
-const defaultTournamentPlShrinkageMatches = 20;
+const defaultTournamentPlShrinkageMatches = 0;
 
 const eventOrder = [
   { key: "super_league_s5", name: "Super League Season 5" },
@@ -65,7 +65,8 @@ Options:
   --rating-scale <number>  PL log-skill to rating scale. Default: ${DEFAULT_PL_RATING_SCALE.toFixed(6)}
   --pl-prior <number>      PL population-average prior strength. Default: ${DEFAULT_PL_PRIOR_STRENGTH}
   --pl-shrinkage-matches <number>
-                           Weighted match count for full PL reliability. Default: ${defaultTournamentPlShrinkageMatches}
+                           Weighted match count for rating shrinkage. Use 0 for full
+                           fitted Tournament GPI. Default: ${defaultTournamentPlShrinkageMatches}
   --pl-iterations <number> Max PL fit iterations. Default: ${DEFAULT_PL_MAX_ITERATIONS}
   --pl-tolerance <number>  PL convergence tolerance. Default: ${DEFAULT_PL_TOLERANCE}
 
@@ -912,7 +913,9 @@ async function replayStoredTournamentMatches(options) {
         prior_strength: options.plPrior,
         shrinkage_matches: options.plShrinkageMatches,
         shrinkage_basis:
-          "weighted_tournament_matches_reaches_full_reliability_at_20_so_10_raw_matches_are_fully_reliable_with_2x_weight",
+          options.plShrinkageMatches === 0
+            ? "full_confidence_tournament_rating_with_no_match_count_pull_toward_base_rating"
+            : "optional_weighted_match_count_shrinkage_override",
         rating_scale: options.ratingScale,
         convergence: {
           max_iterations: options.plIterations,
@@ -1015,6 +1018,7 @@ module.exports = {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
   buildWorldChampionshipMatchesFromRows,
+  defaultTournamentPlShrinkageMatches,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
