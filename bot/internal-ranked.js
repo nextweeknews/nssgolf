@@ -288,8 +288,8 @@ async function fetchJson(url) {
   return response.json();
 }
 
-async function fetchSeason(season, options, waitForTurn, { cursor: initialCursor = "", newerThanTimestampMs = null } = {}) {
-  let cursor = initialCursor;
+async function fetchSeason(season, options, waitForTurn, { newerThanTimestampMs = null } = {}) {
+  let cursor = "";
   const isIncremental = newerThanTimestampMs != null;
   let totalMatches = null;
   let pageCount = 0;
@@ -336,9 +336,17 @@ async function fetchSeason(season, options, waitForTurn, { cursor: initialCursor
       );
     }
 
+    const pageOrderProblems = validateDescendingMatches(pageMatches);
+    if (pageOrderProblems.length) {
+      throw new Error(`Season ${season}: page ${pageCount + 1} timestamp order check failed:\n${pageOrderProblems.join("\n")}`);
+    }
+
     const newMatches = isIncremental
       ? pageMatches.filter((match) => (timestampFromMatch(match) || 0) > newerThanTimestampMs)
       : pageMatches;
+    const reachedStoredBoundary = isIncremental && pageMatches.some(
+      (match) => (timestampFromMatch(match) || 0) <= newerThanTimestampMs
+    );
     matches.push(...newMatches);
     pageCount += 1;
     console.log(
@@ -346,6 +354,12 @@ async function fetchSeason(season, options, waitForTurn, { cursor: initialCursor
     );
 
     cursor = String(payload.cursor || "");
+    if (reachedStoredBoundary) {
+      console.log(
+        `Season ${season}: reached the newest stored match boundary; stopping incremental fetch.`
+      );
+      break;
+    }
     if (cursor && pageMatches.length !== options.limit) {
       console.warn(
         `Season ${season}: page ${pageCount} returned ${pageMatches.length} matches instead of ${options.limit}, but TeamUp returned another cursor; continuing.`
@@ -498,7 +512,6 @@ async function fetchAndUpsert(options) {
     const storedSeasons = await loadStoredSeasons(supabase, defaultFirstSeason, currentSeason);
     fetchPlan = [{
       season: latestSeason,
-      cursor: syntheticCursorForSeason(latestSeason, { timestamp: latestTimestampMs }),
       newerThanTimestampMs: latestTimestampMs,
     }];
     for (let season = defaultFirstSeason; season <= currentSeason; season += 1) {
@@ -1205,6 +1218,7 @@ if (require.main === module) {
 
 module.exports = {
   currentRankedLeagueSeason,
+  fetchSeason,
   parseSeasons,
   syntheticCursorForSeason,
   teamUpUrlForSeason,
