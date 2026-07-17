@@ -86,27 +86,42 @@
     const statusEl = document.getElementById("eventSignupsStatus");
 
     const COMBINED_MIN_TOURNAMENT_MATCHES = 3;
-    const COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES = 20;
+    const COMBINED_FULL_DELTA_MATCHES = 10;
     const COMBINED_TANH_SCALE = 1.5;
     const COMBINED_POSITIVE_SCALE = 120;
     const COMBINED_NEGATIVE_SCALE = 60;
     const COMBINED_PROVISIONAL_TOURNAMENT_WEIGHT = 0.75;
     const COMBINED_PROVISIONAL_SOS_WEIGHT = 0.25;
     const GPI_MIN_RANKED_MATCHES = 25;
+    const DEFAULT_GPI_BASE_RATING = 1200;
+    const TOURNAMENT_GPI_DISTRIBUTION_SHRINKAGE_WEIGHTED_MATCHES = 20;
+    const TOURNAMENT_NEGATIVE_EVIDENCE_FULL_UPSET_LOSSES = 2;
+    const TOURNAMENT_NEGATIVE_EVIDENCE_MIN_UPSET_LOSS = 1;
+    const HISTORICAL_GPI_WIN_CURVE = [
+      { delta:0, probability:.5 },
+      { delta:25, probability:.5 },
+      { delta:50, probability:.565 },
+      { delta:75, probability:.599 },
+      { delta:100, probability:.635 },
+      { delta:150, probability:.676 },
+      { delta:200, probability:.745 },
+      { delta:300, probability:.827 },
+      { delta:400, probability:.928 },
+    ];
 
     const rankedConfig = {
       runTable: "internal_ranked_gpi_runs",
       ratingTable: "internal_ranked_gpi_ratings",
       model: "opponent_aware_weighted_pairwise",
-      runSelect: "id,model,created_at",
+      runSelect: "id,model,latest_match_at,created_at",
       ratingsSelect: "discord_user_id,display_name,rating,full_history_rating,potential_rating,recent_form_rating,matches_played,rank",
     };
     const tournamentConfig = {
       runTable: "internal_tournament_gpi_runs",
       ratingTable: "internal_tournament_gpi_ratings",
       model: "flat_pl",
-      runSelect: "id,model,created_at",
-      ratingsSelect: "discord_user_id,display_name,rating,weighted_matches,matches_played,rank",
+      runSelect: "id,model,base_rating,latest_match_at,created_at",
+      ratingsSelect: "discord_user_id,display_name,rating,raw_rating,weighted_matches,matches_played,rank",
     };
 
     const state = {
@@ -323,6 +338,7 @@
         .from(config.runTable)
         .select(config.runSelect)
         .eq("model", config.model)
+        .order("latest_match_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -351,7 +367,7 @@
       for(let from = 0; ; from += 1000){
         const { data, error } = await supabase
           .from("internal_tournament_matches")
-          .select("match_hash,event_order,match_order,player_a_discord_user_id,player_b_discord_user_id")
+          .select("match_hash,event_order,match_order,player_a_discord_user_id,player_b_discord_user_id,winner_discord_user_id")
           .order("event_order", { ascending: true })
           .order("match_order", { ascending: true })
           .order("match_hash", { ascending: true })
@@ -380,15 +396,133 @@
       return targetStats.mean + (zScore(value, sourceStats) * targetStats.std);
     }
 
+    function tournamentGpiBaseRating(run){
+      const baseRating = Number(run?.base_rating);
+      return Number.isFinite(baseRating) ? baseRating : DEFAULT_GPI_BASE_RATING;
+    }
+
+    function tournamentFittedRating(row){
+      const rawRating = Number(row?.raw_rating);
+      if(Number.isFinite(rawRating)) return rawRating;
+      const rating = Number(row?.rating);
+      return Number.isFinite(rating) ? rating : 0;
+    }
+
+    function tournamentDistributionRating(row, tournamentRun){
+      const fittedRating = tournamentFittedRating(row);
+      const weightedMatches = Number(row?.weighted_matches) || 0;
+      const reliability = Math.min(
+        1,
+        Math.max(0, weightedMatches / TOURNAMENT_GPI_DISTRIBUTION_SHRINKAGE_WEIGHTED_MATCHES)
+      );
+      const baseRating = tournamentGpiBaseRating(tournamentRun);
+      return baseRating + (reliability * (fittedRating - baseRating));
+    }
+
     function tournamentAdjustmentFromDelta(deltaZ, reliability){
       const scale = deltaZ >= 0 ? COMBINED_POSITIVE_SCALE : COMBINED_NEGATIVE_SCALE;
       return reliability * scale * Math.tanh(deltaZ / COMBINED_TANH_SCALE);
     }
 
-    function buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches){
+    function tournamentDeltaConfidence(matchesPlayed){
+      const progress = Math.min(
+        1,
+        Math.max(0, (Number(matchesPlayed) || 0) / COMBINED_FULL_DELTA_MATCHES)
+      );
+      return progress * progress * (3 - (2 * progress));
+    }
+
+    function probabilityLogit(probability){
+      const p = Math.max(.000001, Math.min(.999999, Number(probability)));
+      return Math.log(p / (1 - p));
+    }
+
+    function probabilityFromLogit(logit){
+      return 1 / (1 + Math.exp(-logit));
+    }
+
+    function calibratedFavoriteProbability(delta){
+      const cleanDelta = Math.max(0, Math.abs(Number(delta) || 0));
+      const curve = HISTORICAL_GPI_WIN_CURVE;
+      if(cleanDelta <= curve[0].delta) return curve[0].probability;
+      for(let index = 1; index < curve.length; index += 1){
+        const previous = curve[index - 1];
+        const next = curve[index];
+        if(cleanDelta <= next.delta){
+          const progress = (cleanDelta - previous.delta) / (next.delta - previous.delta);
+          return previous.probability + ((next.probability - previous.probability) * progress);
+        }
+      }
+
+      const previous = curve[curve.length - 2];
+      const last = curve[curve.length - 1];
+      const logitSlope =
+        (probabilityLogit(last.probability) - probabilityLogit(previous.probability)) /
+        (last.delta - previous.delta);
+      return probabilityFromLogit(
+        probabilityLogit(last.probability) + ((cleanDelta - last.delta) * logitSlope)
+      );
+    }
+
+    function tournamentWinProbabilityFromRatings(leftRating, rightRating){
+      const left = Number(leftRating);
+      const right = Number(rightRating);
+      if(!Number.isFinite(left) || !Number.isFinite(right)) return 0.5;
+      const favoriteProbability = calibratedFavoriteProbability(left - right);
+      return left >= right ? favoriteProbability : 1 - favoriteProbability;
+    }
+
+    function buildTournamentNegativeEvidenceConfidence(tournamentRatings, tournamentMatches){
       const ratingById = new Map(
         tournamentRatings
-          .map((row) => [normalizeDiscordId(row.discord_user_id), Number(row.rating)])
+          .map((row) => [normalizeDiscordId(row.discord_user_id), tournamentFittedRating(row)])
+          .filter(([discordId, rating]) => discordId && Number.isFinite(rating))
+      );
+      const evidenceById = new Map();
+      const addEvidence = (discordId, evidence) => {
+        if(!discordId || !Number.isFinite(evidence) || evidence <= 0) return;
+        evidenceById.set(discordId, (evidenceById.get(discordId) || 0) + evidence);
+      };
+
+      for(const match of tournamentMatches || []){
+        const playerA = normalizeDiscordId(match.player_a_discord_user_id);
+        const playerB = normalizeDiscordId(match.player_b_discord_user_id);
+        const winner = normalizeDiscordId(match.winner_discord_user_id);
+        if(!playerA || !playerB || !winner) continue;
+
+        const loser = winner === playerA ? playerB : winner === playerB ? playerA : "";
+        if(!loser) continue;
+
+        const loserRating = ratingById.get(loser);
+        const winnerRating = ratingById.get(winner);
+        const expectedWin = tournamentWinProbabilityFromRatings(loserRating, winnerRating);
+        if(expectedWin <= 0.5) continue;
+        const upsetStrength = (expectedWin - 0.5) * 2;
+        addEvidence(
+          loser,
+          TOURNAMENT_NEGATIVE_EVIDENCE_MIN_UPSET_LOSS + upsetStrength
+        );
+      }
+
+      return new Map([...evidenceById.entries()].map(([discordId, evidence]) => {
+        const confidence = Math.min(
+          1,
+          Math.max(0, evidence / TOURNAMENT_NEGATIVE_EVIDENCE_FULL_UPSET_LOSSES)
+        );
+        return [discordId, confidence];
+      }));
+    }
+
+    function applyTournamentNegativeEvidenceGate(delta, evidenceConfidence){
+      const number = Number(delta);
+      if(!Number.isFinite(number) || number >= 0) return number;
+      return number * Math.min(1, Math.max(0, Number(evidenceConfidence) || 0));
+    }
+
+    function buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches, tournamentRun){
+      const ratingById = new Map(
+        tournamentRatings
+          .map((row) => [normalizeDiscordId(row.discord_user_id), tournamentDistributionRating(row, tournamentRun)])
           .filter(([discordId, rating]) => discordId && Number.isFinite(rating))
       );
       const scheduleById = new Map();
@@ -411,7 +545,7 @@
       ]));
     }
 
-    function buildCombinedGpiRows(rankedRatings, tournamentRatings, tournamentMatches, membersById){
+    function buildCombinedGpiRows(rankedRatings, tournamentRatings, tournamentMatches, membersById, tournamentRun){
       const tournamentById = new Map(
         tournamentRatings.map(row => [normalizeDiscordId(row.discord_user_id), row]).filter(([discordId]) => discordId)
       );
@@ -420,7 +554,7 @@
         const discordId = normalizeDiscordId(row.discord_user_id);
         const member = membersById.get(discordId);
         const rankedMatches = Number(row.matches_played) || 0;
-        if(!discordId || member?.is_current_member !== true || rankedMatches < GPI_MIN_RANKED_MATCHES) continue;
+        if(!discordId || rankedMatches < GPI_MIN_RANKED_MATCHES) continue;
         rankedRows.push({
           rankedRow: row,
           tournamentRow: tournamentById.get(discordId) || null,
@@ -437,20 +571,24 @@
         row.tournamentRow && (Number(row.tournamentRow.matches_played) || 0) >= COMBINED_MIN_TOURNAMENT_MATCHES
       );
       const rankedStats = numericStats(bridgeRows.map(row => row.rankedRating));
-      const tournamentStats = numericStats(bridgeRows.map(row => Number(row.tournamentRow.rating) || 0));
-      const tournamentStrengthById = buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches);
+      const tournamentStats = numericStats(bridgeRows.map(row => tournamentDistributionRating(row.tournamentRow, tournamentRun)));
+      const tournamentStrengthById = buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches, tournamentRun);
+      const tournamentNegativeEvidenceById = buildTournamentNegativeEvidenceConfidence(tournamentRatings, tournamentMatches);
       const hasBridge = bridgeRows.length >= 2;
 
       const rows = rankedRows.map((row) => {
         const tournamentRow = row.tournamentRow;
         const tournamentMatchesCount = Number(tournamentRow?.matches_played) || 0;
-        const tournamentWeightedMatches = Number(tournamentRow?.weighted_matches) || 0;
         let tournamentDelta = 0;
         if(hasBridge && tournamentRow && tournamentMatchesCount >= COMBINED_MIN_TOURNAMENT_MATCHES){
-          const tournamentRating = Number(tournamentRow.rating) || 0;
-          const reliability = Math.min(1, Math.max(0, tournamentWeightedMatches / COMBINED_FULL_RELIABILITY_WEIGHTED_MATCHES));
+          const tournamentRating = tournamentFittedRating(tournamentRow);
+          const reliability = tournamentDeltaConfidence(tournamentMatchesCount);
           const deltaZ = zScore(tournamentRating, tournamentStats) - zScore(row.rankedRating, rankedStats);
-          tournamentDelta = tournamentAdjustmentFromDelta(deltaZ, reliability);
+          const ungatedDelta = tournamentAdjustmentFromDelta(deltaZ, reliability);
+          tournamentDelta = applyTournamentNegativeEvidenceGate(
+            ungatedDelta,
+            tournamentNegativeEvidenceById.get(row.discord_user_id) || 0
+          );
         }
         return {
           discord_user_id: row.discord_user_id,
@@ -463,10 +601,10 @@
         const discordId = normalizeDiscordId(tournamentRow.discord_user_id);
         const member = membersById.get(discordId);
         const tournamentMatchesCount = Number(tournamentRow.matches_played) || 0;
-        if(!discordId || member?.is_current_member !== true || qualifiedRankedIds.has(discordId)) continue;
+        if(!discordId || qualifiedRankedIds.has(discordId)) continue;
         if(tournamentMatchesCount < COMBINED_MIN_TOURNAMENT_MATCHES) continue;
 
-        const tournamentRating = Number(tournamentRow.rating) || 0;
+        const tournamentRating = tournamentFittedRating(tournamentRow);
         const tournamentStrengthOfSchedule = tournamentStrengthById.get(discordId);
         const normalizedTournamentRating = hasBridge
           ? normalizeRatingToStats(tournamentRating, tournamentStats, rankedStats)
@@ -510,7 +648,7 @@
           ...tournamentRatings.map(row => row.discord_user_id),
         ];
         const membersById = await loadMembers(ids);
-        const rows = buildCombinedGpiRows(rankedRatings, tournamentRatings, tournamentMatches, membersById);
+        const rows = buildCombinedGpiRows(rankedRatings, tournamentRatings, tournamentMatches, membersById, tournamentRun);
         return new Map(rows.map(row => [row.discord_user_id, row]));
       }catch(error){
         console.warn("Unable to load combined GPI ratings.", error);
