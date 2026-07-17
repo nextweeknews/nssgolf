@@ -100,6 +100,18 @@
       margin:0 0 12px;
       color:var(--muted);
       font-size:13px;
+      position:relative;
+      z-index:60;
+      overflow:visible;
+    }
+
+    .leaderboard-search{
+      width:min(100%, 360px);
+    }
+
+    .leaderboard-search .player-search-input{
+      min-height:38px;
+      font-size:13px;
     }
 
     .gpi-tabs{
@@ -131,18 +143,35 @@
       display:flex;
       align-items:center;
       gap:8px;
+      margin-left:auto;
+    }
+
+    .page-info{
+      min-width:92px;
+      text-align:right;
+      white-space:nowrap;
     }
 
     .pager-button{
       appearance:none;
+      width:38px;
+      height:38px;
+      display:grid;
+      place-items:center;
       border:1px solid var(--line);
       background:var(--panel);
       color:var(--text);
       border-radius:8px;
-      padding:8px 10px;
+      padding:0;
       font:inherit;
       font-weight:750;
       cursor:pointer;
+    }
+
+    .pager-button svg{
+      width:18px;
+      height:18px;
+      display:block;
     }
 
     .pager-button:disabled{
@@ -279,7 +308,7 @@
     }
 
     .player-search:focus-within{
-      z-index:50;
+      z-index:200;
     }
 
     .player-search-input{
@@ -331,7 +360,7 @@
       transition:opacity .14s ease, color .14s ease;
     }
 
-    .player-search[data-has-value="true"]:focus-within .player-search-clear{
+    .player-search[data-has-value="true"] .player-search-clear{
       opacity:1;
       pointer-events:auto;
     }
@@ -350,7 +379,7 @@
 
     .player-search-results{
       position:absolute;
-      z-index:100;
+      z-index:1000;
       top:calc(100% + 8px);
       left:0;
       right:0;
@@ -1122,6 +1151,20 @@
         padding-top:22px;
       }
 
+      .table-controls{
+        align-items:stretch;
+        flex-direction:column;
+      }
+
+      .leaderboard-search{
+        width:100%;
+      }
+
+      .pager{
+        justify-content:flex-end;
+        margin-left:0;
+      }
+
       .page-title-row{
         align-items:flex-start;
         flex-direction:column;
@@ -1386,10 +1429,29 @@
 
     <section id="leaderboard" hidden aria-label="Internal Ranked League leaderboard">
       <div class="table-controls">
-        <div id="pageInfo">Loading rankings...</div>
+        <div class="player-search leaderboard-search" id="leaderboardSearch" role="search">
+          <input class="player-search-input" id="leaderboardSearchInput" type="search" placeholder="Search players" autocomplete="off" spellcheck="false" aria-label="Search GPI players" aria-controls="leaderboardSearchResults" aria-expanded="false" />
+          <span class="player-search-actions">
+            <button class="player-search-clear" id="leaderboardSearchClear" type="button" aria-label="Clear player search">
+              <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                <path d="M5.3 5.3 10 10l4.7-4.7 1.1 1.1-4.7 4.7 4.7 4.7-1.1 1.1L10 12.1l-4.7 4.8-1.1-1.1 4.7-4.7-4.7-4.7 1.1-1.1Z" fill="currentColor" />
+              </svg>
+            </button>
+          </span>
+          <div class="player-search-results" id="leaderboardSearchResults" hidden></div>
+        </div>
         <div class="pager">
-          <button id="prevPage" class="pager-button" type="button">Previous</button>
-          <button id="nextPage" class="pager-button" type="button">Next</button>
+          <div id="pageInfo" class="page-info">Loading rankings...</div>
+          <button id="prevPage" class="pager-button" type="button" aria-label="Previous page">
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+              <path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button id="nextPage" class="pager-button" type="button" aria-label="Next page">
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+              <path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
         </div>
       </div>
       <div class="table-shell">
@@ -1606,6 +1668,10 @@
     const tournamentProjectionEl = document.getElementById("tournamentProjection");
     const runMetaEl = document.getElementById("runMeta");
     const pageInfoEl = document.getElementById("pageInfo");
+    const leaderboardSearchEl = document.getElementById("leaderboardSearch");
+    const leaderboardSearchInputEl = document.getElementById("leaderboardSearchInput");
+    const leaderboardSearchResultsEl = document.getElementById("leaderboardSearchResults");
+    const leaderboardSearchClearEl = document.getElementById("leaderboardSearchClear");
     const prevPageEl = document.getElementById("prevPage");
     const nextPageEl = document.getElementById("nextPage");
     const playerModalEl = document.getElementById("playerModal");
@@ -2627,6 +2693,143 @@
       renderPredictionSearchResults(key, results, query);
     }
 
+    function leaderboardSearchUsername(row){
+      return normalizeText(row?.member?.username) || normalizeDiscordId(row?.discord_user_id);
+    }
+
+    function leaderboardSearchMeta(row){
+      const rank = Number(row?.rankNumber);
+      const rating = Number(row?.ratingNumber);
+      const parts = [];
+      if(Number.isFinite(rank) && rank > 0) parts.push(`#${rank}`);
+      if(Number.isFinite(rating)) parts.push(`GPI ${formatRating(rating)}`);
+      const username = leaderboardSearchUsername(row);
+      if(username) parts.push(username);
+      return parts.join(" · ");
+    }
+
+    function updateLeaderboardSearchClearState(){
+      leaderboardSearchEl.dataset.hasValue = normalizeText(leaderboardSearchInputEl.value) ? "true" : "false";
+    }
+
+    function scoreLeaderboardSearchResult(row, query){
+      const display = normalizeNameKey(row.displayName);
+      const username = normalizeNameKey(leaderboardSearchUsername(row));
+      if(!query) return 0;
+      if(display === query) return 120;
+      if(username === query) return 110;
+      if(display.startsWith(query)) return 95;
+      if(username.startsWith(query)) return 85;
+      if(display.includes(query)) return 65;
+      if(username.includes(query)) return 55;
+      return 0;
+    }
+
+    function hideLeaderboardSearchResults(){
+      leaderboardSearchResultsEl.hidden = true;
+      leaderboardSearchInputEl.setAttribute("aria-expanded", "false");
+    }
+
+    function showLeaderboardSearchResults(){
+      leaderboardSearchResultsEl.hidden = false;
+      leaderboardSearchInputEl.setAttribute("aria-expanded", "true");
+    }
+
+    function renderLeaderboardSearchResults(results, query){
+      leaderboardSearchResultsEl.innerHTML = "";
+      if(!query){
+        hideLeaderboardSearchResults();
+        return;
+      }
+
+      if(!results.length){
+        const empty = document.createElement("p");
+        empty.className = "player-search-empty";
+        empty.textContent = "No GPI players found.";
+        leaderboardSearchResultsEl.appendChild(empty);
+        showLeaderboardSearchResults();
+        return;
+      }
+
+      for(const row of results){
+        const button = document.createElement("button");
+        button.className = "player-search-result";
+        button.type = "button";
+        button.dataset.playerId = row.discord_user_id;
+
+        const avatar = document.createElement("img");
+        avatar.className = "player-search-avatar";
+        avatar.src = row.avatarUrl || "/logos/golf.png";
+        avatar.alt = "";
+        avatar.loading = "lazy";
+        avatar.decoding = "async";
+        avatar.referrerPolicy = "no-referrer";
+
+        const copy = document.createElement("span");
+        copy.className = "player-search-copy";
+
+        const displayName = document.createElement("span");
+        displayName.className = "player-search-display";
+        displayName.textContent = row.displayName;
+
+        const meta = document.createElement("span");
+        meta.className = "player-search-username";
+        meta.textContent = leaderboardSearchMeta(row);
+
+        copy.append(displayName, meta);
+        button.append(avatar, copy);
+        leaderboardSearchResultsEl.appendChild(button);
+      }
+
+      showLeaderboardSearchResults();
+    }
+
+    function updateLeaderboardSearch(){
+      updateLeaderboardSearchClearState();
+      const query = normalizeNameKey(leaderboardSearchInputEl.value);
+      if(!query){
+        hideLeaderboardSearchResults();
+        return;
+      }
+
+      const results = allLeaderboardRows
+        .map(row => ({ row, score:scoreLeaderboardSearchResult(row, query) }))
+        .filter(result => result.score > 0)
+        .sort((left, right) => {
+          if(right.score !== left.score) return right.score - left.score;
+          return left.row.rankNumber - right.row.rankNumber || left.row.displayName.localeCompare(right.row.displayName);
+        })
+        .slice(0, PLAYER_SEARCH_LIMIT)
+        .map(result => result.row);
+      renderLeaderboardSearchResults(results, query);
+    }
+
+    function refreshLeaderboardFilter(){
+      if(!latestRun) return;
+      loadLeaderboardPage(0).catch((error) => {
+        console.error(error);
+        setStatus(`Unable to filter NSS GPI: ${error?.message || "Unknown error"}`, "error");
+      });
+    }
+
+    function selectLeaderboardSearchPlayer(discordId){
+      const cleanDiscordId = normalizeDiscordId(discordId);
+      if(!cleanDiscordId) return;
+      const row = allLeaderboardRows.find(candidate => candidate.discord_user_id === cleanDiscordId);
+      if(!row) return;
+      leaderboardSearchInputEl.value = row.displayName;
+      updateLeaderboardSearchClearState();
+      hideLeaderboardSearchResults();
+      refreshLeaderboardFilter();
+    }
+
+    function clearLeaderboardSearch(){
+      leaderboardSearchInputEl.value = "";
+      updateLeaderboardSearchClearState();
+      hideLeaderboardSearchResults();
+      refreshLeaderboardFilter();
+    }
+
     function renderSelectedPredictionInput(key){
       const picker = predictionPickers[key];
       const row = selectedPredictionPlayers[key];
@@ -3089,7 +3292,11 @@
 
     function sortedLeaderboardRows(){
       const direction = sortState.direction === "asc" ? 1 : -1;
-      return [...allLeaderboardRows].sort((left, right) => {
+      const query = normalizeNameKey(leaderboardSearchInputEl.value);
+      const rows = query
+        ? allLeaderboardRows.filter(row => scoreLeaderboardSearchResult(row, query) > 0)
+        : allLeaderboardRows;
+      return [...rows].sort((left, right) => {
         const leftValue = sortValueForRow(left, sortState.key);
         const rightValue = sortValueForRow(right, sortState.key);
         if(leftValue < rightValue) return -1 * direction;
@@ -3187,10 +3394,11 @@
     }
 
     function renderPager(){
-      const from = totalRatings === 0 ? 0 : currentPage * PAGE_SIZE + 1;
       const to = Math.min(totalRatings, (currentPage + 1) * PAGE_SIZE);
+      const totalPages = totalRatings > 0 ? Math.ceil(totalRatings / PAGE_SIZE) : 0;
+      const pageNumber = totalPages > 0 ? Math.min(currentPage + 1, totalPages) : 0;
       pageInfoEl.textContent = totalRatings
-        ? `Showing ${from}-${to} of ${totalRatings}`
+        ? `Page ${pageNumber} of ${totalPages}`
         : "No players";
       prevPageEl.disabled = currentPage <= 0;
       nextPageEl.disabled = to >= totalRatings;
@@ -3537,6 +3745,7 @@
       sortState = { key:"rank", direction:"asc" };
       leaderboardEl.hidden = true;
       leaderboardBodyEl.innerHTML = "";
+      clearLeaderboardSearch();
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
       renderRunMetaPlaceholder();
@@ -3554,6 +3763,7 @@
       const membersById = await loadMembers(ids);
       allLeaderboardRows = buildLeaderboardRows(ratings, membersById);
       totalRatings = allLeaderboardRows.length;
+      updateLeaderboardSearch();
     }
 
     async function loadLeaderboardPage(page){
@@ -3587,6 +3797,26 @@
         console.error(error);
         setStatus(`Unable to sort NSS GPI: ${error?.message || "Unknown error"}`, "error");
       });
+    });
+
+    leaderboardSearchInputEl.addEventListener("focus", () => {
+      updateLeaderboardSearch();
+    });
+
+    leaderboardSearchInputEl.addEventListener("input", () => {
+      updateLeaderboardSearch();
+      refreshLeaderboardFilter();
+    });
+
+    leaderboardSearchResultsEl.addEventListener("click", (event) => {
+      const result = event.target.closest(".player-search-result[data-player-id]");
+      if(!result) return;
+      selectLeaderboardSearchPlayer(result.dataset.playerId);
+    });
+
+    leaderboardSearchClearEl.addEventListener("click", () => {
+      clearLeaderboardSearch();
+      leaderboardSearchInputEl.focus();
     });
 
     document.querySelectorAll(".gpi-tab[data-view]").forEach((button) => {
@@ -3625,6 +3855,9 @@
     });
 
     document.addEventListener("click", (event) => {
+      if(!leaderboardSearchEl.contains(event.target)){
+        hideLeaderboardSearchResults();
+      }
       Object.entries(predictionPickers).forEach(([key, picker]) => {
         if(picker.root.contains(event.target)) return;
         hidePredictionResults(key);
