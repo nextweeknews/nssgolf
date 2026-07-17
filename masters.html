@@ -32,8 +32,11 @@
       --qualifier-round-column-width:264px;
       --qualifier-match-height:64px;
       --qualifier-seed-col-width:14px;
+      --qualifier-score-col-width:28px;
+      --qualifier-score-col-gap:2px;
       --qualifier-final-score-width:24px;
-      --qualifier-scorepack-width:24px;
+      --qualifier-visible-games-width:88px;
+      --qualifier-scorepack-width:118px;
     }
 
     *{ box-sizing:border-box; }
@@ -528,6 +531,10 @@
     .qualifier-match-row.no-score{
       grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr);
     }
+    .qualifier-match-row.has-score{
+      padding-top:0;
+      padding-bottom:0;
+    }
     .qualifier-match-row:first-child{
       border-top-left-radius:10px;
       border-top-right-radius:10px;
@@ -615,13 +622,48 @@
       font-weight:650;
     }
     .qualifier-player-scorepack{
-      display:grid;
-      grid-template-columns:var(--qualifier-final-score-width);
+      display:flex;
       align-items:center;
-      justify-content:end;
-      justify-items:end;
+      justify-content:flex-end;
+      gap:6px;
       width:var(--qualifier-scorepack-width);
       min-width:var(--qualifier-scorepack-width);
+    }
+    .qualifier-player-score-window{
+      position:relative;
+      display:block;
+      justify-self:end;
+      width:var(--game-score-width, auto);
+      max-width:var(--qualifier-visible-games-width);
+      min-width:0;
+      height:24px;
+      overflow:hidden;
+    }
+    .qualifier-player-games{
+      position:absolute;
+      inset:0;
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:var(--qualifier-score-col-width);
+      align-items:center;
+      justify-self:end;
+      gap:var(--qualifier-score-col-gap);
+      width:100%;
+      max-width:100%;
+      min-width:0;
+      overflow:hidden;
+    }
+    .qualifier-player-set-score{
+      width:100%;
+      min-height:16px;
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:.02em;
+      text-align:center;
     }
     .qualifier-player-final-score{
       width:var(--qualifier-final-score-width);
@@ -820,7 +862,7 @@
     const VIEW_QUERY_PARAM = "view";
     const MASTERS_SHEET = {
       sheetId:"16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE",
-      qualifiersRange:"'Qualifiers'!A:N",
+      qualifiersRange:"'Qualifiers'!A:T",
     };
     const BRACKET_ROUNDS = [
       { key:"R16", label:"Round of 16", matches:8 },
@@ -1033,12 +1075,13 @@
       return embedded ? Number(embedded[0]) : Number(match?.sourceIndex || 0);
     }
 
-    function qualifierBracketSlot({ name, score, discordIdsByName }){
+    function qualifierBracketSlot({ name, score, gameScores = [], discordIdsByName }){
       return {
         seed:null,
         name:normalizeText(name),
         discordId:discordIdsByName.get(normalizeNameKey(name)) || "",
         score:bracketScore(score),
+        gameScores:(Array.isArray(gameScores) ? gameScores : []).map(bracketScore).filter(Boolean),
       };
     }
 
@@ -1051,15 +1094,17 @@
           round:normalizeBracketRound(row?.[8]),
           top:qualifierBracketSlot({
             name:row?.[9],
-            score:row?.[10],
+            gameScores:[row?.[10], row?.[11], row?.[12]],
+            score:row?.[13],
             discordIdsByName,
           }),
           bottom:qualifierBracketSlot({
-            name:row?.[11],
-            score:row?.[12],
+            name:row?.[14],
+            gameScores:[row?.[15], row?.[16], row?.[17]],
+            score:row?.[18],
             discordIdsByName,
           }),
-          winner:normalizeText(row?.[13]),
+          winner:normalizeText(row?.[19]),
         }))
         .filter(match => (
           BRACKET_ROUNDS.some(round => round.key === match.round) &&
@@ -1195,14 +1240,28 @@
     }
 
     function renderQualifierBracketScore(slot){
-      return `<span class="qualifier-player-scorepack"><span class="qualifier-player-final-score">${escapeHtml(slot?.score || "-")}</span></span>`;
+      const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.filter(score => normalizeText(score)) : [];
+      const hasScore = normalizeText(slot?.score) || gameScores.length;
+      if(!hasScore) return "";
+      const scoreWidth = gameScores.length > 0
+        ? (gameScores.length * 28) + ((gameScores.length - 1) * 2)
+        : 0;
+      const gamesMarkup = gameScores.length > 0
+        ? `<span class="qualifier-player-score-window" style="--game-score-width:${scoreWidth}px;"><span class="qualifier-player-games">${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score)}</span>`).join("")}</span></span>`
+        : "";
+      const finalScoreMarkup = normalizeText(slot?.score)
+        ? `<span class="qualifier-player-final-score">${escapeHtml(slot.score)}</span>`
+        : "";
+      return `<span class="qualifier-player-scorepack">${gamesMarkup}${finalScoreMarkup}</span>`;
     }
 
     function renderQualifierBracketRow(match, slot, { showScore = true } = {}){
       const isWinner = normalizeText(match?.winner) && normalizeNameKey(match.winner) === normalizeNameKey(slot?.name);
+      const hasScore = normalizeText(slot?.score) || (Array.isArray(slot?.gameScores) && slot.gameScores.some(score => normalizeText(score)));
       const rowClasses = [
         "qualifier-match-row",
-        showScore ? "" : "no-score",
+        showScore && hasScore ? "has-score" : "",
+        showScore && hasScore ? "" : "no-score",
         isWinner ? "winner" : "",
       ].filter(Boolean).join(" ");
       return `
@@ -1218,8 +1277,8 @@
       return {
         id:`${roundKey}-${index + 1}`,
         round:roundKey,
-        top:{ seed:null, name:"", discordId:"", score:"" },
-        bottom:{ seed:null, name:"", discordId:"", score:"" },
+        top:{ seed:null, name:"", discordId:"", score:"", gameScores:[] },
+        bottom:{ seed:null, name:"", discordId:"", score:"", gameScores:[] },
         winner:"",
       };
     }
