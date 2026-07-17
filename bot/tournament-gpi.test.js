@@ -30,7 +30,7 @@ const identityMap = {
 
 {
   assert.equal(superLeagueDiscordIdsRange, "A:B");
-  assert.equal(defaultTournamentPlShrinkageMatches, 0);
+  assert.equal(defaultTournamentPlShrinkageMatches, 20);
   assert.equal(normalizeDiscordId("<@!123456789012345678>"), "123456789012345678");
   assert.equal(normalizeDiscordId("123456789012345678"), "123456789012345678");
   assert.equal(normalizeDiscordId("abc123def"), "");
@@ -64,14 +64,15 @@ const identityMap = {
 }
 
 {
-  const replay = replayPlackettLuceGpi([
-    {
-      match_hash: "full-confidence-tournament",
+  const matchRows = [];
+  for (let index = 0; index < 10; index += 1) {
+    matchRows.push({
+      match_hash: `full-confidence-tournament-${index}`,
       season: 1,
-      timestamp_ms: 1_000,
-      played_at: new Date(1_000).toISOString(),
+      timestamp_ms: 1_000 + index,
+      played_at: new Date(1_000 + index).toISOString(),
       raw_match: {
-        timestamp: 1_000,
+        timestamp: 1_000 + index,
         versus: "1v1",
         team_sizes: [1, 1],
         results: [
@@ -79,8 +80,10 @@ const identityMap = {
           { place: 2, players: [{ player_id: "200", display_name: "Bob" }] },
         ],
       },
-    },
-  ], {
+    });
+  }
+
+  const replay = replayPlackettLuceGpi(matchRows, {
     baseRating: 1200,
     priorStrength: 20,
     shrinkageMatches: defaultTournamentPlShrinkageMatches,
