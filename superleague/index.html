@@ -1019,6 +1019,10 @@
       align-items:start;
     }
 
+    .qualifier-third-place-grid.is-single{
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .qualifier-third-place-match{
       min-height: 56px;
     }
@@ -1908,7 +1912,7 @@
             </section>
 
             <div class="qualifier-third-place-grid" aria-label="Qualifier third place games">
-              <section class="qualifier-bracket" aria-label="Winners bracket third place game">
+              <section class="qualifier-bracket" id="winnerThirdPlaceSection" aria-label="Winners bracket third place game">
                 <h2 class="qualifier-title">Winners Bracket 3rd Place</h2>
                 <div class="qualifier-third-place-match" id="winnerThirdPlaceMatch"></div>
               </section>
@@ -2070,7 +2074,7 @@
 
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
-    const SUPER_LEAGUE_SEASONS = ["Season 6", "Season 5"];
+    const SUPER_LEAGUE_SEASONS = ["Season 7", "Season 6", "Season 5"];
     let activeSuperLeagueSeason = SUPER_LEAGUE_SEASONS.includes(SUPER_LEAGUE_SEASON) ? SUPER_LEAGUE_SEASON : "Season 6";
 
     const DIVISIONS = [
@@ -2081,12 +2085,13 @@
     const SCHEDULE_RANGE = "I2:AB85";
     const QUALIFIER_LIST_RANGE = "A:B";
     const DIVISION_QUALIFICATIONS_RANGE = "A4:C11";
+    const DIVISION_QUALIFICATIONS_RANGE_S7 = "A4:C18";
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
     const WINNER_THIRD_PLACE_RANGE = "A68:H68";
     const LOSER_BRACKET_RANGE = "A4:H62";
     const LOSER_THIRD_PLACE_RANGE = "A62:H62";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
-    const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "L6", "L7"];
+    const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "PLAY-IN", "L6", "L7", "L8", "L9"];
     const PLAYOFF_RANGE = "I87:AB92";
     const DISCORD_IDS_SHEET = "Discord IDs";
     const DISCORD_IDS_RANGE = "A:B";
@@ -2116,12 +2121,20 @@
       return `${getActiveShortSeason()} Divisions`;
     }
 
+    function getDivisionQualificationsRange(){
+      return getActiveSeasonNumber() >= 7 ? DIVISION_QUALIFICATIONS_RANGE_S7 : DIVISION_QUALIFICATIONS_RANGE;
+    }
+
     function getQualifierBracketSheet(){
       return `${getActiveShortSeason()} Winners Bracket`;
     }
 
     function getLoserBracketSheet(){
       return `${getActiveShortSeason()} Losers Bracket`;
+    }
+
+    function hasWinnersBracketThirdPlace(){
+      return getActiveSeasonNumber() < 7;
     }
 
     function usesHeadToHeadTiebreaker(){
@@ -3383,7 +3396,12 @@
         return;
       }
 
-      const [headerRow = [], ...bodyRows] = rows;
+      const possibleHeaderRow = rows[0] || [];
+      const hasHeaderRow = String(possibleHeaderRow[0] ?? "").trim().toLowerCase() === "division"
+        || String(possibleHeaderRow[1] ?? "").trim().toLowerCase() === "player"
+        || String(possibleHeaderRow[2] ?? "").trim().toLowerCase() === "qualification";
+      const headerRow = hasHeaderRow ? possibleHeaderRow : ["Division", "Player", "Qualification"];
+      const bodyRows = hasHeaderRow ? rows.slice(1) : rows;
       const [divisionHeader = "Division", playerHeader = "Player", descriptionHeader = "Qualification"] = headerRow;
 
       const table = document.createElement("table");
@@ -3459,7 +3477,9 @@
 
     function normalizeLoserRoundLabel(round){
       const text = String(round ?? "").trim().toUpperCase();
-      if(/^L[1-7]$/.test(text)) return text;
+      if(/^L\d+$/.test(text)) return text;
+      if(/^PLAY[\s-]?IN$/.test(text)) return "PLAY-IN";
+      if(/^L\s+PLAY[\s-]?IN$/.test(text)) return "PLAY-IN";
       return "";
     }
 
@@ -3484,6 +3504,7 @@
     }
 
     function getLoserRoundDisplayLabel(round, visibleRoundOrder){
+      if(round === "PLAY-IN") return "Play-In";
       const idx = visibleRoundOrder.indexOf(round);
       if(idx === -1) return String(round ?? "").trim();
       return `Round ${idx + 1}`;
@@ -3701,6 +3722,16 @@
       containerEl.appendChild(matchEl);
     }
 
+    function updateQualifierThirdPlaceLayout(){
+      const gridEl = document.querySelector(".qualifier-third-place-grid");
+      const winnerSectionEl = document.getElementById("winnerThirdPlaceSection");
+      if(!gridEl || !winnerSectionEl) return;
+
+      const showWinnerThirdPlace = hasWinnersBracketThirdPlace();
+      winnerSectionEl.hidden = !showWinnerThirdPlace;
+      gridEl.classList.toggle("is-single", !showWinnerThirdPlace);
+    }
+
     const winnerBracketConfig = {
       gridId: "qualifierBracketGrid",
       controlsId: "qualifierBracketControls",
@@ -3789,15 +3820,21 @@
           loserThirdPlaceValues,
         ] = await Promise.all([
           fetchRange(QUALIFIER_LIST_RANGE, `${activeSuperLeagueSeason} Qualifiers`),
-          fetchRange(DIVISION_QUALIFICATIONS_RANGE, getDivisionQualificationsSheet()),
+          fetchRange(getDivisionQualificationsRange(), getDivisionQualificationsSheet()),
           fetchRange(QUALIFIER_BRACKET_RANGE, qualifierBracketSheet),
           fetchRange(LOSER_BRACKET_RANGE, loserBracketSheet),
-          fetchRange(WINNER_THIRD_PLACE_RANGE, qualifierBracketSheet),
+          hasWinnersBracketThirdPlace() ? fetchRange(WINNER_THIRD_PLACE_RANGE, qualifierBracketSheet) : Promise.resolve([]),
           fetchRange(LOSER_THIRD_PLACE_RANGE, loserBracketSheet),
         ]);
+        updateQualifierThirdPlaceLayout();
         renderQualifierSeeds(qualifierValues);
         renderDivisionQualifications(divisionQualificationValues);
-        renderThirdPlaceMatch(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+        if(hasWinnersBracketThirdPlace()){
+          renderThirdPlaceMatch(winnerThirdPlaceValues, "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+        }else{
+          const winnerThirdPlaceEl = document.getElementById("winnerThirdPlaceMatch");
+          if(winnerThirdPlaceEl) winnerThirdPlaceEl.innerHTML = "";
+        }
         renderThirdPlaceMatch(loserThirdPlaceValues, "loserThirdPlaceMatch", "losers bracket 3rd place game", {
           styleLoserPlaceholders: true,
         });
@@ -3805,9 +3842,15 @@
         renderBracket(loserBracketValues, loserBracketConfig);
       }catch(error){
         console.warn(`Could not load ${activeSuperLeagueSeason} qualifier data.`, error);
+        updateQualifierThirdPlaceLayout();
         renderQualifierSeeds([]);
         renderDivisionQualifications([]);
-        renderThirdPlaceMatch([], "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+        if(hasWinnersBracketThirdPlace()){
+          renderThirdPlaceMatch([], "winnerThirdPlaceMatch", "winners bracket 3rd place game");
+        }else{
+          const winnerThirdPlaceEl = document.getElementById("winnerThirdPlaceMatch");
+          if(winnerThirdPlaceEl) winnerThirdPlaceEl.innerHTML = "";
+        }
         renderThirdPlaceMatch([], "loserThirdPlaceMatch", "losers bracket 3rd place game", {
           styleLoserPlaceholders: true,
         });
