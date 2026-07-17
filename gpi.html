@@ -1477,7 +1477,7 @@
           <li>
             <span class="formula-label">Standardization</span>
             <code>ranked_z = (ranked_rating - ranked_mean) / ranked_std</code>
-            <code>tournament_z = 1.5 * (fitted_tournament_rating - tournament_mean) / tournament_std</code>
+            <code>tournament_z = (fitted_tournament_rating - tournament_mean) / tournament_std</code>
             <code>tournament_delta_z = tournament_z - ranked_z</code>
           </li>
           <li>
@@ -1994,10 +1994,6 @@
       return baseRating + (reliability * (fittedRating - baseRating));
     }
 
-    function scaledTournamentZScore(value, stats){
-      return TOURNAMENT_GPI_DISTRIBUTION_SCALE * zScore(value, stats);
-    }
-
     function tournamentAdjustmentFromDelta(deltaZ, reliability){
       const scale = deltaZ >= 0 ? COMBINED_POSITIVE_SCALE : COMBINED_NEGATIVE_SCALE;
       return reliability * scale * Math.tanh(deltaZ / COMBINED_TANH_SCALE);
@@ -2009,6 +2005,10 @@
         Math.max(0, (Number(matchesPlayed) || 0) / COMBINED_FULL_DELTA_MATCHES)
       );
       return progress * progress * (3 - (2 * progress));
+    }
+
+    function tournamentDeltaRating(row){
+      return tournamentFittedRating(row);
     }
 
     async function loadMembers(discordIds){
@@ -2252,10 +2252,10 @@
         let tournamentDeltaZ = 0;
 
         if(hasBridge && tournamentRow && tournamentMatches >= COMBINED_MIN_TOURNAMENT_MATCHES){
-          tournamentRating = tournamentFittedRating(tournamentRow);
+          tournamentRating = tournamentDeltaRating(tournamentRow);
           tournamentReliability = tournamentDeltaConfidence(tournamentMatches);
           tournamentDeltaZ =
-            scaledTournamentZScore(tournamentRating, tournamentStats) - zScore(row.rankedRating, rankedStats);
+            zScore(tournamentRating, tournamentStats) - zScore(row.rankedRating, rankedStats);
           tournamentDelta = tournamentAdjustmentFromDelta(tournamentDeltaZ, tournamentReliability);
         }
 
