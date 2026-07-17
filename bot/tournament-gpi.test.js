@@ -1,10 +1,12 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { replayPlackettLuceGpi } = require("./internal-ranked-core");
 const {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
   buildWorldChampionshipMatchesFromRows,
+  defaultTournamentPlShrinkageMatches,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
@@ -28,6 +30,7 @@ const identityMap = {
 
 {
   assert.equal(superLeagueDiscordIdsRange, "A:B");
+  assert.equal(defaultTournamentPlShrinkageMatches, 0);
   assert.equal(normalizeDiscordId("<@!123456789012345678>"), "123456789012345678");
   assert.equal(normalizeDiscordId("123456789012345678"), "123456789012345678");
   assert.equal(normalizeDiscordId("abc123def"), "");
@@ -58,6 +61,36 @@ const identityMap = {
   assert.equal(winnerFromHigherScore("8", "8"), "");
   assert.equal(winnerFromLowerScore("-3", "-1"), "a");
   assert.equal(winnerFromLowerScore("+2", "0"), "b");
+}
+
+{
+  const replay = replayPlackettLuceGpi([
+    {
+      match_hash: "full-confidence-tournament",
+      season: 1,
+      timestamp_ms: 1_000,
+      played_at: new Date(1_000).toISOString(),
+      raw_match: {
+        timestamp: 1_000,
+        versus: "1v1",
+        team_sizes: [1, 1],
+        results: [
+          { place: 1, players: [{ player_id: "100", display_name: "Alice" }] },
+          { place: 2, players: [{ player_id: "200", display_name: "Bob" }] },
+        ],
+      },
+    },
+  ], {
+    baseRating: 1200,
+    priorStrength: 20,
+    shrinkageMatches: defaultTournamentPlShrinkageMatches,
+    matchWeightMultiplier: 2,
+    reliabilityBasis: "weighted_matches",
+  });
+  const winner = replay.finalRatings.find((row) => row.discord_user_id === "100");
+
+  assert.equal(winner.reliability, 1);
+  assert.equal(winner.rating, winner.raw_rating);
 }
 
 {
