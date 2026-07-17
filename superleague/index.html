@@ -1945,6 +1945,21 @@
         </div>
       </section>
 
+      <section id="promotionsPage" role="tabpanel" aria-labelledby="promotionsViewTab" hidden>
+        <div class="season-head">
+          <h1 class="headline" data-superleague-season-title="Promotions">Promotions</h1>
+        </div>
+
+        <div class="division-grid" id="promotionStandingsGrid"></div>
+
+        <section class="schedule-wrap" id="promotionScheduleWrap">
+          <div class="schedule-head">
+            <h2 class="schedule-title">Promotion Matches</h2>
+          </div>
+          <div class="schedule-grid" id="promotionScheduleGrid"></div>
+        </section>
+      </section>
+
       <section id="formatPage" role="tabpanel" aria-labelledby="formatViewTab" hidden>
         <div class="season-head">
           <h1 class="headline">Super League Format</h1>
@@ -2101,6 +2116,8 @@
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "PLAY-IN", "L6", "L7", "L8", "L9"];
     const PLAYOFF_RANGE = "I87:AB92";
+    const PROMOTIONS_STANDINGS_RANGE = "A1:H13";
+    const PROMOTIONS_SCHEDULE_RANGE = "I2:AB17";
     const SEASON_7_DIVISIONS = [
       { title: "Division 1", range: "B3:G12" },
       { title: "Division 2", range: "B14:G23" },
@@ -2129,6 +2146,8 @@
     let currentWeekIdx = 0;
     let qualifierBracketRowsCache = [];
     let loserBracketRowsCache = [];
+    let promotionStandingsRowsCache = [];
+    let promotionScheduleRowsCache = [];
     let qualifierMobileRoundIndex = 0;
     let loserMobileRoundIndex = 0;
     const qualifierMobileQuery = window.matchMedia("(max-width: 760px)");
@@ -2221,6 +2240,9 @@
           rerenderQualifierBracketsFromCache();
         });
       }
+      if(!document.getElementById("promotionsPage")?.hidden){
+        requestAnimationFrame(renderPromotionsFromCache);
+      }
       if(!document.getElementById("playoffsPage")?.hidden){
         requestAnimationFrame(updatePlayoffBracketLayout);
       }
@@ -2254,11 +2276,13 @@
       const tabsEl = document.getElementById("superleagueTabs");
       const seasonPage = document.getElementById("seasonPage");
       const qualifiersPage = document.getElementById("qualifiersPage");
+      const promotionsPage = document.getElementById("promotionsPage");
       const formatPage = document.getElementById("formatPage");
-      const validPages = new Set(["season", "qualifiers", "format"]);
+      const validPages = new Set(["season", "qualifiers", "promotions", "format"]);
       const tabs = [
         { value: "season", label: "Season", id: "seasonViewTab", controls: "seasonPage" },
         { value: "qualifiers", label: "Qualifiers", id: "qualifiersViewTab", controls: "qualifiersPage" },
+        { value: "promotions", label: "Promotions", id: "promotionsViewTab", controls: "promotionsPage" },
         { value: "format", label: "Format", id: "formatViewTab", controls: "formatPage" },
       ];
       const tabControl = mountSuperLeagueTabs(tabsEl, {
@@ -2270,9 +2294,11 @@
         const nextPage = validPages.has(page) ? page : "season";
         const showSeason = nextPage === "season";
         const showQualifiers = nextPage === "qualifiers";
+        const showPromotions = nextPage === "promotions";
         const showFormat = nextPage === "format";
         seasonPage.hidden = !showSeason;
         qualifiersPage.hidden = !showQualifiers;
+        promotionsPage.hidden = !showPromotions;
         formatPage.hidden = !showFormat;
         tabControl?.render(nextPage);
 
@@ -2288,6 +2314,10 @@
           requestAnimationFrame(() => {
             rerenderQualifierBracketsFromCache();
           });
+        }
+
+        if(showPromotions){
+          requestAnimationFrame(renderPromotionsFromCache);
         }
 
         if(options.scroll !== false){
@@ -3866,6 +3896,167 @@
       });
     }
 
+    function getPromotionsSheet(){
+      return `${activeSuperLeagueSeason} Promotions`;
+    }
+
+    function normalizePromotionGroup(value){
+      const normalized = String(value ?? "").toLowerCase();
+      if(normalized.includes("d1") || normalized.includes("division 1")) return "d1";
+      if(normalized.includes("d2") || normalized.includes("division 2")) return "d2";
+      return normalized.trim();
+    }
+
+    function renderPromotionStandingsGroup(title, note, rows, divisionClass){
+      const wrapper = document.createElement("section");
+      wrapper.className = `division-card ${divisionClass}`.trim();
+
+      const heading = document.createElement("h2");
+      heading.className = `division-title ${divisionClass}`.trim();
+      heading.textContent = title;
+      wrapper.appendChild(heading);
+
+      const table = document.createElement("table");
+      table.className = "rankings";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th class="col-rank">${escapeHtml(note)}</th>
+            <th class="col-player">Player</th>
+            <th class="col-matches">W-L</th>
+            <th class="col-games">Rounds</th>
+            <th class="col-diff">Diff.</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector("tbody");
+      const mappedRows = rows
+        .map((row = []) => ({
+          seed: String(row[0] ?? "").trim(),
+          player: String(row[1] ?? "").trim(),
+          matchesWon: numOrZero(row[2]),
+          matchesLost: numOrZero(row[3]),
+          gamesWon: numOrZero(row[4]),
+          gamesLost: numOrZero(row[5]),
+          diff: numOrZero(row[6]),
+        }))
+        .filter((row) => row.seed || row.player);
+
+      if(!mappedRows.length){
+        const row = document.createElement("tr");
+        row.innerHTML = '<td colspan="5" class="schedule-empty" style="text-align:center;">No promotion standings available.</td>';
+        tbody.appendChild(row);
+      }
+
+      mappedRows.forEach((row) => {
+        const tr = document.createElement("tr");
+        const qfPlayerClass = row.player.toUpperCase().startsWith("QF") ? " qf-player" : "";
+        tr.innerHTML = `
+          <td class="col-rank">${escapeHtml(row.seed)}</td>
+          <td class="col-player${qfPlayerClass}"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player || "TBD")}</button></td>
+          <td class="col-matches">${escapeHtml(`${row.matchesWon}-${row.matchesLost}`)}</td>
+          <td class="col-games">${escapeHtml(`${row.gamesWon}-${row.gamesLost}`)}</td>
+          <td class="col-diff">${escapeHtml(formatDiff(row.diff))}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      wrapper.appendChild(table);
+      return wrapper;
+    }
+
+    function renderPromotionStandings(values){
+      const gridEl = document.getElementById("promotionStandingsGrid");
+      if(!gridEl) return;
+
+      const promotionToD1 = values.slice(2, 7);
+      const promotionToD2 = values.slice(9, 13);
+      gridEl.innerHTML = "";
+      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 1", "Top 2", promotionToD1, "division-1"));
+      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 2", "Top 2", promotionToD2, "division-2"));
+    }
+
+    function renderPromotionSchedule(values){
+      const wrapEl = document.getElementById("promotionScheduleWrap");
+      const gridEl = document.getElementById("promotionScheduleGrid");
+      if(!wrapEl || !gridEl) return;
+
+      const rounds = parseScheduleRows(values);
+      const groups = [
+        { key: "d1", title: "Promotion to Division 1", className: "division-1" },
+        { key: "d2", title: "Promotion to Division 2", className: "division-2" },
+      ];
+
+      gridEl.innerHTML = "";
+      wrapEl.hidden = !rounds.length;
+      groups.forEach((group) => {
+        const pane = document.createElement("section");
+        pane.className = `schedule-division ${group.className}`;
+
+        const heading = document.createElement("h3");
+        heading.className = `schedule-division-title ${group.className}`;
+        heading.textContent = group.title;
+        pane.appendChild(heading);
+
+        const groupRounds = rounds
+          .map((round) => ({
+            ...round,
+            matchups: round.matchups.filter((matchup) => normalizePromotionGroup(matchup.division) === group.key),
+          }))
+          .filter((round) => round.matchups.length);
+
+        if(!groupRounds.length){
+          const empty = document.createElement("p");
+          empty.className = "schedule-empty";
+          empty.textContent = "No promotion matchups available.";
+          pane.appendChild(empty);
+        }else{
+          const matchGrid = document.createElement("div");
+          matchGrid.className = "match-grid";
+          groupRounds.forEach((round) => {
+            round.matchups.forEach((matchup) => {
+              matchGrid.appendChild(renderLabeledMatch(matchup, `Round ${round.week}`));
+            });
+          });
+          pane.appendChild(matchGrid);
+        }
+
+        gridEl.appendChild(pane);
+      });
+    }
+
+    function renderPromotionsFromCache(){
+      renderPromotionStandings(promotionStandingsRowsCache);
+      renderPromotionSchedule(promotionScheduleRowsCache);
+    }
+
+    async function loadPromotions(){
+      if(getActiveSeasonNumber() < 7){
+        promotionStandingsRowsCache = [];
+        promotionScheduleRowsCache = [];
+        renderPromotionsFromCache();
+        return;
+      }
+
+      try{
+        const sheet = getPromotionsSheet();
+        const [standingsValues, scheduleValues] = await Promise.all([
+          fetchRange(PROMOTIONS_STANDINGS_RANGE, sheet),
+          fetchRange(PROMOTIONS_SCHEDULE_RANGE, sheet),
+        ]);
+        promotionStandingsRowsCache = standingsValues;
+        promotionScheduleRowsCache = scheduleValues;
+      }catch(error){
+        console.warn(`Could not load ${activeSuperLeagueSeason} promotion data.`, error);
+        promotionStandingsRowsCache = [];
+        promotionScheduleRowsCache = [];
+      }
+
+      renderPromotionsFromCache();
+    }
+
     async function loadQualifiers(){
       try{
         const qualifierBracketSheet = getQualifierBracketSheet();
@@ -3938,6 +4129,8 @@
         playoffMetadata = null;
         qualifierBracketRowsCache = [];
         loserBracketRowsCache = [];
+        promotionStandingsRowsCache = [];
+        promotionScheduleRowsCache = [];
         qualifierMobileRoundIndex = 0;
         loserMobileRoundIndex = 0;
         playerDivisionLookup.clear();
@@ -3949,6 +4142,7 @@
           fetchRange(seasonLayout.scheduleRange),
           seasonLayout.playoffRange ? fetchRange(seasonLayout.playoffRange) : Promise.resolve([]),
           loadQualifiers(),
+          loadPromotions(),
           loadPlayerDiscordIdLookup(),
         ]);
         const scheduleRows = all[seasonLayout.divisions.length] || [];
