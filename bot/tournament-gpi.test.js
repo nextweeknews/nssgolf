@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
+  buildWorldChampionshipMatchesFromRows,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
@@ -141,6 +142,32 @@ const identityMap = {
   assert.equal(matches.length, 1);
   assert.equal(matches[0].id, 1);
   assert.equal(matches[0].winner, "Alice");
+}
+
+{
+  const completed = Array(26).fill("");
+  completed[0] = 64;
+  completed[1] = "Championship";
+  completed[2] = 1;
+  completed[3] = "Alice";
+  completed[4] = "3";
+  completed[5] = "W";
+  completed[14] = 2;
+  completed[15] = "Bob";
+  completed[16] = "1";
+  completed[17] = "L";
+
+  const matches = buildWorldChampionshipMatchesFromRows([
+    ["id", "round"],
+    completed,
+    ["bad", "R64"],
+  ]);
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].id, 64);
+  assert.equal(matches[0].round, "Final");
+  assert.equal(matches[0].top.name, "Alice");
+  assert.equal(matches[0].top.gameScores[0], "W");
+  assert.equal(matches[0].bottom.name, "Bob");
 }
 
 console.log("tournament GPI tests passed");
