@@ -19,6 +19,7 @@ const workerUrl = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const superLeagueSheetId = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
 const worldOpenSheetId = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
 const lightningCupSheetId = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
+const worldChampionshipSheetId = "10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q";
 const superLeagueDiscordIdsRange = "A:B";
 const worldOpenDiscordIdsRange = "A:B";
 const syntheticStartMs = Date.UTC(2026, 0, 1, 0, 0, 0);
@@ -30,6 +31,7 @@ const eventOrder = [
   { key: "world_open_2026", name: "World Open" },
   { key: "lightning_cup_2026", name: "Lightning Cup" },
   { key: "super_league_s6", name: "Super League Season 6" },
+  { key: "world_championship_2026", name: "World Championship" },
 ];
 
 const worldOpenRounds = [
@@ -43,6 +45,7 @@ const worldOpenRounds = [
 ];
 
 const lightningRoundOrder = ["R64", "R32", "R16", "R8", "R4", "Final"];
+const worldChampionshipRoundOrder = [...lightningRoundOrder, "3rd"];
 
 function usage() {
   console.log(`
@@ -333,6 +336,13 @@ async function loadWorldOpenIdentitySheet(identityMap) {
   const rows = await fetchSheetRange(worldOpenSheetId, "Discord IDs", worldOpenDiscordIdsRange);
   for (const row of rows || []) {
     addTwoColumnIdentity(identityMap, row, "world_open_discord_ids");
+  }
+}
+
+async function loadWorldChampionshipIdentitySheet(identityMap) {
+  const rows = await fetchSheetRange(worldChampionshipSheetId, "Field", "B:C");
+  for (const row of rows || []) {
+    addTwoColumnIdentity(identityMap, row, "world_championship_field");
   }
 }
 
@@ -667,6 +677,85 @@ async function fetchLightningCupEvent(event, eventIndex, identityMap) {
   return { matches, warnings };
 }
 
+function normalizeWorldChampionshipRound(value) {
+  const text = normalizeName(value);
+  const normalized = text.toLowerCase().replace(/[\s_-]+/g, "");
+  if (["r64", "roundof64", "64"].includes(normalized)) return "R64";
+  if (["r32", "roundof32", "32"].includes(normalized)) return "R32";
+  if (["r16", "roundof16", "16"].includes(normalized)) return "R16";
+  if (["r8", "roundof8", "quarterfinal", "quarterfinals", "qf", "8"].includes(normalized)) return "R8";
+  if (["r4", "roundof4", "semifinal", "semifinals", "sf", "4"].includes(normalized)) return "R4";
+  if (["f", "final", "finals", "championship"].includes(normalized)) return "Final";
+  if (["3rd", "third", "thirdplace", "3rdplace", "bronze"].includes(normalized)) return "3rd";
+  return text;
+}
+
+function buildWorldChampionshipMatchesFromRows(rows) {
+  return (rows || [])
+    .map((row) => ({
+      id: Number(row?.[0]),
+      round: normalizeWorldChampionshipRound(row?.[1]),
+      top: {
+        seed: Number(row?.[2]) || null,
+        name: normalizeName(row?.[3]),
+        score: normalizeName(row?.[4]),
+        gameScores: Array.from({ length: 9 }, (_, offset) => normalizeName(row?.[5 + offset])),
+      },
+      bottom: {
+        seed: Number(row?.[14]) || null,
+        name: normalizeName(row?.[15]),
+        score: normalizeName(row?.[16]),
+        gameScores: Array.from({ length: 9 }, (_, offset) => normalizeName(row?.[17 + offset])),
+      },
+      source: row,
+    }))
+    .filter((match) => (
+      Number.isFinite(match.id) &&
+      worldChampionshipRoundOrder.includes(match.round)
+    ));
+}
+
+async function fetchWorldChampionshipEvent(event, eventIndex, identityMap) {
+  const rows = await fetchSheetRange(worldChampionshipSheetId, "Bracket", "A:Z");
+  const sourceMatches = buildWorldChampionshipMatchesFromRows(rows).sort((left, right) => {
+    const leftRound = worldChampionshipRoundOrder.indexOf(left.round);
+    const rightRound = worldChampionshipRoundOrder.indexOf(right.round);
+    if (leftRound !== rightRound) return leftRound - rightRound;
+    return left.id - right.id;
+  });
+  const matches = [];
+  const warnings = [];
+  let localOrder = 0;
+
+  for (const sourceMatch of sourceMatches) {
+    const playerAName = sourceMatch.top.name;
+    const playerBName = sourceMatch.bottom.name;
+    if (!playerAName || !playerBName) continue;
+    if (/^(bye|seed\b)/i.test(playerAName) || /^(bye|seed\b)/i.test(playerBName)) continue;
+    const winnerSide = winnerFromHigherScore(sourceMatch.top.score, sourceMatch.bottom.score);
+    if (!winnerSide) continue;
+    localOrder += 1;
+    const { row: matchRow, warning } = buildTournamentMatch({
+      event,
+      eventIndex,
+      localOrder,
+      sourceMatchId: String(sourceMatch.id),
+      roundLabel: sourceMatch.round,
+      playerAName,
+      playerBName,
+      scoreA: sourceMatch.top.score,
+      scoreB: sourceMatch.bottom.score,
+      winnerSide,
+      identityMap,
+      rawSource: { type: "world_championship_bracket", match: sourceMatch },
+    });
+    if (matchRow) matches.push(matchRow);
+    if (warning) warnings.push(warning);
+  }
+
+  return { matches, warnings };
+}
+
 async function collectTournamentMatches(supabase) {
   const internalIdentityMap = createEmptyIdentityMap();
   await loadInternalAliasIdentities(supabase, internalIdentityMap);
@@ -674,10 +763,12 @@ async function collectTournamentMatches(supabase) {
   const superLeagueIdentityMap = cloneIdentityMap(internalIdentityMap);
   const worldOpenIdentityMap = cloneIdentityMap(internalIdentityMap);
   const lightningIdentityMap = cloneIdentityMap(internalIdentityMap);
+  const worldChampionshipIdentityMap = cloneIdentityMap(internalIdentityMap);
   await Promise.all([
     loadSuperLeagueIdentitySheet(superLeagueIdentityMap),
     loadWorldOpenIdentitySheet(worldOpenIdentityMap),
     loadLightningIdentitySheet(lightningIdentityMap),
+    loadWorldChampionshipIdentitySheet(worldChampionshipIdentityMap),
   ]);
 
   const results = [];
@@ -692,6 +783,8 @@ async function collectTournamentMatches(supabase) {
       results.push(await fetchLightningCupEvent(event, eventIndex, lightningIdentityMap));
     } else if (event.key === "super_league_s6") {
       results.push(await fetchSuperLeagueEvent(6, event, eventIndex, superLeagueIdentityMap));
+    } else if (event.key === "world_championship_2026") {
+      results.push(await fetchWorldChampionshipEvent(event, eventIndex, worldChampionshipIdentityMap));
     }
   }
 
@@ -921,6 +1014,7 @@ if (require.main === module) {
 module.exports = {
   addTwoColumnIdentity,
   buildLightningMatchesFromRows,
+  buildWorldChampionshipMatchesFromRows,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
