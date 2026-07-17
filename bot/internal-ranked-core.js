@@ -4,7 +4,7 @@ const crypto = require("node:crypto");
 
 const CALCULATION_VERSION = "ranked-pairwise-elo-v1";
 const GPI_CALCULATION_VERSION = "ranked-flat-pl-gpi-v1";
-const OAWP_GPI_CALCULATION_VERSION = "ranked-opponent-aware-weighted-pairwise-gpi-v1";
+const OAWP_GPI_CALCULATION_VERSION = "ranked-opponent-aware-weighted-pairwise-gpi-v2";
 const NPS_ELO_CALCULATION_VERSION = "ranked-normalized-placement-elo-v1";
 const DEFAULT_BASE_RATING = 1200;
 const DEFAULT_K_FACTOR = 20;
@@ -389,22 +389,157 @@ function distributionStats(values) {
   };
 }
 
-function normalizeRatingToDistribution(value, sourceStats, targetStats) {
+function normalizeRatingToDistribution(value, sourceStats, targetStats, distributionScale = 1) {
   const rating = Number(value);
+  const scale = Number(distributionScale);
   if (!Number.isFinite(rating)) return value;
   if (
     sourceStats.count < 2 ||
     targetStats.count < 2 ||
     sourceStats.standardDeviation <= 0 ||
-    targetStats.standardDeviation <= 0
+    targetStats.standardDeviation <= 0 ||
+    !Number.isFinite(scale) ||
+    scale <= 0
   ) {
     return rating;
   }
   return (
     targetStats.mean +
     ((rating - sourceStats.mean) / sourceStats.standardDeviation) *
-      targetStats.standardDeviation
+      targetStats.standardDeviation *
+      scale
   );
+}
+
+function calibratedDistributionDelta(leftRating, rightRating, sourceStats, targetStats, scale) {
+  const left = Number(leftRating);
+  const right = Number(rightRating);
+  if (
+    !Number.isFinite(left) ||
+    !Number.isFinite(right) ||
+    sourceStats.standardDeviation <= 0 ||
+    targetStats.standardDeviation <= 0
+  ) {
+    return null;
+  }
+  return ((left - right) / sourceStats.standardDeviation) * targetStats.standardDeviation * scale;
+}
+
+function pairwiseLogLossForScale(samples, scale) {
+  let loss = 0;
+  let weightTotal = 0;
+  for (const sample of samples) {
+    const probability = Math.max(
+      0.000001,
+      Math.min(0.999999, expectedScore(sample.ratingDeltaAtScaleOne * scale, 0))
+    );
+    loss +=
+      -sample.weight *
+      (sample.actual * Math.log(probability) + (1 - sample.actual) * Math.log(1 - probability));
+    weightTotal += sample.weight;
+  }
+  return weightTotal > 0 ? loss / weightTotal : 0;
+}
+
+function fitRecentFormDistributionCalibration(
+  matchRows,
+  recentRatings,
+  eligibleMatchIndexesByPlayer,
+  calibrationPlayerIds,
+  sourceStats,
+  targetStats,
+  weightingOptions
+) {
+  const fallback = {
+    mode: "insufficient_pairwise_evidence",
+    scale: 1,
+    pair_count: 0,
+    total_weight: 0,
+    log_loss_at_scale_1: 0,
+    log_loss_at_calibrated_scale: 0,
+    min_scale: 1,
+    max_scale: 1,
+  };
+  if (
+    sourceStats.count < 2 ||
+    targetStats.count < 2 ||
+    sourceStats.standardDeviation <= 0 ||
+    targetStats.standardDeviation <= 0
+  ) {
+    return fallback;
+  }
+
+  const samples = [];
+  let totalWeight = 0;
+  for (let matchIndex = 0; matchIndex < matchRows.length; matchIndex += 1) {
+    const players = playersFromMatch(matchRows[matchIndex]);
+    if (players.length < 2) continue;
+
+    const pairWeight = pairWeightForMatchSize(players.length, weightingOptions);
+    if (!Number.isFinite(pairWeight) || pairWeight <= 0) continue;
+
+    for (let leftIndex = 0; leftIndex < players.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < players.length; rightIndex += 1) {
+        const left = players[leftIndex];
+        const right = players[rightIndex];
+        const leftEligible =
+          calibrationPlayerIds.has(left.discord_user_id) &&
+          eligibleMatchIndexesByPlayer.get(left.discord_user_id)?.has(matchIndex) === true;
+        const rightEligible =
+          calibrationPlayerIds.has(right.discord_user_id) &&
+          eligibleMatchIndexesByPlayer.get(right.discord_user_id)?.has(matchIndex) === true;
+        if (!leftEligible && !rightEligible) continue;
+
+        const ratingDeltaAtScaleOne = calibratedDistributionDelta(
+          recentRatings.get(left.discord_user_id)?.rating,
+          recentRatings.get(right.discord_user_id)?.rating,
+          sourceStats,
+          targetStats,
+          1
+        );
+        if (!Number.isFinite(ratingDeltaAtScaleOne)) continue;
+
+        samples.push({
+          ratingDeltaAtScaleOne,
+          actual: actualScore(left.place, right.place),
+          weight: pairWeight,
+        });
+        totalWeight += pairWeight;
+      }
+    }
+  }
+
+  if (samples.length < 10 || totalWeight <= 0) return fallback;
+
+  // Fit the recent spread to the outcomes it is meant to explain instead of using a fixed multiplier.
+  const minScale = 0.25;
+  const maxScale = 4;
+  let left = minScale;
+  let right = maxScale;
+  for (let iteration = 0; iteration < 50; iteration += 1) {
+    const leftThird = left + (right - left) / 3;
+    const rightThird = right - (right - left) / 3;
+    if (
+      pairwiseLogLossForScale(samples, leftThird) <
+      pairwiseLogLossForScale(samples, rightThird)
+    ) {
+      right = rightThird;
+    } else {
+      left = leftThird;
+    }
+  }
+
+  const scale = (left + right) / 2;
+  return {
+    mode: "weighted_pairwise_log_loss",
+    scale,
+    pair_count: samples.length,
+    total_weight: totalWeight,
+    log_loss_at_scale_1: pairwiseLogLossForScale(samples, 1),
+    log_loss_at_calibrated_scale: pairwiseLogLossForScale(samples, scale),
+    min_scale: minScale,
+    max_scale: maxScale,
+  };
 }
 
 function pairWeightForMatchSize(playerCount, options = {}) {
@@ -1372,10 +1507,14 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
     weightingOptions,
   };
   const fullHistoryFit = fitOpponentAwarePairwiseAbilities(sortedMatches, statsByPlayer, fitOptions);
+  const recentFormMatchIndexesByPlayer = lastMatchIndexesByPlayer(
+    sortedMatches,
+    recentFormMatchLimit
+  );
   const recentFormFit = fitOpponentAwarePairwiseAbilities(sortedMatches, statsByPlayer, {
     ...fitOptions,
     shrinkageMatches: recentFormShrinkageMatches,
-    eligibleMatchIndexesByPlayer: lastMatchIndexesByPlayer(sortedMatches, recentFormMatchLimit),
+    eligibleMatchIndexesByPlayer: recentFormMatchIndexesByPlayer,
   });
   const potentialRatings = replayPeakWeightedPairwiseElo(sortedMatches, statsByPlayer, {
     baseRating,
@@ -1386,6 +1525,7 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
   const recentFormEligiblePlayerIds = playerIds.filter(
     (discordUserId) => statsByPlayer.get(discordUserId).matches_played >= recentFormMatchLimit
   );
+  const recentFormEligiblePlayerIdSet = new Set(recentFormEligiblePlayerIds);
   const recentFormSourceStats = distributionStats(
     recentFormEligiblePlayerIds.map(
       (discordUserId) => recentFormFit.ratings.get(discordUserId)?.rating
@@ -1396,13 +1536,25 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
       (discordUserId) => fullHistoryFit.ratings.get(discordUserId)?.rating
     )
   );
+  const recentFormCalibration = fitRecentFormDistributionCalibration(
+    sortedMatches,
+    recentFormFit.ratings,
+    recentFormMatchIndexesByPlayer,
+    recentFormEligiblePlayerIdSet,
+    recentFormSourceStats,
+    recentFormTargetStats,
+    weightingOptions
+  );
   const recentFormNormalization = {
-    mode: "z_score_recent_pl_to_full_history_pl_distribution",
+    mode: "z_score_recent_pl_to_full_history_pl_distribution_with_pairwise_calibration",
     eligible_player_count: recentFormEligiblePlayerIds.length,
     source_recent_mean: recentFormSourceStats.mean,
     source_recent_standard_deviation: recentFormSourceStats.standardDeviation,
     target_full_history_mean: recentFormTargetStats.mean,
     target_full_history_standard_deviation: recentFormTargetStats.standardDeviation,
+    calibration: recentFormCalibration,
+    adjusted_target_standard_deviation:
+      recentFormTargetStats.standardDeviation * recentFormCalibration.scale,
   };
 
   const finalRatings = playerIds
@@ -1419,12 +1571,14 @@ function replayOpponentAwareWeightedPairwiseGpi(matchRows, options = {}) {
               rating: normalizeRatingToDistribution(
                 recentFitRating.rating,
                 recentFormSourceStats,
-                recentFormTargetStats
+                recentFormTargetStats,
+                recentFormCalibration.scale
               ),
               raw_rating: normalizeRatingToDistribution(
                 recentFitRating.raw_rating,
                 recentFormSourceStats,
-                recentFormTargetStats
+                recentFormTargetStats,
+                recentFormCalibration.scale
               ),
             };
       const rawRating =

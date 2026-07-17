@@ -19,6 +19,14 @@ function assertAlmostEqual(actual, expected, tolerance = 0.0000001) {
   assert(Math.abs(actual - expected) <= tolerance, `${actual} !== ${expected}`);
 }
 
+function standardDeviation(rows, key) {
+  const values = rows.map((row) => Number(row[key])).filter(Number.isFinite);
+  const mean = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.max(1, values.length);
+  return Math.sqrt(variance);
+}
+
 function match(timestamp, results, versus = "1v1v1") {
   return {
     timestamp,
@@ -429,7 +437,7 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(replay.recentFormShrinkageMatches, 0);
   assert.equal(
     replay.recentFormNormalization.mode,
-    "z_score_recent_pl_to_full_history_pl_distribution"
+    "z_score_recent_pl_to_full_history_pl_distribution_with_pairwise_calibration"
   );
   assert.equal(replay.recentFormFallback, "players_below_recent_match_limit_use_full_history_pl");
 }
@@ -478,11 +486,22 @@ function match(timestamp, results, versus = "1v1v1") {
   assert.equal(replay.recentFormShrinkageMatches, 0);
   assert.equal(
     replay.recentFormNormalization.mode,
-    "z_score_recent_pl_to_full_history_pl_distribution"
+    "z_score_recent_pl_to_full_history_pl_distribution_with_pairwise_calibration"
+  );
+  assert.equal(replay.recentFormNormalization.calibration.mode, "weighted_pairwise_log_loss");
+  assert(replay.recentFormNormalization.calibration.pair_count > 0);
+  assert(
+    replay.recentFormNormalization.calibration.log_loss_at_calibrated_scale <=
+      replay.recentFormNormalization.calibration.log_loss_at_scale_1
   );
   assertAlmostEqual(
     mean(eligibleRows, "recent_form_rating"),
     mean(eligibleRows, "full_history_rating")
+  );
+  assertAlmostEqual(
+    standardDeviation(eligibleRows, "recent_form_rating"),
+    standardDeviation(eligibleRows, "full_history_rating") *
+      replay.recentFormNormalization.calibration.scale
   );
 }
 

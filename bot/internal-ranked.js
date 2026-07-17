@@ -844,7 +844,7 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
     model: "opponent_aware_weighted_pairwise",
     fit_type: "composite_pairwise_rating",
     rating_formula:
-      "50% full-history opponent-aware weighted pairwise PL + 25% peak weighted pairwise Elo + 25% player last-100-match opponent-aware weighted pairwise PL",
+      "50% full-history opponent-aware weighted pairwise PL + 25% peak weighted pairwise Elo + 25% player last-100-match opponent-aware weighted pairwise PL calibrated to recent pairwise performance",
     pairwise_model: "all_players_in_match_compared_directly",
     component_weights: replay.componentWeights,
     components: {
