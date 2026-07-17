@@ -190,7 +190,25 @@ async function insertInChunks(tableName, rows) {
   }
 }
 
+async function markCurrentMembersInChunks(guildId, members, scannedAt) {
+  for (const chunk of chunkRows(members)) {
+    const memberIds = chunk.map((member) => member.id);
+    const { error } = await supabase
+      .from("discord_guild_members")
+      .update({ is_current_member: true, last_scanned_at: scannedAt })
+      .eq("guild_id", guildId)
+      .in("discord_user_id", memberIds);
+    if (error) {
+      throwSupabaseError("member reactivation failed", error);
+    }
+  }
+}
+
 async function syncMembersToSupabase(guild, members, scannedAt) {
+  if (members.length === 0) {
+    throw new Error("Refusing to mark guild members stale because Discord returned zero members.");
+  }
+
   const roleRows = [...guild.roles.cache.values()]
     .filter((role) => role.id !== guild.id)
     .map((role) => ({
@@ -254,6 +272,7 @@ async function syncMembersToSupabase(guild, members, scannedAt) {
   await upsertInChunks("discord_guild_members", memberRows, {
     onConflict: "guild_id,discord_user_id",
   });
+  await markCurrentMembersInChunks(guild.id, members, scannedAt);
   await upsertInChunks("discord_roles", roleRows, {
     onConflict: "guild_id,role_id",
   });

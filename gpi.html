@@ -1965,6 +1965,7 @@
         .from(config.runTable)
         .select(config.runSelect)
         .eq("model", model)
+        .order("latest_match_at", { ascending:false, nullsFirst:false })
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
@@ -2231,7 +2232,7 @@
       for(const row of ratings){
         const discordId = normalizeDiscordId(row.discord_user_id);
         const member = membersById.get(discordId);
-        if(!discordId || member?.is_current_member !== true) continue;
+        if(!discordId) continue;
 
         const matches = Number(row.matches_played) || 0;
         if(matches < config.minMatches) continue;
@@ -2339,7 +2340,7 @@
       for(const row of rankedRatings){
         const discordId = normalizeDiscordId(row.discord_user_id);
         const member = membersById.get(discordId);
-        if(!discordId || member?.is_current_member !== true) continue;
+        if(!discordId) continue;
 
         const rankedMatches = Number(row.matches_played) || 0;
         if(rankedMatches < VIEW_CONFIG.gpi.minMatches) continue;
@@ -2429,7 +2430,7 @@
       for(const tournamentRow of tournamentRatings){
         const discordId = normalizeDiscordId(tournamentRow.discord_user_id);
         const member = membersById.get(discordId);
-        if(!discordId || member?.is_current_member !== true) continue;
+        if(!discordId) continue;
         if(qualifiedRankedIds.has(discordId)) continue;
 
         const tournamentMatches = Number(tournamentRow.matches_played) || 0;
@@ -2715,11 +2716,15 @@
     function scoreLeaderboardSearchResult(row, query){
       const display = normalizeNameKey(row.displayName);
       const username = normalizeNameKey(leaderboardSearchUsername(row));
+      const discordId = normalizeDiscordId(row.discord_user_id);
       if(!query) return 0;
+      if(discordId === query) return 130;
       if(display === query) return 120;
       if(username === query) return 110;
+      if(discordId.startsWith(query)) return 100;
       if(display.startsWith(query)) return 95;
       if(username.startsWith(query)) return 85;
+      if(discordId.includes(query)) return 75;
       if(display.includes(query)) return 65;
       if(username.includes(query)) return 55;
       return 0;
