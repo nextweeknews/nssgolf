@@ -116,6 +116,25 @@ const SUPERLEAGUE_DIVISIONS = [
 ];
 const SUPERLEAGUE_SCHEDULE_RANGE = "I2:AB85";
 const SUPERLEAGUE_PLAYOFF_RANGE = "I87:AB92";
+const SUPERLEAGUE_SEASON_7_DIVISIONS = [
+  { title: "Division 1", range: "B3:G12" },
+  { title: "Division 2", range: "B14:G23" },
+  { title: "Division 3", range: "B25:G34" },
+];
+const SUPERLEAGUE_SEASON_LAYOUTS = {
+  7: {
+    divisions: SUPERLEAGUE_SEASON_7_DIVISIONS,
+    scheduleRange: "I2:AB136",
+    playoffRange: "",
+    regularSeasonWeeks: 9,
+  },
+  default: {
+    divisions: SUPERLEAGUE_DIVISIONS,
+    scheduleRange: SUPERLEAGUE_SCHEDULE_RANGE,
+    playoffRange: SUPERLEAGUE_PLAYOFF_RANGE,
+    regularSeasonWeeks: 7,
+  },
+};
 const PROLEAGUE_LEGACY_SEASON_CONFIG = {
   5: { sheet: "Season 5", rosters: "A3:S63", teamRank: "U4:X15" },
   4: { sheet: "Season 4", rosters: "A3:S53", teamRank: "U4:X13" },
@@ -993,6 +1012,14 @@ function superLeagueSeasonLabel(){
   return match ? match[0].replace(/^season/i, "Season") : label || "Season";
 }
 
+function superLeagueSeasonNumber(){
+  return Number(String(SUPERLEAGUE_SHEET_NAME || "").match(/\d+/)?.[0] || 0);
+}
+
+function getSuperLeagueSeasonLayout(){
+  return SUPERLEAGUE_SEASON_LAYOUTS[superLeagueSeasonNumber()] || SUPERLEAGUE_SEASON_LAYOUTS.default;
+}
+
 function normalizeSuperLeagueDivisionValue(value){
   const text = String(value ?? "").trim();
   const match = text.match(/(\d+)/);
@@ -1541,24 +1568,25 @@ async function loadSuperLeaguePlayerName(discordId){
 }
 
 async function loadSuperLeaguePlayerData(playerName){
+  const seasonLayout = getSuperLeagueSeasonLayout();
   const loaded = await Promise.all([
-    ...SUPERLEAGUE_DIVISIONS.map((division) => fetchSuperLeagueRange(division.range)),
-    fetchSuperLeagueRange(SUPERLEAGUE_SCHEDULE_RANGE),
-    fetchSuperLeagueRange(SUPERLEAGUE_PLAYOFF_RANGE),
+    ...seasonLayout.divisions.map((division) => fetchSuperLeagueRange(division.range)),
+    fetchSuperLeagueRange(seasonLayout.scheduleRange),
+    seasonLayout.playoffRange ? fetchSuperLeagueRange(seasonLayout.playoffRange) : Promise.resolve([]),
     loadSuperLeagueDiscordIdMaps(),
   ]);
 
-  const divisionRows = loaded.slice(0, SUPERLEAGUE_DIVISIONS.length);
-  const scheduleRows = loaded[SUPERLEAGUE_DIVISIONS.length] || [];
-  const playoffRows = loaded[SUPERLEAGUE_DIVISIONS.length + 1] || [];
-  const idMaps = loaded[SUPERLEAGUE_DIVISIONS.length + 2] || { discordIdByName: new Map() };
+  const divisionRows = loaded.slice(0, seasonLayout.divisions.length);
+  const scheduleRows = loaded[seasonLayout.divisions.length] || [];
+  const playoffRows = loaded[seasonLayout.divisions.length + 1] || [];
+  const idMaps = loaded[seasonLayout.divisions.length + 2] || { discordIdByName: new Map() };
   const headToHeadByDivision = buildSuperLeagueHeadToHeadByDivision(scheduleRows);
   const playoffMatchups = parseSuperLeaguePlayoffRows(playoffRows);
   const playoffMetadata = deriveSuperLeaguePlayoffMetadata(playoffMatchups);
   const targetKey = normalizeSuperLeagueNameKey(playerName);
 
   let profile = null;
-  SUPERLEAGUE_DIVISIONS.forEach((division, index) => {
+  seasonLayout.divisions.forEach((division, index) => {
     const baseRows = mapSuperLeagueRows(divisionRows[index] || []);
     const rowsWithPlayoffs = applySuperLeaguePlayoffStatTotals(baseRows, playoffMetadata);
     const rows = rankSuperLeagueDivisionRows(rowsWithPlayoffs, division.title, headToHeadByDivision);
@@ -1584,7 +1612,7 @@ async function loadSuperLeaguePlayerData(playerName){
 
   const scheduleWeeks = parseSuperLeagueScheduleRows(scheduleRows);
   const rows = [];
-  for(let week = 1; week <= 7; week += 1){
+  for(let week = 1; week <= seasonLayout.regularSeasonWeeks; week += 1){
     const weekData = scheduleWeeks.find((entry) => Number(entry.week) === week);
     rows.push({ label: String(week), result: weekData ? getSuperLeaguePlayerWeekResult(playerName, weekData) : null });
   }

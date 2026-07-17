@@ -2101,6 +2101,26 @@
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "PLAY-IN", "L6", "L7", "L8", "L9"];
     const PLAYOFF_RANGE = "I87:AB92";
+    const SEASON_7_DIVISIONS = [
+      { title: "Division 1", range: "B3:G12" },
+      { title: "Division 2", range: "B14:G23" },
+      { title: "Division 3", range: "B25:G34" },
+    ];
+    const SEASON_7_SCHEDULE_RANGE = "I2:AB136";
+    const SEASON_LAYOUTS = {
+      7: {
+        divisions: SEASON_7_DIVISIONS,
+        scheduleRange: SEASON_7_SCHEDULE_RANGE,
+        playoffRange: "",
+        regularSeasonWeeks: 9,
+      },
+      default: {
+        divisions: DIVISIONS,
+        scheduleRange: SCHEDULE_RANGE,
+        playoffRange: PLAYOFF_RANGE,
+        regularSeasonWeeks: 7,
+      },
+    };
     const DISCORD_IDS_SHEET = "Discord IDs";
     const DISCORD_IDS_RANGE = "A:B";
     let scheduleWeeks = [];
@@ -2155,6 +2175,10 @@
 
     function usesHeadToHeadTiebreaker(){
       return getActiveSeasonNumber() >= 6;
+    }
+
+    function getActiveSeasonLayout(){
+      return SEASON_LAYOUTS[getActiveSeasonNumber()] || SEASON_LAYOUTS.default;
     }
 
     function hydrateInitialSeasonFromUrl(){
@@ -3031,7 +3055,8 @@
         tbody.appendChild(row);
       };
 
-      for(let week = 1; week <= 7; week += 1){
+      const regularSeasonWeeks = getActiveSeasonLayout().regularSeasonWeeks;
+      for(let week = 1; week <= regularSeasonWeeks; week += 1){
         const weekData = scheduleWeeks.find((w) => Number(w.week) === week);
         const result = weekData ? getPlayerWeekResult(playerName, weekData) : null;
         appendResultRow(String(week), result);
@@ -3918,22 +3943,23 @@
         playerDivisionLookup.clear();
         playerStatsLookup.clear();
 
+        const seasonLayout = getActiveSeasonLayout();
         const all = await Promise.all([
-          ...DIVISIONS.map((division) => fetchRange(division.range)),
-          fetchRange(SCHEDULE_RANGE),
-          fetchRange(PLAYOFF_RANGE),
+          ...seasonLayout.divisions.map((division) => fetchRange(division.range)),
+          fetchRange(seasonLayout.scheduleRange),
+          seasonLayout.playoffRange ? fetchRange(seasonLayout.playoffRange) : Promise.resolve([]),
           loadQualifiers(),
           loadPlayerDiscordIdLookup(),
         ]);
-        const scheduleRows = all[DIVISIONS.length] || [];
-        const playoffRows = all[DIVISIONS.length + 1] || [];
+        const scheduleRows = all[seasonLayout.divisions.length] || [];
+        const playoffRows = all[seasonLayout.divisions.length + 1] || [];
         const headToHeadByDivision = buildHeadToHeadByDivision(scheduleRows);
         playoffMatchups = parsePlayoffRows(playoffRows);
         playoffMetadata = derivePlayoffMetadata(playoffMatchups);
         updateStandingsLegend(playoffMetadata);
 
         gridEl.innerHTML = "";
-        DIVISIONS.forEach((division, idx) => {
+        seasonLayout.divisions.forEach((division, idx) => {
           gridEl.appendChild(renderDivision(division, all[idx], headToHeadByDivision, playoffMetadata));
         });
 
