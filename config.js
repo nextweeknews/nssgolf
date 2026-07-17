@@ -1,5 +1,6 @@
 export const CURRENT_RANKED_LEAGUE_SEASON = "Season_13";
-export const RANKED_LEAGUE_WORKER_URL = "https://rapid-haze-012c.nextweekmedia.workers.dev";
+export const TEAMUP_API_BASE_URL = "https://api.teamupgg.com";
+export const RANKED_LEAGUE_TEAMUP_CLIENT_ID = "DISCORD|1069003073311211601";
 export const RANKED_LEAGUE_TEAMUP_URL = "https://teamupgg.com/leaderboard/DISCORD%7C1069003073311211601";
 
 export const SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON = 7;

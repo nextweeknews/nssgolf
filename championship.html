@@ -1189,8 +1189,7 @@
     import { ADMIN_ROLE_ID } from "/settings-data.js";
     import {
       CURRENT_RANKED_LEAGUE_SEASON,
-      RANKED_LEAGUE_WORKER_URL,
-    } from "/config.js";
+    } from "/config.js?v=20260717-ranked-season";
     import { mountWorldCupTabs } from "/worldcup-tabs.bundle.js";
     import {
       fetchWorldCupValues,
@@ -1231,7 +1230,6 @@
       Final:"Final",
       "3rd":"3rd Place",
     };
-    const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
     const VIEW_QUERY_PARAM = "view";
     const QUALIFIER_QUERY_PARAM = "qualifier";
     const FETCH_NO_STORE = { cache:"no-store" };
@@ -3216,53 +3214,21 @@
       return Number.isInteger(number) ? number : 12;
     }
 
-    async function loadCurrentRankedPayload(){
-      const response = await fetch(`${RANKED_LEAGUE_WORKER_URL}${RANKED_LEADERBOARD_SNAPSHOT_PATH}`, {
-        ...FETCH_NO_STORE,
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ leaderboard_name:CURRENT_RANKED_LEAGUE_SEASON }),
-      });
-      if(!response.ok) throw new Error(`Ranked League snapshot request failed (${response.status})`);
-      return response.json();
-    }
-
     async function loadRankedSeasonPayloads(){
-      const currentSeason = parseCurrentRankedLeagueSeasonNumber();
-      const archivedSeasons = RANKED_LEAGUE_DISPLAY_SEASONS.filter(season => season !== currentSeason);
       const payloads = new Map();
 
-      const archivedPromise = supabase
+      const { data, error } = await supabase
         .from("ranked")
         .select("season,payload")
-        .in("season", archivedSeasons);
-      const currentPromise = loadCurrentRankedPayload();
-      const [archivedResult, currentResult] = await Promise.allSettled([archivedPromise, currentPromise]);
+        .in("season", RANKED_LEAGUE_DISPLAY_SEASONS);
 
-      if(archivedResult.status === "fulfilled"){
-        const { data, error } = archivedResult.value;
-        if(error){
-          console.warn("Unable to load archived Ranked League data.", error);
-        }else{
-          (data || []).forEach((row) => {
-            const season = Number(row?.season);
-            if(RANKED_LEAGUE_DISPLAY_SEASONS.includes(season)) payloads.set(season, row?.payload);
-          });
-        }
+      if(error){
+        console.warn("Unable to load Ranked League snapshot data.", error);
       }else{
-        console.warn("Unable to load archived Ranked League data.", archivedResult.reason);
-      }
-
-      if(currentResult.status === "fulfilled"){
-        payloads.set(currentSeason, currentResult.value);
-      }else{
-        console.warn("Unable to load live Ranked League data; falling back to Supabase snapshot.", currentResult.reason);
-        const { data, error } = await supabase
-          .from("ranked")
-          .select("season,payload")
-          .eq("season", currentSeason)
-          .maybeSingle();
-        if(!error && data) payloads.set(currentSeason, data.payload);
+        (data || []).forEach((row) => {
+          const season = Number(row?.season);
+          if(RANKED_LEAGUE_DISPLAY_SEASONS.includes(season)) payloads.set(season, row?.payload);
+        });
       }
 
       state.rankedSeasonPayloads = payloads;

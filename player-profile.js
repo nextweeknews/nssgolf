@@ -1,12 +1,13 @@
 import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
 import {
   CURRENT_RANKED_LEAGUE_SEASON,
+  RANKED_LEAGUE_TEAMUP_CLIENT_ID,
   RANKED_LEAGUE_TEAMUP_URL,
-  RANKED_LEAGUE_WORKER_URL,
   SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
   SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
   SUPER_LEAGUE_SEASON,
-} from "/config.js";
+  TEAMUP_API_BASE_URL,
+} from "/config.js?v=20260717-ranked-season";
 import {
   ADMIN_ROLE_ID,
   countryFlagCodeFor,
@@ -77,7 +78,7 @@ const PLAYER_PROFILE_ROLE_IDS = [...new Set([...TRACKED_ROLE_IDS, VERIFIED_ROLE_
 const supabase = createBrowserSupabaseClient();
 const rootEl = document.getElementById("player-root");
 const statusEl = document.getElementById("player-status");
-const RANKED_LEADERBOARD_SNAPSHOT_PATH = "/get_leaderboard_snapshot";
+const RANKED_LEAGUE_RANKINGS_PAGE_LIMIT = 500;
 const PROLEAGUE_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
 const PROLEAGUE_SHEET_ID = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
 const SUPERLEAGUE_SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
@@ -369,6 +370,11 @@ function parseCurrentRankedLeagueSeasonNumber(){
   return Number.isInteger(season) && season > 0 ? season : null;
 }
 
+function currentRankedLeagueLeaderboardName(){
+  const season = parseCurrentRankedLeagueSeasonNumber();
+  return season ? `Season_${season}` : "";
+}
+
 function rankedSeasonLabel(season){
   const number = Number(season);
   return Number.isInteger(number) && number > 0 ? String(number) : "";
@@ -654,6 +660,50 @@ function getRankedEntryForPlayer(payload, discordId, season){
   return row ? normalizeRankedPlayerEntry(row, season) : null;
 }
 
+function rankedLeagueRankingsUrl(leaderboardName, cursor = ""){
+  const url = new URL(
+    `/v1/client/${encodeURIComponent(RANKED_LEAGUE_TEAMUP_CLIENT_ID)}/rankings`,
+    TEAMUP_API_BASE_URL
+  );
+  url.searchParams.set("leaderboard", leaderboardName);
+  url.searchParams.set("format", "");
+  url.searchParams.set("limit", String(RANKED_LEAGUE_RANKINGS_PAGE_LIMIT));
+  if(cursor) url.searchParams.set("cursor", cursor);
+  return url;
+}
+
+async function fetchCurrentRankedLeaguePayload(){
+  const leaderboardName = currentRankedLeagueLeaderboardName();
+  if(!leaderboardName) return { entries: [] };
+
+  const entries = [];
+  let cursor = "";
+  const seenCursors = new Set();
+
+  do{
+    if(cursor){
+      if(seenCursors.has(cursor)){
+        throw new Error(`Ranked League ${leaderboardName} rankings returned a repeated cursor.`);
+      }
+      seenCursors.add(cursor);
+    }
+
+    const response = await fetch(rankedLeagueRankingsUrl(leaderboardName, cursor), {
+      cache: "no-store",
+    });
+
+    if(!response.ok){
+      throw new Error(`Ranked League rankings request failed (${response.status})`);
+    }
+
+    const payload = await response.json();
+    entries.push(...extractRankedEntriesFromPayload(payload));
+    cursor = String(payload?.cursor || "");
+  }while(cursor);
+
+  return { entries };
+}
+
 function parseArchivedRankedLeagueRows(values, discordId){
   const normalizedDiscordId = normalizeDiscordPlayerId(discordId);
   if(!normalizedDiscordId) return [];
@@ -711,17 +761,7 @@ async function loadCurrentRankedLeagueRow(discordId){
   const currentSeasonNumber = parseCurrentRankedLeagueSeasonNumber();
   if(!currentSeasonNumber) return null;
 
-  const response = await fetch(`${RANKED_LEAGUE_WORKER_URL}${RANKED_LEADERBOARD_SNAPSHOT_PATH}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leaderboard_name: CURRENT_RANKED_LEAGUE_SEASON }),
-  });
-
-  if(!response.ok){
-    throw new Error(`Ranked League snapshot request failed (${response.status})`);
-  }
-
-  const payload = await response.json();
+  const payload = await fetchCurrentRankedLeaguePayload();
   return getRankedEntryForPlayer(payload, discordId, currentSeasonNumber);
 }
 
