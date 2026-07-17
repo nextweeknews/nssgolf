@@ -125,7 +125,7 @@ const SUPERLEAGUE_SEASON_LAYOUTS = {
   7: {
     divisions: SUPERLEAGUE_SEASON_7_DIVISIONS,
     scheduleRange: "I2:AB136",
-    playoffRange: "",
+    playoffRange: "I138:AB143",
     regularSeasonWeeks: 9,
   },
   default: {

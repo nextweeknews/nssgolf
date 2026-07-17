@@ -78,7 +78,7 @@
     .superleague-tabs-list{
       width:100%;
       display:grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
+      grid-template-columns: repeat(4, minmax(0,1fr));
       gap:0;
       padding:0;
       border:0;
@@ -1971,7 +1971,7 @@
           <p class="format-copy"><strong>Round Tiebreaker</strong><br />- If a round finishes in a tie, players go to a playoff on a new random 9-hole course. Closest-to-pin is not used.<br />- Once the playoff ends, the playoff course is discarded.<br />- If another game is still needed, it is played on a new random 9-hole course.</p>
           <p class="format-copy"><strong>Standings Tiebreaker</strong><br />If two players have the same match win-loss differential, the tie will be broken by the following progression:<br />- Head-to-head match result (if it has been played)<br />- Round win-loss differential<br />- Score differential</p>
           <p class="format-copy"><strong>Playoffs</strong><br />- Following the regular season, the top 4 players in Division 1 advance to a single-elimination playoff to determine the Super League champion.<br />- Playoffs to determine movement between divisions consist of a single match.<br />- All playoff matches use the same match format and tiebreaker rules as the regular season.</p>
-          <p class="format-note">Note<br />To support a smooth expansion to 10 players per division in Season 7, movement based on divisional standings has been updated as follows for Season 6:</p>
+          <p class="format-note" id="formatSeasonNote"></p>
 
           <div class="format-table-wrap" aria-label="Division movement table">
             <table class="format-table">
@@ -1986,56 +1986,7 @@
                   <th>3</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr>
-                  <th class="rank-label">1</th>
-                  <td class="fill-gold">D1 Playoff</td>
-                  <td class="fill-green">Moves to D1</td>
-                  <td class="fill-green">Moves to D2</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">2</th>
-                  <td class="fill-gold">D1 Playoff</td>
-                  <td class="fill-green">Moves to D1</td>
-                  <td class="fill-green">Moves to D2</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">3</th>
-                  <td class="fill-gold">D1 Playoff</td>
-                  <td class="fill-blue">Playoff for D1</td>
-                  <td class="fill-blue">Playoff for D2</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">4</th>
-                  <td class="fill-gold">D1 Playoff</td>
-                  <td>Stays in D2</td>
-                  <td>Stays in D3</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">5</th>
-                  <td>Stays in D1</td>
-                  <td>Stays in D2</td>
-                  <td>Stays in D3</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">6</th>
-                  <td>Stays in D1</td>
-                  <td>Stays in D2</td>
-                  <td>Stays in D3</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">7</th>
-                  <td class="fill-orange">Playoff for D1</td>
-                  <td class="fill-orange">Playoff for D2</td>
-                  <td class="fill-red">Must re-qualify</td>
-                </tr>
-                <tr>
-                  <th class="rank-label">8</th>
-                  <td class="fill-red">Moves to D2</td>
-                  <td class="fill-red">Moves to D3</td>
-                  <td class="fill-red">Must re-qualify</td>
-                </tr>
-              </tbody>
+              <tbody id="formatMovementBody"></tbody>
             </table>
           </div>
         </div>
@@ -2118,6 +2069,7 @@
     const PLAYOFF_RANGE = "I87:AB92";
     const PROMOTIONS_STANDINGS_RANGE = "A1:H13";
     const PROMOTIONS_SCHEDULE_RANGE = "I2:AB17";
+    const SEASON_7_PLAYOFF_RANGE = "I138:AB143";
     const SEASON_7_DIVISIONS = [
       { title: "Division 1", range: "B3:G12" },
       { title: "Division 2", range: "B14:G23" },
@@ -2128,7 +2080,7 @@
       7: {
         divisions: SEASON_7_DIVISIONS,
         scheduleRange: SEASON_7_SCHEDULE_RANGE,
-        playoffRange: "",
+        playoffRange: SEASON_7_PLAYOFF_RANGE,
         regularSeasonWeeks: 9,
       },
       default: {
@@ -2138,6 +2090,29 @@
         regularSeasonWeeks: 7,
       },
     };
+    const FORMAT_MOVEMENT_NOTE_S6 = "To support a smooth expansion to 10 players per division in Season 7, movement based on divisional standings has been updated as follows for Season 6:";
+    const FORMAT_MOVEMENT_ROWS_S6 = [
+      ["1", ["D1 Playoff", "fill-gold"], ["Moves to D1", "fill-green"], ["Moves to D2", "fill-green"]],
+      ["2", ["D1 Playoff", "fill-gold"], ["Moves to D1", "fill-green"], ["Moves to D2", "fill-green"]],
+      ["3", ["D1 Playoff", "fill-gold"], ["Playoff for D1", "fill-blue"], ["Playoff for D2", "fill-blue"]],
+      ["4", ["D1 Playoff", "fill-gold"], ["Stays in D2", ""], ["Stays in D3", ""]],
+      ["5", ["Stays in D1", ""], ["Stays in D2", ""], ["Stays in D3", ""]],
+      ["6", ["Stays in D1", ""], ["Stays in D2", ""], ["Stays in D3", ""]],
+      ["7", ["Playoff for D1", "fill-orange"], ["Playoff for D2", "fill-orange"], ["Must re-qualify", "fill-red"]],
+      ["8", ["Moves to D2", "fill-red"], ["Moves to D3", "fill-red"], ["Must re-qualify", "fill-red"]],
+    ];
+    const FORMAT_MOVEMENT_ROWS_S7 = [
+      ["1", ["D1 Playoff", "fill-gold"], ["Moves to D1", "fill-green"], ["Moves to D2", "fill-green"]],
+      ["2", ["D1 Playoff", "fill-gold"], ["Moves to D1", "fill-green"], ["Moves to D2", "fill-green"]],
+      ["3", ["D1 Playoff", "fill-gold"], ["Playoff for D1", "fill-blue"], ["Playoff for D2", "fill-blue"]],
+      ["4", ["D1 Playoff", "fill-gold"], ["Stays in D2", ""], ["Stays in D3", ""]],
+      ["5", ["Stays in D1", ""], ["Stays in D2", ""], ["Stays in D3", ""]],
+      ["6", ["Stays in D1", ""], ["Stays in D2", ""], ["Stays in D3", ""]],
+      ["7", ["Stays in D1", ""], ["Stays in D2", ""], ["Must re-qualify", "fill-red"]],
+      ["8", ["Playoff for D1", "fill-orange"], ["Playoff for D2", "fill-orange"], ["Must re-qualify", "fill-red"]],
+      ["9", ["Moves to D2", "fill-red"], ["Moves to D3", "fill-red"], ["Must re-qualify", "fill-red"]],
+      ["10", ["Moves to D2", "fill-red"], ["Moves to D3", "fill-red"], ["Must re-qualify", "fill-red"]],
+    ];
     const DISCORD_IDS_SHEET = "Discord IDs";
     const DISCORD_IDS_RANGE = "A:B";
     let scheduleWeeks = [];
@@ -2262,6 +2237,29 @@
         const suffix = heading.getAttribute("data-superleague-season-title") || "";
         heading.textContent = suffix === "Standings" ? `Super League ${activeSuperLeagueSeason}` : `${activeSuperLeagueSeason} ${suffix}`.trim();
       });
+      renderFormatMovementTable();
+    }
+
+    function renderFormatMovementTable(){
+      const noteEl = document.getElementById("formatSeasonNote");
+      const bodyEl = document.getElementById("formatMovementBody");
+      if(!noteEl || !bodyEl) return;
+
+      const isSeason7 = getActiveSeasonNumber() >= 7;
+      const rows = isSeason7 ? FORMAT_MOVEMENT_ROWS_S7 : FORMAT_MOVEMENT_ROWS_S6;
+      noteEl.hidden = isSeason7;
+      noteEl.innerHTML = isSeason7 ? "" : `Note<br />${escapeHtml(FORMAT_MOVEMENT_NOTE_S6)}`;
+      bodyEl.innerHTML = rows.map(([rank, d1, d2, d3]) => {
+        const cells = [d1, d2, d3].map(([label, className]) => (
+          `<td${className ? ` class="${className}"` : ""}>${escapeHtml(label)}</td>`
+        )).join("");
+        return `
+          <tr>
+            <th class="rank-label">${escapeHtml(rank)}</th>
+            ${cells}
+          </tr>
+        `;
+      }).join("");
     }
 
     function divisionClassFromLabel(label){
