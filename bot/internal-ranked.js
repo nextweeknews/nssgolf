@@ -34,9 +34,10 @@ const {
 const defaultTeamUpApiBaseUrl = "https://api.teamupgg.com/v1";
 const defaultTeamUpClientId = "DISCORD|1069003073311211601";
 const defaultSupabaseUrl = "https://kwaprkwemtxizorpnrzq.supabase.co";
-const defaultSeasons = [7, 8, 9, 10, 11, 12];
+const defaultFirstSeason = 7;
 const defaultLimit = 50;
 const defaultDelayMs = 30000;
+const configPath = require("node:path").resolve(__dirname, "..", "config.js");
 
 function usage() {
   console.log(`
@@ -52,8 +53,9 @@ Usage:
   node bot/internal-ranked.js sync-pl [options]
 
 Commands:
-  fetch    Pull TeamUp Ranked League matches for seasons 7-12, validate,
-           dedupe, and upsert valid matches into Supabase.
+  fetch    Incrementally pull TeamUp Ranked League matches since the newest
+           stored match, then fetch any missing seasons through the configured
+           current season. Validate, dedupe, and upsert valid matches.
   replay   Recalculate internal Ranked League Elo from stored matches and
            write a new Elo run with final ratings and per-match history.
   replay-nps
@@ -73,7 +75,8 @@ Commands:
 
 Options:
   --seasons <list>       Seasons to process. Examples: 7-12 or 7,8,9.
-                         Default: 7-12
+                         When omitted, fetch incrementally through the current
+                         Ranked League season in config.js.
   --limit <number>       TeamUp page size. Default: ${defaultLimit}
   --delay-ms <number>    Delay between TeamUp requests. Default: ${defaultDelayMs}
   --max-pages <number>   Testing only: stop after this many pages per season.
@@ -129,7 +132,7 @@ function getNumberArg(name, fallback) {
 
 function parseSeasons(value) {
   const rawValue = String(value || "").trim();
-  if (!rawValue) return defaultSeasons;
+  if (!rawValue) return null;
 
   const seasons = new Set();
   for (const part of rawValue.split(",")) {
@@ -285,8 +288,9 @@ async function fetchJson(url) {
   return response.json();
 }
 
-async function fetchSeason(season, options, waitForTurn) {
+async function fetchSeason(season, options, waitForTurn, { newerThanTimestampMs = null } = {}) {
   let cursor = "";
+  const isIncremental = newerThanTimestampMs != null;
   let totalMatches = null;
   let pageCount = 0;
   const matches = [];
@@ -332,19 +336,37 @@ async function fetchSeason(season, options, waitForTurn) {
       );
     }
 
-    matches.push(...pageMatches);
+    const pageOrderProblems = validateDescendingMatches(pageMatches);
+    if (pageOrderProblems.length) {
+      throw new Error(`Season ${season}: page ${pageCount + 1} timestamp order check failed:\n${pageOrderProblems.join("\n")}`);
+    }
+
+    const newMatches = isIncremental
+      ? pageMatches.filter((match) => (timestampFromMatch(match) || 0) > newerThanTimestampMs)
+      : pageMatches;
+    const reachedStoredBoundary = isIncremental && pageMatches.some(
+      (match) => (timestampFromMatch(match) || 0) <= newerThanTimestampMs
+    );
+    matches.push(...newMatches);
     pageCount += 1;
     console.log(
-      `Season ${season}: page ${pageCount} returned ${pageMatches.length} matches; collected ${matches.length}/${totalMatches ?? "?"}.`
+      `Season ${season}: page ${pageCount} returned ${pageMatches.length} matches; collected ${matches.length}${isIncremental ? ` newer than ${newerThanTimestampMs}` : `/${totalMatches ?? "?"}`}.`
     );
 
     cursor = String(payload.cursor || "");
+    if (reachedStoredBoundary) {
+      console.log(
+        `Season ${season}: reached the newest stored match boundary; stopping incremental fetch.`
+      );
+      break;
+    }
     if (cursor && pageMatches.length !== options.limit) {
       console.warn(
         `Season ${season}: page ${pageCount} returned ${pageMatches.length} matches instead of ${options.limit}, but TeamUp returned another cursor; continuing.`
       );
     }
     if (
+      !isIncremental &&
       !cursor &&
       totalMatches != null &&
       matches.length < totalMatches &&
@@ -367,7 +389,7 @@ async function fetchSeason(season, options, waitForTurn) {
 
   const { valid, duplicates } = dedupeMatches(season, matches);
 
-  if (totalMatches != null && matches.length < totalMatches) {
+  if (!isIncremental && totalMatches != null && matches.length < totalMatches) {
     const deficit = totalMatches - matches.length;
     const fetchedRatio = totalMatches === 0 ? 1 : matches.length / totalMatches;
     const underFetchMessage = `Season ${season}: fetched ${matches.length} match groups, which is ${deficit} fewer than TeamUp total_matches (${totalMatches}).`;
@@ -383,7 +405,7 @@ async function fetchSeason(season, options, waitForTurn) {
     );
   }
 
-  if (totalMatches != null && matches.length > totalMatches) {
+  if (!isIncremental && totalMatches != null && matches.length > totalMatches) {
     console.warn(
       `Season ${season}: fetched ${matches.length} match groups, which is ${matches.length - totalMatches} more than TeamUp total_matches (${totalMatches}). Continuing because cursor pagination reached the end.`
     );
@@ -426,13 +448,82 @@ async function upsertSeasonMatches(supabase, seasonResult) {
   console.log(`Season ${seasonResult.season}: upserted ${rows.length} valid matches.`);
 }
 
+function currentRankedLeagueSeason() {
+  const configSource = require("node:fs").readFileSync(configPath, "utf8");
+  const match = configSource.match(/CURRENT_RANKED_LEAGUE_SEASON\s*=\s*["']Season_(\d+)["']/);
+  if (!match) throw new Error(`Unable to read CURRENT_RANKED_LEAGUE_SEASON from ${configPath}.`);
+  return Number(match[1]);
+}
+
+async function loadLatestStoredMatch(supabase) {
+  const { data, error } = await supabase
+    .from("internal_ranked_matches")
+    .select("season,timestamp_ms")
+    .order("timestamp_ms", { ascending: false })
+    .order("match_hash", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(`Latest stored match lookup failed: ${error.message}`);
+  return data || null;
+}
+
+async function loadStoredSeasons(supabase, minimumSeason, maximumSeason) {
+  const { data, error } = await supabase
+    .from("internal_ranked_matches")
+    .select("season")
+    .gte("season", minimumSeason)
+    .lte("season", maximumSeason);
+
+  if (error) throw new Error(`Stored season lookup failed: ${error.message}`);
+  return new Set((data || []).map((row) => Number(row.season)).filter(Number.isInteger));
+}
+
 async function fetchAndUpsert(options) {
   const supabase = createSupabaseServiceClient();
   const waitForTurn = createRateLimiter(options.delayMs);
+  const currentSeason = currentRankedLeagueSeason();
+  const latestStoredMatch = await loadLatestStoredMatch(supabase);
+  const requestedSeasons = options.seasons;
   const results = [];
 
-  for (const season of options.seasons) {
-    const seasonResult = await fetchSeason(season, options, waitForTurn);
+  let fetchPlan;
+  if (requestedSeasons) {
+    fetchPlan = requestedSeasons.map((season) => ({ season }));
+    console.log(`Fetching explicitly requested seasons: ${requestedSeasons.join(", ")}.`);
+  } else if (!latestStoredMatch) {
+    fetchPlan = Array.from({ length: currentSeason - defaultFirstSeason + 1 }, (_, index) => ({
+      season: defaultFirstSeason + index,
+    }));
+    console.log(`No stored matches found; fetching Seasons ${defaultFirstSeason}-${currentSeason}.`);
+  } else {
+    const latestSeason = Number(latestStoredMatch.season);
+    const latestTimestampMs = Number(latestStoredMatch.timestamp_ms);
+    if (!Number.isInteger(latestSeason) || latestSeason < 1 || !Number.isInteger(latestTimestampMs)) {
+      throw new Error("Latest stored match has an invalid season or timestamp.");
+    }
+
+    if (latestSeason > currentSeason) {
+      throw new Error(
+        `Latest stored match is in Season ${latestSeason}, which is newer than configured current Season ${currentSeason}.`
+      );
+    }
+
+    const storedSeasons = await loadStoredSeasons(supabase, defaultFirstSeason, currentSeason);
+    fetchPlan = [{
+      season: latestSeason,
+      newerThanTimestampMs: latestTimestampMs,
+    }];
+    for (let season = defaultFirstSeason; season <= currentSeason; season += 1) {
+      if (season !== latestSeason && !storedSeasons.has(season)) fetchPlan.push({ season });
+    }
+    console.log(
+      `Latest stored match is in Season ${latestSeason} at ${latestTimestampMs}; fetching newer Season ${latestSeason} matches and all missing seasons through Season ${currentSeason}.`
+    );
+  }
+
+  for (const plan of fetchPlan) {
+    const seasonResult = await fetchSeason(plan.season, options, waitForTurn, plan);
     await upsertSeasonMatches(supabase, seasonResult);
     results.push(seasonResult);
   }
@@ -492,6 +583,7 @@ async function insertReplayRows(supabase, tableName, rows, context) {
 }
 
 async function replayStoredMatches(options) {
+  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
@@ -594,6 +686,7 @@ async function replayStoredMatches(options) {
 }
 
 async function replayStoredMatchesPlackettLuce(options) {
+  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
@@ -721,6 +814,7 @@ async function replayStoredMatchesPlackettLuce(options) {
 }
 
 async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
+  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
@@ -898,6 +992,7 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
 }
 
 async function replayStoredMatchesNormalizedPlacementElo(options) {
+  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
@@ -1041,9 +1136,16 @@ async function replayStoredMatchesNormalizedPlacementElo(options) {
   return runId;
 }
 
+function defaultReplaySeasons() {
+  const currentSeason = currentRankedLeagueSeason();
+  return Array.from({ length: currentSeason - defaultFirstSeason + 1 }, (_, index) => (
+    defaultFirstSeason + index
+  ));
+}
+
 function parseOptions() {
   return {
-    seasons: parseSeasons(getArg("--seasons", "7-12")),
+    seasons: parseSeasons(getArg("--seasons", "")),
     limit: getNumberArg("--limit", defaultLimit),
     delayMs: getNumberArg("--delay-ms", defaultDelayMs),
     maxPages: getNumberArg("--max-pages", 0),
@@ -1107,7 +1209,17 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  currentRankedLeagueSeason,
+  fetchSeason,
+  parseSeasons,
+  syntheticCursorForSeason,
+  teamUpUrlForSeason,
+};
