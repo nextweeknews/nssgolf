@@ -121,6 +121,15 @@
       box-shadow: var(--card-shadow);
       border: 1px solid rgba(255,255,255,0.10);
     }
+    .leagues-card{
+      overflow: hidden;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .leagues-card .league-headline{
+      padding-left: 20px;
+      padding-right: 20px;
+    }
 
     .headline{
       font-size: 22px;
@@ -545,111 +554,215 @@
     .calendar-section{
       margin-top: 18px;
     }
+    .home-section-title{
+      margin: 0;
+      padding: 10px 20px 8px;
+      color: rgba(199,215,255,0.96);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .18em;
+      line-height: 1.2;
+      text-align: center;
+      text-transform: uppercase;
+    }
     .calendar-pinned-actions{
-      width: min(520px, 100%);
+      width: 100%;
       margin: 0 auto;
       display:grid;
-      gap: 10px;
+      gap: 0;
       align-items:stretch;
-      padding-top: 6px;
-    }
-    .calendar-pinned-actions .btn{
-      width: 100%;
-      justify-content: center;
-      text-align: center;
+      padding-top: 0;
     }
     .calendar-separator{
-      width: min(520px, 100%);
-      height: 1px;
-      margin: 16px auto 14px;
-      background: linear-gradient(90deg, transparent, rgba(148,163,184,0.28), transparent);
+      display: none;
     }
     .calendar-view{
-      width: min(520px, 100%);
+      width: 100%;
       margin: 0 auto;
       display: grid;
-      gap: 12px;
+      gap: 0;
       justify-items: stretch;
     }
+    .events-section-title{
+      margin-top: 0;
+      margin-bottom: 0;
+    }
     .calendar-row{
-      display: grid;
-      grid-template-columns: 42px minmax(0, 1fr);
-      align-items: start;
-      gap: 8px;
+      min-width: 0;
     }
-    .calendar-row .schedule-month{
-      min-height: 40px;
+    .calendar-row + .calendar-row .event-span{
+      margin-top: -1px;
+    }
+    .event-span{
+      --event-accent: #7dd3fc;
+      --event-accent-rgb: 125, 211, 252;
+      --event-border-alpha: 0.70;
+      position: relative;
+      isolation: isolate;
+      min-height: 76px;
+      width: 100%;
+      overflow: hidden;
       display:flex;
       align-items:center;
-      justify-content:center;
+      justify-content:space-between;
+      gap: 18px;
+      padding: 14px 18px;
+      border: 1px solid rgba(var(--event-accent-rgb), var(--event-border-alpha));
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
+      background: rgba(255,255,255,0.045);
+      box-shadow: 0 0 12px rgba(var(--event-accent-rgb),0.26), 0 0 24px rgba(var(--event-accent-rgb),0.10);
     }
-    .calendar-event{
+    .event-span::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-2;
+      background: linear-gradient(270deg, rgba(var(--event-accent-rgb),0.28) 0%, rgba(var(--event-accent-rgb),0.14) 30%, rgba(var(--event-accent-rgb),0.04) 55%, transparent 76%);
+      pointer-events:none;
+    }
+    .event-span::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background: linear-gradient(90deg, rgba(15,23,42,0.82), rgba(15,23,42,0.30) 58%, rgba(15,23,42,0.12));
+      pointer-events:none;
+    }
+    .event-span.neon-red{ --event-accent:#ff5a5a; --event-accent-rgb:255,90,90; --event-border-alpha:0.90; }
+    .event-span.neon-blue{ --event-accent:#7dd3fc; --event-accent-rgb:125,211,252; --event-border-alpha:0.90; }
+    .event-span.neon-green{ --event-accent:#5dff9c; --event-accent-rgb:93,255,156; --event-border-alpha:0.90; }
+    .event-span.neon-yellow{ --event-accent:#f6ff6a; --event-accent-rgb:246,255,106; --event-border-alpha:0.90; }
+    .event-span.neon-purple{ --event-accent:#d176ff; --event-accent-rgb:209,118,255; --event-border-alpha:0.90; }
+    .event-span.solid-teal{ --event-accent:#2dd4bf; --event-accent-rgb:45,212,191; --event-border-alpha:0.90; }
+    .event-span.indigo{ --event-accent:#818cf8; --event-accent-rgb:129,140,248; --event-border-alpha:0.90; }
+    .event-span.gold{ --event-accent:#facc15; --event-accent-rgb:250,204,21; --event-border-alpha:0.90; }
+    .event-span.light-green{ --event-accent:#bef264; --event-accent-rgb:190,242,100; --event-border-alpha:0.90; }
+    .event-span.royal-blue{ --event-accent:#60a5fa; --event-accent-rgb:96,165,250; --event-border-alpha:0.90; }
+    .event-span.is-finished{
+      min-height: 86px;
+    }
+    .event-span.is-finished .event-action{
+      align-self: flex-end;
+      margin-top: 20px;
+    }
+    .event-meta{
+      position:relative;
+      z-index:1;
+      width: 110px;
+      flex: 0 0 110px;
+      color: rgba(233,238,248,0.78);
+      font-size: 16px;
+      font-weight: 950;
+      letter-spacing: .10em;
+      line-height: 1.05;
+      text-transform: uppercase;
+      text-align:left;
+    }
+    .event-action{
+      position:relative;
+      z-index:2;
+      min-width: 0;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap: 10px;
+      margin-left:auto;
+      padding: 9px 10px;
+      border-radius: 12px;
+      color: var(--event-accent);
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      line-height: 1.05;
+      text-align:right;
+      text-decoration:none;
+      text-shadow: 0 0 8px rgba(var(--event-accent-rgb),0.82);
+      text-transform: uppercase;
+      transition: background-color 140ms ease, color 140ms ease, text-shadow 140ms ease, transform 140ms ease;
+    }
+    .event-action:hover,
+    .event-action:focus-visible{
+      background: rgba(var(--event-accent-rgb),0.12);
+      color: #fff;
+      outline: none;
+      text-shadow: 0 0 10px rgba(var(--event-accent-rgb),0.95);
+      transform: translateX(-1px);
+    }
+    .event-title-text{
       min-width:0;
-      display:grid;
-      gap: 7px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
     }
-    .calendar-event .btn{
-      justify-content:center;
-      width:100%;
-      text-align:center;
-    }
-    .event-status{
-      min-height: 24px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap: 7px;
-      color: rgba(148,163,184,0.90);
-      font-size: 11px;
-      font-weight: 850;
-      line-height: 1.2;
-      letter-spacing: .035em;
-      text-align:center;
-    }
-    .event-status.is-live{
-      color: #5eead4;
-    }
-    .event-status.is-finished{
-      color: rgba(248,250,252,0.96);
-    }
-    .event-status.is-finished .event-status-icon{
-      color: rgba(253,230,138,0.96);
-    }
-    .event-status-icon{
-      width: 14px;
-      height: 14px;
+    .event-state-icon{
+      width: 18px;
+      height: 18px;
       flex: 0 0 auto;
       display:block;
+    }
+    .event-state-icon.is-upcoming{
+      color: rgba(148,163,184,0.88);
       fill: none;
       stroke: currentColor;
     }
+    .event-state-icon.is-finished{
+      color: #22c55e;
+    }
     .event-live-dot{
-      width: 9px;
-      height: 9px;
+      width: 12px;
+      height: 12px;
       border-radius: 999px;
       flex: 0 0 auto;
       background: #34d399;
       box-shadow: 0 0 0 0 rgba(52,211,153,0.55), 0 0 12px rgba(45,212,191,0.55);
       animation: livePulse 1.45s ease-out infinite;
     }
-    .event-winner-avatar{
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
+    .event-winner-portrait{
+      position:absolute;
+      top:0;
+      right:0;
+      z-index:-1;
+      width: min(42%, 240px);
+      height:100%;
       object-fit: cover;
-      border: 1px solid rgba(253,230,138,0.48);
-      background: rgba(255,255,255,0.08);
-      flex: 0 0 auto;
+      opacity: .62;
+      filter: saturate(1.08) contrast(1.06);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.72) 34%, #000 100%);
+      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.72) 34%, #000 100%);
     }
-    .event-winner-avatar-placeholder{
-      display:inline-block;
-      background: radial-gradient(circle at 50% 35%, rgba(253,230,138,0.32), rgba(255,255,255,0.08) 58%, rgba(15,23,42,0.5));
+    .event-winner{
+      position:absolute;
+      top: 9px;
+      right: 14px;
+      z-index:1;
+      max-width: min(44%, 260px);
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap: 7px;
+      color:#fff;
+      font-size: 15px;
+      font-weight: 950;
+      line-height:1.1;
+      text-align:right;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.78), 0 0 10px rgba(250,204,21,0.34);
     }
-    .event-status-text{
+    .event-winner-name{
       min-width:0;
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
+    }
+    .event-winner-trophy{
+      width: 17px;
+      height: 17px;
+      flex: 0 0 auto;
+      color:#facc15;
+      fill: none;
+      stroke: currentColor;
+      filter: drop-shadow(0 0 5px rgba(250,204,21,0.48));
     }
     @keyframes livePulse{
       0%{ box-shadow: 0 0 0 0 rgba(52,211,153,0.55), 0 0 12px rgba(45,212,191,0.55); }
@@ -714,6 +827,23 @@
       .home-discord-invite .discord-button{ padding: 13px 18px; font-size: 12px; }
       .headline{ font-size: 18px; }
       .card{ padding: 18px 14px; border-radius: 18px; }
+      .leagues-card{
+        width: calc(100% + 24px);
+        margin-left: -12px;
+        margin-right: -12px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        padding-top: 8px;
+        padding-bottom: 0;
+        padding-left: 0;
+        padding-right: 0;
+      }
+      .leagues-card .league-headline{
+        padding-left: 14px;
+        padding-right: 14px;
+      }
       .home-league-tabs-trigger{
         min-height: 38px;
         padding-left: 4px;
@@ -740,27 +870,54 @@
         grid-template-columns: max-content minmax(0, 1fr);
       }
       .calendar-pinned-actions{
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-      .calendar-pinned-actions .btn{
-        min-height:44px;
+        padding-left: 0;
+        padding-right: 0;
       }
       .calendar-view{
-        padding-left: 12px;
-        padding-right: 12px;
+        padding-left: 0;
+        padding-right: 0;
       }
-      .calendar-row{
-        grid-template-columns: 42px minmax(0, 1fr);
-        gap: 8px;
+      .event-span{
+        min-height: 72px;
+        gap: 12px;
+        padding: 13px 12px;
+        border-radius: 0;
       }
-      .calendar-row .schedule-month{
-        min-height:44px;
+      .event-span.is-finished{
+        min-height: 86px;
       }
-      .calendar-event .btn{
-        min-height:44px;
+      .event-span.is-finished .event-action{
+        margin-top: 19px;
       }
-      .event-status-text{
+      .event-meta{
+        width: 82px;
+        flex-basis: 82px;
+        font-size: 13px;
+        letter-spacing: .07em;
+      }
+      .event-action{
+        padding: 8px 7px;
+        font-size: 14px;
+        letter-spacing: .055em;
+      }
+      .event-state-icon{
+        width: 16px;
+        height: 16px;
+      }
+      .event-live-dot{
+        width: 10px;
+        height: 10px;
+      }
+      .event-winner{
+        top: 7px;
+        right: 10px;
+        max-width: 46%;
+        font-size: 12px;
+      }
+      .event-winner-portrait{
+        width: min(46%, 190px);
+      }
+      .event-title-text{
         white-space:normal;
       }
       .schedule-row .btn,
@@ -836,21 +993,33 @@
       </a>
     </div>
 
-    <div class="card">
+    <div class="card leagues-card">
       <h1 class="headline league-headline">Leagues &amp; Events</h1>
       <div class="league-tabs" id="leagueTabs"></div>
 
       <div class="league-section calendar-section" id="calendar-section" role="tabpanel" aria-labelledby="year-tab-2026">
+        <h2 class="home-section-title">Always On</h2>
         <div class="calendar-pinned-actions">
-          <a class="btn neon-red" id="rankedLeagueButton" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
-            Ranked League
-          </a>
+          <div class="calendar-row">
+            <span class="event-span neon-red">
+              <span class="event-meta" id="rankedLeagueSeasonLabel">Season</span>
+              <a class="event-action" id="rankedLeagueButton" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
+                <span class="event-title-text">Ranked League</span>
+              </a>
+            </span>
+          </div>
 
-          <a class="btn neon-blue" href="/proleague" aria-label="Go to Pro League">
-            Shotgun Pro League
-          </a>
+          <div class="calendar-row">
+            <span class="event-span neon-blue">
+              <span class="event-meta" id="shotgunProLeagueSeasonLabel">Season</span>
+              <a class="event-action" href="/proleague" aria-label="Go to Pro League">
+                <span class="event-title-text">Shotgun Pro League</span>
+              </a>
+            </span>
+          </div>
         </div>
         <div class="calendar-separator" aria-hidden="true"></div>
+        <h2 class="home-section-title events-section-title">Events</h2>
         <div class="calendar-view" id="calendarView" aria-live="polite"></div>
       </div>
 
@@ -885,7 +1054,12 @@
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
     import { mountHomeLeagueTabs } from "/home-tabs.bundle.js";
-    import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
+    import {
+      CURRENT_RANKED_LEAGUE_SEASON,
+      RANKED_LEAGUE_TEAMUP_URL,
+      SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
+      SUPER_LEAGUE_SEASON,
+    } from "/config.js";
     import {
       fetchWorldCupValues,
       parseWorldCupSheet,
@@ -898,6 +1072,8 @@
     const calendarSection = document.getElementById("calendar-section");
     const calendarView = document.getElementById("calendarView");
     const rankedLeagueButton = document.getElementById("rankedLeagueButton");
+    const rankedLeagueSeasonLabel = document.getElementById("rankedLeagueSeasonLabel");
+    const shotgunProLeagueSeasonLabel = document.getElementById("shotgunProLeagueSeasonLabel");
     const playerSearchEl = document.getElementById("playerSearch");
     const playerSearchInput = document.getElementById("playerSearchInput");
     const playerSearchResults = document.getElementById("playerSearchResults");
@@ -946,9 +1122,21 @@
     if(rankedLeagueButton){
       rankedLeagueButton.href = RANKED_LEAGUE_TEAMUP_URL;
     }
+    if(rankedLeagueSeasonLabel){
+      rankedLeagueSeasonLabel.textContent = seasonLabelFromConfig(CURRENT_RANKED_LEAGUE_SEASON);
+    }
+    if(shotgunProLeagueSeasonLabel){
+      shotgunProLeagueSeasonLabel.textContent = seasonLabelFromConfig(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON);
+    }
 
     function normalizeSearchText(value){
       return String(value || "").trim();
+    }
+
+    function seasonLabelFromConfig(value){
+      const text = String(value ?? "").trim();
+      const match = text.match(/\d+/);
+      return match ? `Season ${match[0]}` : text || "Season";
     }
 
     function normalizeSearchKey(value){
@@ -1089,21 +1277,33 @@
       return normalizeSheetValues(await response.json());
     }
 
-    function statusIconSvg(kind){
-      if(kind === "trophy"){
+    function trophyIconSvg(){
+      return `
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path>
+          <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+          <path d="M4 22h16"></path>
+          <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path>
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+        </svg>
+      `;
+    }
+
+    function stateIndicatorMarkup(kind){
+      if(kind === "finished"){
         return `
-          <svg class="lucide lucide-trophy event-status-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path>
-            <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path>
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-            <path d="M4 22h16"></path>
-            <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path>
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+          <svg class="event-state-icon is-finished" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <circle cx="10" cy="10" r="9" fill="currentColor"></circle>
+            <path d="m6.2 10.25 2.35 2.35 5.25-5.45" fill="none" stroke="#fff" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
         `;
       }
+      if(kind === "live"){
+        return `<span class="event-live-dot" aria-hidden="true"></span>`;
+      }
       return `
-        <svg class="lucide lucide-clock event-status-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="lucide lucide-clock event-state-icon is-upcoming" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
@@ -1118,61 +1318,52 @@
       return "upcoming";
     }
 
-    function statusMarkup(event, winner = null){
-      if(winner?.name){
-        const avatar = normalizeSearchText(winner.avatarUrl);
-        const avatarMarkup = avatar
-          ? `<img class="event-winner-avatar" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
-          : `<span class="event-winner-avatar event-winner-avatar-placeholder" aria-hidden="true"></span>`;
-        return `
-          <div class="event-status is-finished">
-            ${statusIconSvg("trophy")}
-            ${avatarMarkup}
-            <span class="event-status-text">${escapeHtml(winner.displayName || winner.name)}</span>
-          </div>
-        `;
-      }
+    function eventStateKind(event, winner = null){
+      if(winner?.name) return "finished";
+      return eventBaseStatus(event) === "live" ? "live" : "upcoming";
+    }
 
-      if(eventBaseStatus(event) === "upcoming"){
-        return `
-          <div class="event-status">
-            ${statusIconSvg("clock")}
-            <span class="event-status-text">Upcoming</span>
-          </div>
-        `;
-      }
-
-      if(eventBaseStatus(event) === "past"){
-        return `
-          <div class="event-status">
-            ${statusIconSvg("clock")}
-            <span class="event-status-text">Results pending</span>
-          </div>
-        `;
-      }
-
+    function eventWinnerMarkup(winner = null){
+      if(!winner?.name) return "";
+      const avatar = normalizeSearchText(winner.avatarUrl);
+      const displayName = escapeHtml(winner.displayName || winner.name);
+      const portraitMarkup = avatar
+        ? `<img class="event-winner-portrait" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
+        : "";
       return `
-        <div class="event-status is-live">
-          <span class="event-live-dot" aria-hidden="true"></span>
-          <span class="event-status-text">Happening Now</span>
-        </div>
+        ${portraitMarkup}
+        <span class="event-winner">
+          ${trophyIconSvg()}
+          <span class="event-winner-name">${displayName}</span>
+        </span>
       `;
+    }
+
+    function eventMetaLabel(event){
+      if(/^super league/i.test(normalizeSearchText(event.title))){
+        const titleSeason = normalizeSearchText(event.title).match(/\bS(?:eason\s*)?(\d+)\b/i);
+        return titleSeason ? `Season ${titleSeason[1]}` : seasonLabelFromConfig(SUPER_LEAGUE_SEASON);
+      }
+      return MONTH_LABELS[event.month] || "";
     }
 
     function calendarEventId(event){
       return `calendar-event-${event.year}-${event.month}-${event.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     }
 
-    function calendarRowMarkup(event){
+    function calendarRowMarkup(event, winner = null){
+      const resolvedWinner = winner || event.fallbackWinner || null;
+      const stateKind = eventStateKind(event, resolvedWinner);
       return `
         <div class="calendar-row" id="${calendarEventId(event)}" data-winner-loader="${escapeHtml(event.winnerLoader || "")}">
-          <span class="schedule-month">${MONTH_LABELS[event.month] || ""}</span>
-          <div class="calendar-event">
-            <a class="btn ${escapeHtml(event.className)}" href="${escapeHtml(event.href)}" aria-label="Go to ${escapeHtml(event.title)}">
-              ${escapeHtml(event.title)}
+          <span class="event-span ${escapeHtml(event.className)} is-${escapeHtml(stateKind)}">
+            ${eventWinnerMarkup(resolvedWinner)}
+            <span class="event-meta">${escapeHtml(eventMetaLabel(event))}</span>
+            <a class="event-action" href="${escapeHtml(event.href)}" aria-label="Go to ${escapeHtml(event.title)}">
+              <span class="event-title-text">${escapeHtml(event.title)}</span>
+              ${stateIndicatorMarkup(stateKind)}
             </a>
-            ${statusMarkup(event, event.fallbackWinner)}
-          </div>
+          </span>
         </div>
       `;
     }
@@ -1207,12 +1398,10 @@
       });
     }
 
-    function updateEventStatus(event, winner){
+    function updateEventRow(event, winner){
       const row = document.getElementById(calendarEventId(event));
       if(!row) return;
-      const status = row.querySelector(".event-status");
-      if(!status) return;
-      status.outerHTML = statusMarkup(event, winner);
+      row.outerHTML = calendarRowMarkup(event, winner);
     }
 
     async function hydrateEventWinner(event){
@@ -1227,7 +1416,7 @@
           : event.fallbackWinner;
         if(String(event.year) !== activeCalendarYear) return;
         if(winner?.name){
-          updateEventStatus(event, await enrichWinnerProfile(winner));
+          updateEventRow(event, await enrichWinnerProfile(winner));
         }
       }catch{
         // Keep the deterministic month-based status if a tournament source is unavailable.
