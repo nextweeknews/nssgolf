@@ -7,7 +7,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Golf Power Index</title>
   <link rel="icon" type="image/png" href="/logos/golf.png" />
-  <link rel="stylesheet" href="/site-topbar.css" />
   <style>
     :root{
       color-scheme: dark;
@@ -108,6 +107,176 @@
     .page-nav-select:focus-visible{
       outline:2px solid rgba(125,211,252,.6);
       outline-offset:2px;
+    }
+
+    .topbar-auth-button{
+      margin-left:auto;
+      min-height:38px;
+      padding:0 14px;
+      border:0;
+      border-radius:8px;
+      background:#5865f2;
+      color:#fff;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      font:inherit;
+      font-size:13px;
+      font-weight:850;
+      letter-spacing:0;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    .topbar-auth-button.is-visible{
+      display:inline-flex;
+    }
+
+    .topbar-auth-button:hover{
+      background:#4752c4;
+    }
+
+    .topbar-auth-button:disabled{
+      cursor:wait;
+      opacity:.68;
+    }
+
+    .topbar-auth-icon{
+      width:19px;
+      height:19px;
+      display:block;
+      filter:brightness(0) invert(1);
+    }
+
+    .topbar-user{
+      margin-left:auto;
+      position:relative;
+      display:none;
+      align-items:center;
+      gap:8px;
+    }
+
+    .topbar-user.is-visible{
+      display:flex;
+    }
+
+    .user-greeting{
+      color:rgba(233,238,248,.92);
+      font-size:12px;
+      font-weight:500;
+      letter-spacing:.03em;
+    }
+
+    .user-greeting-name{
+      font-weight:800;
+    }
+
+    .user-menu-button{
+      width:38px;
+      height:38px;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.06);
+      color:rgba(233,238,248,.92);
+      cursor:pointer;
+      padding:0;
+    }
+
+    .user-menu-button:hover{
+      border-color:rgba(255,255,255,.28);
+      background:rgba(255,255,255,.10);
+    }
+
+    .user-menu-avatar{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .user-menu-button svg{
+      width:18px;
+      height:18px;
+      fill:currentColor;
+    }
+
+    .user-menu-button.has-avatar svg{
+      display:none;
+    }
+
+    .user-menu-dropdown{
+      position:absolute;
+      top:calc(100% + 8px);
+      right:0;
+      z-index:1000;
+      min-width:220px;
+      display:none;
+      padding:6px;
+      border:1px solid rgba(148,163,184,.35);
+      border-radius:12px;
+      background:rgba(2,8,24,.97);
+      box-shadow:0 24px 36px rgba(0,0,0,.48);
+    }
+
+    .user-menu-dropdown.is-open{
+      display:grid;
+      gap:4px;
+    }
+
+    .user-menu-item{
+      width:100%;
+      min-height:34px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid transparent;
+      border-radius:9px;
+      background:rgba(255,255,255,.04);
+      color:rgba(255,255,255,.92);
+      padding:0 10px;
+      text-align:left;
+      font:inherit;
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      cursor:pointer;
+    }
+
+    .user-menu-item:hover{
+      border-color:rgba(255,255,255,.22);
+      background:rgba(255,255,255,.10);
+    }
+
+    .user-menu-item:disabled{
+      opacity:.5;
+      cursor:not-allowed;
+    }
+
+    .user-menu-item.danger{
+      color:#f87171;
+    }
+
+    .user-menu-item.danger:hover{
+      color:#fca5a5;
+      border-color:rgba(248,113,113,.35);
+      background:rgba(127,29,29,.22);
+    }
+
+    .user-menu-icon{
+      width:15px;
+      height:15px;
+      flex:0 0 auto;
+    }
+
+    .user-menu-divider{
+      height:1px;
+      margin:4px 2px;
+      background:rgba(148,163,184,.24);
     }
 
     main{
@@ -1274,6 +1443,14 @@
       .page-nav-select{
         width:min(100%, 420px);
         max-width:100%;
+      }
+
+      .topbar-user{
+        flex:0 0 auto;
+      }
+
+      .user-greeting{
+        display:none;
       }
 
       .table-controls{
