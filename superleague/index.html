@@ -1047,7 +1047,7 @@
     }
 
     .qualifier-third-place-match.is-play-in{
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .qualifier-qualifications{
@@ -2075,12 +2075,12 @@
     const SCHEDULE_RANGE = "I2:AB85";
     const QUALIFIER_LIST_RANGE = "A:B";
     const DIVISION_QUALIFICATIONS_RANGE = "A4:C11";
-    const DIVISION_QUALIFICATIONS_RANGE_S7 = "A4:C18";
+    const DIVISION_QUALIFICATIONS_RANGE_S7 = "A4:C19";
     const QUALIFIER_BRACKET_RANGE = "A3:H80";
     const WINNER_THIRD_PLACE_RANGE = "A68:H68";
     const LOSER_BRACKET_RANGE = "A4:H62";
     const LOSER_THIRD_PLACE_RANGE = "A62:H62";
-    const LOSER_PLAY_IN_RANGE_S7 = "A62:H63";
+    const LOSER_PLAY_IN_RANGE_S7 = "A63:H65";
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "PLAY-IN", "L6", "L7", "L8", "L9"];
     const PLAYOFF_RANGE = "I87:AB92";
@@ -3564,6 +3564,7 @@
     function normalizeLoserRoundLabel(round){
       const text = String(round ?? "").trim().toUpperCase();
       if(/^L\d+$/.test(text)) return text;
+      if(text === "R8") return "L8";
       if(/^PLAY[\s-]?IN$/.test(text)) return "PLAY-IN";
       if(/^L\s+PLAY[\s-]?IN$/.test(text)) return "PLAY-IN";
       return "";
@@ -3591,6 +3592,7 @@
 
     function getLoserRoundDisplayLabel(round, visibleRoundOrder){
       if(round === "PLAY-IN") return "Play-In";
+      if(round === "L8") return "Finals";
       const idx = visibleRoundOrder.indexOf(round);
       if(idx === -1) return String(round ?? "").trim();
       return `Round ${idx + 1}`;
