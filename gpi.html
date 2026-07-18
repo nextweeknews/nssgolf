@@ -929,20 +929,51 @@
 
     .right{ text-align:right; }
 
-    #leaderboard th:not(:nth-child(2)),
+    #leaderboard th:not(.player-heading),
     #leaderboard td:not(.player-cell){
       text-align:center;
     }
 
-    #leaderboard th:not(:nth-child(2)) .sort-button{
+    #leaderboard th:not(.player-heading) .sort-button{
       justify-content:center;
       padding-left:14px;
       padding-right:14px;
     }
 
-    #leaderboard th:nth-child(2),
+    #leaderboard .player-heading,
     #leaderboard .player-cell{
       text-align:left;
+    }
+
+    .hide-cell{
+      width:58px;
+      text-align:center;
+    }
+
+    .hide-checkbox{
+      width:17px;
+      height:17px;
+      margin:0;
+      accent-color:var(--accent);
+      cursor:pointer;
+    }
+
+    .hide-checkbox:disabled{
+      cursor:wait;
+      opacity:.55;
+    }
+
+    tbody tr.is-hidden-player td{
+      color:rgba(156,163,199,.58);
+    }
+
+    tbody tr.is-hidden-player .player-button{
+      opacity:.52;
+    }
+
+    tbody tr.is-hidden-player .avatar{
+      filter:grayscale(1);
+      opacity:.62;
     }
 
     .modal-backdrop{
@@ -1370,13 +1401,13 @@
         line-height:1.05;
       }
 
-      #leaderboard .leaderboard-table th:not(:nth-child(2)) .sort-button{
+      #leaderboard .leaderboard-table th:not(.player-heading) .sort-button{
         justify-content:center;
         padding-left:0;
         padding-right:0;
       }
 
-      #leaderboard .leaderboard-table th:nth-child(2) .sort-button{
+      #leaderboard .leaderboard-table .player-heading .sort-button{
         justify-content:flex-start;
         padding-left:0;
         padding-right:0;
@@ -1646,6 +1677,7 @@
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { ADMIN_ROLE_ID } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("status");
@@ -1692,6 +1724,7 @@
     const TOURNAMENT_NEGATIVE_EVIDENCE_FULL_UPSET_LOSSES = 2;
     const TOURNAMENT_NEGATIVE_EVIDENCE_MIN_UPSET_LOSS = 1;
     const PLAYER_SEARCH_LIMIT = 8;
+    const GPI_HIDDEN_PLAYERS_TABLE = "gpi_hidden_players";
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const FETCH_NO_STORE = { cache:"no-store" };
     const CHAMPIONSHIP_BRACKET = {
@@ -1801,6 +1834,8 @@
     let sortState = { key:"rank", direction:"asc" };
     let loadRequestId = 0;
     let combinedRowsById = new Map();
+    let hiddenPlayerIds = new Set();
+    let currentAdminContext = { isAdmin:false, userId:"", username:"" };
     let predictionRows = [];
     let predictionSearchRows = [];
     let selectedPredictionPlayers = { a:null, b:null };
@@ -1863,6 +1898,35 @@
     function normalizeDiscordId(value){
       const cleanValue = normalizeText(value);
       return /^[0-9]+$/.test(cleanValue) ? cleanValue : "";
+    }
+
+    function getDiscordIdentity(user){
+      const identities = Array.isArray(user?.identities) ? user.identities : [];
+      return identities.find(identity => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
+    }
+
+    function getDiscordIdFromUser(user){
+      const identity = getDiscordIdentity(user);
+      return normalizeDiscordId(
+        identity?.provider_id ||
+        identity?.identity_data?.provider_id ||
+        identity?.identity_data?.sub ||
+        identity?.identity_data?.id ||
+        user?.user_metadata?.provider_id ||
+        user?.user_metadata?.sub
+      );
+    }
+
+    function getMetadataName(user){
+      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+      return normalizeText(
+        metadata.full_name ||
+        metadata.name ||
+        metadata.global_name ||
+        metadata.preferred_username ||
+        metadata.user_name ||
+        metadata.username
+      );
     }
 
     function normalizeNameKey(value){
@@ -2154,6 +2218,89 @@
       return new Map(members.map(member => [normalizeDiscordId(member.discord_user_id), member]));
     }
 
+    async function loadAdminContext(){
+      const emptyContext = { isAdmin:false, userId:"", username:"" };
+      const { data: sessionData } = await supabase.auth.getSession();
+      if(!sessionData?.session?.user) return emptyContext;
+
+      let user = sessionData.session.user;
+      try{
+        const { data: userData, error } = await supabase.auth.getUser();
+        if(!error && userData?.user?.id === user.id) user = userData.user;
+      }catch{
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("username,discord_user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if(profileError) return emptyContext;
+
+      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(user);
+      if(!discordId) return emptyContext;
+
+      const { data: role, error: roleError } = await supabase
+        .from("discord_member_roles")
+        .select("role_id")
+        .eq("discord_user_id", discordId)
+        .eq("role_id", ADMIN_ROLE_ID)
+        .maybeSingle();
+      if(roleError || !role) return emptyContext;
+
+      return {
+        isAdmin:true,
+        userId:user.id,
+        username:normalizeText(profile?.username) || getMetadataName(user) || discordId,
+      };
+    }
+
+    async function loadHiddenPlayerIds(){
+      const { data, error } = await supabase
+        .from(GPI_HIDDEN_PLAYERS_TABLE)
+        .select("discord_user_id");
+      if(error) throw error;
+      hiddenPlayerIds = new Set((data || []).map(row => normalizeDiscordId(row.discord_user_id)).filter(Boolean));
+    }
+
+    async function loadAccessContext(){
+      const [adminContext] = await Promise.all([
+        loadAdminContext(),
+        loadHiddenPlayerIds(),
+      ]);
+      currentAdminContext = adminContext;
+    }
+
+    function applyHiddenStateAndRanks(rows){
+      let nextRank = 1;
+      for(const row of rows){
+        const hidden = hiddenPlayerIds.has(normalizeDiscordId(row.discord_user_id));
+        row.hidden = hidden;
+        if(hidden){
+          row.rankNumber = 0;
+          row.rank = "";
+        }else{
+          row.rankNumber = nextRank;
+          row.rank = nextRank;
+          nextRank += 1;
+        }
+      }
+      return rows;
+    }
+
+    function visibleLeaderboardRows(){
+      return currentAdminContext.isAdmin
+        ? allLeaderboardRows
+        : allLeaderboardRows.filter(row => !row.hidden);
+    }
+
+    function rerankLeaderboardRows(){
+      applyHiddenStateAndRanks(allLeaderboardRows);
+      if(activeConfig().kind === "combined"){
+        cacheCombinedRows(allLeaderboardRows);
+      }
+    }
+
     function renderRunMeta(run){
       const config = activeConfig();
       runMetaEl.innerHTML = config.meta(run).map(item => `<span class="pill">${escapeHtml(item)}</span>`).join("");
@@ -2188,8 +2335,9 @@
 
       if(activeConfig().kind === "combined"){
         leaderboardHeaderEl.innerHTML = `
+          ${currentAdminContext.isAdmin ? `<th class="hide-cell">Hide</th>` : ""}
           <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
-          <th>Player</th>
+          <th class="player-heading">Player</th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">GPI</button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating"><span class="desktop-label">Ranked / Provisional</span><span class="mobile-label">Ranked/Prov.</span></button></th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta"><span class="desktop-label">Tournament Delta</span><span class="mobile-label">Tourney Delta</span></button></th>
@@ -2199,8 +2347,9 @@
 
       if(currentView === "ranked"){
         leaderboardHeaderEl.innerHTML = `
+          ${currentAdminContext.isAdmin ? `<th class="hide-cell">Hide</th>` : ""}
           <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
-          <th>Player</th>
+          <th class="player-heading">Player</th>
           <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
           <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
           <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
@@ -2215,8 +2364,9 @@
       }
 
       leaderboardHeaderEl.innerHTML = `
+        ${currentAdminContext.isAdmin ? `<th class="hide-cell">Hide</th>` : ""}
         <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
-        <th>Player</th>
+        <th class="player-heading">Player</th>
         <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">Rating</button></th>
         <th class="number-cell"><button class="sort-button" type="button" data-sort="matches">Matches</button></th>
         <th class="outcome-cell"><button class="sort-button" type="button" data-sort="wins">W-L-T</button></th>
@@ -2288,12 +2438,7 @@
         left.displayName.localeCompare(right.displayName)
       );
 
-      rows.forEach((row, index) => {
-        row.rankNumber = index + 1;
-        row.rank = index + 1;
-      });
-
-      return rows;
+      return applyHiddenStateAndRanks(rows);
     }
 
     function buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches){
@@ -2495,12 +2640,7 @@
         left.displayName.localeCompare(right.displayName)
       );
 
-      rows.forEach((row, index) => {
-        row.rankNumber = index + 1;
-        row.rank = index + 1;
-      });
-
-      return rows;
+      return applyHiddenStateAndRanks(rows);
     }
 
     function cacheCombinedRows(rows){
@@ -2797,7 +2937,7 @@
         return;
       }
 
-      const results = allLeaderboardRows
+      const results = visibleLeaderboardRows()
         .map(row => ({ row, score:scoreLeaderboardSearchResult(row, query) }))
         .filter(result => result.score > 0)
         .sort((left, right) => {
@@ -2820,7 +2960,7 @@
     function selectLeaderboardSearchPlayer(discordId){
       const cleanDiscordId = normalizeDiscordId(discordId);
       if(!cleanDiscordId) return;
-      const row = allLeaderboardRows.find(candidate => candidate.discord_user_id === cleanDiscordId);
+      const row = visibleLeaderboardRows().find(candidate => candidate.discord_user_id === cleanDiscordId);
       if(!row) return;
       leaderboardSearchInputEl.value = row.displayName;
       updateLeaderboardSearchClearState();
@@ -3299,15 +3439,32 @@
       const direction = sortState.direction === "asc" ? 1 : -1;
       const query = normalizeNameKey(leaderboardSearchInputEl.value);
       const rows = query
-        ? allLeaderboardRows.filter(row => scoreLeaderboardSearchResult(row, query) > 0)
-        : allLeaderboardRows;
+        ? visibleLeaderboardRows().filter(row => scoreLeaderboardSearchResult(row, query) > 0)
+        : visibleLeaderboardRows();
       return [...rows].sort((left, right) => {
+        if(sortState.key === "rank" && left.hidden !== right.hidden){
+          return left.hidden ? 1 : -1;
+        }
         const leftValue = sortValueForRow(left, sortState.key);
         const rightValue = sortValueForRow(right, sortState.key);
         if(leftValue < rightValue) return -1 * direction;
         if(leftValue > rightValue) return 1 * direction;
         return left.rankNumber - right.rankNumber || left.displayName.localeCompare(right.displayName);
       });
+    }
+
+    function renderAdminHideCell(row){
+      if(!currentAdminContext.isAdmin) return "";
+      const checked = row.hidden ? " checked" : "";
+      return `
+        <td class="hide-cell">
+          <input class="hide-checkbox" type="checkbox" data-hide-player-id="${escapeHtml(row.discord_user_id)}" aria-label="Hide ${escapeHtml(row.displayName)}" ${checked} />
+        </td>
+      `;
+    }
+
+    function rowClass(row){
+      return row.hidden ? ` class="is-hidden-player"` : "";
     }
 
     function updateSortButtons(){
@@ -3322,7 +3479,8 @@
       if(activeConfig().kind === "combined"){
         leaderboardBodyEl.innerHTML = leaderboardRows.map((row) => {
           return `
-            <tr>
+            <tr${rowClass(row)}>
+              ${renderAdminHideCell(row)}
               <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
               <td class="player-cell">
                 <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
@@ -3345,7 +3503,8 @@
       if(currentView === "ranked"){
         leaderboardBodyEl.innerHTML = leaderboardRows.map((row) => {
           return `
-            <tr>
+            <tr${rowClass(row)}>
+              ${renderAdminHideCell(row)}
               <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
               <td class="player-cell">
                 <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
@@ -3375,7 +3534,8 @@
 
       leaderboardBodyEl.innerHTML = leaderboardRows.map((row) => {
         return `
-          <tr>
+          <tr${rowClass(row)}>
+            ${renderAdminHideCell(row)}
             <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
             <td class="player-cell">
               <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
@@ -3625,6 +3785,31 @@
       if(requestId !== loadRequestId) return;
       renderRunMeta(latestRun);
       hideStatus();
+    }
+
+    async function setGpiPlayerHidden(discordId, shouldHide){
+      if(!currentAdminContext.isAdmin) throw new Error("Admin access required.");
+      const cleanDiscordId = normalizeDiscordId(discordId);
+      if(!cleanDiscordId) throw new Error("Missing player ID.");
+
+      if(shouldHide){
+        const { error } = await supabase
+          .from(GPI_HIDDEN_PLAYERS_TABLE)
+          .upsert({
+            discord_user_id: cleanDiscordId,
+            hidden_at: new Date().toISOString(),
+            hidden_by_user_id: currentAdminContext.userId || null,
+            hidden_by_username: currentAdminContext.username || null,
+          }, { onConflict:"discord_user_id" });
+        if(error) throw error;
+        return;
+      }
+
+      const { error } = await supabase
+        .from(GPI_HIDDEN_PLAYERS_TABLE)
+        .delete()
+        .eq("discord_user_id", cleanDiscordId);
+      if(error) throw error;
     }
 
     async function loadCombinedPage(requestId){
@@ -3884,6 +4069,41 @@
       });
     });
 
+    leaderboardBodyEl.addEventListener("change", async (event) => {
+      const input = event.target.closest(".hide-checkbox[data-hide-player-id]");
+      if(!input || !currentAdminContext.isAdmin) return;
+      const discordId = normalizeDiscordId(input.dataset.hidePlayerId);
+      if(!discordId) return;
+
+      const previousHidden = hiddenPlayerIds.has(discordId);
+      input.disabled = true;
+      try{
+        if(input.checked){
+          hiddenPlayerIds.add(discordId);
+        }else{
+          hiddenPlayerIds.delete(discordId);
+        }
+        rerankLeaderboardRows();
+        updateLeaderboardSearch();
+        await loadLeaderboardPage(currentPage);
+        await setGpiPlayerHidden(discordId, input.checked);
+      }catch(error){
+        console.error(error);
+        if(previousHidden){
+          hiddenPlayerIds.add(discordId);
+        }else{
+          hiddenPlayerIds.delete(discordId);
+        }
+        rerankLeaderboardRows();
+        updateLeaderboardSearch();
+        await loadLeaderboardPage(currentPage);
+        setStatus(`Unable to update hidden player: ${error?.message || "Unknown error"}`, "error");
+      }finally{
+        const nextInput = leaderboardBodyEl.querySelector(`.hide-checkbox[data-hide-player-id="${CSS.escape(discordId)}"]`);
+        if(nextInput) nextInput.disabled = false;
+      }
+    });
+
     modalBodyEl.addEventListener("toggle", (event) => {
       const details = event.target;
       if(details?.id !== "tournamentMatchDetails" || !details.open || details.dataset.loaded === "true") return;
@@ -3926,8 +4146,13 @@
       if(event.key === "Escape" && !playerModalEl.hidden) closePlayerModal();
     });
 
-    updateTabSelection();
-    loadPage().catch((error) => {
+    async function initialize(){
+      updateTabSelection();
+      await loadAccessContext();
+      await loadPage();
+    }
+
+    initialize().catch((error) => {
       console.error(error);
       setStatus(`Unable to load NSS GPI: ${error?.message || "Unknown error"}`, "error");
     });
