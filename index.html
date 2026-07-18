@@ -914,7 +914,7 @@
       { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222", username:"duke07golf" } },
       { year:CURRENT_YEAR, month:6, title:"World Championship", href:"/championship.html", className:"light-green", winnerLoader:"worldChampionship2026" },
       { year:CURRENT_YEAR, month:7, title:"World Golf Masters", href:"/masters.html", className:"gold" },
-      { year:CURRENT_YEAR, month:8, title:"Super League S7", href:"/superleague/index.html", className:"neon-purple" },
+      { year:CURRENT_YEAR, month:8, title:"Super League S7", href:"/superleague/index.html?season=7&page=season", className:"neon-purple", status:"live" },
       { year:CURRENT_YEAR, month:10, title:"World Cup", href:"/worldcup.html", className:"royal-blue" },
     ];
     const WINNER_LOADERS = {
@@ -1099,6 +1099,7 @@
     }
 
     function eventBaseStatus(event){
+      if(event.status === "live") return "live";
       if(event.year < CURRENT_YEAR) return "past";
       if(event.year > CURRENT_YEAR) return "upcoming";
       if(event.month <= CURRENT_MONTH_INDEX) return "live";
