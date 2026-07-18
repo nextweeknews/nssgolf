@@ -451,6 +451,21 @@
       color: #9ca3af;
     }
 
+    .player-placeholder{
+      font-style: italic;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .player-placeholder-qualifier{
+      color: #9ca3af;
+    }
+
+    .player-placeholder-promotion{
+      color: #86efac;
+    }
+
     .error{
       margin: 0;
       color: #fecaca;
@@ -2932,6 +2947,7 @@
         const tr = document.createElement("tr");
         if(row.highlightClass) tr.classList.add(row.highlightClass);
         const qfPlayerClass = row.player.toUpperCase().startsWith("QF") ? " qf-player" : "";
+        const placeholderPlayerClass = getPlaceholderPlayerClass(row.player);
         if(row.player){
           playerDivisionLookup.set(row.player.toUpperCase(), {
             divisionTitle: division.title,
@@ -2940,7 +2956,7 @@
         }
         tr.innerHTML = `
           <td class="col-rank">${escapeHtml(row.rank)}</td>
-          <td class="col-player${qfPlayerClass}"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player)}</button></td>
+          <td class="col-player${qfPlayerClass}${placeholderPlayerClass}"><button class="player-btn${placeholderPlayerClass}" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player)}</button></td>
           <td class="col-matches">${escapeHtml(row.matches)}</td>
           <td class="col-games">${escapeHtml(row.games)}</td>
           <td class="col-diff">${escapeHtml(row.diffText)}</td>
@@ -2966,11 +2982,19 @@
     function formatPlayerLabel(name){
       const value = String(name ?? "").trim();
       if(!value) return "TBD";
-      return `<button class="player-btn" type="button" data-player="${escapeHtml(value)}">${escapeHtml(value)}</button>`;
+      const placeholderPlayerClass = getPlaceholderPlayerClass(value);
+      return `<button class="player-btn${placeholderPlayerClass}" type="button" data-player="${escapeHtml(value)}">${escapeHtml(value)}</button>`;
     }
 
     function isQfPlayerName(name){
       return /^QF\b/i.test(String(name ?? "").trim());
+    }
+
+    function getPlaceholderPlayerClass(name){
+      const value = String(name ?? "").trim();
+      if(value === "Qualifier") return " player-placeholder player-placeholder-qualifier";
+      if(value === "Promotion") return " player-placeholder player-placeholder-promotion";
+      return "";
     }
 
     function formatResultChip(resultLabel, score, isWin){
@@ -3239,13 +3263,15 @@
       const p2Winner = matchup.p2.result === "W";
       const p1QfClass = isQfPlayerName(matchup.p1.name) ? " qf-player" : "";
       const p2QfClass = isQfPlayerName(matchup.p2.name) ? " qf-player" : "";
+      const p1PlaceholderClass = getPlaceholderPlayerClass(matchup.p1.name);
+      const p2PlaceholderClass = getPlaceholderPlayerClass(matchup.p2.name);
 
       const p1Row = document.createElement("div");
       const p1HighlightClass = p1Winner ? winnerHighlight : (p2Winner ? loserHighlight : "");
       p1Row.className = `match-row${p1Winner ? " winner" : ""}${p1HighlightClass ? ` ${p1HighlightClass}` : ""}`;
       p1Row.innerHTML = `
         ${showSeeds ? `<div class="match-seed">${formatStatValue(matchup.p1.seed, "—")}</div>` : ""}
-        <div class="match-player${p1QfClass}">${formatPlayerLabel(matchup.p1.name)}</div>
+        <div class="match-player${p1QfClass}${p1PlaceholderClass}">${formatPlayerLabel(matchup.p1.name)}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p1.gamesWon, "–")}</div>
           <span class="round-score${(!roundWinners[0].a && roundWinners[0].b) ? " losing-score" : ""}">${formatStatValue(matchup.p1.rounds[0], "–")}</span>
@@ -3259,7 +3285,7 @@
       p2Row.className = `match-row${p2Winner ? " winner" : ""}${p2HighlightClass ? ` ${p2HighlightClass}` : ""}`;
       p2Row.innerHTML = `
         ${showSeeds ? `<div class="match-seed">${formatStatValue(matchup.p2.seed, "—")}</div>` : ""}
-        <div class="match-player${p2QfClass}">${formatPlayerLabel(matchup.p2.name)}</div>
+        <div class="match-player${p2QfClass}${p2PlaceholderClass}">${formatPlayerLabel(matchup.p2.name)}</div>
         <div class="match-stats">
           <div class="stat games">${formatStatValue(matchup.p2.gamesWon, "–")}</div>
           <span class="round-score${(!roundWinners[0].b && roundWinners[0].a) ? " losing-score" : ""}">${formatStatValue(matchup.p2.rounds[0], "–")}</span>
