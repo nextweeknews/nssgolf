@@ -157,9 +157,18 @@
     }
 
     .archive-actions{
-      display:flex;
-      justify-content:center;
+      width: min(520px, 100%);
+      margin: 0 auto;
+      display:grid;
+      gap: 10px;
+      align-items:stretch;
       padding-top: 4px;
+    }
+
+    .archive-actions .btn{
+      width: 100%;
+      justify-content:center;
+      text-align:center;
     }
     .player-search{
       position:relative;
@@ -865,6 +874,9 @@
       <span class="archive-actions">
         <a class="btn solid-teal" href="/records.html" aria-label="Go to NSS Golf Records">
           NSS Golf Records
+        </a>
+        <a class="btn neon-green" href="/gpi.html" aria-label="Go to NSS Golf Power Index">
+          NSS Golf Power Index
         </a>
       </span>
     </div>
