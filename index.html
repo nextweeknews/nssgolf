@@ -599,14 +599,14 @@
       --event-border-alpha: 0.70;
       position: relative;
       isolation: isolate;
-      min-height: 76px;
+      height: 104px;
       width: 100%;
       overflow: hidden;
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap: 18px;
-      padding: 14px 18px;
+      gap: 0;
+      padding: 0 22px;
       border: 1px solid rgba(var(--event-accent-rgb), var(--event-border-alpha));
       border-left: 0;
       border-right: 0;
@@ -640,55 +640,77 @@
     .event-span.gold{ --event-accent:#facc15; --event-accent-rgb:250,204,21; --event-border-alpha:0.90; }
     .event-span.light-green{ --event-accent:#bef264; --event-accent-rgb:190,242,100; --event-border-alpha:0.90; }
     .event-span.royal-blue{ --event-accent:#60a5fa; --event-accent-rgb:96,165,250; --event-border-alpha:0.90; }
-    .event-span.is-finished{
-      min-height: 86px;
-    }
-    .event-span.is-finished .event-action{
-      align-self: flex-end;
-      margin-top: 20px;
-    }
     .event-meta{
       position:relative;
       z-index:1;
-      width: 110px;
-      flex: 0 0 110px;
+      width: 118px;
+      flex: 0 0 118px;
       color: rgba(233,238,248,0.78);
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 950;
       letter-spacing: .10em;
       line-height: 1.05;
       text-transform: uppercase;
       text-align:left;
     }
+    .event-winner-slot{
+      position:relative;
+      z-index:1;
+      flex: 0 0 280px;
+      height: 100%;
+      min-width:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 14px 18px;
+      overflow:hidden;
+      pointer-events:none;
+    }
+    .event-winner-slot::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-2;
+      background: linear-gradient(90deg, transparent 0%, rgba(var(--event-accent-rgb),0.12) 18%, rgba(var(--event-accent-rgb),0.16) 50%, transparent 100%);
+      pointer-events:none;
+    }
+    .event-winner-slot::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background: linear-gradient(90deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.24) 28%, rgba(15,23,42,0.18) 72%, rgba(15,23,42,0.88) 100%);
+      pointer-events:none;
+    }
     .event-action{
       position:relative;
       z-index:2;
       min-width: 0;
+      flex: 1 1 auto;
       display:flex;
       align-items:center;
       justify-content:flex-end;
       gap: 10px;
       margin-left:auto;
-      padding: 9px 10px;
+      padding: 9px 10px 9px 20px;
       border-radius: 12px;
       color: var(--event-accent);
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 950;
       letter-spacing: .08em;
       line-height: 1.05;
       text-align:right;
       text-decoration:none;
-      text-shadow: 0 0 8px rgba(var(--event-accent-rgb),0.82);
+      text-shadow: none;
       text-transform: uppercase;
-      transition: background-color 140ms ease, color 140ms ease, text-shadow 140ms ease, transform 140ms ease;
+      transition: background-color 140ms ease, color 140ms ease;
     }
     .event-action:hover,
     .event-action:focus-visible{
       background: rgba(var(--event-accent-rgb),0.12);
       color: #fff;
       outline: none;
-      text-shadow: 0 0 10px rgba(var(--event-accent-rgb),0.95);
-      transform: translateX(-1px);
+      text-shadow: none;
     }
     .event-title-text{
       min-width:0;
@@ -721,32 +743,29 @@
     }
     .event-winner-portrait{
       position:absolute;
-      top:0;
-      right:0;
-      z-index:-1;
-      width: min(42%, 240px);
-      height:100%;
+      inset:0;
+      z-index:-3;
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
       object-fit: cover;
-      opacity: .62;
+      opacity: .68;
       filter: saturate(1.08) contrast(1.06);
-      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.72) 34%, #000 100%);
-      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.72) 34%, #000 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.82) 22%, #000 52%, rgba(0,0,0,0.72) 78%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.82) 22%, #000 52%, rgba(0,0,0,0.72) 78%, transparent 100%);
     }
     .event-winner{
-      position:absolute;
-      top: 9px;
-      right: 14px;
-      z-index:1;
-      max-width: min(44%, 260px);
+      min-width:0;
+      max-width: 190px;
       display:flex;
       align-items:center;
-      justify-content:flex-end;
+      justify-content:center;
       gap: 7px;
       color:#fff;
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 950;
       line-height:1.1;
-      text-align:right;
+      text-align:center;
       text-shadow: 0 2px 12px rgba(0,0,0,0.78), 0 0 10px rgba(250,204,21,0.34);
     }
     .event-winner-name{
@@ -878,26 +897,37 @@
         padding-right: 0;
       }
       .event-span{
-        min-height: 72px;
+        height: 104px;
         gap: 12px;
-        padding: 13px 12px;
+        padding: 0 12px;
         border-radius: 0;
       }
-      .event-span.is-finished{
-        min-height: 86px;
-      }
-      .event-span.is-finished .event-action{
-        margin-top: 19px;
-      }
       .event-meta{
-        width: 82px;
-        flex-basis: 82px;
-        font-size: 13px;
-        letter-spacing: .07em;
+        width: 108px;
+        flex-basis: 108px;
+        font-size: 14px;
+        letter-spacing: .055em;
+        white-space: nowrap;
+      }
+      .event-winner-slot{
+        flex: 0 0 104px;
+        max-width: 104px;
+        height: 100%;
+        padding: 12px 8px;
+      }
+      .event-winner{
+        max-width: 96px;
+        gap: 4px;
+        font-size: 11px;
+      }
+      .event-winner-trophy{
+        width: 13px;
+        height: 13px;
       }
       .event-action{
-        padding: 8px 7px;
-        font-size: 14px;
+        padding: 8px 7px 8px 12px;
+        flex-basis: auto;
+        font-size: 16px;
         letter-spacing: .055em;
       }
       .event-state-icon{
@@ -907,15 +937,6 @@
       .event-live-dot{
         width: 10px;
         height: 10px;
-      }
-      .event-winner{
-        top: 7px;
-        right: 10px;
-        max-width: 46%;
-        font-size: 12px;
-      }
-      .event-winner-portrait{
-        width: min(46%, 190px);
       }
       .event-title-text{
         white-space:normal;
@@ -1058,7 +1079,6 @@
       CURRENT_RANKED_LEAGUE_SEASON,
       RANKED_LEAGUE_TEAMUP_URL,
       SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
-      SUPER_LEAGUE_SEASON,
     } from "/config.js";
     import {
       fetchWorldCupValues,
@@ -1331,19 +1351,17 @@
         ? `<img class="event-winner-portrait" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
         : "";
       return `
-        ${portraitMarkup}
-        <span class="event-winner">
-          ${trophyIconSvg()}
-          <span class="event-winner-name">${displayName}</span>
+        <span class="event-winner-slot">
+          ${portraitMarkup}
+          <span class="event-winner">
+            ${trophyIconSvg()}
+            <span class="event-winner-name">${displayName}</span>
+          </span>
         </span>
       `;
     }
 
     function eventMetaLabel(event){
-      if(/^super league/i.test(normalizeSearchText(event.title))){
-        const titleSeason = normalizeSearchText(event.title).match(/\bS(?:eason\s*)?(\d+)\b/i);
-        return titleSeason ? `Season ${titleSeason[1]}` : seasonLabelFromConfig(SUPER_LEAGUE_SEASON);
-      }
       return MONTH_LABELS[event.month] || "";
     }
 
@@ -1357,8 +1375,8 @@
       return `
         <div class="calendar-row" id="${calendarEventId(event)}" data-winner-loader="${escapeHtml(event.winnerLoader || "")}">
           <span class="event-span ${escapeHtml(event.className)} is-${escapeHtml(stateKind)}">
-            ${eventWinnerMarkup(resolvedWinner)}
             <span class="event-meta">${escapeHtml(eventMetaLabel(event))}</span>
+            ${eventWinnerMarkup(resolvedWinner)}
             <a class="event-action" href="${escapeHtml(event.href)}" aria-label="Go to ${escapeHtml(event.title)}">
               <span class="event-title-text">${escapeHtml(event.title)}</span>
               ${stateIndicatorMarkup(stateKind)}
