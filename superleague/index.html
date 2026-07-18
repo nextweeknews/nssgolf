@@ -313,7 +313,7 @@
     }
 
     #promotionStandingsGrid{
-      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      grid-template-columns: minmax(260px, 370px);
       justify-content:center;
       max-width: 740px;
       margin-left:auto;
@@ -571,7 +571,7 @@
     }
 
     #promotionScheduleGrid{
-      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      grid-template-columns: minmax(260px, 370px);
       justify-content:center;
       max-width: 740px;
       margin-left:auto;
@@ -2084,8 +2084,8 @@
     const QUALIFIER_ROUNDS = ["R64", "R32", "R16", "QF", "SF", "FINAL"];
     const LOSER_ROUNDS = ["L1", "L2", "L3", "L4", "L5", "PLAY-IN", "L6", "L7", "L8", "L9"];
     const PLAYOFF_RANGE = "I87:AB92";
-    const PROMOTIONS_STANDINGS_RANGE = "A1:H13";
-    const PROMOTIONS_SCHEDULE_RANGE = "I2:AB17";
+    const PROMOTIONS_STANDINGS_RANGE = "A1:H6";
+    const PROMOTIONS_SCHEDULE_RANGE = "I2:AB7";
     const SEASON_7_PLAYOFF_RANGE = "I138:AB143";
     const SEASON_7_DIVISIONS = [
       { title: "Division 1", range: "B3:G12" },
@@ -3915,13 +3915,6 @@
       return `${activeSuperLeagueSeason} Promotions`;
     }
 
-    function normalizePromotionGroup(value){
-      const normalized = String(value ?? "").toLowerCase();
-      if(normalized.includes("d1") || normalized.includes("division 1")) return "d1";
-      if(normalized.includes("d2") || normalized.includes("division 2")) return "d2";
-      return normalized.trim();
-    }
-
     function renderPromotionStandingsGroup(title, note, rows, divisionClass){
       const wrapper = document.createElement("section");
       wrapper.className = `division-card ${divisionClass}`.trim();
@@ -3986,11 +3979,9 @@
       const gridEl = document.getElementById("promotionStandingsGrid");
       if(!gridEl) return;
 
-      const promotionToD1 = values.slice(2, 7);
-      const promotionToD2 = values.slice(9, 13);
+      const promotionToD1 = values.slice(2, 6);
       gridEl.innerHTML = "";
       gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 1", "Rank", promotionToD1, "division-1"));
-      gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 2", "Rank", promotionToD2, "division-2"));
     }
 
     function renderPromotionSchedule(values){
@@ -3999,47 +3990,34 @@
       if(!wrapEl || !gridEl) return;
 
       const rounds = parseScheduleRows(values);
-      const groups = [
-        { key: "d1", title: "Promotion to Division 1", className: "division-1" },
-        { key: "d2", title: "Promotion to Division 2", className: "division-2" },
-      ];
 
       gridEl.innerHTML = "";
       wrapEl.hidden = !rounds.length;
-      groups.forEach((group) => {
-        const pane = document.createElement("section");
-        pane.className = `schedule-division ${group.className}`;
+      const pane = document.createElement("section");
+      pane.className = "schedule-division division-1";
 
-        const heading = document.createElement("h3");
-        heading.className = `schedule-division-title ${group.className}`;
-        heading.textContent = group.title;
-        pane.appendChild(heading);
+      const heading = document.createElement("h3");
+      heading.className = "schedule-division-title division-1";
+      heading.textContent = "Promotion to Division 1";
+      pane.appendChild(heading);
 
-        const groupRounds = rounds
-          .map((round) => ({
-            ...round,
-            matchups: round.matchups.filter((matchup) => normalizePromotionGroup(matchup.division) === group.key),
-          }))
-          .filter((round) => round.matchups.length);
-
-        if(!groupRounds.length){
-          const empty = document.createElement("p");
-          empty.className = "schedule-empty";
-          empty.textContent = "No promotion matchups available.";
-          pane.appendChild(empty);
-        }else{
-          const matchGrid = document.createElement("div");
-          matchGrid.className = "match-grid";
-          groupRounds.forEach((round) => {
-            round.matchups.forEach((matchup) => {
-              matchGrid.appendChild(renderLabeledMatch(matchup, `Round ${round.week}`));
-            });
+      if(!rounds.length){
+        const empty = document.createElement("p");
+        empty.className = "schedule-empty";
+        empty.textContent = "No promotion matchups available.";
+        pane.appendChild(empty);
+      }else{
+        const matchGrid = document.createElement("div");
+        matchGrid.className = "match-grid";
+        rounds.forEach((round) => {
+          round.matchups.forEach((matchup) => {
+            matchGrid.appendChild(renderLabeledMatch(matchup, `Round ${round.week}`));
           });
-          pane.appendChild(matchGrid);
-        }
+        });
+        pane.appendChild(matchGrid);
+      }
 
-        gridEl.appendChild(pane);
-      });
+      gridEl.appendChild(pane);
     }
 
     function renderPromotionsFromCache(){
