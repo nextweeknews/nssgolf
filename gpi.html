@@ -2570,9 +2570,11 @@
 
     function applyHiddenStateAndRanks(rows){
       let nextRank = 1;
-      for(const row of rows){
+      rows.forEach((row, index) => {
         const hidden = hiddenPlayerIds.has(normalizeDiscordId(row.discord_user_id));
         row.hidden = hidden;
+        row.sourceOrder = index;
+        row.rankSortNumber = nextRank;
         if(hidden){
           row.rankNumber = 0;
           row.rank = "";
@@ -2581,7 +2583,7 @@
           row.rank = nextRank;
           nextRank += 1;
         }
-      }
+      });
       return rows;
     }
 
@@ -3717,7 +3719,7 @@
 
     function sortValueForRow(row, key){
       return {
-        rank: row.rankNumber,
+        rank: row.rankSortNumber,
         rating: row.ratingNumber,
         rankedRating: row.rankedRatingNumber,
         tournamentDelta: row.tournamentDeltaNumber,
@@ -3739,14 +3741,11 @@
         ? visibleLeaderboardRows().filter(row => scoreLeaderboardSearchResult(row, query) > 0)
         : visibleLeaderboardRows();
       return [...rows].sort((left, right) => {
-        if(sortState.key === "rank" && left.hidden !== right.hidden){
-          return left.hidden ? 1 : -1;
-        }
         const leftValue = sortValueForRow(left, sortState.key);
         const rightValue = sortValueForRow(right, sortState.key);
         if(leftValue < rightValue) return -1 * direction;
         if(leftValue > rightValue) return 1 * direction;
-        return left.rankNumber - right.rankNumber || left.displayName.localeCompare(right.displayName);
+        return (left.sourceOrder ?? 0) - (right.sourceOrder ?? 0) || left.displayName.localeCompare(right.displayName);
       });
     }
 
