@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Golf Power Index</title>
   <link rel="icon" type="image/png" href="/logos/golf.png" />
+  <link rel="stylesheet" href="/site-topbar.css" />
   <style>
     :root{
       color-scheme: dark;
@@ -33,6 +34,80 @@
       background-image:linear-gradient(to bottom, var(--bg1), var(--bg2), var(--bg3));
       color:var(--text);
       font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:100;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background:rgba(3,18,42,.70);
+      backdrop-filter:blur(10px);
+    }
+
+    .topbar-inner{
+      max-width:1100px;
+      margin:0 auto;
+      padding:14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .home-btn{
+      width:40px;
+      height:40px;
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:16px;
+      background:rgba(255,255,255,.05);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      user-select:none;
+      flex-shrink:0;
+    }
+
+    .home-btn img{
+      width:70%;
+      height:70%;
+      object-fit:contain;
+      display:block;
+      pointer-events:none;
+    }
+
+    .kicker{
+      color:rgba(255,255,255,.65);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.25em;
+      text-transform:uppercase;
+    }
+
+    .page-nav-select{
+      max-width:min(56vw, 420px);
+      border:1px solid rgba(125,211,252,.35);
+      border-radius:10px;
+      background:rgba(2,6,23,.85);
+      color:inherit;
+      padding:6px 32px 6px 10px;
+      font:inherit;
+      letter-spacing:inherit;
+      text-transform:uppercase;
+      cursor:pointer;
+    }
+
+    .page-nav-select:focus-visible{
+      outline:2px solid rgba(125,211,252,.6);
+      outline-offset:2px;
     }
 
     main{
@@ -1182,6 +1257,25 @@
         padding-top:22px;
       }
 
+      .topbar-inner{
+        padding:12px;
+        flex-wrap:nowrap;
+      }
+
+      .brand{
+        flex:1;
+        min-width:0;
+      }
+
+      .brand > div{
+        min-width:0;
+      }
+
+      .page-nav-select{
+        width:min(100%, 420px);
+        max-width:100%;
+      }
+
       .table-controls{
         align-items:stretch;
         flex-direction:column;
@@ -1437,6 +1531,32 @@
   </style>
 </head>
 <body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <a class="home-btn" href="/index.html" aria-label="Home">
+          <img src="/logos/golf.png" alt="Home" loading="eager" decoding="async" />
+        </a>
+        <div>
+          <select class="kicker page-nav-select" aria-label="Select page" onchange="if (this.value) window.location.href=this.value;">
+            <option value="/index.html">Home</option>
+            <option value="/championship.html">World Championship</option>
+            <option value="/masters.html">World Golf Masters</option>
+            <option value="/worldcup.html">World Cup</option>
+            <option value="/noptational.html">The Noptational</option>
+            <option value="/worldopen/index.html">World Open</option>
+            <option value="/proleague/index.html">Shotgun Pro League</option>
+            <option value="/superleague/index.html">Super League</option>
+            <option value="/lightningcup/index.html">Lightning Cup</option>
+            <option value="/beataidan/index.html">Beat Aidan</option>
+            <option value="/records.html">Records</option>
+            <option value="/gpi.html" selected>Golf Power Index</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <main>
     <header class="page-head">
       <div class="page-title-row">
@@ -4157,5 +4277,6 @@
       setStatus(`Unable to load NSS GPI: ${error?.message || "Unknown error"}`, "error");
     });
   </script>
+  <script type="module" src="/site-topbar.js"></script>
 </body>
 </html>
