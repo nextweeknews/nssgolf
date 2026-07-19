@@ -643,8 +643,8 @@
     .event-meta{
       position:relative;
       z-index:1;
-      width: 118px;
-      flex: 0 0 118px;
+      width: 144px;
+      flex: 0 0 144px;
       color: rgba(233,238,248,0.78);
       font-size: 18px;
       font-weight: 950;
@@ -652,6 +652,13 @@
       line-height: 1.05;
       text-transform: uppercase;
       text-align:left;
+      white-space: nowrap;
+    }
+    .calendar-view .event-meta{
+      width: 56px;
+      flex-basis: 56px;
+      font-size: 16px;
+      letter-spacing: .08em;
     }
     .event-winner-slot{
       --winner-avatar-size: 140px;
@@ -677,7 +684,7 @@
       position:relative;
       z-index:2;
       min-width: 0;
-      flex: 0 1 auto;
+      flex: 1 1 auto;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -708,6 +715,19 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
+    }
+    .calendar-view .event-winner-slot{
+      flex-basis: 180px;
+      justify-content:flex-start;
+      padding-left: 4px;
+      padding-right: 8px;
+    }
+    .calendar-view .event-winner-portrait{
+      left: -6px;
+      transform: translate(0, -50%);
+    }
+    .calendar-view .event-action{
+      justify-content:flex-end;
     }
     .event-state-icon{
       width: 18px;
@@ -908,12 +928,29 @@
         width: 132px;
         flex-basis: 132px;
       }
+      .calendar-view .event-meta{
+        width: 48px;
+        flex-basis: 48px;
+        font-size: 13px;
+        letter-spacing: .05em;
+      }
       .event-winner-slot{
         --winner-avatar-size: 140px;
         flex: 0 0 92px;
         max-width: 92px;
         height: 100%;
         padding: 10px 7px;
+      }
+      .calendar-view .event-winner-slot{
+        flex: 0 0 82px;
+        max-width: 82px;
+        justify-content:flex-start;
+        padding-left: 0;
+        padding-right: 4px;
+      }
+      .calendar-view .event-winner-portrait{
+        left: -10px;
+        transform: translate(0, -50%);
       }
       .event-winner{
         max-width: 82px;
@@ -939,7 +976,7 @@
         height: 10px;
       }
       .event-title-text{
-        white-space:normal;
+        white-space:nowrap;
       }
       .schedule-row .btn,
       .archive-actions .btn{
