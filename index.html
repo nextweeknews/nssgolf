@@ -1134,7 +1134,12 @@
       noptational2026:loadNoptationalWinner,
       worldChampionship2026:loadWorldChampionshipWinner,
     };
+    const WINNER_PROFILE_STORAGE_KEY = "nssgolf.home.winnerProfiles.v1";
+    const WINNER_PROFILE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
     const winnerCache = new Map();
+    const discordMemberCache = new Map();
+    const preloadedAvatarUrls = new Set();
+    const storedWinnerProfiles = loadStoredWinnerProfiles();
     let activeCalendarYear = String(CURRENT_YEAR);
     let memberSearchRows = [];
     let memberSearchPromise = null;
@@ -1192,6 +1197,139 @@
 
     function winnerAvatarUrlForMember(member){
       return normalizeSearchText(member?.server_avatar_url) || normalizeSearchText(member?.avatar_url);
+    }
+
+    function uniqueValues(values){
+      return [...new Set((values || []).map(normalizeSearchText).filter(Boolean))];
+    }
+
+    function eventWinnerCacheKey(event){
+      return normalizeSearchText(event?.winnerLoader) || `${event?.year || ""}:${event?.month || ""}:${normalizeSearchText(event?.title)}`;
+    }
+
+    function loadStoredWinnerProfiles(){
+      try{
+        const raw = window.localStorage?.getItem(WINNER_PROFILE_STORAGE_KEY);
+        if(!raw) return {};
+        const payload = JSON.parse(raw);
+        return payload?.entries && typeof payload.entries === "object" ? payload.entries : {};
+      }catch{
+        return {};
+      }
+    }
+
+    function cachedWinnerForEvent(event){
+      const key = eventWinnerCacheKey(event);
+      const entry = key ? storedWinnerProfiles[key] : null;
+      if(!entry?.winner?.name) return null;
+      if(Date.now() - Number(entry.cachedAt || 0) > WINNER_PROFILE_CACHE_TTL_MS) return null;
+      return {
+        ...(event.fallbackWinner || {}),
+        ...entry.winner,
+      };
+    }
+
+    function serializableWinner(winner){
+      return {
+        name:normalizeSearchText(winner?.name),
+        displayName:normalizeSearchText(winner?.displayName),
+        username:normalizeSearchText(winner?.username),
+        discordId:normalizeDiscordId(winner?.discordId),
+        avatarUrl:normalizeSearchText(winner?.avatarUrl),
+      };
+    }
+
+    function rememberWinnerForEvent(event, winner){
+      const key = eventWinnerCacheKey(event);
+      const cachedWinner = serializableWinner(winner);
+      if(!key || !cachedWinner.name) return false;
+      storedWinnerProfiles[key] = {
+        cachedAt:Date.now(),
+        winner:cachedWinner,
+      };
+      return true;
+    }
+
+    function persistStoredWinnerProfiles(){
+      try{
+        window.localStorage?.setItem(WINNER_PROFILE_STORAGE_KEY, JSON.stringify({
+          version:1,
+          entries:storedWinnerProfiles,
+        }));
+      }catch{
+      }
+    }
+
+    function preloadAvatarUrls(avatarUrls){
+      uniqueValues(avatarUrls).forEach((avatarUrl) => {
+        if(preloadedAvatarUrls.has(avatarUrl)) return;
+        preloadedAvatarUrls.add(avatarUrl);
+        const image = new Image();
+        image.decoding = "async";
+        image.referrerPolicy = "no-referrer";
+        image.src = avatarUrl;
+      });
+    }
+
+    function cacheDiscordMember(member){
+      const discordId = normalizeDiscordId(member?.discord_user_id);
+      if(!discordId) return null;
+      const cachedMember = {
+        ...member,
+        discord_user_id:discordId,
+      };
+      discordMemberCache.set(discordId, cachedMember);
+      return cachedMember;
+    }
+
+    async function loadDiscordMembersByIds(discordIds){
+      const ids = uniqueValues((discordIds || []).map(normalizeDiscordId));
+      const missingIds = ids.filter(id => !discordMemberCache.has(id));
+      if(missingIds.length){
+        try{
+          const { data, error } = await supabase
+            .from("discord_guild_members")
+            .select("discord_user_id,username,display_name,server_avatar_url,avatar_url")
+            .in("discord_user_id", missingIds);
+          if(error) throw error;
+          const foundIds = new Set();
+          (data || []).forEach((member) => {
+            const cachedMember = cacheDiscordMember(member);
+            if(cachedMember?.discord_user_id) foundIds.add(cachedMember.discord_user_id);
+          });
+          missingIds.forEach((id) => {
+            if(!foundIds.has(id)) discordMemberCache.set(id, null);
+          });
+        }catch{
+          missingIds.forEach((id) => {
+            if(!discordMemberCache.has(id)) discordMemberCache.set(id, null);
+          });
+        }
+      }
+      return discordMemberCache;
+    }
+
+    function winnerLookupKeys(winner){
+      const lookupKeys = [
+        winner?.name,
+        winner?.displayName,
+        winner?.username,
+        ...(Array.isArray(winner?.aliases) ? winner.aliases : []),
+      ].map(normalizeNameKey).filter(Boolean);
+      const compactLookupKeys = lookupKeys.map(normalizeProfileLookupKey).filter(Boolean);
+      return { lookupKeys, compactLookupKeys };
+    }
+
+    function findMemberByWinnerName(rows, winner){
+      const { lookupKeys, compactLookupKeys } = winnerLookupKeys(winner);
+      if(!lookupKeys.length) return null;
+      return rows.find(row => (
+        lookupKeys.includes(normalizeNameKey(row.username)) ||
+        lookupKeys.includes(normalizeNameKey(row.display_name))
+      )) || rows.find(row => (
+        compactLookupKeys.includes(normalizeProfileLookupKey(row.username)) ||
+        compactLookupKeys.includes(normalizeProfileLookupKey(row.display_name))
+      )) || null;
     }
 
     function sheetNameEscape(value){
@@ -1343,7 +1481,7 @@
       const avatar = normalizeSearchText(winner.avatarUrl);
       const displayName = escapeHtml(winner.displayName || winner.name);
       const portraitMarkup = avatar
-        ? `<img class="event-winner-portrait" src="${escapeHtml(avatar)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />`
+        ? `<img class="event-winner-portrait" src="${escapeHtml(avatar)}" alt="" width="140" height="140" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />`
         : "";
       return `
         <span class="event-winner-slot">
@@ -1396,9 +1534,8 @@
         ? events.map(calendarRowMarkup).join("")
         : `<p class="league-placeholder">No tournaments listed for ${escapeHtml(yearValue)}.</p>`;
 
-      events.forEach((event) => {
-        void hydrateEventWinner(event);
-      });
+      applyCachedEventWinners(events);
+      void hydrateEventWinners(events, activeCalendarYear);
     }
 
     function initLeagueTabs(){
@@ -1417,70 +1554,85 @@
       row.outerHTML = calendarRowMarkup(event, winner);
     }
 
-    async function hydrateEventWinner(event){
+    function applyCachedEventWinners(events){
+      const cachedEntries = (events || [])
+        .map(event => ({ event, winner:cachedWinnerForEvent(event) }))
+        .filter(entry => entry.winner?.name);
+      preloadAvatarUrls(cachedEntries.map(entry => entry.winner.avatarUrl));
+      cachedEntries.forEach(({ event, winner }) => {
+        updateEventRow(event, winner);
+      });
+    }
+
+    async function resolveEventWinner(event){
       if(!event.winnerLoader || !WINNER_LOADERS[event.winnerLoader]) return;
+      if(!winnerCache.has(event.winnerLoader)){
+        winnerCache.set(event.winnerLoader, Promise.resolve(WINNER_LOADERS[event.winnerLoader]()).catch(() => null));
+      }
+      const loadedWinner = await winnerCache.get(event.winnerLoader);
+      return loadedWinner
+        ? { ...(event.fallbackWinner || {}), ...loadedWinner }
+        : event.fallbackWinner;
+    }
+
+    async function hydrateEventWinners(events, yearValue){
+      const winnerEvents = (events || []).filter(event => event.winnerLoader && WINNER_LOADERS[event.winnerLoader]);
+      if(!winnerEvents.length) return;
+
       try{
-        if(!winnerCache.has(event.winnerLoader)){
-          winnerCache.set(event.winnerLoader, Promise.resolve(WINNER_LOADERS[event.winnerLoader]()).catch(() => null));
-        }
-        const loadedWinner = await winnerCache.get(event.winnerLoader);
-        const winner = loadedWinner
-          ? { ...(event.fallbackWinner || {}), ...loadedWinner }
-          : event.fallbackWinner;
-        if(String(event.year) !== activeCalendarYear) return;
-        if(winner?.name){
-          updateEventRow(event, await enrichWinnerProfile(winner));
+        const winnerEntries = await Promise.all(winnerEvents.map(async (event) => ({
+          event,
+          winner:await resolveEventWinner(event).catch(() => event.fallbackWinner || null),
+        })));
+        if(String(yearValue) !== activeCalendarYear) return;
+
+        const enrichedWinners = await enrichWinnerProfiles(winnerEntries.map(entry => entry.winner));
+        if(String(yearValue) !== activeCalendarYear) return;
+
+        preloadAvatarUrls(enrichedWinners.map(winner => winner?.avatarUrl));
+        let didCacheWinner = false;
+        enrichedWinners.forEach((winner, index) => {
+          if(!winner?.name) return;
+          const event = winnerEntries[index].event;
+          updateEventRow(event, winner);
+          didCacheWinner = rememberWinnerForEvent(event, winner) || didCacheWinner;
+        });
+        if(didCacheWinner){
+          persistStoredWinnerProfiles();
         }
       }catch{
         // Keep the deterministic month-based status if a tournament source is unavailable.
       }
     }
 
-    async function enrichWinnerProfile(winner){
-      const discordId = normalizeDiscordId(winner?.discordId);
-      const lookupKeys = [
-        winner?.name,
-        winner?.displayName,
-        winner?.username,
-        ...(Array.isArray(winner?.aliases) ? winner.aliases : []),
-      ].map(normalizeNameKey).filter(Boolean);
-      const compactLookupKeys = lookupKeys.map(normalizeProfileLookupKey).filter(Boolean);
-      let member = null;
+    async function enrichWinnerProfiles(winners){
+      const winnerList = (winners || []).map(winner => winner || null);
+      const discordIds = winnerList.map(winner => normalizeDiscordId(winner?.discordId));
+      await loadDiscordMembersByIds(discordIds);
 
-      if(discordId){
-        try{
-          const { data } = await supabase
-            .from("discord_guild_members")
-            .select("discord_user_id,username,display_name,server_avatar_url,avatar_url")
-            .eq("discord_user_id", discordId)
-            .maybeSingle();
-          member = data || null;
-        }catch{
-          member = null;
-        }
-      }
+      const needsNameLookup = winnerList.some((winner) => {
+        if(!winner?.name) return false;
+        const discordId = normalizeDiscordId(winner.discordId);
+        return !discordId || !discordMemberCache.get(discordId);
+      });
+      const memberRows = needsNameLookup
+        ? await loadMemberSearchRows().catch(() => [])
+        : [];
 
-      if(!member && lookupKeys.length){
-        try{
-          const rows = await loadMemberSearchRows();
-          member = rows.find(row => (
-            lookupKeys.includes(normalizeNameKey(row.username)) ||
-            lookupKeys.includes(normalizeNameKey(row.display_name))
-          )) || rows.find(row => (
-            compactLookupKeys.includes(normalizeProfileLookupKey(row.username)) ||
-            compactLookupKeys.includes(normalizeProfileLookupKey(row.display_name))
-          )) || null;
-        }catch{
-          member = null;
-        }
-      }
+      return winnerList.map((winner) => {
+        if(!winner?.name) return null;
+        const discordId = normalizeDiscordId(winner.discordId);
+        const member = (discordId ? discordMemberCache.get(discordId) : null) ||
+          findMemberByWinnerName(memberRows, winner);
+        if(member) cacheDiscordMember(member);
 
-      return {
-        ...winner,
-        displayName: memberDisplayName(member, winner.name),
-        discordId: normalizeDiscordId(member?.discord_user_id) || discordId,
-        avatarUrl: winnerAvatarUrlForMember(member) || winner.avatarUrl || "",
-      };
+        return {
+          ...winner,
+          displayName: memberDisplayName(member, winner.name),
+          discordId: normalizeDiscordId(member?.discord_user_id) || discordId,
+          avatarUrl: winnerAvatarUrlForMember(member) || winner.avatarUrl || "",
+        };
+      });
     }
 
     function orderedMatchTeams(match){
@@ -1589,9 +1741,7 @@
         .sort((left, right) => left.total - right.total || right.countedCount - left.countedCount || left.display.localeCompare(right.display));
       const winner = players[0];
       if(!winner) return null;
-      const memberRows = await loadMemberSearchRows().catch(() => []);
-      const member = memberRows.find(row => normalizeNameKey(row.username) === normalizeNameKey(winner.username)) || null;
-      return { name:winner.display, username:winner.username, discordId:member?.discord_user_id || "" };
+      return { name:winner.display, username:winner.username };
     }
 
     function parseSuperLeaguePlayoffRows(values){
