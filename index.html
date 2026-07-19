@@ -1002,7 +1002,7 @@
     .event-state-icon{
       width: 18px;
       height: 18px;
-      flex: 0 0 auto;
+      flex: 0 0 18px;
       display:block;
     }
     .event-state-icon.is-upcoming{
@@ -1014,10 +1014,18 @@
       color: #22c55e;
     }
     .event-live-dot{
-      width: 12px;
-      height: 12px;
+      position:relative;
+      width: 18px;
+      height: 18px;
       border-radius: 999px;
-      flex: 0 0 auto;
+      flex: 0 0 18px;
+      background: transparent;
+    }
+    .event-live-dot::before{
+      content:"";
+      position:absolute;
+      inset:3px;
+      border-radius: 999px;
       background: #34d399;
       box-shadow: 0 0 0 0 rgba(52,211,153,0.55), 0 0 12px rgba(45,212,191,0.55);
       animation: livePulse 1.45s ease-out infinite;
@@ -1327,10 +1335,12 @@
       .event-state-icon{
         width: 16px;
         height: 16px;
+        flex-basis: 16px;
       }
       .event-live-dot{
-        width: 10px;
-        height: 10px;
+        width: 16px;
+        height: 16px;
+        flex-basis: 16px;
       }
       .event-title-text{
         white-space:nowrap;
