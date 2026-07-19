@@ -11,6 +11,7 @@
   <style>
     :root{
       --bg1:#061C3B; --bg2:#04142E; --bg3:#020B18;
+      --page-width: 1100px;
 
       --card-bg: rgba(15,23,42,1);
       --card-shadow: 0 32px 32px rgba(0,0,0,0.65);
@@ -47,7 +48,7 @@
       backdrop-filter: blur(10px);
     }
     .topbar-inner{
-      max-width:1100px;
+      max-width:var(--page-width);
       margin:0 auto;
       padding: 14px 18px;
       display:flex;
@@ -103,18 +104,17 @@
 
 
     .container{
-      max-width:1100px;
+      width: min(var(--page-width), 100%);
       margin:0 auto;
-      padding: 16px 18px 56px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap: 16px;
+      padding: 0 18px 48px;
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      align-items:start;
+      gap: 0;
     }
 
     .card{
-      width: min(820px, 100%);
+      width: 100%;
       background: var(--card-bg);
       border-radius: 20px;
       padding: 22px 20px;
@@ -122,13 +122,19 @@
       border: 1px solid rgba(255,255,255,0.10);
     }
     .leagues-card{
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
       overflow: hidden;
       padding-left: 0;
       padding-right: 0;
+      padding-top: 0;
+      padding-bottom: 0;
     }
     .leagues-card .league-headline{
-      padding-left: 20px;
-      padding-right: 20px;
+      padding-left: 0;
+      padding-right: 0;
     }
 
     .headline{
@@ -141,7 +147,7 @@
     }
 
     .league-headline{
-      text-align: center;
+      text-align: left;
     }
 
     .copy{
@@ -162,16 +168,22 @@
     }
 
     .archive-card{
-      text-align:center;
+      align-self: stretch;
+      background: transparent;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 0;
+      text-align:left;
+      overflow: hidden;
     }
 
     .archive-actions{
-      width: min(520px, 100%);
-      margin: 0 auto;
+      width: 100%;
+      margin: 0;
       display:grid;
       gap: 10px;
       align-items:stretch;
-      padding-top: 4px;
+      padding-top: 0;
     }
 
     .archive-actions .btn{
@@ -308,9 +320,236 @@
       text-align:center;
     }
 
+    .home-discord-invite{
+      grid-column: 1 / -1;
+      display:flex;
+      justify-content:center;
+      width: calc(100% + 36px);
+      margin: 0 -18px;
+    }
+
+    .home-primary-tabs{
+      grid-column: 1 / -1;
+      display:none;
+      width: 100%;
+    }
+
+    .home-main-column,
+    .home-rail{
+      min-width:0;
+    }
+
+    .home-main-column{
+      padding-top: 14px;
+      border-left: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .home-rail{
+      margin-top: 14px;
+      border-left: 1px solid rgba(148,163,184,0.20);
+      border-right: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .rail-block{
+      border-bottom: 1px solid rgba(148,163,184,0.20);
+      background: rgba(15,23,42,0.58);
+    }
+
+    .rail-block:last-child{
+      border-bottom: 0;
+    }
+
+    .rail-heading{
+      margin: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148,163,184,0.20);
+      background: rgba(2,8,24,0.72);
+      color: rgba(199,215,255,0.96);
+      font-size: 12px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .rail-band{
+      --rail-accent:#2dd4bf;
+      --rail-accent-rgb:45,212,191;
+      min-height: 48px;
+      width: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px 12px;
+      border: 0;
+      border-bottom: 1px solid rgba(var(--rail-accent-rgb),0.62);
+      background:
+        linear-gradient(90deg, rgba(15,23,42,0.92), rgba(var(--rail-accent-rgb),0.12)),
+        rgba(255,255,255,0.035);
+      color: var(--rail-accent);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      line-height: 1.05;
+      text-align:center;
+      text-decoration:none;
+      text-transform: uppercase;
+    }
+
+    .rail-band:hover,
+    .rail-band:focus-visible{
+      background:
+        linear-gradient(90deg, rgba(15,23,42,0.88), rgba(var(--rail-accent-rgb),0.18)),
+        rgba(255,255,255,0.06);
+      color: #fff;
+      outline: none;
+    }
+
+    .rail-band.gpi-band{
+      --rail-accent:#5dff9c;
+      --rail-accent-rgb:93,255,156;
+      justify-content:space-between;
+      text-align:left;
+      gap: 10px;
+    }
+
+    .rail-band-sub{
+      color: rgba(233,238,248,0.62);
+      font-size: 10px;
+      font-weight: 850;
+      letter-spacing: .06em;
+    }
+
+    .records-summary-table{
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .records-summary-table th,
+    .records-summary-table td{
+      border-right: 1px solid rgba(148,163,184,0.16);
+      padding: 8px 6px;
+      text-align:center;
+      vertical-align:middle;
+    }
+
+    .records-summary-table th:last-child,
+    .records-summary-table td:last-child{
+      border-right: 0;
+    }
+
+    .records-summary-table th{
+      color: rgba(156,163,199,0.90);
+      font-size: 10px;
+      font-weight: 950;
+      letter-spacing: .08em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .records-summary-table td{
+      color: rgba(255,255,255,0.94);
+      font-size: 15px;
+      font-weight: 950;
+      letter-spacing: .01em;
+      line-height: 1.1;
+    }
+
+    .home-gpi-list{
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      max-height: 760px;
+      overflow: auto;
+    }
+
+    .home-gpi-row{
+      display:grid;
+      grid-template-columns: 32px minmax(0, 1fr) 56px;
+      align-items:center;
+      gap: 8px;
+      min-height: 36px;
+      padding: 5px 8px;
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+      color: inherit;
+      text-decoration:none;
+    }
+
+    .home-gpi-row:last-child{
+      border-bottom: 0;
+    }
+
+    .home-gpi-row:hover,
+    .home-gpi-row:focus-visible{
+      background: rgba(255,255,255,0.055);
+      outline: none;
+    }
+
+    .home-gpi-rank{
+      color: rgba(156,163,199,0.86);
+      font-size: 11px;
+      font-weight: 950;
+      text-align:right;
+    }
+
+    .home-gpi-player{
+      min-width:0;
+      display:flex;
+      align-items:center;
+      gap: 7px;
+    }
+
+    .home-gpi-avatar{
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      flex: 0 0 auto;
+    }
+
+    .home-gpi-name{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      color: rgba(255,255,255,0.94);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .home-gpi-rating{
+      color: #5dff9c;
+      font-size: 11px;
+      font-weight: 950;
+      text-align:right;
+    }
+
+    .rail-empty{
+      margin: 0;
+      padding: 12px;
+      color: rgba(156,163,199,0.84);
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.35;
+      text-align:center;
+    }
+
+    .rail-search{
+      padding: 12px;
+    }
+
+    .rail-search .player-search{
+      width: 100%;
+      margin: 0;
+    }
+
     .league-tabs{
       --home-tabs-accent-rgb: 125, 211, 252;
-      margin: 16px 0 0;
+      margin: 0;
       width: 100%;
     }
 
@@ -556,13 +795,15 @@
     }
     .home-section-title{
       margin: 0;
-      padding: 14px 20px 12px;
+      padding: 10px 12px 9px;
+      border-bottom: 1px solid rgba(148,163,184,0.18);
+      background: rgba(2,8,24,0.56);
       color: rgba(199,215,255,0.96);
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 950;
-      letter-spacing: .18em;
-      line-height: 1.2;
-      text-align: center;
+      letter-spacing: .12em;
+      line-height: 1;
+      text-align: left;
       text-transform: uppercase;
     }
     .calendar-pinned-actions{
@@ -599,14 +840,14 @@
       --event-border-alpha: 0.70;
       position: relative;
       isolation: isolate;
-      height: 92px;
+      height: 72px;
       width: 100%;
       overflow: hidden;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap: 0;
-      padding: 0 22px;
+      padding: 0 14px;
       border: 1px solid rgba(var(--event-accent-rgb), var(--event-border-alpha));
       border-left: 0;
       border-right: 0;
@@ -646,7 +887,7 @@
       width: 144px;
       flex: 0 0 144px;
       color: rgba(233,238,248,0.78);
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 950;
       letter-spacing: .10em;
       line-height: 1.05;
@@ -661,16 +902,16 @@
       letter-spacing: .08em;
     }
     .event-winner-slot{
-      --winner-avatar-size: 140px;
+      --winner-avatar-size: 108px;
       position:relative;
       z-index:1;
-      flex: 0 0 240px;
+      flex: 0 0 176px;
       height: 100%;
       min-width:0;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 12px 16px;
+      padding: 8px 10px;
       overflow:hidden;
       pointer-events:none;
     }
@@ -684,7 +925,7 @@
       position:relative;
       z-index:2;
       min-width: 0;
-      flex: 1 1 auto;
+      flex: 0 1 auto;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -693,11 +934,11 @@
       padding: 9px 12px;
       border-radius: 12px;
       color: var(--event-accent);
-      font-size: 22px;
+      font-size: 18px;
       font-weight: 950;
       letter-spacing: .08em;
       line-height: 1.05;
-      text-align:right;
+      text-align:center;
       text-decoration:none;
       text-shadow: none;
       text-transform: uppercase;
@@ -717,17 +958,14 @@
       white-space:nowrap;
     }
     .calendar-view .event-winner-slot{
-      flex-basis: 180px;
+      flex-basis: 146px;
       justify-content:flex-start;
       padding-left: 4px;
       padding-right: 8px;
     }
     .calendar-view .event-winner-portrait{
-      left: -6px;
+      left: -2px;
       transform: translate(0, -50%);
-    }
-    .calendar-view .event-action{
-      justify-content:flex-end;
     }
     .event-state-icon{
       width: 18px;
@@ -771,13 +1009,13 @@
     }
     .event-winner{
       min-width:0;
-      max-width: 190px;
+      max-width: 144px;
       display:flex;
       align-items:center;
       justify-content:center;
-      gap: 9px;
+      gap: 7px;
       color:#fff;
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 950;
       line-height:1.1;
       text-align:center;
@@ -790,8 +1028,8 @@
       white-space:nowrap;
     }
     .event-winner-trophy{
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
       flex: 0 0 auto;
       color:#facc15;
       fill: none;
@@ -821,59 +1059,106 @@
       width: 14px;
       height: 14px;
     }
-    .home-discord-invite{
-      display:flex;
-      justify-content:center;
-      margin: 0;
-    }
     .home-discord-invite .discord-button{
       --discord-blue: #5865F2;
-      padding: 14px 20px;
+      position: relative;
+      width: 100%;
+      min-height: 48px;
+      justify-content:center;
+      padding: 13px 20px;
       font-size: 13px;
       letter-spacing: .1em;
-      border-radius: 18px;
+      border-left: 0;
+      border-right: 0;
+      border-radius: 0;
       border-color: rgba(88,101,242,0.78);
+      background:
+        linear-gradient(90deg, rgba(15,23,42,0.92), rgba(88,101,242,0.16), rgba(15,23,42,0.92)),
+        rgba(255,255,255,0.035);
       box-shadow:
         0 0 0 1px rgba(88,101,242,0.24),
-        0 0 18px rgba(88,101,242,0.34),
-        0 10px 26px rgba(0,0,0,0.25);
+        0 0 18px rgba(88,101,242,0.24);
     }
     .home-discord-invite .discord-button:hover{
       border-color: var(--discord-blue);
+      background:
+        linear-gradient(90deg, rgba(15,23,42,0.88), rgba(88,101,242,0.24), rgba(15,23,42,0.88)),
+        rgba(255,255,255,0.055);
       box-shadow:
         0 0 0 1px rgba(88,101,242,0.34),
-        0 0 24px rgba(88,101,242,0.48),
-        0 12px 30px rgba(0,0,0,0.30);
+        0 0 24px rgba(88,101,242,0.42);
     }
     .home-discord-invite .discord-button .btn-icon{
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
     }
 
-    @media (max-width: 760px){
-      .container{ padding: 14px 12px 44px; }
-      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
-      .brand{ flex: 1; min-width: 0; }
-      .brand > div{ min-width: 0; }
-      .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
-      .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
-      .discord-button .btn-icon{ width: 14px; height: 14px; }
-      .home-discord-invite .discord-button{ padding: 13px 18px; font-size: 12px; }
-      .headline{ font-size: 18px; }
-      .card{ padding: 18px 14px; border-radius: 18px; }
-      .leagues-card{
-        width: calc(100% + 24px);
-        margin-left: -12px;
-        margin-right: -12px;
-        background: transparent;
-        border: 0;
-        border-radius: 0;
-        box-shadow: none;
-        padding-top: 8px;
-        padding-bottom: 0;
-        padding-left: 0;
-        padding-right: 0;
-      }
+	    @media (max-width: 760px){
+	      .container{
+	        width: 100%;
+	        padding: 0 12px 44px;
+	        grid-template-columns: minmax(0, 1fr);
+	        gap: 10px;
+	      }
+	      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
+	      .brand{ flex: 1; min-width: 0; }
+	      .brand > div{ min-width: 0; }
+	      .page-nav-select{ width: min(100%, 420px); max-width: 100%; }
+	      .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
+	      .discord-button .btn-icon{ width: 14px; height: 14px; }
+	      .home-discord-invite{
+	        width: calc(100% + 24px);
+	        margin: 0 -12px;
+	      }
+	      .home-discord-invite .discord-button{
+	        min-height: 44px;
+	        padding: 12px 18px;
+	        font-size: 12px;
+	      }
+		      .home-discord-invite .discord-button .btn-icon{
+		        width: 15px;
+		        height: 15px;
+		      }
+	      .home-primary-tabs{
+	        display:block;
+	        margin-top: 2px;
+	      }
+	      .home-primary-tabs .home-league-tabs-list{
+	        grid-template-columns: repeat(2, minmax(0, 1fr));
+	        border: 1px solid rgba(148,163,184,0.24);
+	      }
+	      .home-primary-tabs .home-league-tabs-trigger{
+	        min-height: 40px;
+	        font-size: 11px;
+	      }
+	      .home-main-column,
+	      .home-rail{
+	        margin-top: 0;
+	        padding-top: 0;
+	      }
+	      .home-main-column[hidden],
+	      .home-rail[hidden]{
+	        display:none !important;
+	      }
+	      .home-rail{
+	        border-left: 1px solid rgba(148,163,184,0.22);
+	        border-right: 1px solid rgba(148,163,184,0.12);
+	      }
+	      .headline{ font-size: 18px; }
+	      .card{ padding: 18px 14px; border-radius: 18px; }
+	      .leagues-card{
+	        width: 100%;
+	        margin-left: 0;
+	        margin-right: 0;
+	        background: transparent;
+	        border: 0;
+	        border-radius: 0;
+	        box-shadow: none;
+	        padding-top: 0;
+	        padding-bottom: 0;
+	        padding-left: 0;
+	        padding-right: 0;
+	      }
       .leagues-card .league-headline{
         padding-left: 14px;
         padding-right: 14px;
@@ -907,19 +1192,19 @@
         padding-left: 0;
         padding-right: 0;
       }
-      .calendar-view{
-        padding-left: 0;
-        padding-right: 0;
-      }
-      .event-span{
-        height: 92px;
-        gap: 12px;
-        padding: 0 12px;
-        border-radius: 0;
-      }
-      .event-meta{
-        width: 108px;
-        flex-basis: 108px;
+	      .calendar-view{
+	        padding-left: 0;
+	        padding-right: 0;
+	      }
+	      .event-span{
+	        height: 68px;
+	        gap: 8px;
+	        padding: 0 10px;
+	        border-radius: 0;
+	      }
+	      .event-meta{
+	        width: 108px;
+	        flex-basis: 108px;
         font-size: 14px;
         letter-spacing: .055em;
         white-space: nowrap;
@@ -934,39 +1219,39 @@
         font-size: 13px;
         letter-spacing: .05em;
       }
-      .event-winner-slot{
-        --winner-avatar-size: 140px;
-        flex: 0 0 92px;
-        max-width: 92px;
-        height: 100%;
-        padding: 10px 7px;
-      }
-      .calendar-view .event-winner-slot{
-        flex: 0 0 82px;
-        max-width: 82px;
-        justify-content:flex-start;
-        padding-left: 0;
-        padding-right: 4px;
-      }
-      .calendar-view .event-winner-portrait{
-        left: -10px;
-        transform: translate(0, -50%);
-      }
-      .event-winner{
-        max-width: 82px;
-        gap: 4px;
-        font-size: 12px;
-      }
-      .event-winner-trophy{
-        width: 16px;
-        height: 16px;
-      }
-      .event-action{
-        padding: 8px 9px;
-        flex-basis: auto;
-        font-size: 16px;
-        letter-spacing: .055em;
-      }
+	      .event-winner-slot{
+	        --winner-avatar-size: 92px;
+	        flex: 0 0 78px;
+	        max-width: 78px;
+	        height: 100%;
+	        padding: 8px 5px;
+	      }
+	      .calendar-view .event-winner-slot{
+	        flex: 0 0 72px;
+	        max-width: 72px;
+	        justify-content:flex-start;
+	        padding-left: 0;
+	        padding-right: 4px;
+	      }
+	      .calendar-view .event-winner-portrait{
+	        left: -8px;
+	        transform: translate(0, -50%);
+	      }
+	      .event-winner{
+	        max-width: 74px;
+	        gap: 4px;
+	        font-size: 11px;
+	      }
+	      .event-winner-trophy{
+	        width: 14px;
+	        height: 14px;
+	      }
+	      .event-action{
+	        padding: 8px 9px;
+	        flex-basis: auto;
+	        font-size: 14px;
+	        letter-spacing: .045em;
+	      }
       .event-state-icon{
         width: 16px;
         height: 16px;
@@ -1043,17 +1328,18 @@
     </div>
   </div>
 
-  <div class="container">
-    <div class="home-discord-invite">
-      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
-        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
-        Join the Discord
-      </a>
-    </div>
+	  <div class="container">
+	    <div class="home-discord-invite">
+	      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
+	        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
+	        Join the Discord
+	      </a>
+	    </div>
+	    <div class="home-primary-tabs" id="homePrimaryTabs"></div>
 
-    <div class="card leagues-card">
-      <h1 class="headline league-headline">Leagues &amp; Events</h1>
-      <div class="league-tabs" id="leagueTabs"></div>
+	    <main class="home-main-column card leagues-card" id="homeLeaguesPanel">
+	      <h1 class="headline league-headline">Leagues &amp; Events</h1>
+	      <div class="league-tabs" id="leagueTabs"></div>
 
       <div class="league-section calendar-section" id="calendar-section" role="tabpanel" aria-labelledby="year-tab-2026">
         <h2 class="home-section-title">Always On</h2>
@@ -1081,33 +1367,57 @@
         <div class="calendar-view" id="calendarView" aria-live="polite"></div>
       </div>
 
-    </div>
-    <div class="card archive-card">
-      <h2 class="headline">Records &amp; Data</h2>
-      <div class="player-search" id="playerSearch" role="search">
-        <input
-          class="player-search-input"
-          id="playerSearchInput"
-          type="search"
-          placeholder="Search players"
-          autocomplete="off"
-          spellcheck="false"
-          aria-label="Search players by display name or username"
-          aria-controls="playerSearchResults"
-          aria-expanded="false"
-        />
-        <div class="player-search-results" id="playerSearchResults" hidden></div>
-      </div>
-      <span class="archive-actions">
-        <a class="btn solid-teal" href="/records.html" aria-label="Go to NSS Golf Records">
-          NSS Golf Records
-        </a>
-        <a class="btn neon-green" href="/gpi.html" aria-label="Go to NSS Golf Power Index">
-          NSS Golf Power Index
-        </a>
-      </span>
-    </div>
-  </div>
+	    </main>
+	    <aside class="home-rail card archive-card" id="homeRecordsPanel" aria-label="Records and data">
+	      <section class="rail-block">
+	        <h2 class="rail-heading">Records &amp; Data</h2>
+	        <a class="rail-band" href="/records.html" aria-label="Go to NSS Golf Records">
+	          NSS Golf Records
+	        </a>
+	        <table class="records-summary-table" aria-label="Best NSS Golf records by category">
+	          <thead>
+	            <tr>
+	              <th scope="col">9-hole</th>
+	              <th scope="col">18-hole</th>
+	              <th scope="col">Global</th>
+	            </tr>
+	          </thead>
+	          <tbody>
+	            <tr id="recordsSummaryRow">
+	              <td data-record-summary="9-hole">-</td>
+	              <td data-record-summary="18-hole">-</td>
+	              <td data-record-summary="Global">-</td>
+	            </tr>
+	          </tbody>
+	        </table>
+	      </section>
+	      <section class="rail-block">
+	        <a class="rail-band gpi-band" href="/gpi.html" aria-label="Go to NSS Golf Power Index">
+	          <span>Golf Power Index</span>
+	          <span class="rail-band-sub">Top 25</span>
+	        </a>
+	        <ol class="home-gpi-list" id="homeGpiList" aria-label="Top 25 Golf Power Index players">
+	          <li class="rail-empty">Loading GPI...</li>
+	        </ol>
+	      </section>
+	      <section class="rail-block rail-search">
+	        <div class="player-search" id="playerSearch" role="search">
+	          <input
+	            class="player-search-input"
+	            id="playerSearchInput"
+	            type="search"
+	            placeholder="Search players"
+	            autocomplete="off"
+	            spellcheck="false"
+	            aria-label="Search players by display name or username"
+	            aria-controls="playerSearchResults"
+	            aria-expanded="false"
+	          />
+	          <div class="player-search-results" id="playerSearchResults" hidden></div>
+	        </div>
+	      </section>
+	    </aside>
+	  </div>
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
@@ -1125,6 +1435,9 @@
     } from "/worldcup-data.js";
 
     const supabase = createBrowserSupabaseClient();
+    const homePrimaryTabsEl = document.getElementById("homePrimaryTabs");
+    const homeLeaguesPanel = document.getElementById("homeLeaguesPanel");
+    const homeRecordsPanel = document.getElementById("homeRecordsPanel");
     const leagueTabsEl = document.getElementById("leagueTabs");
     const calendarSection = document.getElementById("calendar-section");
     const calendarView = document.getElementById("calendarView");
@@ -1134,9 +1447,14 @@
     const playerSearchEl = document.getElementById("playerSearch");
     const playerSearchInput = document.getElementById("playerSearchInput");
     const playerSearchResults = document.getElementById("playerSearchResults");
+    const homeGpiList = document.getElementById("homeGpiList");
+    const recordsSummaryCells = Array.from(document.querySelectorAll("[data-record-summary]"));
     const discordInviteEls = Array.from(document.querySelectorAll('a.discord-button[href*="discord.gg"]'));
+    const mobileHomeTabsQuery = window.matchMedia("(max-width: 760px)");
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
+    const HOME_GPI_LIMIT = 25;
+    const GPI_HIDDEN_PLAYERS_TABLE = "gpi_hidden_players";
     const SHEET_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const FETCH_NO_STORE = { cache:"no-store" };
     const CURRENT_DATE = new Date();
@@ -1150,6 +1468,10 @@
       controls: "calendar-section",
       label: String(year),
     }));
+    const HOME_PRIMARY_TABS = [
+      { id:"home-tab-leagues", value:"leagues", controls:"homeLeaguesPanel", label:"Leagues & Events" },
+      { id:"home-tab-records", value:"records", controls:"homeRecordsPanel", label:"Records & Data" },
+    ];
     const CALENDAR_EVENTS = [
       { year:2024, month:10, title:"World Cup", href:"/worldcup.html?year=2024", className:"royal-blue", winnerLoader:"worldCup2024", fallbackWinner:{ name:"Taiwan", displayName:"Taiwan", avatarUrl:"/assets/flag-icons/4x3/tw.svg" } },
       { year:2025, month:10, title:"World Cup", href:"/worldcup.html?year=2025", className:"royal-blue", winnerLoader:"worldCup2025", fallbackWinner:{ name:"USA A", displayName:"USA A", avatarUrl:"/assets/flag-icons/4x3/us.svg" } },
@@ -1171,6 +1493,38 @@
       noptational2026:loadNoptationalWinner,
       worldChampionship2026:loadWorldChampionshipWinner,
     };
+    const RECORD_GROUPS = [
+      {
+        title: "18-hole",
+        roleIds: [
+          "1466897504334516257",
+          "1279498515776540796",
+          "1279498415444856864",
+          "1279498113886982225",
+          "1279497781454569563",
+          "1279497671815725137",
+          "1279496346960789597",
+        ],
+      },
+      {
+        title: "9-hole",
+        roleIds: [
+          "1279496097328398438",
+          "1279495906089111573",
+          "1279495694578614455",
+          "1279495547727909005",
+        ],
+      },
+      {
+        title: "Global",
+        roleIds: [
+          "1247012004028354620",
+          "1095534496570425354",
+          "1077315124613890139",
+          "1279487297246462064",
+        ],
+      },
+    ];
     const WINNER_PROFILE_STORAGE_KEY = "nssgolf.home.winnerProfiles.v1";
     const WINNER_PROFILE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
     const winnerCache = new Map();
@@ -1234,6 +1588,39 @@
 
     function winnerAvatarUrlForMember(member){
       return normalizeSearchText(member?.server_avatar_url) || normalizeSearchText(member?.avatar_url);
+    }
+
+    function cleanRoleName(name){
+      const clean = String(name || "")
+        .replace(/^[^A-Za-z0-9\-−–—]+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      return clean || "-";
+    }
+
+    function recordScoreFromRoleName(name){
+      const text = cleanRoleName(name);
+      const parenthetical = text.match(/\(([^)]+)\)/)?.[1] || text;
+      const signedScore = parenthetical.match(/[+\-−–—]\s*\d+/);
+      if(signedScore) return signedScore[0].replace(/[−–—]/g, "-").replace(/\s+/g, "");
+      const pointScore = parenthetical.match(/\b\d+\s*(?:point|pt)/i);
+      if(pointScore) return pointScore[0].replace(/\s*(?:point|pt).*/i, "");
+      const number = parenthetical.match(/\b\d+\b/);
+      return number ? number[0] : text;
+    }
+
+    function formatRating(value){
+      const number = Number(value);
+      if(!Number.isFinite(number)) return "";
+      return new Intl.NumberFormat("en-US", {
+        useGrouping:false,
+        minimumFractionDigits:1,
+        maximumFractionDigits:1,
+      }).format(number);
+    }
+
+    function avatarUrlForMember(member){
+      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
     }
 
     function uniqueValues(values){
@@ -1575,6 +1962,39 @@
       void hydrateEventWinners(events, activeCalendarYear);
     }
 
+    function setHomePrimaryTab(value){
+      const activeValue = value === "records" ? "records" : "leagues";
+      const isMobile = mobileHomeTabsQuery.matches;
+      if(homeLeaguesPanel){
+        homeLeaguesPanel.hidden = isMobile && activeValue !== "leagues";
+        homeLeaguesPanel.setAttribute("aria-labelledby", "home-tab-leagues");
+      }
+      if(homeRecordsPanel){
+        homeRecordsPanel.hidden = isMobile && activeValue !== "records";
+        homeRecordsPanel.setAttribute("aria-labelledby", "home-tab-records");
+      }
+    }
+
+    function syncHomePrimaryTabsForViewport(){
+      if(!mobileHomeTabsQuery.matches){
+        if(homeLeaguesPanel) homeLeaguesPanel.hidden = false;
+        if(homeRecordsPanel) homeRecordsPanel.hidden = false;
+        return;
+      }
+      setHomePrimaryTab("leagues");
+    }
+
+    function initHomePrimaryTabs(){
+      syncHomePrimaryTabsForViewport();
+      mobileHomeTabsQuery.addEventListener?.("change", syncHomePrimaryTabsForViewport);
+      if(!homePrimaryTabsEl) return;
+      mountHomeLeagueTabs(homePrimaryTabsEl, {
+        tabs: HOME_PRIMARY_TABS,
+        initialTab: "leagues",
+        onTabChange: setHomePrimaryTab,
+      });
+    }
+
     function initLeagueTabs(){
       renderCalendarYear(activeCalendarYear);
       if(!leagueTabsEl) return;
@@ -1825,7 +2245,126 @@
       return { name, discordId };
     }
 
+    function setRecordSummaryValue(title, value){
+      const cell = recordsSummaryCells.find(item => item.dataset.recordSummary === title);
+      if(cell) cell.textContent = value || "-";
+    }
+
+    async function loadHomeRecordsSummary(){
+      const roleIds = RECORD_GROUPS.flatMap(group => group.roleIds);
+      try{
+        const { data, error } = await supabase
+          .from("discord_roles")
+          .select("role_id,name,position")
+          .in("role_id", roleIds);
+        if(error) throw error;
+        const rolesById = new Map((data || []).map(role => [String(role.role_id), role]));
+        RECORD_GROUPS.forEach((group) => {
+          const role = group.roleIds.map(roleId => rolesById.get(roleId)).find(Boolean);
+          setRecordSummaryValue(group.title, recordScoreFromRoleName(role?.name));
+        });
+      }catch{
+        RECORD_GROUPS.forEach(group => setRecordSummaryValue(group.title, "-"));
+      }
+    }
+
+    async function loadLatestRankedGpiRun(){
+      const { data, error } = await supabase
+        .from("internal_ranked_gpi_runs")
+        .select("id,model,latest_match_at,created_at")
+        .eq("model", "opponent_aware_weighted_pairwise")
+        .order("latest_match_at", { ascending:false, nullsFirst:false })
+        .order("created_at", { ascending:false })
+        .limit(1)
+        .maybeSingle();
+      if(error) throw error;
+      return data || null;
+    }
+
+    async function loadHiddenGpiPlayerIds(){
+      try{
+        const { data, error } = await supabase
+          .from(GPI_HIDDEN_PLAYERS_TABLE)
+          .select("discord_user_id");
+        if(error) throw error;
+        return new Set((data || []).map(row => normalizeDiscordId(row.discord_user_id)).filter(Boolean));
+      }catch{
+        return new Set();
+      }
+    }
+
+    async function loadHomeGpiRows(){
+      const run = await loadLatestRankedGpiRun();
+      if(!run) return [];
+      const [ratingsRes, hiddenIds] = await Promise.all([
+        supabase
+          .from("internal_ranked_gpi_ratings")
+          .select("discord_user_id,display_name,rating,rank")
+          .eq("run_id", run.id)
+          .order("rank", { ascending:true })
+          .limit(60),
+        loadHiddenGpiPlayerIds(),
+      ]);
+      if(ratingsRes.error) throw ratingsRes.error;
+
+      const ratingRows = (ratingsRes.data || [])
+        .map(row => ({
+          ...row,
+          discord_user_id:normalizeDiscordId(row.discord_user_id),
+        }))
+        .filter(row => row.discord_user_id && !hiddenIds.has(row.discord_user_id));
+      const memberMap = await loadDiscordMembersByIds(ratingRows.map(row => row.discord_user_id));
+      return ratingRows
+        .map((row) => {
+          const member = memberMap.get(row.discord_user_id);
+          return {
+            discordId:row.discord_user_id,
+            rank:row.rank,
+            displayName:memberDisplayName(member, row.display_name || "Player"),
+            avatarUrl:avatarUrlForMember(member),
+            rating:formatRating(row.rating),
+          };
+        })
+        .filter(row => row.displayName)
+        .slice(0, HOME_GPI_LIMIT);
+    }
+
+    function renderHomeGpiRows(rows){
+      if(!homeGpiList) return;
+      if(!rows.length){
+        homeGpiList.innerHTML = `<li class="rail-empty">No GPI rankings available.</li>`;
+        return;
+      }
+      homeGpiList.innerHTML = rows.map((row, index) => `
+        <li>
+          <a class="home-gpi-row" href="/player.html?id=${encodeURIComponent(row.discordId)}" aria-label="View ${escapeHtml(row.displayName)} profile">
+            <span class="home-gpi-rank">${escapeHtml(row.rank || index + 1)}</span>
+            <span class="home-gpi-player">
+              <img class="home-gpi-avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+              <span class="home-gpi-name">${escapeHtml(row.displayName)}</span>
+            </span>
+            <span class="home-gpi-rating">${escapeHtml(row.rating)}</span>
+          </a>
+        </li>
+      `).join("");
+    }
+
+    async function loadHomeGpiSummary(){
+      try{
+        renderHomeGpiRows(await loadHomeGpiRows());
+      }catch{
+        if(homeGpiList) homeGpiList.innerHTML = `<li class="rail-empty">Unable to load GPI.</li>`;
+      }
+    }
+
+    function initHomeRailData(){
+      void loadHomeRecordsSummary();
+      void loadHomeGpiSummary();
+    }
+
+    initHomePrimaryTabs();
     initLeagueTabs();
+    initHomeRailData();
 
     function getDiscordIdentity(user){
       const identities = Array.isArray(user?.identities) ? user.identities : [];
@@ -1906,10 +2445,6 @@
       }catch{
         setDiscordInviteVisible(true);
       }
-    }
-
-    function avatarUrlForMember(member){
-      return member?.server_avatar_url || member?.avatar_url || "/logos/golf.png";
     }
 
     async function loadMemberSearchRows(){
