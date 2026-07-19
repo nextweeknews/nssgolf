@@ -654,6 +654,7 @@
       text-align:left;
     }
     .event-winner-slot{
+      --winner-avatar-size: 100px;
       position:relative;
       z-index:1;
       flex: 0 0 240px;
@@ -733,19 +734,20 @@
     }
     .event-winner-portrait{
       position:absolute;
-      top: -3%;
-      bottom: -3%;
-      left: -26%;
-      right: -26%;
+      top: 50%;
+      left: 50%;
+      right: auto;
+      bottom: auto;
       z-index:-3;
-      width: 152%;
-      height: 106%;
+      width: var(--winner-avatar-size);
+      height: var(--winner-avatar-size);
       border-radius: 0;
+      transform: translate(-50%, -50%);
       object-fit: cover;
-      opacity: .40;
+      opacity: .38;
       filter: saturate(1.08) contrast(1.06);
-      -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 14%, rgba(0,0,0,0.58) 30%, #000 50%, rgba(0,0,0,0.58) 70%, transparent 86%, transparent 100%);
-      mask-image: linear-gradient(90deg, transparent 0%, transparent 14%, rgba(0,0,0,0.58) 30%, #000 50%, rgba(0,0,0,0.58) 70%, transparent 86%, transparent 100%);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, transparent 12%, rgba(0,0,0,0.58) 28%, #000 50%, rgba(0,0,0,0.58) 72%, transparent 88%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0%, transparent 12%, rgba(0,0,0,0.58) 28%, #000 50%, rgba(0,0,0,0.58) 72%, transparent 88%, transparent 100%);
     }
     .event-winner{
       min-width:0;
@@ -907,15 +909,11 @@
         flex-basis: 132px;
       }
       .event-winner-slot{
+        --winner-avatar-size: 96px;
         flex: 0 0 92px;
         max-width: 92px;
         height: 100%;
         padding: 10px 7px;
-      }
-      .event-winner-portrait{
-        left: -34%;
-        right: -34%;
-        width: 168%;
       }
       .event-winner{
         max-width: 82px;
