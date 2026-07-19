@@ -104,6 +104,7 @@
 
 
     .container{
+      --home-divider-offset: 0px;
       width: min(var(--page-width), 100%);
       margin:0 auto;
       padding: 0 18px 48px;
@@ -111,6 +112,14 @@
       grid-template-columns: minmax(0, 1fr) 320px;
       align-items:start;
       gap: 0;
+      background-image: linear-gradient(rgba(148,163,184,0.20), rgba(148,163,184,0.20));
+      background-repeat: no-repeat;
+      background-size: 1px calc(100% - var(--home-divider-offset));
+      background-position: calc(100% - 18px - 320px) var(--home-divider-offset);
+    }
+
+    .container:has(.home-discord-invite .discord-button:not([hidden])){
+      --home-divider-offset: 48px;
     }
 
     .card{
@@ -346,7 +355,6 @@
 
     .home-rail{
       margin-top: 14px;
-      border-left: 1px solid rgba(148,163,184,0.20);
     }
 
     .rail-block{
@@ -1098,6 +1106,7 @@
 	        padding: 0 12px 44px;
 	        grid-template-columns: minmax(0, 1fr);
 	        gap: 10px;
+	        background-image: none;
 	      }
 	      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
 	      .brand{ flex: 1; min-width: 0; }
@@ -1389,6 +1398,22 @@
 	    <aside class="home-rail card archive-card" id="homeRecordsPanel" aria-label="Records and data">
 	      <section class="rail-block">
 	        <h2 class="rail-heading">Records &amp; Data</h2>
+	        <div class="rail-search">
+	          <div class="player-search" id="playerSearch" role="search">
+	            <input
+	              class="player-search-input"
+	              id="playerSearchInput"
+	              type="search"
+	              placeholder="Search players"
+	              autocomplete="off"
+	              spellcheck="false"
+	              aria-label="Search players by display name or username"
+	              aria-controls="playerSearchResults"
+	              aria-expanded="false"
+	            />
+	            <div class="player-search-results" id="playerSearchResults" hidden></div>
+	          </div>
+	        </div>
 	        <a class="rail-band" href="/records.html" aria-label="Go to NSS Golf Records">
 	          NSS Golf Records
 	        </a>
@@ -1416,22 +1441,6 @@
 	        <ol class="home-gpi-list" id="homeGpiList" aria-label="Top 25 Golf Power Index players">
 	          <li class="rail-empty">Loading GPI...</li>
 	        </ol>
-	      </section>
-	      <section class="rail-block rail-search">
-	        <div class="player-search" id="playerSearch" role="search">
-	          <input
-	            class="player-search-input"
-	            id="playerSearchInput"
-	            type="search"
-	            placeholder="Search players"
-	            autocomplete="off"
-	            spellcheck="false"
-	            aria-label="Search players by display name or username"
-	            aria-controls="playerSearchResults"
-	            aria-expanded="false"
-	          />
-	          <div class="player-search-results" id="playerSearchResults" hidden></div>
-	        </div>
 	      </section>
 	    </aside>
 	  </div>
