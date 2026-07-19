@@ -439,7 +439,7 @@
     }
 
     .records-summary-table th{
-      padding-top: 12px;
+      padding-top: 14px;
       padding-bottom: 3px;
       color: rgba(156,163,199,0.90);
       font-size: 10px;
@@ -1058,6 +1058,22 @@
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
+    }
+    .event-winner-link{
+      position:relative;
+      z-index:2;
+      color:inherit;
+      text-decoration:none;
+      pointer-events:auto;
+      cursor:pointer;
+    }
+    .event-winner-link:hover,
+    .event-winner-link:focus-visible{
+      color:#fff;
+      text-decoration:underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+      outline:none;
     }
     .event-winner-trophy{
       width: 18px;
@@ -1980,10 +1996,19 @@
       return eventBaseStatus(event) === "live" ? "live" : "upcoming";
     }
 
-    function eventWinnerMarkup(winner = null){
+    function isWorldCupEvent(event){
+      return normalizeSearchText(event?.title).toLowerCase() === "world cup";
+    }
+
+    function eventWinnerMarkup(winner = null, event = null){
       if(!winner?.name) return "";
       const avatar = normalizeSearchText(winner.avatarUrl);
-      const displayName = escapeHtml(winner.displayName || winner.name);
+      const displayLabel = normalizeSearchText(winner.displayName || winner.name);
+      const displayName = escapeHtml(displayLabel);
+      const discordId = normalizeDiscordId(winner.discordId);
+      const nameMarkup = discordId && !isWorldCupEvent(event)
+        ? `<a class="event-winner-name event-winner-link" href="/player.html?id=${encodeURIComponent(discordId)}" aria-label="View ${escapeHtml(displayLabel)} profile">${displayName}</a>`
+        : `<span class="event-winner-name">${displayName}</span>`;
       const portraitMarkup = avatar
         ? `<img class="event-winner-portrait" src="${escapeHtml(avatar)}" alt="" width="140" height="140" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />`
         : "";
@@ -1992,7 +2017,7 @@
           ${portraitMarkup}
           <span class="event-winner">
             ${trophyIconSvg()}
-            <span class="event-winner-name">${displayName}</span>
+            ${nameMarkup}
           </span>
         </span>
       `;
@@ -2013,7 +2038,7 @@
         <div class="calendar-row" id="${calendarEventId(event)}" data-winner-loader="${escapeHtml(event.winnerLoader || "")}">
           <span class="event-span ${escapeHtml(event.className)} is-${escapeHtml(stateKind)}">
             <span class="event-meta">${escapeHtml(eventMetaLabel(event))}</span>
-            ${eventWinnerMarkup(resolvedWinner)}
+            ${eventWinnerMarkup(resolvedWinner, event)}
             <a class="event-action" href="${escapeHtml(event.href)}" aria-label="Go to ${escapeHtml(event.title)}">
               <span class="event-title-text">${escapeHtml(event.title)}</span>
               ${stateIndicatorMarkup(stateKind)}
