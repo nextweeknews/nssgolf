@@ -460,15 +460,13 @@
       font-size: 0.54em;
       line-height: 1;
       letter-spacing: .02em;
-      text-transform: lowercase;
+      text-transform: uppercase;
     }
 
     .home-gpi-list{
       margin: 0;
       padding: 0;
       list-style: none;
-      max-height: 760px;
-      overflow: auto;
     }
 
     .home-gpi-row{
@@ -535,6 +533,27 @@
       text-align:right;
     }
 
+    .home-gpi-view-all{
+      min-height: 38px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-top: 1px solid rgba(148,163,184,0.16);
+      color: rgba(156,163,199,0.86);
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: .12em;
+      text-align:center;
+      text-decoration:none;
+    }
+
+    .home-gpi-view-all:hover,
+    .home-gpi-view-all:focus-visible{
+      background: rgba(255,255,255,0.055);
+      color: rgba(233,238,248,0.96);
+      outline: none;
+    }
+
     .rail-empty{
       margin: 0;
       padding: 12px;
@@ -547,6 +566,10 @@
 
     .rail-search{
       padding: 12px;
+    }
+
+    .rail-heading + .rail-search{
+      padding-top: 0;
     }
 
     .rail-search .player-search{
@@ -1103,9 +1126,9 @@
 	    @media (max-width: 760px){
 	      .container{
 	        width: 100%;
-	        padding: 0 12px 44px;
+	        padding: 0 0 44px;
 	        grid-template-columns: minmax(0, 1fr);
-	        gap: 10px;
+	        gap: 0;
 	        background-image: none;
 	      }
 	      .topbar-inner{ padding: 12px 12px; flex-wrap: nowrap; }
@@ -1115,8 +1138,8 @@
 	      .discord-button{ padding: 8px 10px; font-size: 10px; letter-spacing: .06em; }
 	      .discord-button .btn-icon{ width: 14px; height: 14px; }
 	      .home-discord-invite{
-	        width: calc(100% + 24px);
-	        margin: 0 -12px;
+	        width: 100%;
+	        margin: 0;
 	      }
 	      .home-discord-invite .discord-button{
 	        min-height: 44px;
@@ -1128,11 +1151,13 @@
 		        height: 15px;
 		      }
 	      .home-primary-tabs{
+	        --home-tabs-accent-rgb: 125, 211, 252;
 	        display:block;
-	        margin-top: 2px;
+	        margin-top: 0;
 	      }
 	      .home-primary-tabs .home-league-tabs-list{
 	        grid-template-columns: repeat(2, minmax(0, 1fr));
+	        border-bottom: 1px solid rgba(148, 163, 184, 0.24);
 	      }
 	      .home-primary-tabs .home-league-tabs-trigger{
 	        min-height: 38px;
@@ -1150,9 +1175,9 @@
 	        display:none !important;
 	      }
 	      .home-rail{
-	        width: calc(100% + 24px);
-	        margin-left: -12px;
-	        margin-right: -12px;
+	        width: 100%;
+	        margin-left: 0;
+	        margin-right: 0;
 	        border-left: 0;
 	        border-radius: 0;
 	        box-shadow: none;
@@ -1182,9 +1207,9 @@
 	        padding-right: 0;
 	      }
 	      .calendar-section{
-	        width: calc(100% + 24px);
-	        margin-left: -12px;
-	        margin-right: -12px;
+	        width: 100%;
+	        margin-left: 0;
+	        margin-right: 0;
 	      }
       .leagues-card .league-headline{
         padding-left: 14px;
@@ -1441,6 +1466,7 @@
 	        <ol class="home-gpi-list" id="homeGpiList" aria-label="Top 25 Golf Power Index players">
 	          <li class="rail-empty">Loading GPI...</li>
 	        </ol>
+	        <a class="home-gpi-view-all" href="/gpi.html" aria-label="View all Golf Power Index rankings">VIEW ALL</a>
 	      </section>
 	    </aside>
 	  </div>
@@ -2300,7 +2326,7 @@
       const text = normalizeSearchText(value) || "-";
       const pointsMatch = text.match(/^(\d+)(pts)$/i);
       if(pointsMatch){
-        cell.innerHTML = `${escapeHtml(pointsMatch[1])}<span class="records-summary-suffix">${escapeHtml(pointsMatch[2].toLowerCase())}</span>`;
+        cell.innerHTML = `${escapeHtml(pointsMatch[1])}<span class="records-summary-suffix">${escapeHtml(pointsMatch[2].toUpperCase())}</span>`;
         return;
       }
       cell.textContent = text;
