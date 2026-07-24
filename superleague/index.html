@@ -3861,33 +3861,21 @@
       `;
 
       const tbody = table.querySelector("tbody");
-      const mappedRows = rows
-        .map((row = []) => ({
-          seed: String(row[0] ?? "").trim(),
-          player: String(row[1] ?? "").trim(),
-          matchesWon: numOrZero(row[2]),
-          matchesLost: numOrZero(row[3]),
-          gamesWon: numOrZero(row[4]),
-          gamesLost: numOrZero(row[5]),
-          diff: numOrZero(row[6]),
-        }))
-        .filter((row) => row.seed || row.player);
-
-      if(!mappedRows.length){
+      if(!rows.length){
         const row = document.createElement("tr");
         row.innerHTML = '<td colspan="5" class="schedule-empty" style="text-align:center;">No promotion standings available.</td>';
         tbody.appendChild(row);
       }
 
-      mappedRows.forEach((row) => {
+      rows.forEach((row) => {
         const tr = document.createElement("tr");
         const qfPlayerClass = row.player.toUpperCase().startsWith("QF") ? " qf-player" : "";
         tr.innerHTML = `
-          <td class="col-rank">${escapeHtml(row.seed)}</td>
+          <td class="col-rank">${escapeHtml(row.rank)}</td>
           <td class="col-player${qfPlayerClass}"><button class="player-btn" type="button" data-player="${escapeHtml(row.player)}">${escapeHtml(row.player || "TBD")}</button></td>
-          <td class="col-matches">${escapeHtml(`${row.matchesWon}-${row.matchesLost}`)}</td>
-          <td class="col-games">${escapeHtml(`${row.gamesWon}-${row.gamesLost}`)}</td>
-          <td class="col-diff">${escapeHtml(formatDiff(row.diff))}</td>
+          <td class="col-matches">${escapeHtml(row.matches)}</td>
+          <td class="col-games">${escapeHtml(row.games)}</td>
+          <td class="col-diff">${escapeHtml(row.diffText)}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -3900,7 +3888,11 @@
       const gridEl = document.getElementById("promotionStandingsGrid");
       if(!gridEl) return;
 
-      const promotionToD1 = values.slice(2);
+      const promotionToD1 = rankDivisionRows(
+        mapRows(values.map((row) => row.slice(1))),
+        "Division 2",
+        buildHeadToHeadByDivision(promotionScheduleRowsCache),
+      );
       gridEl.innerHTML = "";
       gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 1", "Rank", promotionToD1, "division-1"));
     }
