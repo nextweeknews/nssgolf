@@ -3889,7 +3889,7 @@
       if(!gridEl) return;
 
       const promotionToD1 = rankDivisionRows(
-        mapRows(values.map((row) => row.slice(1))),
+        mapRows(values.filter((row) => /^\d+$/.test(String(row[0] ?? "").trim())).map((row) => row.slice(1))),
         "Division 2",
         buildHeadToHeadByDivision(promotionScheduleRowsCache),
       );
