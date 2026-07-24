@@ -3900,7 +3900,7 @@
       const gridEl = document.getElementById("promotionStandingsGrid");
       if(!gridEl) return;
 
-      const promotionToD1 = values.slice(2, 6);
+      const promotionToD1 = values.slice(2);
       gridEl.innerHTML = "";
       gridEl.appendChild(renderPromotionStandingsGroup("Promotion to Division 1", "Rank", promotionToD1, "division-1"));
     }
