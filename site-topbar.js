@@ -1,8 +1,27 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
 import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
 
 const supabase = createBrowserSupabaseClient();
 const LOGOUT_HOME_PATH = "/lightningcup/index.html";
+const PAGE_NAV_GROUPS = [
+  [
+    ["Home", "/index.html"],
+  ],
+  [
+    ["Ranked League", RANKED_LEAGUE_TEAMUP_URL],
+    ["Shotgun Pro League", "/proleague/index.html"],
+    ["Super League", "/superleague/index.html"],
+  ],
+  [
+    ["World Open", "/worldopen/index.html"],
+    ["Lightning Cup", "/lightningcup/index.html"],
+    ["The Noptational", "/noptational.html"],
+    ["World Championship", "/championship.html"],
+    ["World Golf Masters", "/masters.html"],
+    ["World Cup", "/worldcup.html"],
+  ],
+];
 const PRIVATE_AFTER_LOGOUT_PATHS = new Set([
   "/admin-settings.html",
   "/build.html",
@@ -113,6 +132,64 @@ function createMenuButton({ id, text, icon, className = "" }){
   button.setAttribute("role", "menuitem");
   button.append(createMenuIcon(icon), document.createTextNode(text));
   return button;
+}
+
+function ensurePageNavigation(){
+  const select = document.querySelector(".page-nav-select");
+  const container = select?.parentElement;
+  if(!select || !container) return;
+
+  const button = document.createElement("button");
+  button.className = select.className;
+  button.id = "topbarPageMenuBtn";
+  button.type = "button";
+  button.textContent = select.selectedOptions[0]?.textContent || document.title;
+  button.setAttribute("aria-haspopup", "menu");
+  button.setAttribute("aria-expanded", "false");
+
+  const dropdown = document.createElement("div");
+  dropdown.className = "user-menu-dropdown page-nav-dropdown";
+  dropdown.id = "topbarPageDropdown";
+  dropdown.setAttribute("role", "menu");
+  dropdown.setAttribute("aria-labelledby", button.id);
+
+  PAGE_NAV_GROUPS.forEach((group, groupIndex) => {
+    if(groupIndex){
+      const divider = document.createElement("div");
+      divider.className = "user-menu-divider";
+      divider.setAttribute("aria-hidden", "true");
+      dropdown.appendChild(divider);
+    }
+
+    group.forEach(([text, href]) => {
+      const link = document.createElement("a");
+      link.className = "user-menu-item page-nav-item";
+      link.href = href;
+      link.textContent = text;
+      link.setAttribute("role", "menuitem");
+      dropdown.appendChild(link);
+    });
+  });
+
+  const setOpen = (open) => {
+    dropdown.classList.toggle("is-open", open);
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+
+  button.addEventListener("click", () => {
+    setOpen(!dropdown.classList.contains("is-open"));
+  });
+  dropdown.addEventListener("click", () => setOpen(false));
+  document.addEventListener("click", (event) => {
+    if(!container.contains(event.target)) setOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if(event.key !== "Escape" || !dropdown.classList.contains("is-open")) return;
+    setOpen(false);
+    button.focus();
+  });
+
+  select.replaceWith(button, dropdown);
 }
 
 function ensureTopbarMenu(){
@@ -387,8 +464,7 @@ function bindTopbarMenu(){
     button.classList.remove("has-avatar");
   });
 
-  button.addEventListener("click", (event) => {
-    event.stopPropagation();
+  button.addEventListener("click", () => {
     isOpen = !isOpen;
     setMenuOpen(menu, isOpen);
   });
@@ -455,6 +531,7 @@ function bindTopbarMenu(){
   });
 }
 
+ensurePageNavigation();
 bindTopbarMenu();
 void renderTopbarAuth();
 

@@ -174,6 +174,9 @@
   line-height: 1;
   text-transform: uppercase;
   box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
 }
 
 .topbar .page-nav-select:hover{
@@ -318,6 +321,16 @@
   height: 1px;
   margin: 4px 2px;
   background: rgba(148,163,184,.24);
+}
+
+.page-nav-dropdown.user-menu-dropdown{
+  left: 0;
+  right: auto;
+}
+
+.page-nav-item.user-menu-item{
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 @media (max-width: 760px){
