@@ -118,7 +118,7 @@
       background-position: calc(100% - 18px - 320px) var(--home-divider-offset);
     }
 
-    .container:has(.home-discord-invite .discord-button:not([hidden])){
+    .container:has(.home-discord-invite.is-visible){
       --home-divider-offset: 48px;
     }
 
@@ -335,7 +335,18 @@
       display:flex;
       justify-content:center;
       width: calc(100% + 36px);
-      margin: 0 -18px;
+      margin: -48px -18px 0;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: margin-top 240ms ease, opacity 180ms ease, visibility 0s linear 240ms;
+    }
+    .home-discord-invite.is-visible{
+      margin-top: 0;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition-delay: 0s;
     }
 
     .home-primary-tabs{
@@ -1148,6 +1159,10 @@
       height: 16px;
     }
 
+    @media (prefers-reduced-motion: reduce){
+      .home-discord-invite{ transition: none; }
+    }
+
 	    @media (max-width: 760px){
 	      .container{
 	        width: 100%;
@@ -1164,7 +1179,7 @@
 	      .discord-button .btn-icon{ width: 14px; height: 14px; }
 	      .home-discord-invite{
 	        width: 100%;
-	        margin: 0;
+	        margin: -44px 0 0;
 	      }
 	      .home-discord-invite .discord-button{
 	        min-height: 44px;
@@ -1377,7 +1392,7 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="/site-topbar.css" />
+  <link rel="stylesheet" href="/site-topbar.css?v=8d3a54c66cc7" />
 </head>
 
 <body>
@@ -1411,7 +1426,7 @@
   </div>
 
 	  <div class="container">
-	    <div class="home-discord-invite">
+	    <div class="home-discord-invite" aria-hidden="true" inert>
 	      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
 	        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
 	        Join the Discord
@@ -1531,7 +1546,7 @@
     const playerSearchResults = document.getElementById("playerSearchResults");
     const homeGpiList = document.getElementById("homeGpiList");
     const recordsSummaryCells = Array.from(document.querySelectorAll("[data-record-summary]"));
-    const discordInviteEls = Array.from(document.querySelectorAll('a.discord-button[href*="discord.gg"]'));
+    const homeDiscordInviteEl = document.querySelector(".home-discord-invite");
     const mobileHomeTabsQuery = window.matchMedia("(max-width: 760px)");
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
@@ -2813,9 +2828,10 @@
     }
 
     function setDiscordInviteVisible(isVisible){
-      discordInviteEls.forEach((el) => {
-        el.hidden = !isVisible;
-      });
+      if(!homeDiscordInviteEl) return;
+      homeDiscordInviteEl.classList.toggle("is-visible", isVisible);
+      homeDiscordInviteEl.toggleAttribute("inert", !isVisible);
+      homeDiscordInviteEl.setAttribute("aria-hidden", isVisible ? "false" : "true");
     }
 
     async function getProfileDiscordId(user){
@@ -2845,14 +2861,15 @@
           .eq("discord_user_id", discordId)
           .eq("is_current_member", true)
           .maybeSingle();
-        if(error) return false;
+        if(error) return null;
         return !!data;
       }catch{
-        return false;
+        return null;
       }
     }
 
     async function updateDiscordInviteVisibility(){
+      setDiscordInviteVisible(false);
       try{
         const { data: sessionData } = await supabase.auth.getSession();
         if(!sessionData?.session?.user){
@@ -2870,10 +2887,9 @@
           // Session user is enough for the membership check fallback.
         }
 
-        setDiscordInviteVisible(!(await userHasDiscordMemberRecord(user)));
-      }catch{
-        setDiscordInviteVisible(true);
-      }
+        const isMember = await userHasDiscordMemberRecord(user);
+        if(isMember !== null) setDiscordInviteVisible(!isMember);
+      }catch{}
     }
 
     async function loadMemberSearchRows(){
@@ -3039,6 +3055,6 @@
       void updateDiscordInviteVisibility();
     });
   </script>
-  <script type="module" src="/site-topbar.js"></script>
+  <script type="module" src="/site-topbar.js?v=0af7a07e2630"></script>
 </body>
 </html>

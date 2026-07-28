@@ -10,6 +10,7 @@
     "build:superleague-tabs": "esbuild superleague-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=superleague-tabs.bundle.js",
     "build:worldcup-tabs": "esbuild worldcup-tabs.jsx --bundle --format=esm --target=es2020 --minify --outfile=worldcup-tabs.bundle.js",
     "check:player-shell": "node scripts/sync-player-shell.js",
+    "check:topbar-assets": "node scripts/check-topbar-assets.js",
     "discord:scan-members": "node bot/scan-members.js",
     "discord:global-ranks": "node bot/global-ranks-bot.js",
     "internal-ranked:fetch": "node bot/internal-ranked.js fetch",
