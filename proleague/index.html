@@ -3524,16 +3524,16 @@
       seasonSelect.innerHTML = "";
       const seasonsDesc = AVAILABLE_SEASONS.slice().sort((a,b)=>b-a);
       for (const s of seasonsDesc){
-        const opt = document.createElement("option");
-        opt.value = String(s);
-        opt.textContent = `Season ${s}`;
-        seasonSelect.appendChild(opt);
         if (s === 7){
           const allStars = document.createElement("option");
           allStars.value = ALL_STARS_SEASON;
           allStars.textContent = ALL_STARS_LABEL;
           seasonSelect.appendChild(allStars);
         }
+        const opt = document.createElement("option");
+        opt.value = String(s);
+        opt.textContent = `Season ${s}`;
+        seasonSelect.appendChild(opt);
       }
     }
 
