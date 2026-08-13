@@ -1066,22 +1066,35 @@
     tbody tr:nth-child(even) td{ background:rgba(255,255,255,.018); }
 
     .rank-cell{
-      width:76px;
+      width:80px;
       color:var(--accent);
       font-weight:800;
       font-variant-numeric:tabular-nums;
     }
 
+    th.rank-cell .sort-button{
+      justify-content:center;
+    }
+
     .rank-value{
-      display:inline-flex;
+      display:grid;
+      grid-template-columns:30px 42px;
       align-items:center;
-      gap:6px;
+      width:72px;
+      margin-inline:auto;
+    }
+
+    .rank-number{
+      text-align:center;
     }
 
     .rank-delta{
       display:inline-flex;
       align-items:center;
+      justify-content:flex-start;
+      min-height:16px;
       gap:1px;
+      padding-left:5px;
       font-size:11px;
       font-weight:900;
     }
@@ -1642,7 +1655,12 @@
       }
 
       .leaderboard-table .rank-cell{
-        width:38px;
+        width:68px;
+      }
+
+      .leaderboard-table .rank-value{
+        grid-template-columns:25px 35px;
+        width:60px;
       }
 
       .leaderboard-table .rating-cell{
@@ -2639,13 +2657,13 @@
 
     function rankCellHtml(row){
       const delta = Number(row.rankDelta) || 0;
-      let movement = "";
+      let movement = `<span class="rank-delta" aria-hidden="true"></span>`;
       if(delta > 0){
         movement = `<span class="rank-delta is-up" aria-label="Up ${delta}"><svg class="lucide lucide-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg>${escapeHtml(delta)}</span>`;
       }else if(delta < 0){
         movement = `<span class="rank-delta is-down" aria-label="Down ${Math.abs(delta)}"><svg class="lucide lucide-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg>${escapeHtml(Math.abs(delta))}</span>`;
       }
-      return `<span class="rank-value"><span>${escapeHtml(row.rank || "")}</span>${movement}</span>`;
+      return `<span class="rank-value"><span class="rank-number">${escapeHtml(row.rank || "")}</span>${movement}</span>`;
     }
 
     function visibleLeaderboardRows(){

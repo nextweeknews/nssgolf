@@ -485,9 +485,9 @@
 
     .home-gpi-row{
       display:grid;
-      grid-template-columns: 24px minmax(0, 1fr) 56px;
+      grid-template-columns: 46px minmax(0, 1fr) 56px;
       align-items:center;
-      gap: 8px;
+      gap: 6px;
       min-height: 36px;
       padding: 5px 8px;
       border-bottom: 1px solid rgba(148,163,184,0.12);
@@ -513,14 +513,24 @@
     }
 
     .home-gpi-rank-value,
+    .home-gpi-rank-number,
     .home-gpi-rank-delta{
-      display:inline-flex;
+      display:flex;
       align-items:center;
       justify-content:center;
     }
 
-    .home-gpi-rank-value{ gap:3px; }
-    .home-gpi-rank-delta{ gap:0; font-size:9px; }
+    .home-gpi-rank-value{
+      display:grid;
+      grid-template-columns:18px 28px;
+      width:46px;
+    }
+    .home-gpi-rank-delta{
+      min-height:12px;
+      gap:0;
+      padding-left:2px;
+      font-size:9px;
+    }
     .home-gpi-rank-delta.is-up{ color:#22c55e; }
     .home-gpi-rank-delta.is-down{ color:#ef4444; }
     .home-gpi-rank-delta .lucide{ width:9px; height:9px; stroke-width:3; }
@@ -2841,13 +2851,13 @@
     function homeGpiRankHtml(row, fallbackRank){
       const rank = escapeHtml(row.rank || fallbackRank);
       const delta = Number(row.rankDelta) || 0;
-      if(!delta) return `<span class="home-gpi-rank-value">${rank}</span>`;
+      if(!delta) return `<span class="home-gpi-rank-value"><span class="home-gpi-rank-number">${rank}</span><span class="home-gpi-rank-delta" aria-hidden="true"></span></span>`;
       const up = delta > 0;
       const amount = Math.abs(delta);
       const icon = up
         ? `<svg class="lucide lucide-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg>`
         : `<svg class="lucide lucide-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg>`;
-      return `<span class="home-gpi-rank-value">${rank}<span class="home-gpi-rank-delta ${up ? "is-up" : "is-down"}" aria-label="${up ? "Up" : "Down"} ${amount}">${icon}${escapeHtml(amount)}</span></span>`;
+      return `<span class="home-gpi-rank-value"><span class="home-gpi-rank-number">${rank}</span><span class="home-gpi-rank-delta ${up ? "is-up" : "is-down"}" aria-label="${up ? "Up" : "Down"} ${amount}">${icon}${escapeHtml(amount)}</span></span>`;
     }
 
     function renderHomeGpiRows(rows){
