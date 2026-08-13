@@ -34,6 +34,7 @@ on:
           - test
           - snapshot-current
           - snapshot-combined
+          - date-combined
           - weekly-gpi
           - test-fetch
           - fetch
@@ -59,6 +60,11 @@ on:
         required: true
         default: "30000"
         type: string
+      snapshot_dates:
+        description: "Two displayed combined GPI dates, oldest first"
+        required: true
+        default: "2026-08-03T00:00:00Z,2026-08-10T00:00:00Z"
+        type: string
 
 permissions:
   contents: read
@@ -68,6 +74,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  date-combined:
+    name: Date current combined GPI snapshots
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'date-combined'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set displayed GPI snapshot dates
+        run: npm run gpi:date-combined -- --dates "${{ github.event.inputs.snapshot_dates }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
   snapshot-combined:
     name: Publish current combined GPI snapshots
     runs-on: ubuntu-latest

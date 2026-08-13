@@ -2781,7 +2781,7 @@
     async function loadHomeGpiRows(){
       const { data:runs, error:runsError } = await supabase
         .from("internal_ranked_gpi_runs")
-        .select("id,created_at")
+        .select("id,created_at,config")
         .eq("model", "combined")
         .order("created_at", { ascending:false })
         .limit(2);
@@ -2818,7 +2818,7 @@
       );
       const memberMap = await loadDiscordMembersByIds(currentRows.map(row => row.discord_user_id));
       if(homeGpiDate){
-        const date = new Date(currentRun.created_at);
+        const date = new Date(currentRun.config?.ranking_at || currentRun.created_at);
         const label = Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat("en-US", {
           month:"long",
           day:"numeric",

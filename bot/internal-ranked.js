@@ -49,6 +49,7 @@ Usage:
   node bot/internal-ranked.js replay-oawp [options]
   node bot/internal-ranked.js replay-pl [options]
   node bot/internal-ranked.js publish-combined
+  node bot/internal-ranked.js date-combined --dates <iso,iso>
   node bot/internal-ranked.js sync [options]
   node bot/internal-ranked.js sync-nps [options]
   node bot/internal-ranked.js sync-oawp [options]
@@ -72,6 +73,9 @@ Commands:
   publish-combined
            Publish combined GPI snapshots for the two newest Elo snapshot
            markers without replaying or refetching matches.
+  date-combined
+           Set the displayed ranking dates for the two oldest combined
+           snapshots without changing their creation timestamps.
   sync     Run fetch, then replay.
   sync-nps Run fetch, then replay-nps.
   sync-oawp
@@ -662,6 +666,7 @@ async function publishCombinedGpiSnapshot(supabase, snapshotAt) {
         ranked_run_id: rankedRun.id,
         tournament_run_id: tournamentRun.id,
         snapshot_at: snapshotAt,
+        ranking_at: snapshotAt,
       },
     })
     .select("id")
@@ -730,6 +735,32 @@ async function publishRecentCombinedGpiSnapshots() {
       continue;
     }
     await publishCombinedGpiSnapshot(supabase, marker.created_at);
+  }
+}
+
+async function dateCombinedGpiSnapshots(dateValues) {
+  const dates = String(dateValues || "").split(",").map((value) => value.trim()).filter(Boolean);
+  if (dates.length !== 2 || dates.some((value) => Number.isNaN(Date.parse(value)))) {
+    throw new Error("--dates must contain exactly two comma-separated ISO timestamps.");
+  }
+  const supabase = createSupabaseServiceClient();
+  const { data: runs, error } = await supabase
+    .from("internal_ranked_gpi_runs")
+    .select("id,config")
+    .eq("model", "combined")
+    .order("created_at", { ascending: true })
+    .limit(2);
+  if (error) throw new Error(`Combined snapshot lookup failed: ${error.message}`);
+  if (runs?.length !== 2) throw new Error("Exactly two combined snapshots are required.");
+
+  for (let index = 0; index < runs.length; index += 1) {
+    const rankingAt = new Date(dates[index]).toISOString();
+    const { error: updateError } = await supabase
+      .from("internal_ranked_gpi_runs")
+      .update({ config: { ...(runs[index].config || {}), ranking_at: rankingAt } })
+      .eq("id", runs[index].id);
+    if (updateError) throw new Error(`Combined snapshot date update failed: ${updateError.message}`);
+    console.log(`Combined GPI run ${runs[index].id} ranking date set to ${rankingAt}.`);
   }
 }
 
@@ -1351,6 +1382,8 @@ async function main() {
     await replayStoredMatchesPlackettLuce(options);
   } else if (command === "publish-combined") {
     await publishRecentCombinedGpiSnapshots();
+  } else if (command === "date-combined") {
+    await dateCombinedGpiSnapshots(getArg("--dates", ""));
   } else if (command === "sync") {
     await fetchAndUpsert(options);
     await replayStoredMatches(options);

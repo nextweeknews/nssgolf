@@ -15,6 +15,8 @@ The `Internal Ranked League` GitHub Actions workflow publishes a complete Golf P
 
 The combined run is the public snapshot. It remains marked `combined_building` while its rating rows are inserted and changes to `combined` only after every row succeeds. If a workflow fails before that change, visitors continue to see the preceding complete snapshot rather than a mixture of old and new results.
 
+The date shown by the site comes from `config.ranking_at`, falling back to the run's `created_at` for older records. This keeps the public ranking date independent from workflow runtime while preserving the immutable run chronology.
+
 The previous combined run identifies the comparison snapshot. The homepage and all GPI tables calculate rank movement as `previous rank - current rank`; positive movement uses the green Lucide up arrow, negative movement uses the red Lucide down arrow, and unchanged or new players show a gray dash.
 
 The GPI page queries only the selected combined run and requests one 100-row range at a time. It fetches previous ranks only for those 100 player IDs. Loaded snapshot/page combinations are cached in memory for immediate back-navigation; the cache disappears with the browser page session, so a new visit always checks Supabase. The homepage reads the latest two combined runs and at most 100 rows from each to render its top-25 preview and deltas.

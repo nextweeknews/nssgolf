@@ -2454,7 +2454,7 @@
       if(snapshotMarkers.length) return snapshotMarkers;
       const { data, error } = await supabase
         .from("internal_ranked_gpi_runs")
-        .select("id,created_at")
+        .select("id,created_at,config")
         .eq("model", "combined")
         .order("created_at", { ascending:false })
         .limit(104);
@@ -2473,8 +2473,9 @@
 
     function renderSnapshotNavigation(){
       const snapshot = selectedSnapshot();
-      snapshotDateEl.textContent = snapshot ? formatSnapshotDate(snapshot.created_at) : "No GPI run";
-      snapshotDateEl.dateTime = snapshot?.created_at || "";
+      const rankingAt = snapshot?.config?.ranking_at || snapshot?.created_at || "";
+      snapshotDateEl.textContent = snapshot ? formatSnapshotDate(rankingAt) : "No GPI run";
+      snapshotDateEl.dateTime = rankingAt;
       olderSnapshotEl.disabled = selectedSnapshotIndex >= snapshotMarkers.length - 1;
       newerSnapshotEl.disabled = selectedSnapshotIndex <= 0;
     }

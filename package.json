@@ -23,6 +23,7 @@
     "internal-ranked:sync-oawp": "node bot/internal-ranked.js sync-oawp",
     "internal-ranked:sync-pl": "node bot/internal-ranked.js sync-pl",
     "gpi:publish-combined": "node bot/internal-ranked.js publish-combined",
+    "gpi:date-combined": "node bot/internal-ranked.js date-combined",
     "tournament-gpi:fetch": "node bot/tournament-gpi.js fetch",
     "tournament-gpi:replay": "node bot/tournament-gpi.js replay",
     "tournament-gpi:sync": "node bot/tournament-gpi.js sync",
