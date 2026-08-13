@@ -1832,7 +1832,7 @@
       </div>
     </div>
 
-    <div id="status" class="status">Loading...</div>
+    <div id="status" class="status" hidden></div>
 
     <section id="leaderboard" hidden aria-label="Internal Ranked League leaderboard">
       <div class="table-controls">
@@ -1848,7 +1848,7 @@
           <div class="player-search-results" id="leaderboardSearchResults" hidden></div>
         </div>
         <div class="pager">
-          <div id="pageInfo" class="page-info">Loading rankings...</div>
+          <div id="pageInfo" class="page-info">Page 1</div>
           <button id="prevPage" class="pager-button" type="button" aria-label="Previous page">
             <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
               <path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
@@ -4350,12 +4350,12 @@
     async function loadPage(){
       const requestId = ++loadRequestId;
       const config = activeConfig();
-      await loadSnapshotMarkers();
-      renderSnapshotNavigation();
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
       renderTableHeader();
       renderRunMetaPlaceholder();
+      await loadSnapshotMarkers();
+      renderSnapshotNavigation();
       if(config.kind === "about"){
         renderAboutPage();
         return;
@@ -4520,13 +4520,11 @@
       totalRatings = 0;
       currentPage = 0;
       sortState = { key:"rank", direction:"asc" };
-      leaderboardEl.hidden = true;
-      leaderboardBodyEl.innerHTML = "";
       clearLeaderboardSearch();
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
       renderRunMetaPlaceholder();
-      setStatus("Loading...");
+      if(!prepareLeaderboardLoadingShell()) setStatus("Loading...");
       closePlayerModal();
       loadPage().catch((error) => {
         console.error(error);
@@ -4547,10 +4545,8 @@
       predictionSearchRows = [];
       totalRatings = 0;
       currentPage = 0;
-      leaderboardEl.hidden = true;
-      leaderboardBodyEl.innerHTML = "";
       renderSnapshotNavigation();
-      setStatus("Loading...");
+      if(!prepareLeaderboardLoadingShell()) setStatus("Loading...");
       loadPage().catch((error) => {
         console.error(error);
         setStatus(`Unable to load GPI snapshot: ${error?.message || "Unknown error"}`, "error");
@@ -4563,7 +4559,11 @@
       currentPage = Math.max(0, page);
       leaderboardEl.hidden = false;
       leaderboardBodyEl.innerHTML = "";
-      renderPager();
+      if(totalRatings){
+        renderPager();
+      }else{
+        pageInfoEl.textContent = `Page ${currentPage + 1}`;
+      }
       prevPageEl.disabled = true;
       nextPageEl.disabled = true;
       const config = activeConfig();
@@ -4614,6 +4614,21 @@
       if(config.kind === "combined") cacheCombinedRows(leaderboardRows);
       renderLeaderboard();
       updateLeaderboardSearch();
+    }
+
+    function prepareLeaderboardLoadingShell(){
+      const kind = activeConfig().kind;
+      if(kind !== "combined" && kind !== "standard") return false;
+      leaderboardEl.hidden = false;
+      leaderboardBodyEl.innerHTML = "";
+      totalRatings = 0;
+      currentPage = 0;
+      renderTableHeader();
+      pageInfoEl.textContent = "Page 1";
+      prevPageEl.disabled = true;
+      nextPageEl.disabled = true;
+      hideStatus();
+      return true;
     }
 
     leaderboardHeaderEl.addEventListener("click", (event) => {
@@ -4799,6 +4814,7 @@
 
     async function initialize(){
       updateTabSelection();
+      if(!prepareLeaderboardLoadingShell()) setStatus("Loading...");
       await loadAccessContext();
       await loadPage();
     }
