@@ -2244,6 +2244,7 @@
     let snapshotMarkers = [];
     let selectedSnapshotIndex = 0;
     const snapshotPageCache = new Map();
+    const snapshotPlayerProfileCache = new Map();
     let leaderboardPageRequestId = 0;
     const HISTORICAL_GPI_WIN_CURVE = [
       { delta:0, probability:.5 },
@@ -4193,29 +4194,6 @@
       return Number.isFinite(number) && number > 0 ? escapeHtml(number) : blankValue();
     }
 
-    async function ensureCombinedRowsForModal(discordId){
-      if(combinedRowsById.has(discordId)) return;
-      const config = VIEW_CONFIG.gpi;
-      const run = await loadLatestRunByModel(
-        config.model,
-        config,
-        selectedSnapshot()?.created_at || "",
-        false
-      );
-      if(!run) return;
-      const { data, error } = await supabase
-        .from(config.ratingTable)
-        .select(config.ratingsSelect)
-        .eq("run_id", run.id)
-        .eq("discord_user_id", discordId)
-        .maybeSingle();
-      if(error) throw error;
-      if(!data) return;
-      const membersById = await loadMembers([discordId]);
-      const [row] = buildStoredCombinedRows([data], membersById);
-      if(row) combinedRowsById.set(discordId, row);
-    }
-
     function fallbackModalRow(row){
       return {
         ...row,
@@ -4232,11 +4210,89 @@
       };
     }
 
+    async function loadSnapshotPlayerProfile(discordId){
+      const snapshot = selectedSnapshot();
+      if(!snapshot?.id) return null;
+      const cacheKey = `${snapshot.id}:${discordId}`;
+      if(snapshotPlayerProfileCache.has(cacheKey)) return snapshotPlayerProfileCache.get(cacheKey);
+
+      const rankedRunId = snapshot.config?.ranked_run_id;
+      const tournamentRunId = snapshot.config?.tournament_run_id;
+      const ratingRow = (table, select, runId) => runId
+        ? supabase
+            .from(table)
+            .select(select)
+            .eq("run_id", runId)
+            .eq("discord_user_id", discordId)
+            .maybeSingle()
+        : Promise.resolve({ data:null, error:null });
+      const tournamentRun = tournamentRunId
+        ? supabase
+            .from("internal_tournament_gpi_runs")
+            .select("latest_match_at")
+            .eq("id", tournamentRunId)
+            .maybeSingle()
+        : Promise.resolve({ data:null, error:null });
+
+      const request = Promise.all([
+        ratingRow("internal_ranked_gpi_ratings", VIEW_CONFIG.gpi.ratingsSelect, snapshot.id),
+        ratingRow("internal_ranked_gpi_ratings", "rank,rating,full_history_rating,potential_rating,recent_form_rating", rankedRunId),
+        ratingRow("internal_tournament_gpi_ratings", "rank,rating", tournamentRunId),
+        tournamentRun,
+      ]).then(([combinedResult, rankedResult, tournamentResult, tournamentRunResult]) => {
+        const error = [combinedResult, rankedResult, tournamentResult, tournamentRunResult]
+          .map((result) => result.error)
+          .find(Boolean);
+        if(error) throw error;
+
+        const combined = combinedResult.data;
+        const ranked = rankedResult.data;
+        const tournament = tournamentResult.data;
+        const profile = {
+          displayName:normalizeText(combined?.display_name),
+          tournamentLatestMatchAt:tournamentRunResult.data?.latest_match_at || "",
+        };
+        if(combined){
+          profile.rankNumber = Number(combined.rank) || 0;
+          profile.rating = finiteValue(combined.rating);
+          profile.rankedRating = finiteValue(combined.raw_rating);
+          profile.rankedRatingProvisional = (Number(combined.first_place_finishes) || 0) > 0;
+          profile.tournamentDelta = finiteValue(combined.full_history_rating);
+          profile.tournamentRating = finiteValue(combined.potential_rating);
+          profile.tournamentStrengthOfSchedule = finiteValue(combined.recent_form_rating);
+        }
+        if(ranked){
+          profile.rankedRank = Number(ranked.rank) || 0;
+          profile.rankedRating ??= finiteValue(ranked.rating);
+          profile.lifetimeRating = finiteValue(ranked.full_history_rating) ?? finiteValue(ranked.rating);
+          profile.potentialRating = finiteValue(ranked.potential_rating) ?? finiteValue(ranked.rating);
+          profile.recentRating = finiteValue(ranked.recent_form_rating) ?? finiteValue(ranked.rating);
+        }
+        if(tournament){
+          profile.tournamentRank = Number(tournament.rank) || 0;
+          profile.tournamentRating ??= finiteValue(tournament.rating);
+        }
+        return profile;
+      }).catch((error) => {
+        snapshotPlayerProfileCache.delete(cacheKey);
+        throw error;
+      });
+      snapshotPlayerProfileCache.set(cacheKey, request);
+      return request;
+    }
+
     async function profileRowForModal(discordId, fallbackRow){
-      if(activeConfig().kind !== "combined") {
-        await ensureCombinedRowsForModal(discordId);
-      }
-      return combinedRowsById.get(discordId) || fallbackModalRow(fallbackRow);
+      const fallback = activeConfig().kind === "combined" ? fallbackRow : fallbackModalRow(fallbackRow);
+      const snapshotProfile = await loadSnapshotPlayerProfile(discordId);
+      return {
+        ...fallback,
+        ...(snapshotProfile || {}),
+        displayName:snapshotProfile?.displayName || fallback.displayName,
+        avatarUrl:fallback.avatarUrl,
+        rankNumber:activeConfig().kind === "combined"
+          ? fallback.rankNumber
+          : snapshotProfile?.rankNumber ?? fallback.rankNumber,
+      };
     }
 
     async function openPlayerModal(discordId){
@@ -4285,7 +4341,7 @@
             <div class="detail-cell"><span class="detail-label">Rating</span><span class="detail-value">${ratingValue(profileRow.tournamentRating)}</span></div>
             <div class="detail-cell"><span class="detail-label">Strength of Schedule</span><span class="detail-value">${ratingValue(profileRow.tournamentStrengthOfSchedule)}</span></div>
           </div>
-          <details id="tournamentMatchDetails" class="modal-details" data-player-id="${escapeHtml(discordId)}">
+          <details id="tournamentMatchDetails" class="modal-details" data-player-id="${escapeHtml(discordId)}" data-latest-match-at="${escapeHtml(profileRow.tournamentLatestMatchAt || "")}">
             <summary>Show tournament matches</summary>
             <div id="tournamentMatchList" class="modal-details-body">Loading...</div>
           </details>
@@ -4293,11 +4349,13 @@
       `;
     }
 
-    async function loadTournamentMatchesForPlayer(discordId){
-      const { data, error } = await supabase
+    async function loadTournamentMatchesForPlayer(discordId, latestMatchAt = ""){
+      let query = supabase
         .from("internal_tournament_matches")
         .select("event_name,round_label,played_at,event_order,match_order,player_a_discord_user_id,player_a_name,player_a_score,player_b_discord_user_id,player_b_name,player_b_score,winner_discord_user_id")
-        .or(`player_a_discord_user_id.eq.${discordId},player_b_discord_user_id.eq.${discordId}`)
+        .or(`player_a_discord_user_id.eq.${discordId},player_b_discord_user_id.eq.${discordId}`);
+      if(latestMatchAt) query = query.lte("played_at", latestMatchAt);
+      const { data, error } = await query
         .order("event_order", { ascending:true })
         .order("match_order", { ascending:true });
       if(error) throw error;
@@ -4777,7 +4835,7 @@
       const listEl = document.getElementById("tournamentMatchList");
       if(!discordId || !listEl) return;
 
-      loadTournamentMatchesForPlayer(discordId)
+      loadTournamentMatchesForPlayer(discordId, details.dataset.latestMatchAt)
         .then((matches) => {
           details.dataset.loaded = "true";
           listEl.innerHTML = renderTournamentMatchRows(discordId, matches);
