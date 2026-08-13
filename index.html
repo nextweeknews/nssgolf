@@ -512,6 +512,19 @@
       text-align:center;
     }
 
+    .home-gpi-rank-value,
+    .home-gpi-rank-delta{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .home-gpi-rank-value{ gap:3px; }
+    .home-gpi-rank-delta{ gap:0; font-size:9px; }
+    .home-gpi-rank-delta.is-up{ color:#22c55e; }
+    .home-gpi-rank-delta.is-down{ color:#ef4444; }
+    .home-gpi-rank-delta .lucide{ width:9px; height:9px; stroke-width:3; }
+
     .home-gpi-player{
       min-width:0;
       display:flex;
@@ -2404,16 +2417,30 @@
       }
     }
 
-    async function loadLatestGpiRun({ table, model, select }){
+    async function loadGpiSnapshotMarkers(){
       const { data, error } = await supabase
+        .from("internal_ranked_elo_runs")
+        .select("id,created_at")
+        .order("created_at", { ascending:false })
+        .limit(2);
+      if(error) throw error;
+      return data || [];
+    }
+
+    async function loadLatestGpiRun({ table, model, select }, snapshotCreatedAt = "", fallbackToLatest = true){
+      let query = supabase
         .from(table)
         .select(select)
-        .eq("model", model)
-        .order("latest_match_at", { ascending:false, nullsFirst:false })
+        .eq("model", model);
+      if(snapshotCreatedAt) query = query.lte("created_at", snapshotCreatedAt);
+      const { data, error } = await query
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
       if(error) throw error;
+      if(!data && snapshotCreatedAt && fallbackToLatest){
+        return loadLatestGpiRun({ table, model, select }, "", false);
+      }
       return data || null;
     }
 
@@ -2434,13 +2461,16 @@
       return rows;
     }
 
-    async function loadTournamentStrengthMatches(){
+    async function loadTournamentStrengthMatches(latestMatchAt = ""){
       const rows = [];
       const pageSize = 1000;
       for(let from = 0;; from += pageSize){
-        const { data, error } = await supabase
+        let query = supabase
           .from("internal_tournament_matches")
-          .select("match_hash,event_order,match_order,player_a_discord_user_id,player_b_discord_user_id,winner_discord_user_id")
+          .select("match_hash,event_order,match_order,timestamp_ms,player_a_discord_user_id,player_b_discord_user_id,winner_discord_user_id");
+        const cutoffMs = Date.parse(latestMatchAt);
+        if(Number.isFinite(cutoffMs)) query = query.lte("timestamp_ms", cutoffMs);
+        const { data, error } = await query
           .order("event_order", { ascending:true })
           .order("match_order", { ascending:true })
           .order("match_hash", { ascending:true })
@@ -2733,14 +2763,19 @@
         model:"flat_pl",
         select:"id,model,base_rating,latest_match_at,created_at",
       };
-      const [rankedRun, tournamentRun, hiddenIds] = await Promise.all([
-        loadLatestGpiRun(rankedRunConfig),
-        loadLatestGpiRun(tournamentRunConfig),
+      const snapshotMarkers = await loadGpiSnapshotMarkers();
+      const currentSnapshotAt = snapshotMarkers[0]?.created_at || "";
+      const previousSnapshotAt = snapshotMarkers[1]?.created_at || "";
+      const [rankedRun, tournamentRun, previousRankedRun, previousTournamentRun, hiddenIds] = await Promise.all([
+        loadLatestGpiRun(rankedRunConfig, currentSnapshotAt),
+        loadLatestGpiRun(tournamentRunConfig, currentSnapshotAt),
+        previousSnapshotAt ? loadLatestGpiRun(rankedRunConfig, previousSnapshotAt, false) : null,
+        previousSnapshotAt ? loadLatestGpiRun(tournamentRunConfig, previousSnapshotAt, false) : null,
         loadHiddenGpiPlayerIds(),
       ]);
       if(!rankedRun || !tournamentRun) return [];
 
-      const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
+      const [rankedRatings, tournamentRatings, tournamentMatches, previousRankedRatings, previousTournamentRatings, previousTournamentMatches] = await Promise.all([
         loadGpiRatingsForRun({
           table:"internal_ranked_gpi_ratings",
           runId:rankedRun.id,
@@ -2751,26 +2786,68 @@
           runId:tournamentRun.id,
           select:"discord_user_id,display_name,rating,raw_rating,matches_played,weighted_matches,rank",
         }),
-        loadTournamentStrengthMatches(),
+        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
+        previousRankedRun ? loadGpiRatingsForRun({
+          table:"internal_ranked_gpi_ratings",
+          runId:previousRankedRun.id,
+          select:"discord_user_id,display_name,rating,raw_rating,matches_played,rank",
+        }) : [],
+        previousTournamentRun ? loadGpiRatingsForRun({
+          table:"internal_tournament_gpi_ratings",
+          runId:previousTournamentRun.id,
+          select:"discord_user_id,display_name,rating,raw_rating,matches_played,weighted_matches,rank",
+        }) : [],
+        previousTournamentRun ? loadTournamentStrengthMatches(previousTournamentRun.latest_match_at) : [],
       ]);
       const memberMap = await loadDiscordMembersByIds([
         ...rankedRatings.map(row => row.discord_user_id),
         ...tournamentRatings.map(row => row.discord_user_id),
+        ...previousRankedRatings.map(row => row.discord_user_id),
+        ...previousTournamentRatings.map(row => row.discord_user_id),
       ]);
-      return buildHomeCombinedGpiRows(
+      const rows = buildHomeCombinedGpiRows(
         rankedRatings,
         tournamentRatings,
         memberMap,
         tournamentMatches,
         tournamentRun,
         hiddenIds
-      ).slice(0, HOME_GPI_LIMIT).map(row => ({
+      );
+      if(previousRankedRun && previousTournamentRun){
+        const previousRows = buildHomeCombinedGpiRows(
+          previousRankedRatings,
+          previousTournamentRatings,
+          memberMap,
+          previousTournamentMatches,
+          previousTournamentRun,
+          hiddenIds
+        );
+        const previousRanks = new Map(previousRows.map(row => [row.discordId, Number(row.rank)]));
+        rows.forEach((row) => {
+          const previousRank = previousRanks.get(row.discordId);
+          row.rankDelta = previousRank ? previousRank - Number(row.rank) : 0;
+        });
+      }
+      return rows.slice(0, HOME_GPI_LIMIT).map(row => ({
         discordId:row.discordId,
         rank:row.rank,
+        rankDelta:row.rankDelta || 0,
         displayName:row.displayName,
         avatarUrl:row.avatarUrl,
         rating:formatRating(row.ratingNumber),
       }));
+    }
+
+    function homeGpiRankHtml(row, fallbackRank){
+      const rank = escapeHtml(row.rank || fallbackRank);
+      const delta = Number(row.rankDelta) || 0;
+      if(!delta) return `<span class="home-gpi-rank-value">${rank}</span>`;
+      const up = delta > 0;
+      const amount = Math.abs(delta);
+      const icon = up
+        ? `<svg class="lucide lucide-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg>`
+        : `<svg class="lucide lucide-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg>`;
+      return `<span class="home-gpi-rank-value">${rank}<span class="home-gpi-rank-delta ${up ? "is-up" : "is-down"}" aria-label="${up ? "Up" : "Down"} ${amount}">${icon}${escapeHtml(amount)}</span></span>`;
     }
 
     function renderHomeGpiRows(rows){
@@ -2782,7 +2859,7 @@
       homeGpiList.innerHTML = rows.slice(0, HOME_GPI_LIMIT).map((row, index) => `
         <li>
           <a class="home-gpi-row" href="/player.html?id=${encodeURIComponent(row.discordId)}" aria-label="View ${escapeHtml(row.displayName)} profile">
-            <span class="home-gpi-rank">${escapeHtml(row.rank || index + 1)}</span>
+            <span class="home-gpi-rank">${homeGpiRankHtml(row, index + 1)}</span>
             <span class="home-gpi-player">
               <img class="home-gpi-avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
               <span class="home-gpi-name">${escapeHtml(row.displayName)}</span>

@@ -1,5 +1,9 @@
 # NSS Golf
 
+## Golf Power Index
+
+The ranked and tournament GPI refresh is automated every Monday at 00:00 UTC. See [the GPI automation runbook](docs/gpi-automation.md) for the replay order, snapshot behavior, tournament eligibility, secrets, and manual recovery steps.
+
 ## Supabase Auth
 
 - Primary sign-in method: Discord OAuth via Supabase Auth (`signInWithOAuth` with provider `discord`)

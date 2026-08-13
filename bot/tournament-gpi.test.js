@@ -7,6 +7,8 @@ const {
   buildLightningMatchesFromRows,
   buildWorldChampionshipMatchesFromRows,
   defaultTournamentPlShrinkageMatches,
+  isQualifierTournamentMatch,
+  isReplayableTournamentEvent,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
@@ -27,6 +29,15 @@ const identityMap = {
   ]),
   ambiguousKeys: new Set(),
 };
+
+{
+  assert.equal(isReplayableTournamentEvent({ status: "active", name: "World Open" }), true);
+  assert.equal(isReplayableTournamentEvent({ status: "historical", name: "World Open" }), true);
+  assert.equal(isReplayableTournamentEvent({ status: "planned", name: "World Open" }), false);
+  assert.equal(isReplayableTournamentEvent({ status: "active", name: "World Open Qualifiers" }), false);
+  assert.equal(isQualifierTournamentMatch({ round_label: "Qualifiers - Round 2" }), true);
+  assert.equal(isQualifierTournamentMatch({ event_name: "World Championship", round_label: "Final" }), false);
+}
 
 {
   assert.equal(superLeagueDiscordIdsRange, "A:B");

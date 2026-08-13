@@ -1,6 +1,8 @@
 name: Internal Ranked League
 
 on:
+  schedule:
+    - cron: "0 0 * * 1"
   pull_request:
     paths:
       - "bot/internal-ranked*.js"
@@ -28,6 +30,8 @@ on:
         type: choice
         options:
           - test
+          - snapshot-current
+          - weekly-gpi
           - test-fetch
           - fetch
           - replay
@@ -61,6 +65,83 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  snapshot-current:
+    name: Save current GPI snapshot marker
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'snapshot-current'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Save the current complete GPI snapshot marker
+        run: npm run internal-ranked:replay
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+  weekly-gpi:
+    name: Weekly GPI snapshot
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 180
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'weekly-gpi')
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test GPI replay code
+        run: |
+          npm run test:internal-ranked
+          npm run test:tournament-gpi
+
+      - name: Fetch new matches for the configured ranked season
+        run: npm run internal-ranked:fetch -- --delay-ms "${{ github.event.inputs.delay_ms || '30000' }}"
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Replay ranked PL history
+        run: npm run internal-ranked:replay-oawp
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Fetch eligible tournament matches and replay tournament PL history
+        run: npm run tournament-gpi:sync
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
+      # The site treats this final immutable Elo run as the atomic marker that
+      # the ranked and tournament portions of this snapshot both completed.
+      - name: Replay Elo history and publish the complete snapshot marker
+        run: npm run internal-ranked:replay
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
   test:
     name: Test internal Ranked League scripts
     runs-on: ubuntu-latest

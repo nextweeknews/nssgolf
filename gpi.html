@@ -1072,6 +1072,24 @@
       font-variant-numeric:tabular-nums;
     }
 
+    .rank-value{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .rank-delta{
+      display:inline-flex;
+      align-items:center;
+      gap:1px;
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .rank-delta.is-up{ color:#22c55e; }
+    .rank-delta.is-down{ color:#ef4444; }
+    .rank-delta .lucide{ width:12px; height:12px; stroke-width:3; }
+
     .leaderboard-table:not(.is-gpi) .player-cell{
       width:280px;
       min-width:280px;
@@ -2125,6 +2143,7 @@
     };
     let currentView = viewFromUrl();
     let latestRun = null;
+    let previousRun = null;
     let allLeaderboardRows = [];
     let leaderboardRows = [];
     let totalRatings = 0;
@@ -2322,16 +2341,30 @@
       return formatPercent(number);
     }
 
-    async function loadLatestRunByModel(model, config = activeConfig()){
+    async function loadSnapshotMarkers(){
       const { data, error } = await supabase
+        .from("internal_ranked_elo_runs")
+        .select("id,created_at")
+        .order("created_at", { ascending:false })
+        .limit(2);
+      if(error) throw error;
+      return data || [];
+    }
+
+    async function loadLatestRunByModel(model, config = activeConfig(), snapshotCreatedAt = "", fallbackToLatest = true){
+      let query = supabase
         .from(config.runTable)
         .select(config.runSelect)
-        .eq("model", model)
-        .order("latest_match_at", { ascending:false, nullsFirst:false })
+        .eq("model", model);
+      if(snapshotCreatedAt) query = query.lte("created_at", snapshotCreatedAt);
+      const { data, error } = await query
         .order("created_at", { ascending:false })
         .limit(1)
         .maybeSingle();
       if(error) throw error;
+      if(!data && snapshotCreatedAt && fallbackToLatest){
+        return loadLatestRunByModel(model, config, "", false);
+      }
       return data || null;
     }
 
@@ -2356,15 +2389,18 @@
       return rows;
     }
 
-    async function loadTournamentStrengthMatches(){
+    async function loadTournamentStrengthMatches(latestMatchAt = ""){
       const rows = [];
       const pageSize = 1000;
       let from = 0;
 
       while(true){
-        const { data, error } = await supabase
+        let query = supabase
           .from("internal_tournament_matches")
-          .select("match_hash,event_order,match_order,player_a_discord_user_id,player_b_discord_user_id,winner_discord_user_id")
+          .select("match_hash,event_order,match_order,timestamp_ms,player_a_discord_user_id,player_b_discord_user_id,winner_discord_user_id");
+        const cutoffMs = Date.parse(latestMatchAt);
+        if(Number.isFinite(cutoffMs)) query = query.lte("timestamp_ms", cutoffMs);
+        const { data, error } = await query
           .order("event_order", { ascending:true })
           .order("match_order", { ascending:true })
           .order("match_hash", { ascending:true })
@@ -2586,6 +2622,30 @@
         }
       });
       return rows;
+    }
+
+    function applyRankDeltas(rows, previousRows){
+      const previousRanks = new Map(
+        (previousRows || [])
+          .filter(row => Number(row.rankNumber) > 0)
+          .map(row => [normalizeDiscordId(row.discord_user_id), Number(row.rankNumber)])
+      );
+      rows.forEach((row) => {
+        const oldRank = previousRanks.get(normalizeDiscordId(row.discord_user_id));
+        row.rankDelta = oldRank && Number(row.rankNumber) > 0 ? oldRank - Number(row.rankNumber) : 0;
+      });
+      return rows;
+    }
+
+    function rankCellHtml(row){
+      const delta = Number(row.rankDelta) || 0;
+      let movement = "";
+      if(delta > 0){
+        movement = `<span class="rank-delta is-up" aria-label="Up ${delta}"><svg class="lucide lucide-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg>${escapeHtml(delta)}</span>`;
+      }else if(delta < 0){
+        movement = `<span class="rank-delta is-down" aria-label="Down ${Math.abs(delta)}"><svg class="lucide lucide-arrow-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg>${escapeHtml(Math.abs(delta))}</span>`;
+      }
+      return `<span class="rank-value"><span>${escapeHtml(row.rank || "")}</span>${movement}</span>`;
     }
 
     function visibleLeaderboardRows(){
@@ -3778,7 +3838,7 @@
           return `
             <tr${rowClass(row)}>
               ${renderAdminHideCell(row)}
-              <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
+              <td class="rank-cell">${rankCellHtml(row)}</td>
               <td class="player-cell">
                 <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
                   <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
@@ -3802,7 +3862,7 @@
           return `
             <tr${rowClass(row)}>
               ${renderAdminHideCell(row)}
-              <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
+              <td class="rank-cell">${rankCellHtml(row)}</td>
               <td class="player-cell">
                 <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
                   <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
@@ -3833,7 +3893,7 @@
         return `
           <tr${rowClass(row)}>
             ${renderAdminHideCell(row)}
-            <td class="rank-cell">${escapeHtml(row.rank || "")}</td>
+            <td class="rank-cell">${rankCellHtml(row)}</td>
             <td class="player-cell">
               <button class="player-button" type="button" data-player-id="${escapeHtml(row.discord_user_id)}">
                 <img class="avatar" src="${escapeHtml(row.avatarUrl)}" alt="" loading="lazy" decoding="async" />
@@ -3897,16 +3957,17 @@
 
       const rankedConfig = VIEW_CONFIG.ranked;
       const tournamentConfig = VIEW_CONFIG.tournament;
+      const [snapshotMarker] = await loadSnapshotMarkers();
       const [rankedRun, tournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
+        loadLatestRunByModel(rankedConfig.model, rankedConfig, snapshotMarker?.created_at || ""),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, snapshotMarker?.created_at || ""),
       ]);
       if(!rankedRun || !tournamentRun) return;
 
       const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
-        loadTournamentStrengthMatches(),
+        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
       ]);
       const ids = [
         ...rankedRatings.map(row => row.discord_user_id),
@@ -4068,7 +4129,13 @@
         return;
       }
 
-      latestRun = await loadLatestRunByModel(config.model, config);
+      const snapshotMarkers = await loadSnapshotMarkers();
+      const currentSnapshotAt = snapshotMarkers[0]?.created_at || "";
+      const previousSnapshotAt = snapshotMarkers[1]?.created_at || "";
+      [latestRun, previousRun] = await Promise.all([
+        loadLatestRunByModel(config.model, config, currentSnapshotAt),
+        previousSnapshotAt ? loadLatestRunByModel(config.model, config, previousSnapshotAt, false) : null,
+      ]);
       if(requestId !== loadRequestId) return;
       if(!latestRun){
         leaderboardEl.hidden = true;
@@ -4112,9 +4179,14 @@
     async function loadCombinedPage(requestId){
       const rankedConfig = VIEW_CONFIG.ranked;
       const tournamentConfig = VIEW_CONFIG.tournament;
-      const [rankedRun, tournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
+      const snapshotMarkers = await loadSnapshotMarkers();
+      const currentSnapshotAt = snapshotMarkers[0]?.created_at || "";
+      const previousSnapshotAt = snapshotMarkers[1]?.created_at || "";
+      const [rankedRun, tournamentRun, previousRankedRun, previousTournamentRun] = await Promise.all([
+        loadLatestRunByModel(rankedConfig.model, rankedConfig, currentSnapshotAt),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, currentSnapshotAt),
+        previousSnapshotAt ? loadLatestRunByModel(rankedConfig.model, rankedConfig, previousSnapshotAt, false) : null,
+        previousSnapshotAt ? loadLatestRunByModel(tournamentConfig.model, tournamentConfig, previousSnapshotAt, false) : null,
       ]);
       if(requestId !== loadRequestId) return false;
 
@@ -4125,19 +4197,34 @@
       }
 
       latestRun = { ranked: rankedRun, tournament: tournamentRun };
-      const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
+      previousRun = previousRankedRun && previousTournamentRun
+        ? { ranked: previousRankedRun, tournament: previousTournamentRun }
+        : null;
+      const [rankedRatings, tournamentRatings, tournamentMatches, previousRankedRatings, previousTournamentRatings, previousTournamentMatches] = await Promise.all([
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
-        loadTournamentStrengthMatches(),
+        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
+        previousRankedRun ? loadRatingsForRun(previousRankedRun.id, rankedConfig) : [],
+        previousTournamentRun ? loadRatingsForRun(previousTournamentRun.id, tournamentConfig) : [],
+        previousTournamentRun ? loadTournamentStrengthMatches(previousTournamentRun.latest_match_at) : [],
       ]);
       if(requestId !== loadRequestId) return false;
       const ids = [
         ...rankedRatings.map(row => row.discord_user_id),
         ...tournamentRatings.map(row => row.discord_user_id),
+        ...previousRankedRatings.map(row => row.discord_user_id),
+        ...previousTournamentRatings.map(row => row.discord_user_id),
       ];
       const membersById = await loadMembers(ids);
       if(requestId !== loadRequestId) return false;
       allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches);
+      if(previousRun){
+        const currentRun = latestRun;
+        latestRun = previousRun;
+        const previousRows = buildCombinedLeaderboardRows(previousRankedRatings, previousTournamentRatings, membersById, previousTournamentMatches);
+        latestRun = currentRun;
+        applyRankDeltas(allLeaderboardRows, previousRows);
+      }
       cacheCombinedRows(allLeaderboardRows);
       totalRatings = allLeaderboardRows.length;
       await loadLeaderboardPage(0);
@@ -4149,9 +4236,10 @@
     async function loadPredictionRows(){
       const rankedConfig = VIEW_CONFIG.ranked;
       const tournamentConfig = VIEW_CONFIG.tournament;
+      const [snapshotMarker] = await loadSnapshotMarkers();
       const [rankedRun, tournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig),
+        loadLatestRunByModel(rankedConfig.model, rankedConfig, snapshotMarker?.created_at || ""),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, snapshotMarker?.created_at || ""),
       ]);
 
       if(!rankedRun || !tournamentRun){
@@ -4162,7 +4250,7 @@
       const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
         loadRatingsForRun(rankedRun.id, rankedConfig),
         loadRatingsForRun(tournamentRun.id, tournamentConfig),
-        loadTournamentStrengthMatches(),
+        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
       ]);
       const ids = [
         ...rankedRatings.map(row => row.discord_user_id),
@@ -4245,10 +4333,20 @@
     }
 
     async function loadLeaderboardData(){
-      const ratings = await loadRatingsForRun(latestRun.id, activeConfig());
-      const ids = ratings.map(row => row.discord_user_id);
+      const config = activeConfig();
+      const [ratings, previousRatings] = await Promise.all([
+        loadRatingsForRun(latestRun.id, config),
+        previousRun ? loadRatingsForRun(previousRun.id, config) : [],
+      ]);
+      const ids = [
+        ...ratings.map(row => row.discord_user_id),
+        ...previousRatings.map(row => row.discord_user_id),
+      ];
       const membersById = await loadMembers(ids);
       allLeaderboardRows = buildLeaderboardRows(ratings, membersById);
+      if(previousRun){
+        applyRankDeltas(allLeaderboardRows, buildLeaderboardRows(previousRatings, membersById));
+      }
       totalRatings = allLeaderboardRows.length;
       updateLeaderboardSearch();
     }

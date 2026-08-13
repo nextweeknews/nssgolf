@@ -25,14 +25,30 @@ const worldOpenDiscordIdsRange = "A:B";
 const syntheticStartMs = Date.UTC(2026, 0, 1, 0, 0, 0);
 const tournamentMatchWeightMultiplier = 2;
 const defaultTournamentPlShrinkageMatches = 20;
+const replayableEventStatuses = new Set(["active", "historical"]);
 
 const eventOrder = [
-  { key: "super_league_s5", name: "Super League Season 5" },
-  { key: "world_open_2026", name: "World Open" },
-  { key: "lightning_cup_2026", name: "Lightning Cup" },
-  { key: "super_league_s6", name: "Super League Season 6" },
-  { key: "world_championship_2026", name: "World Championship" },
+  { key: "super_league_s5", name: "Super League Season 5", status: "historical" },
+  { key: "world_open_2026", name: "World Open", status: "historical" },
+  { key: "lightning_cup_2026", name: "Lightning Cup", status: "historical" },
+  { key: "super_league_s6", name: "Super League Season 6", status: "active" },
+  { key: "world_championship_2026", name: "World Championship", status: "active" },
 ];
+
+function isReplayableTournamentEvent(event) {
+  return replayableEventStatuses.has(String(event?.status || "").toLowerCase()) &&
+    !/qualifiers?/i.test(`${event?.key || ""} ${event?.name || ""} ${event?.phase || ""}`);
+}
+
+function isQualifierTournamentMatch(row) {
+  return /qualifiers?/i.test(
+    `${row?.event_key || ""} ${row?.event_name || ""} ${row?.round_label || ""}`
+  );
+}
+
+function replayableEvents() {
+  return eventOrder.filter(isReplayableTournamentEvent);
+}
 
 const worldOpenRounds = [
   { key: "r1", label: "First Round", matchups: "C2:F33", matchSize: 32, showFlag: "F1:F1" },
@@ -772,8 +788,8 @@ async function collectTournamentMatches(supabase) {
   ]);
 
   const results = [];
-  for (let eventIndex = 0; eventIndex < eventOrder.length; eventIndex += 1) {
-    const event = eventOrder[eventIndex];
+  for (const event of replayableEvents()) {
+    const eventIndex = eventOrder.indexOf(event);
     console.log(`Fetching ${event.name}`);
     if (event.key === "super_league_s5") {
       results.push(await fetchSuperLeagueEvent(5, event, eventIndex, superLeagueIdentityMap));
@@ -795,7 +811,7 @@ async function collectTournamentMatches(supabase) {
 }
 
 async function upsertTournamentMatches(supabase, rows) {
-  for (const event of eventOrder) {
+  for (const event of replayableEvents()) {
     const { error } = await supabase
       .from("internal_tournament_matches")
       .delete()
@@ -836,7 +852,7 @@ async function loadStoredTournamentMatches(supabase) {
   while (true) {
     const { data, error } = await supabase
       .from("internal_tournament_matches")
-      .select("match_hash,event_key,event_name,event_order,match_order,timestamp_ms,played_at,raw_match")
+      .select("match_hash,event_key,event_name,event_order,match_order,round_label,timestamp_ms,played_at,raw_match")
       .order("event_order", { ascending: true })
       .order("match_order", { ascending: true })
       .range(from, from + pageSize - 1);
@@ -845,7 +861,7 @@ async function loadStoredTournamentMatches(supabase) {
     if (!data || data.length < pageSize) break;
     from += pageSize;
   }
-  return rows.map((row) => ({
+  return rows.filter((row) => !isQualifierTournamentMatch(row)).map((row) => ({
     match_hash: row.match_hash,
     season: row.event_order,
     timestamp_ms: row.timestamp_ms,
@@ -884,6 +900,7 @@ async function replayStoredTournamentMatches(options) {
     reliabilityBasis: "weighted_matches",
   });
 
+  const eligibleEvents = replayableEvents();
   const { data: runRow, error: runError } = await supabase
     .from("internal_tournament_gpi_runs")
     .insert({
@@ -891,8 +908,8 @@ async function replayStoredTournamentMatches(options) {
       model: "flat_pl",
       base_rating: options.baseRating,
       rating_scale: options.ratingScale,
-      event_start: eventOrder[0].key,
-      event_end: eventOrder[eventOrder.length - 1].key,
+      event_start: eligibleEvents[0].key,
+      event_end: eligibleEvents[eligibleEvents.length - 1].key,
       match_count: replay.matchCount,
       player_count: replay.finalRatings.length,
       latest_match_at: replay.latestTimestampMs
@@ -900,7 +917,7 @@ async function replayStoredTournamentMatches(options) {
         : null,
       config: {
         model: "flat_pl",
-        event_order: eventOrder,
+        event_order: eligibleEvents,
         rating_formula: "flat-weighted full-history Plackett-Luce tournament rating",
         recency_weighting: { mode: "none", basis: "flat_all_tournament_history" },
         match_weight_multiplier: tournamentMatchWeightMultiplier,
@@ -1016,6 +1033,8 @@ module.exports = {
   buildLightningMatchesFromRows,
   buildWorldChampionshipMatchesFromRows,
   defaultTournamentPlShrinkageMatches,
+  isQualifierTournamentMatch,
+  isReplayableTournamentEvent,
   normalizeAliasKey,
   normalizeDiscordId,
   parseSuperLeagueScheduleRows,
