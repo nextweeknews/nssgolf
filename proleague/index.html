@@ -431,6 +431,14 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .weekly-header-row.all-stars-grid,
+    .weekly-entry.all-stars-grid{
+      grid-template-columns: var(--wk-rank-col) 1fr repeat(4, var(--wk-round-col)) var(--wk-score-col);
+    }
+    .all-stars-player{
+      background: linear-gradient(90deg, #8c52ff40, #5ce1e640) !important;
+    }
+
     /* Collapsible roster / stats */
     .roster-wrap{
       margin-top: 4px;
@@ -1688,6 +1696,10 @@
       .weekly-header-row, .weekly-entry{
         grid-template-columns: var(--wk-rank-col) 1fr var(--wk-score-col);
       }
+      .weekly-header-row.all-stars-grid,
+      .weekly-entry.all-stars-grid{
+        grid-template-columns: var(--wk-rank-col) 1fr var(--wk-score-col);
+      }
 
       /* Champ tighter on mobile too */
       #champView{
@@ -1820,14 +1832,14 @@
 
         <div id="playersView" class="card">
           <div class="card-head">
-            <h2 class="h2">Player Rankings</h2>
+            <h2 id="playerRankingsTitle" class="h2">Player Rankings</h2>
             <div class="search">
               <span>⌕</span>
               <input id="playerSearch" type="text" placeholder="Search…" />
             </div>
           </div>
 
-          <div class="header-row">
+          <div id="playersHeader" class="header-row">
             <span>Rank</span>
             <span>Player</span>
             <span>Score</span>
@@ -1885,6 +1897,7 @@
   </div>
 
   <script type="module">
+    import { normalizeAllStars } from "./all-stars.mjs";
     import {
       SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
       SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
@@ -1893,6 +1906,9 @@
 
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
+    const ALL_STARS_SEASON = "2026-all-stars";
+    const ALL_STARS_LABEL = "2026 All-Stars";
+    const ALL_STARS_RANGE = "B3:G35";
 
     // ---------------- Manual initial period (page-load default) ----------------
     // If enabled, this is used on first load *unless URL query params are present*.
@@ -2249,6 +2265,11 @@
 
     const teamsList   = document.getElementById("teamsList");
     const playersList = document.getElementById("playersList");
+    const playersView = document.getElementById("playersView");
+    const playersHeader = document.getElementById("playersHeader");
+    const playerRankingsTitle = document.getElementById("playerRankingsTitle");
+    const teamsView = document.getElementById("teamsView");
+    const weeklyView = document.getElementById("weeklyView");
     const weeklyCards = document.getElementById("weeklyCards");
     const playerSearch= document.getElementById("playerSearch");
 
@@ -2296,7 +2317,12 @@
     let AVAILABLE_SEASONS = [1,2,3,4,5];
     let STAGE_DATA_BY_SEASON = new Map();
 
+    function isAllStarsSeason(season){
+      return String(season) === ALL_STARS_SEASON;
+    }
+
     function currentSelectedSeason(){
+      if (isAllStarsSeason(seasonSelect.value)) return ALL_STARS_SEASON;
       const n = Number(seasonSelect.value);
       return Number.isFinite(n) ? n : DETECTED_CURRENT_SEASON;
     }
@@ -2464,6 +2490,37 @@
         return wrap;
       }
 
+      if (isAllStarsSeason(currentSelectedSeason())){
+        const scroll = document.createElement("div");
+        scroll.className = "roster-scroll";
+
+        const table = document.createElement("table");
+        table.className = "roster-table";
+        table.innerHTML = `
+          <colgroup>
+            <col class="c-stage">
+            <col class="c-best"><col class="c-best">
+            <col class="c-week"><col class="c-week">
+            <col class="c-round"><col class="c-round"><col class="c-round"><col class="c-round">
+          </colgroup>
+          <thead><tr>
+            <th>Total</th><th>1st</th><th>2nd</th>
+            <th>WK1</th><th class="sep-right">WK2</th>
+            <th>1-1</th><th class="sep-right">1-2</th>
+            <th>2-1</th><th>2-2</th>
+          </tr></thead>
+          <tbody><tr>
+            <td class="stageScore">${escapeHtml(fmtScore(stat.stageScore))}</td>
+            ${(stat.best || [null, null]).map(v => `<td class="counted">${escapeHtml(fmtScore(v))}</td>`).join("")}
+            ${(stat.weekTotals || [null, null]).map((v, i) => `<td class="${i === 1 ? "sep-right" : ""}">${escapeHtml(fmtScore(v))}</td>`).join("")}
+            ${(stat.rounds || [null, null, null, null]).map((v, i) => `<td class="${stat.countedRoundIndices.includes(i) ? "counted " : ""}${i === 1 ? "sep-right" : ""}">${escapeHtml(fmtScore(v))}</td>`).join("")}
+          </tr></tbody>
+        `;
+        scroll.appendChild(table);
+        wrap.appendChild(scroll);
+        return wrap;
+      }
+
       const scroll = document.createElement("div");
       scroll.className = "roster-scroll";
 
@@ -2576,8 +2633,15 @@
     }
 
     function renderPlayers(){
+      const allStars = isAllStarsSeason(currentSelectedSeason());
       const q = playerSearch.value.trim().toLowerCase();
       playersList.innerHTML = "";
+
+      playerRankingsTitle.textContent = allStars ? ALL_STARS_LABEL : "Player Rankings";
+      playersHeader.className = allStars ? "weekly-header-row all-stars-grid" : "header-row";
+      playersHeader.innerHTML = allStars
+        ? `<span>Rank</span><span>Player</span><span class="wk-hide-mobile">1-1</span><span class="wk-hide-mobile">1-2</span><span class="wk-hide-mobile">2-1</span><span class="wk-hide-mobile">2-2</span><span>Score</span>`
+        : `<span>Rank</span><span>Player</span><span>Score</span>`;
 
       const view = playerStandings.filter(p=>{
         if(!q) return true;
@@ -2591,7 +2655,7 @@
 
       view.forEach(p=>{
         const row = document.createElement("div");
-        row.className = "entry";
+        row.className = allStars ? "weekly-entry all-stars-grid" : "entry";
 
         const teamName = playerTeamByName.get(p.name) || null;
         const style = teamName ? (getTeamStyle(teamName) || {}) : null;
@@ -2600,12 +2664,12 @@
 
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "team-cell";
+        btn.className = `team-cell${allStars ? " all-stars-player" : ""}`;
         btn.setAttribute("data-player", p.name);
-        btn.style.background = bg;
+        if (!allStars) btn.style.background = bg;
         btn.style.color = fg;
 
-        const logoHtml = teamName
+        const logoHtml = teamName && !allStars
           ? `
             <img class="team-logo"
                  src="${escapeHtml(teamLogoSrc(teamName))}"
@@ -2617,17 +2681,24 @@
           : "";
 
         btn.innerHTML = `
-          <span class="team-logo-slot">${logoHtml}</span>
+          ${allStars ? "" : `<span class="team-logo-slot">${logoHtml}</span>`}
           <span class="name-text">${escapeHtml(p.displayName)}</span>
         `;
 
-        const top10Class = (Number(p.rank) <= 10) ? " top10bg" : "";
+        const top10Class = (!allStars && Number(p.rank) <= 10) ? " top10bg" : "";
 
-        row.innerHTML = `
-          <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
-          <div id="playerHost-${p.slug}"></div>
-          <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
-        `;
+        row.innerHTML = allStars
+          ? `
+            <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
+            <div id="playerHost-${p.slug}"></div>
+            ${(p.rounds || []).map(v => `<div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(v))}</div>`).join("")}
+            <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+          `
+          : `
+            <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
+            <div id="playerHost-${p.slug}"></div>
+            <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
+          `;
         row.querySelector(`#playerHost-${p.slug}`).replaceWith(btn);
         playersList.appendChild(row);
 
@@ -3440,10 +3511,21 @@
         opt.value = String(s);
         opt.textContent = `Season ${s}`;
         seasonSelect.appendChild(opt);
+        if (s === 7){
+          const allStars = document.createElement("option");
+          allStars.value = ALL_STARS_SEASON;
+          allStars.textContent = ALL_STARS_LABEL;
+          seasonSelect.appendChild(allStars);
+        }
       }
     }
 
     function applyStageDropdownForSeason(seasonNum, resetIfInvalid){
+      if (isAllStarsSeason(seasonNum)){
+        stageWrap.classList.add("hidden");
+        stageSelect.innerHTML = "";
+        return;
+      }
       const s = Number(seasonNum);
       if (!isStagedSeason(s)){
         stageWrap.classList.add("hidden");
@@ -4084,10 +4166,14 @@
       try{
         const seasonNum = currentSelectedSeason();
         const stageVal = currentSelectedStage();
+        const allStars = isAllStarsSeason(seasonNum);
         const isChamp = (stageVal === "championship" && isStagedSeason(seasonNum));
 
         normalStack.classList.toggle("hidden", isChamp);
         champView.classList.toggle("hidden", !isChamp);
+        teamsView.classList.toggle("hidden", allStars);
+        weeklyView.classList.toggle("hidden", allStars);
+        playersView.classList.toggle("hidden", isChamp);
 
         if (isChamp){
           const ch = await getChampionshipData(seasonNum).catch(()=>null);
@@ -4105,6 +4191,18 @@
           champChampionName = ch?.championName || "";
 
           renderChampionship();
+
+          statusCard.classList.add("hidden");
+          contentEl.classList.remove("hidden");
+          return;
+        }
+
+        if (allStars){
+          const rows = await fetchRange(`'${ALL_STARS_LABEL}'!${ALL_STARS_RANGE}`);
+          playerStandings = normalizeAllStars(rows).map(p => ({ ...p, slug: slugify(p.name) }));
+          playerStatsByName = new Map(playerStandings.map(p => [p.name, p]));
+          playerTeamByName = new Map();
+          renderPlayers();
 
           statusCard.classList.add("hidden");
           contentEl.classList.remove("hidden");
@@ -4195,10 +4293,11 @@
       buildSeasonDropdown();
 
       const params = new URLSearchParams(location.search);
-      const seasonParam = Number(params.get("season"));
+      const seasonParamRaw = params.get("season") || "";
+      const seasonParam = isAllStarsSeason(seasonParamRaw) ? ALL_STARS_SEASON : Number(seasonParamRaw);
       const stageParamRaw = (params.get("stage") || "").toLowerCase();
 
-      const hasUrlSeason = Number.isFinite(seasonParam) && AVAILABLE_SEASONS.includes(seasonParam);
+      const hasUrlSeason = isAllStarsSeason(seasonParam) || (Number.isFinite(seasonParam) && AVAILABLE_SEASONS.includes(seasonParam));
       const hasUrlStage = !!stageParamRaw;
 
       let seasonInit = DETECTED_CURRENT_SEASON;
