@@ -60,9 +60,9 @@ if (typeof process !== "undefined" && decodeURIComponent(new URL(import.meta.url
     ["Two", "0"],
     ["Tie", "-45", "-20", "-25"],
     ["Solo", "-45", "-45"],
-    ["Best", "-60", "-20", "-30", "-10", "-30"],
+    ["Best", "-60", "-30", "-30", "-30", "-10"],
   ]);
   if (result.map(({ name, rank, score }) => `${name}:${rank}:${score}`).join("|") !== "Best:1:-60|One:2:-45|Tie:2:-45|Solo:2:-45|Two:5:0") throw new Error("All-Stars ranking check failed");
-  if (result[0].best.join(",") !== "-30,-30" || result[0].weekTotals.join(",") !== "-50,-40") throw new Error("All-Stars score check failed");
+  if (result[0].best.join(",") !== "-30,-30" || result[0].weekTotals.join(",") !== "-60,-40" || result[0].countedRoundIndices.join(",") !== "0,1") throw new Error("All-Stars score check failed");
   console.log("All-Stars checks passed");
 }

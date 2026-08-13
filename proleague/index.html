@@ -437,6 +437,13 @@
     }
     .all-stars-player{
       background: linear-gradient(90deg, #8c52ff40, #5ce1e640) !important;
+      border-right: 1px solid #5ce1e660 !important;
+    }
+    .weekly-round.all-stars-counted{
+      background: #5ce1e638;
+    }
+    @media (min-width: 761px){
+      .all-stars-mobile-stats{ display:none !important; }
     }
 
     /* Collapsible roster / stats */
@@ -2491,6 +2498,7 @@
       }
 
       if (isAllStarsSeason(currentSelectedSeason())){
+        wrap.classList.add("all-stars-mobile-stats");
         const scroll = document.createElement("div");
         scroll.className = "roster-scroll";
 
@@ -2634,10 +2642,11 @@
 
     function renderPlayers(){
       const allStars = isAllStarsSeason(currentSelectedSeason());
-      const q = playerSearch.value.trim().toLowerCase();
+      const q = allStars ? "" : playerSearch.value.trim().toLowerCase();
       playersList.innerHTML = "";
 
       playerRankingsTitle.textContent = allStars ? ALL_STARS_LABEL : "Player Rankings";
+      playerSearch.closest(".search").classList.toggle("hidden", allStars);
       playersHeader.className = allStars ? "weekly-header-row all-stars-grid" : "header-row";
       playersHeader.innerHTML = allStars
         ? `<span>Rank</span><span>Player</span><span class="wk-hide-mobile">1-1</span><span class="wk-hide-mobile">1-2</span><span class="wk-hide-mobile">2-1</span><span class="wk-hide-mobile">2-2</span><span>Score</span>`
@@ -2691,7 +2700,7 @@
           ? `
             <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
             <div id="playerHost-${p.slug}"></div>
-            ${(p.rounds || []).map(v => `<div class="weekly-round wk-hide-mobile">${escapeHtml(fmtScore(v))}</div>`).join("")}
+            ${(p.rounds || []).map((v, i) => `<div class="weekly-round wk-hide-mobile${p.countedRoundIndices.includes(i) ? " all-stars-counted" : ""}">${escapeHtml(fmtScore(v))}</div>`).join("")}
             <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
           `
           : `
@@ -3226,6 +3235,11 @@
       if(!btn) return;
       const playerName = btn.getAttribute("data-player");
       if(!playerName) return;
+
+      if (isAllStarsSeason(currentSelectedSeason()) && !window.matchMedia("(max-width: 760px)").matches){
+        openPlayerModal(playerName);
+        return;
+      }
 
       expandedPlayers.has(playerName) ? expandedPlayers.delete(playerName) : expandedPlayers.add(playerName);
       renderPlayers();
