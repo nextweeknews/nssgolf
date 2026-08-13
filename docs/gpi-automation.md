@@ -11,14 +11,19 @@ The `Internal Ranked League` GitHub Actions workflow publishes a complete Golf P
 5. Fetch every tournament in `bot/tournament-gpi.js` whose status is `active` or `historical`. Events or rounds containing `qualifier` or `qualifiers` are excluded.
 6. Replay the complete eligible tournament history into a new immutable tournament PL run.
 7. Replay the complete stored ranked Elo history last.
+8. Combine the newest ranked and tournament runs, save every display-ready GPI row, and atomically publish that run with `model = 'combined'`.
 
-The final Elo run is the atomic completion marker for the snapshot. The static site finds the latest Elo marker, then selects the newest ranked and tournament runs created at or before that marker. If a workflow fails before the final step, visitors continue to see the preceding complete snapshot rather than a mixture of old and new results.
+The combined run is the public snapshot. It remains marked `combined_building` while its rating rows are inserted and changes to `combined` only after every row succeeds. If a workflow fails before that change, visitors continue to see the preceding complete snapshot rather than a mixture of old and new results.
 
-The previous Elo marker identifies the comparison snapshot. The homepage and all GPI tables calculate rank movement as `previous rank - current rank`; positive movement uses the green Lucide up arrow and negative movement uses the red Lucide down arrow. New and unchanged players have no movement indicator.
+The previous combined run identifies the comparison snapshot. The homepage and all GPI tables calculate rank movement as `previous rank - current rank`; positive movement uses the green Lucide up arrow, negative movement uses the red Lucide down arrow, and unchanged or new players show a gray dash.
+
+The GPI page queries only the selected combined run and requests one 100-row range at a time. It fetches previous ranks only for those 100 player IDs. Loaded snapshot/page combinations are cached in memory for immediate back-navigation; the cache disappears with the browser page session, so a new visit always checks Supabase. The homepage reads the latest two combined runs and at most 100 rows from each to render its top-25 preview and deltas.
 
 ## First run and manual recovery
 
-Before the first automated refresh, run `snapshot-current` once. It replays Elo without fetching data, creating a baseline marker around the GPI runs already in Supabase. Then run `weekly-gpi` to fetch and publish the new snapshot. Those two markers allow the site to show the first rank deltas.
+Before the first automated refresh, run `snapshot-current` once. It replays Elo without fetching data and publishes a baseline combined snapshot around the GPI runs already in Supabase. Then run `weekly-gpi` to fetch and publish the new snapshot. Those two snapshots allow the site to show the first rank deltas.
+
+For existing Elo markers that predate combined snapshot storage, run the `snapshot-combined` workflow option. It publishes display-ready combined snapshots for the two newest markers without fetching or replaying any matches.
 
 If a weekly run fails, fix the source or credential issue and rerun `weekly-gpi`. Failed partial replays are harmless because the site does not adopt them until the final Elo marker exists.
 
@@ -48,4 +53,4 @@ npm run test:internal-ranked
 npm run test:tournament-gpi
 ```
 
-To inspect a production run, open the `Internal Ranked League` workflow and confirm that the final `Replay Elo history and publish the complete snapshot marker` step succeeded.
+To inspect a production run, open the `Internal Ranked League` workflow and confirm that the final `Replay Elo history and publish the complete GPI snapshot` step succeeded.

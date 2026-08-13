@@ -30,6 +30,7 @@ const {
   replayElo,
   validateDescendingMatches,
 } = require("./internal-ranked-core");
+const { buildCombinedGpiRatings } = require("./combined-gpi");
 
 const defaultTeamUpApiBaseUrl = "https://api.teamupgg.com/v1";
 const defaultTeamUpClientId = "DISCORD|1069003073311211601";
@@ -47,15 +48,16 @@ Usage:
   node bot/internal-ranked.js replay-nps [options]
   node bot/internal-ranked.js replay-oawp [options]
   node bot/internal-ranked.js replay-pl [options]
+  node bot/internal-ranked.js publish-combined
   node bot/internal-ranked.js sync [options]
   node bot/internal-ranked.js sync-nps [options]
   node bot/internal-ranked.js sync-oawp [options]
   node bot/internal-ranked.js sync-pl [options]
 
 Commands:
-  fetch    Incrementally pull TeamUp Ranked League matches since the newest
-           stored match, then fetch any missing seasons through the configured
-           current season. Validate, dedupe, and upsert valid matches.
+  fetch    Incrementally pull TeamUp Ranked League matches for the configured
+           current season since its newest stored match. Validate, dedupe, and
+           upsert valid matches.
   replay   Recalculate internal Ranked League Elo from stored matches and
            write a new Elo run with final ratings and per-match history.
   replay-nps
@@ -67,6 +69,9 @@ Commands:
   replay-pl
            Recalculate NSS GPI from stored matches using full-history
            Plackett-Luce ratings with lobby-size weighting.
+  publish-combined
+           Publish combined GPI snapshots for the two newest Elo snapshot
+           markers without replaying or refetching matches.
   sync     Run fetch, then replay.
   sync-nps Run fetch, then replay-nps.
   sync-oawp
@@ -562,6 +567,172 @@ async function insertReplayRows(supabase, tableName, rows, context) {
   }
 }
 
+async function loadAllRunRows(supabase, tableName, select, runId) {
+  const rows = [];
+  for (let from = 0;; from += 1000) {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select(select)
+      .eq("run_id", runId)
+      .order("rank", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw new Error(`${tableName} lookup failed: ${error.message}`);
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) return rows;
+  }
+}
+
+async function loadTournamentMatchesThrough(supabase, latestMatchAt) {
+  const rows = [];
+  const cutoffMs = Date.parse(latestMatchAt);
+  for (let from = 0;; from += 1000) {
+    let query = supabase
+      .from("internal_tournament_matches")
+      .select("player_a_discord_user_id,player_b_discord_user_id,winner_discord_user_id");
+    if (Number.isFinite(cutoffMs)) query = query.lte("timestamp_ms", cutoffMs);
+    const { data, error } = await query
+      .order("timestamp_ms", { ascending: true })
+      .order("match_hash", { ascending: true })
+      .range(from, from + 999);
+    if (error) throw new Error(`Tournament match lookup failed: ${error.message}`);
+    rows.push(...(data || []));
+    if (!data || data.length < 1000) return rows;
+  }
+}
+
+async function publishCombinedGpiSnapshot(supabase, snapshotAt) {
+  const [rankedRunResult, tournamentRunResult] = await Promise.all([
+    supabase
+      .from("internal_ranked_gpi_runs")
+      .select("id,calculation_version,base_rating,season_start,season_end,match_count")
+      .eq("model", "opponent_aware_weighted_pairwise")
+      .lte("created_at", snapshotAt)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from("internal_tournament_gpi_runs")
+      .select("id,base_rating,match_count,latest_match_at")
+      .eq("model", "flat_pl")
+      .lte("created_at", snapshotAt)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single(),
+  ]);
+  if (rankedRunResult.error) throw new Error(`Ranked GPI run lookup failed: ${rankedRunResult.error.message}`);
+  if (tournamentRunResult.error) throw new Error(`Tournament GPI run lookup failed: ${tournamentRunResult.error.message}`);
+  const rankedRun = rankedRunResult.data;
+  const tournamentRun = tournamentRunResult.data;
+  const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
+    loadAllRunRows(
+      supabase,
+      "internal_ranked_gpi_ratings",
+      "discord_user_id,display_name,rating,matches_played",
+      rankedRun.id
+    ),
+    loadAllRunRows(
+      supabase,
+      "internal_tournament_gpi_ratings",
+      "discord_user_id,display_name,rating,raw_rating,matches_played,weighted_matches",
+      tournamentRun.id
+    ),
+    loadTournamentMatchesThrough(supabase, tournamentRun.latest_match_at),
+  ]);
+  const ratings = buildCombinedGpiRatings({
+    rankedRatings,
+    tournamentRatings,
+    tournamentMatches,
+    tournamentRun,
+  });
+  const { data: run, error: runError } = await supabase
+    .from("internal_ranked_gpi_runs")
+    .insert({
+      calculation_version: `${rankedRun.calculation_version}+tournament-flat-pl`,
+      model: "combined_building",
+      base_rating: rankedRun.base_rating,
+      rating_scale: null,
+      season_start: rankedRun.season_start,
+      season_end: rankedRun.season_end,
+      match_count: (Number(rankedRun.match_count) || 0) + (Number(tournamentRun.match_count) || 0),
+      player_count: ratings.length,
+      latest_match_at: snapshotAt,
+      created_at: snapshotAt,
+      config: {
+        model: "combined",
+        ranked_run_id: rankedRun.id,
+        tournament_run_id: tournamentRun.id,
+        snapshot_at: snapshotAt,
+      },
+    })
+    .select("id")
+    .single();
+  if (runError) throw new Error(`Combined GPI run insert failed: ${runError.message}`);
+  await insertReplayRows(
+    supabase,
+    "internal_ranked_gpi_ratings",
+    ratings.map((row) => ({
+      run_id: run.id,
+      discord_user_id: row.discord_user_id,
+      display_name: row.display_name,
+      rating: roundRating(row.rating),
+      raw_rating: roundRating(row.ranked_rating),
+      full_history_rating: row.tournament_delta == null ? null : roundRating(row.tournament_delta),
+      potential_rating: row.tournament_rating == null ? null : roundRating(row.tournament_rating),
+      recent_form_rating: row.tournament_strength == null ? null : roundRating(row.tournament_strength),
+      ability: 0,
+      skill_log: 0,
+      reliability: roundPercentage(row.tournament_reliability),
+      matches_played: row.ranked_matches,
+      weighted_matches: roundMetric(row.tournament_weighted_matches),
+      average_match_weight: row.tournament_matches,
+      pairwise_wins: 0,
+      pairwise_losses: 0,
+      pairwise_ties: 0,
+      pairwise_games: 0,
+      first_place_finishes: row.ranked_provisional ? 1 : 0,
+      outcome_win_percentage: 0,
+      match_win_percentage: 0,
+      placement_score_average: 0,
+      weighted_placement_score: 0,
+      rank: row.rank,
+    })),
+    "Combined GPI rating insert failed"
+  );
+  const { error: publishError } = await supabase
+    .from("internal_ranked_gpi_runs")
+    .update({ model: "combined" })
+    .eq("id", run.id);
+  if (publishError) throw new Error(`Combined GPI publish failed: ${publishError.message}`);
+  console.log(`Combined GPI snapshot complete: run ${run.id}, ${ratings.length} players.`);
+  return run.id;
+}
+
+async function publishRecentCombinedGpiSnapshots() {
+  const supabase = createSupabaseServiceClient();
+  const { data: markers, error } = await supabase
+    .from("internal_ranked_elo_runs")
+    .select("created_at")
+    .order("created_at", { ascending: false })
+    .limit(2);
+  if (error) throw new Error(`Snapshot marker lookup failed: ${error.message}`);
+  if (!markers?.length) throw new Error("No Elo snapshot markers are available.");
+
+  for (const marker of [...markers].reverse()) {
+    const { data: existing, error: existingError } = await supabase
+      .from("internal_ranked_gpi_runs")
+      .select("id")
+      .eq("model", "combined")
+      .eq("created_at", marker.created_at)
+      .maybeSingle();
+    if (existingError) throw new Error(`Combined snapshot lookup failed: ${existingError.message}`);
+    if (existing) {
+      console.log(`Combined GPI snapshot already exists: run ${existing.id}.`);
+      continue;
+    }
+    await publishCombinedGpiSnapshot(supabase, marker.created_at);
+  }
+}
+
 async function replayStoredMatches(options) {
   options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
@@ -655,6 +826,13 @@ async function replayStoredMatches(options) {
   console.log(
     `Replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players, ${matchResultRows.length} player-match rows.`
   );
+  const { data: snapshotRun, error: snapshotError } = await supabase
+    .from("internal_ranked_elo_runs")
+    .select("created_at")
+    .eq("id", runId)
+    .single();
+  if (snapshotError) throw new Error(`Snapshot marker lookup failed: ${snapshotError.message}`);
+  await publishCombinedGpiSnapshot(supabase, snapshotRun.created_at);
   console.log("Top 10:");
   for (const row of ratingRows.slice(0, 10)) {
     console.log(
@@ -1171,6 +1349,8 @@ async function main() {
     await replayStoredMatchesOpponentAwareWeightedPairwise(options);
   } else if (command === "replay-pl") {
     await replayStoredMatchesPlackettLuce(options);
+  } else if (command === "publish-combined") {
+    await publishRecentCombinedGpiSnapshots();
   } else if (command === "sync") {
     await fetchAndUpsert(options);
     await replayStoredMatches(options);

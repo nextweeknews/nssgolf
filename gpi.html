@@ -360,6 +360,7 @@
 
     .gpi-tabs{
       display:flex;
+      align-items:flex-end;
       gap:8px;
       margin:0 0 14px;
       border-bottom:1px solid var(--line);
@@ -382,6 +383,46 @@
       color:var(--text);
       border-bottom-color:var(--accent);
     }
+
+    .snapshot-nav{
+      width:218px;
+      min-width:218px;
+      display:grid;
+      grid-template-columns:26px minmax(0, 1fr) 26px;
+      align-items:center;
+      margin-left:auto;
+      padding-bottom:10px;
+    }
+
+    .snapshot-date{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:850;
+      text-align:center;
+      white-space:nowrap;
+    }
+
+    .snapshot-button{
+      width:26px;
+      height:26px;
+      display:grid;
+      place-items:center;
+      border:0;
+      border-radius:6px;
+      background:transparent;
+      color:var(--muted);
+      cursor:pointer;
+    }
+
+    .snapshot-button:hover:not(:disabled),
+    .snapshot-button:focus-visible{
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      outline:none;
+    }
+
+    .snapshot-button:disabled{ opacity:.24; cursor:default; }
+    .snapshot-button svg{ width:16px; height:16px; }
 
     .pager{
       display:flex;
@@ -1490,6 +1531,23 @@
         flex-direction:column;
       }
 
+      .gpi-tabs{
+        overflow-x:auto;
+      }
+
+      .gpi-tab{
+        flex:0 0 auto;
+      }
+
+      .snapshot-nav{
+        position:sticky;
+        right:0;
+        flex:0 0 188px;
+        width:188px;
+        min-width:188px;
+        background:var(--bg);
+      }
+
       .leaderboard-search{
         width:100%;
       }
@@ -1789,6 +1847,15 @@
       <button class="gpi-tab" type="button" role="tab" data-view="tournament" aria-selected="false">Tournaments</button>
       <button class="gpi-tab" type="button" role="tab" data-view="prediction" aria-selected="false">Prediction Center</button>
       <button class="gpi-tab" type="button" role="tab" data-view="about" aria-selected="false">About GPI</button>
+      <div class="snapshot-nav" aria-label="GPI snapshot date navigation">
+        <button id="olderSnapshot" class="snapshot-button" type="button" aria-label="View previous GPI week">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+        <time id="snapshotDate" class="snapshot-date">Loading...</time>
+        <button id="newerSnapshot" class="snapshot-button" type="button" aria-label="View next GPI week">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+      </div>
     </div>
 
     <div id="status" class="status">Loading...</div>
@@ -2041,6 +2108,9 @@
     const leaderboardSearchClearEl = document.getElementById("leaderboardSearchClear");
     const prevPageEl = document.getElementById("prevPage");
     const nextPageEl = document.getElementById("nextPage");
+    const olderSnapshotEl = document.getElementById("olderSnapshot");
+    const newerSnapshotEl = document.getElementById("newerSnapshot");
+    const snapshotDateEl = document.getElementById("snapshotDate");
     const playerModalEl = document.getElementById("playerModal");
     const modalPlayerHeadEl = document.getElementById("modalPlayerHead");
     const modalBodyEl = document.getElementById("modalBody");
@@ -2107,9 +2177,14 @@
         subtitle: "Combined NSS GPI rating",
         minMatches: 25,
         noRunMessage: "No combined NSS GPI is available yet. Run the Ranked OAWP replay and Tournament GPI replay first.",
+        runTable: "internal_ranked_gpi_runs",
+        ratingTable: "internal_ranked_gpi_ratings",
+        model: "combined",
+        runSelect: "id,calculation_version,model,base_rating,season_start,season_end,match_count,player_count,latest_match_at,config,created_at",
+        ratingsSelect: "discord_user_id,display_name,rating,raw_rating,full_history_rating,potential_rating,recent_form_rating,reliability,matches_played,weighted_matches,average_match_weight,first_place_finishes,rank",
         meta(run){
           return [
-            `${formatInteger((Number(run.ranked.match_count) || 0) + (Number(run.tournament.match_count) || 0))} Matches Tracked`,
+            `${formatInteger(run.match_count)} Matches Tracked`,
           ];
         },
       },
@@ -2176,6 +2251,10 @@
     let predictionSearchRows = [];
     let selectedPredictionPlayers = { a:null, b:null };
     let predictionSeriesGames = 1;
+    let snapshotMarkers = [];
+    let selectedSnapshotIndex = 0;
+    const snapshotPageCache = new Map();
+    let leaderboardPageRequestId = 0;
     const HISTORICAL_GPI_WIN_CURVE = [
       { delta:0, probability:.5 },
       { delta:25, probability:.5 },
@@ -2342,6 +2421,17 @@
       }).format(date);
     }
 
+    function formatSnapshotDate(value){
+      const date = new Date(value);
+      if(Number.isNaN(date.getTime())) return "GPI date unavailable";
+      return new Intl.DateTimeFormat("en-US", {
+        month:"long",
+        day:"numeric",
+        year:"numeric",
+        timeZone:"UTC",
+      }).format(date);
+    }
+
     function formatPercent(value){
       const number = Number(value);
       if(!Number.isFinite(number)) return "";
@@ -2361,13 +2451,32 @@
     }
 
     async function loadSnapshotMarkers(){
+      if(snapshotMarkers.length) return snapshotMarkers;
       const { data, error } = await supabase
-        .from("internal_ranked_elo_runs")
+        .from("internal_ranked_gpi_runs")
         .select("id,created_at")
+        .eq("model", "combined")
         .order("created_at", { ascending:false })
-        .limit(2);
+        .limit(104);
       if(error) throw error;
-      return data || [];
+      snapshotMarkers = data || [];
+      return snapshotMarkers;
+    }
+
+    function selectedSnapshot(){
+      return snapshotMarkers[selectedSnapshotIndex] || null;
+    }
+
+    function comparisonSnapshot(){
+      return snapshotMarkers[selectedSnapshotIndex + 1] || null;
+    }
+
+    function renderSnapshotNavigation(){
+      const snapshot = selectedSnapshot();
+      snapshotDateEl.textContent = snapshot ? formatSnapshotDate(snapshot.created_at) : "No GPI run";
+      snapshotDateEl.dateTime = snapshot?.created_at || "";
+      olderSnapshotEl.disabled = selectedSnapshotIndex >= snapshotMarkers.length - 1;
+      newerSnapshotEl.disabled = selectedSnapshotIndex <= 0;
     }
 
     async function loadLatestRunByModel(model, config = activeConfig(), snapshotCreatedAt = "", fallbackToLatest = true){
@@ -2406,6 +2515,61 @@
       }
 
       return rows;
+    }
+
+    function ratingSortColumn(config, key){
+      if(config.kind === "combined"){
+        return {
+          rank:"rank",
+          rating:"rating",
+          rankedRating:"raw_rating",
+          tournamentDelta:"full_history_rating",
+        }[key] || "rank";
+      }
+      return {
+        rank:"rank",
+        rating:"rating",
+        lifetimeRating:"full_history_rating",
+        peakElo:"potential_rating",
+        recentRating:"recent_form_rating",
+        recentDelta:"recent_form_rating",
+        matches:"matches_played",
+        wins:"pairwise_wins",
+        outcomeWinPct:"outcome_win_percentage",
+        matchWinPct:"match_win_percentage",
+      }[key] || "rank";
+    }
+
+    async function loadRatingsPageForRun(runId, config, page){
+      const queryText = normalizeText(leaderboardSearchInputEl.value);
+      let query = supabase
+        .from(config.ratingTable)
+        .select(config.ratingsSelect, { count:"exact" })
+        .eq("run_id", runId);
+      if(config.kind !== "combined") query = query.gte("matches_played", config.minMatches);
+      if(queryText){
+        query = /^\d+$/.test(queryText)
+          ? query.eq("discord_user_id", queryText)
+          : query.ilike("display_name", `%${queryText.replace(/[%_]/g, "\\$&")}%`);
+      }
+      const column = ratingSortColumn(config, sortState.key);
+      const { data, error, count } = await query
+        .order(column, { ascending:sortState.direction === "asc", nullsFirst:false })
+        .order("discord_user_id", { ascending:true })
+        .range(page * PAGE_SIZE, ((page + 1) * PAGE_SIZE) - 1);
+      if(error) throw error;
+      return { rows:data || [], count:Number(count) || 0 };
+    }
+
+    async function loadPreviousRanks(runId, config, discordIds){
+      if(!runId || !discordIds.length) return [];
+      const { data, error } = await supabase
+        .from(config.ratingTable)
+        .select("discord_user_id,rank")
+        .eq("run_id", runId)
+        .in("discord_user_id", discordIds);
+      if(error) throw error;
+      return data || [];
     }
 
     async function loadTournamentStrengthMatches(latestMatchAt = ""){
@@ -2754,7 +2918,7 @@
       `;
     }
 
-    function buildLeaderboardRows(ratings, membersById){
+    function buildLeaderboardRows(ratings, membersById, { preserveStoredRanks = false } = {}){
       const config = activeConfig();
       const rows = [];
 
@@ -2785,6 +2949,7 @@
           member,
           displayName: memberDisplayName(row, member),
           avatarUrl: memberAvatarUrl(member),
+          storedRank:Number(row.rank) || 0,
           rankNumber: 0,
           rank:"",
           rating,
@@ -2817,7 +2982,53 @@
         left.displayName.localeCompare(right.displayName)
       );
 
-      return applyHiddenStateAndRanks(rows);
+      if(!preserveStoredRanks) return applyHiddenStateAndRanks(rows);
+      rows.forEach((row, index) => {
+        row.hidden = hiddenPlayerIds.has(row.discord_user_id);
+        row.sourceOrder = index;
+        row.rankSortNumber = row.storedRank;
+        row.rankNumber = row.hidden ? 0 : row.storedRank;
+        row.rank = row.hidden ? "" : row.storedRank;
+      });
+      return rows;
+    }
+
+    function buildStoredCombinedRows(ratings, membersById){
+      return ratings.map((row, index) => {
+        const discordId = normalizeDiscordId(row.discord_user_id);
+        const storedRank = Number(row.rank) || 0;
+        const hidden = hiddenPlayerIds.has(discordId);
+        const member = membersById.get(discordId);
+        return {
+          ...row,
+          discord_user_id:discordId,
+          member,
+          displayName:memberDisplayName(row, member),
+          avatarUrl:memberAvatarUrl(member),
+          hidden,
+          sourceOrder:index,
+          rankSortNumber:storedRank,
+          rankNumber:hidden ? 0 : storedRank,
+          rank:hidden ? "" : storedRank,
+          rating:Number(row.rating) || 0,
+          ratingNumber:Number(row.rating) || 0,
+          rankedRating:Number(row.raw_rating) || 0,
+          rankedRatingNumber:Number(row.raw_rating) || 0,
+          rankedRatingProvisional:(Number(row.first_place_finishes) || 0) > 0,
+          rankedRank:0,
+          lifetimeRating:null,
+          potentialRating:null,
+          recentRating:null,
+          tournamentDelta:row.full_history_rating == null ? null : Number(row.full_history_rating),
+          tournamentDeltaNumber:row.full_history_rating == null ? null : Number(row.full_history_rating),
+          tournamentRating:row.potential_rating == null ? null : Number(row.potential_rating),
+          tournamentStrengthOfSchedule:row.recent_form_rating == null ? null : Number(row.recent_form_rating),
+          tournamentReliability:Number(row.reliability) || 0,
+          tournamentMatches:Number(row.average_match_weight) || 0,
+          tournamentWeightedMatches:Number(row.weighted_matches) || 0,
+          matchesNumber:Number(row.matches_played) || 0,
+        };
+      }).filter((row) => row.discord_user_id);
     }
 
     function buildTournamentStrengthOfSchedule(tournamentRatings, tournamentMatches){
@@ -3971,29 +4182,27 @@
       return Number.isFinite(number) && number > 0 ? escapeHtml(number) : blankValue();
     }
 
-    async function ensureCombinedRowsForModal(){
-      if(combinedRowsById.size > 0) return;
-
-      const rankedConfig = VIEW_CONFIG.ranked;
-      const tournamentConfig = VIEW_CONFIG.tournament;
-      const [snapshotMarker] = await loadSnapshotMarkers();
-      const [rankedRun, tournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig, snapshotMarker?.created_at || ""),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, snapshotMarker?.created_at || ""),
-      ]);
-      if(!rankedRun || !tournamentRun) return;
-
-      const [rankedRatings, tournamentRatings, tournamentMatches] = await Promise.all([
-        loadRatingsForRun(rankedRun.id, rankedConfig),
-        loadRatingsForRun(tournamentRun.id, tournamentConfig),
-        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
-      ]);
-      const ids = [
-        ...rankedRatings.map(row => row.discord_user_id),
-        ...tournamentRatings.map(row => row.discord_user_id),
-      ];
-      const membersById = await loadMembers(ids);
-      cacheCombinedRows(buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches));
+    async function ensureCombinedRowsForModal(discordId){
+      if(combinedRowsById.has(discordId)) return;
+      const config = VIEW_CONFIG.gpi;
+      const run = await loadLatestRunByModel(
+        config.model,
+        config,
+        selectedSnapshot()?.created_at || "",
+        false
+      );
+      if(!run) return;
+      const { data, error } = await supabase
+        .from(config.ratingTable)
+        .select(config.ratingsSelect)
+        .eq("run_id", run.id)
+        .eq("discord_user_id", discordId)
+        .maybeSingle();
+      if(error) throw error;
+      if(!data) return;
+      const membersById = await loadMembers([discordId]);
+      const [row] = buildStoredCombinedRows([data], membersById);
+      if(row) combinedRowsById.set(discordId, row);
     }
 
     function fallbackModalRow(row){
@@ -4014,7 +4223,7 @@
 
     async function profileRowForModal(discordId, fallbackRow){
       if(activeConfig().kind !== "combined") {
-        await ensureCombinedRowsForModal();
+        await ensureCombinedRowsForModal(discordId);
       }
       return combinedRowsById.get(discordId) || fallbackModalRow(fallbackRow);
     }
@@ -4130,6 +4339,8 @@
     async function loadPage(){
       const requestId = ++loadRequestId;
       const config = activeConfig();
+      await loadSnapshotMarkers();
+      renderSnapshotNavigation();
       aboutPanelEl.hidden = true;
       predictionPanelEl.hidden = true;
       renderTableHeader();
@@ -4148,11 +4359,10 @@
         return;
       }
 
-      const snapshotMarkers = await loadSnapshotMarkers();
-      const currentSnapshotAt = snapshotMarkers[0]?.created_at || "";
-      const previousSnapshotAt = snapshotMarkers[1]?.created_at || "";
+      const currentSnapshotAt = selectedSnapshot()?.created_at || "";
+      const previousSnapshotAt = comparisonSnapshot()?.created_at || "";
       [latestRun, previousRun] = await Promise.all([
-        loadLatestRunByModel(config.model, config, currentSnapshotAt),
+        loadLatestRunByModel(config.model, config, currentSnapshotAt, false),
         previousSnapshotAt ? loadLatestRunByModel(config.model, config, previousSnapshotAt, false) : null,
       ]);
       if(requestId !== loadRequestId) return;
@@ -4162,8 +4372,6 @@
         return;
       }
 
-      await loadLeaderboardData();
-      if(requestId !== loadRequestId) return;
       await loadLeaderboardPage(0);
       if(requestId !== loadRequestId) return;
       renderRunMeta(latestRun);
@@ -4196,56 +4404,20 @@
     }
 
     async function loadCombinedPage(requestId){
-      const rankedConfig = VIEW_CONFIG.ranked;
-      const tournamentConfig = VIEW_CONFIG.tournament;
-      const snapshotMarkers = await loadSnapshotMarkers();
-      const currentSnapshotAt = snapshotMarkers[0]?.created_at || "";
-      const previousSnapshotAt = snapshotMarkers[1]?.created_at || "";
-      const [rankedRun, tournamentRun, previousRankedRun, previousTournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig, currentSnapshotAt),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, currentSnapshotAt),
-        previousSnapshotAt ? loadLatestRunByModel(rankedConfig.model, rankedConfig, previousSnapshotAt, false) : null,
-        previousSnapshotAt ? loadLatestRunByModel(tournamentConfig.model, tournamentConfig, previousSnapshotAt, false) : null,
+      const config = VIEW_CONFIG.gpi;
+      const currentSnapshotAt = selectedSnapshot()?.created_at || "";
+      const previousSnapshotAt = comparisonSnapshot()?.created_at || "";
+      [latestRun, previousRun] = await Promise.all([
+        loadLatestRunByModel(config.model, config, currentSnapshotAt, false),
+        previousSnapshotAt ? loadLatestRunByModel(config.model, config, previousSnapshotAt, false) : null,
       ]);
       if(requestId !== loadRequestId) return false;
 
-      if(!rankedRun || !tournamentRun){
+      if(!latestRun){
         leaderboardEl.hidden = true;
         setStatus(VIEW_CONFIG.gpi.noRunMessage);
         return false;
       }
-
-      latestRun = { ranked: rankedRun, tournament: tournamentRun };
-      previousRun = previousRankedRun && previousTournamentRun
-        ? { ranked: previousRankedRun, tournament: previousTournamentRun }
-        : null;
-      const [rankedRatings, tournamentRatings, tournamentMatches, previousRankedRatings, previousTournamentRatings, previousTournamentMatches] = await Promise.all([
-        loadRatingsForRun(rankedRun.id, rankedConfig),
-        loadRatingsForRun(tournamentRun.id, tournamentConfig),
-        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
-        previousRankedRun ? loadRatingsForRun(previousRankedRun.id, rankedConfig) : [],
-        previousTournamentRun ? loadRatingsForRun(previousTournamentRun.id, tournamentConfig) : [],
-        previousTournamentRun ? loadTournamentStrengthMatches(previousTournamentRun.latest_match_at) : [],
-      ]);
-      if(requestId !== loadRequestId) return false;
-      const ids = [
-        ...rankedRatings.map(row => row.discord_user_id),
-        ...tournamentRatings.map(row => row.discord_user_id),
-        ...previousRankedRatings.map(row => row.discord_user_id),
-        ...previousTournamentRatings.map(row => row.discord_user_id),
-      ];
-      const membersById = await loadMembers(ids);
-      if(requestId !== loadRequestId) return false;
-      allLeaderboardRows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches);
-      if(previousRun){
-        const currentRun = latestRun;
-        latestRun = previousRun;
-        const previousRows = buildCombinedLeaderboardRows(previousRankedRatings, previousTournamentRatings, membersById, previousTournamentMatches);
-        latestRun = currentRun;
-        applyRankDeltas(allLeaderboardRows, previousRows);
-      }
-      cacheCombinedRows(allLeaderboardRows);
-      totalRatings = allLeaderboardRows.length;
       await loadLeaderboardPage(0);
       if(requestId !== loadRequestId) return false;
       renderRunMeta(latestRun);
@@ -4255,10 +4427,10 @@
     async function loadPredictionRows(){
       const rankedConfig = VIEW_CONFIG.ranked;
       const tournamentConfig = VIEW_CONFIG.tournament;
-      const [snapshotMarker] = await loadSnapshotMarkers();
+      const snapshotMarker = selectedSnapshot();
       const [rankedRun, tournamentRun] = await Promise.all([
-        loadLatestRunByModel(rankedConfig.model, rankedConfig, snapshotMarker?.created_at || ""),
-        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, snapshotMarker?.created_at || ""),
+        loadLatestRunByModel(rankedConfig.model, rankedConfig, snapshotMarker?.created_at || "", false),
+        loadLatestRunByModel(tournamentConfig.model, tournamentConfig, snapshotMarker?.created_at || "", false),
       ]);
 
       if(!rankedRun || !tournamentRun){
@@ -4351,37 +4523,75 @@
       });
     }
 
-    async function loadLeaderboardData(){
-      const config = activeConfig();
-      const [ratings, previousRatings] = await Promise.all([
-        loadRatingsForRun(latestRun.id, config),
-        previousRun ? loadRatingsForRun(previousRun.id, config) : [],
-      ]);
-      const ids = [
-        ...ratings.map(row => row.discord_user_id),
-        ...previousRatings.map(row => row.discord_user_id),
-      ];
-      const membersById = await loadMembers(ids);
-      allLeaderboardRows = buildLeaderboardRows(ratings, membersById);
-      if(previousRun){
-        applyRankDeltas(allLeaderboardRows, buildLeaderboardRows(previousRatings, membersById));
-      }
-      totalRatings = allLeaderboardRows.length;
-      updateLeaderboardSearch();
+    function navigateSnapshot(offset){
+      const nextIndex = Math.max(0, Math.min(snapshotMarkers.length - 1, selectedSnapshotIndex + offset));
+      if(nextIndex === selectedSnapshotIndex) return;
+      selectedSnapshotIndex = nextIndex;
+      latestRun = null;
+      previousRun = null;
+      allLeaderboardRows = [];
+      leaderboardRows = [];
+      combinedRowsById = new Map();
+      predictionRows = [];
+      predictionSearchRows = [];
+      totalRatings = 0;
+      currentPage = 0;
+      leaderboardEl.hidden = true;
+      leaderboardBodyEl.innerHTML = "";
+      renderSnapshotNavigation();
+      setStatus("Loading...");
+      loadPage().catch((error) => {
+        console.error(error);
+        setStatus(`Unable to load GPI snapshot: ${error?.message || "Unknown error"}`, "error");
+      });
     }
 
     async function loadLeaderboardPage(page){
       if(!latestRun) return;
+      const pageRequestId = ++leaderboardPageRequestId;
       currentPage = Math.max(0, page);
       leaderboardEl.hidden = false;
       pageInfoEl.textContent = "Loading rankings...";
       prevPageEl.disabled = true;
       nextPageEl.disabled = true;
-      const sortedRows = sortedLeaderboardRows();
-      totalRatings = sortedRows.length;
-      const from = currentPage * PAGE_SIZE;
-      leaderboardRows = sortedRows.slice(from, from + PAGE_SIZE);
+      const config = activeConfig();
+      const cacheKey = [
+        latestRun.id,
+        previousRun?.id || "",
+        currentView,
+        currentPage,
+        sortState.key,
+        sortState.direction,
+        normalizeText(leaderboardSearchInputEl.value),
+        currentAdminContext.isAdmin ? "admin" : "public",
+      ].join(":");
+      let cached = snapshotPageCache.get(cacheKey);
+      if(!cached){
+        const pageResult = await loadRatingsPageForRun(latestRun.id, config, currentPage);
+        const ids = pageResult.rows.map(row => normalizeDiscordId(row.discord_user_id)).filter(Boolean);
+        const [membersById, previousRatings] = await Promise.all([
+          loadMembers(ids),
+          previousRun ? loadPreviousRanks(previousRun.id, config, ids) : [],
+        ]);
+        const rows = config.kind === "combined"
+          ? buildStoredCombinedRows(pageResult.rows, membersById)
+          : buildLeaderboardRows(pageResult.rows, membersById, { preserveStoredRanks:true });
+        if(previousRun){
+          applyRankDeltas(rows, previousRatings.map(row => ({
+            discord_user_id:row.discord_user_id,
+            rankNumber:Number(row.rank) || 0,
+          })));
+        }
+        cached = { rows, total:pageResult.count };
+        snapshotPageCache.set(cacheKey, cached);
+      }
+      if(pageRequestId !== leaderboardPageRequestId) return;
+      allLeaderboardRows = cached.rows;
+      leaderboardRows = cached.rows.filter(row => currentAdminContext.isAdmin || !row.hidden);
+      totalRatings = cached.total;
+      if(config.kind === "combined") cacheCombinedRows(leaderboardRows);
       renderLeaderboard();
+      updateLeaderboardSearch();
     }
 
     leaderboardHeaderEl.addEventListener("click", (event) => {
@@ -4429,6 +4639,9 @@
         setActiveTab(button.dataset.view);
       });
     });
+
+    olderSnapshotEl.addEventListener("click", () => navigateSnapshot(1));
+    newerSnapshotEl.addEventListener("click", () => navigateSnapshot(-1));
 
     Object.entries(predictionPickers).forEach(([key, picker]) => {
       picker.input.addEventListener("focus", () => {
@@ -4497,6 +4710,7 @@
         }else{
           hiddenPlayerIds.delete(discordId);
         }
+        snapshotPageCache.clear();
         rerankLeaderboardRows();
         updateLeaderboardSearch();
         await loadLeaderboardPage(currentPage);
@@ -4508,6 +4722,7 @@
         }else{
           hiddenPlayerIds.delete(discordId);
         }
+        snapshotPageCache.clear();
         rerankLeaderboardRows();
         updateLeaderboardSearch();
         await loadLeaderboardPage(currentPage);

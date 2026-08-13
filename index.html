@@ -430,6 +430,19 @@
       text-align:center;
     }
 
+    .home-gpi-date{
+      margin:0;
+      padding:9px 10px 8px;
+      border-bottom:1px solid rgba(148,163,184,0.12);
+      color:rgba(156,163,199,0.82);
+      font-size:10px;
+      font-weight:850;
+      letter-spacing:.04em;
+      line-height:1.2;
+      text-align:center;
+      text-transform:uppercase;
+    }
+
     .records-summary-table{
       width: 100%;
       border-collapse: collapse;
@@ -1532,6 +1545,7 @@
 	        <a class="rail-band gpi-band" href="/gpi.html" aria-label="Go to NSS Golf Power Index">
 	          Golf Power Index
 	        </a>
+	        <p class="home-gpi-date" id="homeGpiDate">Latest rankings · Loading...</p>
 	        <ol class="home-gpi-list" id="homeGpiList" aria-label="Top 25 Golf Power Index players">
 	          <li class="rail-empty">Loading GPI...</li>
 	        </ol>
@@ -1569,6 +1583,7 @@
     const playerSearchInput = document.getElementById("playerSearchInput");
     const playerSearchResults = document.getElementById("playerSearchResults");
     const homeGpiList = document.getElementById("homeGpiList");
+    const homeGpiDate = document.getElementById("homeGpiDate");
     const recordsSummaryCells = Array.from(document.querySelectorAll("[data-record-summary]"));
     const homeDiscordInviteEl = document.querySelector(".home-discord-invite");
     const mobileHomeTabsQuery = window.matchMedia("(max-width: 760px)");
@@ -2764,89 +2779,67 @@
     }
 
     async function loadHomeGpiRows(){
-      const rankedRunConfig = {
-        table:"internal_ranked_gpi_runs",
-        model:"opponent_aware_weighted_pairwise",
-        select:"id,model,base_rating,latest_match_at,created_at",
+      const { data:runs, error:runsError } = await supabase
+        .from("internal_ranked_gpi_runs")
+        .select("id,created_at")
+        .eq("model", "combined")
+        .order("created_at", { ascending:false })
+        .limit(2);
+      if(runsError) throw runsError;
+      const currentRun = runs?.[0];
+      const previousRun = runs?.[1];
+      if(!currentRun){
+        if(homeGpiDate) homeGpiDate.textContent = "No published rankings yet";
+        return [];
+      }
+
+      const loadPreview = async (runId) => {
+        if(!runId) return [];
+        const { data, error } = await supabase
+          .from("internal_ranked_gpi_ratings")
+          .select("discord_user_id,display_name,rating,rank")
+          .eq("run_id", runId)
+          .order("rank", { ascending:true })
+          .range(0, 99);
+        if(error) throw error;
+        return data || [];
       };
-      const tournamentRunConfig = {
-        table:"internal_tournament_gpi_runs",
-        model:"flat_pl",
-        select:"id,model,base_rating,latest_match_at,created_at",
-      };
-      const snapshotMarkers = await loadGpiSnapshotMarkers();
-      const currentSnapshotAt = snapshotMarkers[0]?.created_at || "";
-      const previousSnapshotAt = snapshotMarkers[1]?.created_at || "";
-      const [rankedRun, tournamentRun, previousRankedRun, previousTournamentRun, hiddenIds] = await Promise.all([
-        loadLatestGpiRun(rankedRunConfig, currentSnapshotAt),
-        loadLatestGpiRun(tournamentRunConfig, currentSnapshotAt),
-        previousSnapshotAt ? loadLatestGpiRun(rankedRunConfig, previousSnapshotAt, false) : null,
-        previousSnapshotAt ? loadLatestGpiRun(tournamentRunConfig, previousSnapshotAt, false) : null,
+      const [currentRatings, previousRatings, hiddenIds] = await Promise.all([
+        loadPreview(currentRun.id),
+        loadPreview(previousRun?.id),
         loadHiddenGpiPlayerIds(),
       ]);
-      if(!rankedRun || !tournamentRun) return [];
-
-      const [rankedRatings, tournamentRatings, tournamentMatches, previousRankedRatings, previousTournamentRatings, previousTournamentMatches] = await Promise.all([
-        loadGpiRatingsForRun({
-          table:"internal_ranked_gpi_ratings",
-          runId:rankedRun.id,
-          select:"discord_user_id,display_name,rating,raw_rating,matches_played,rank",
-        }),
-        loadGpiRatingsForRun({
-          table:"internal_tournament_gpi_ratings",
-          runId:tournamentRun.id,
-          select:"discord_user_id,display_name,rating,raw_rating,matches_played,weighted_matches,rank",
-        }),
-        loadTournamentStrengthMatches(tournamentRun.latest_match_at),
-        previousRankedRun ? loadGpiRatingsForRun({
-          table:"internal_ranked_gpi_ratings",
-          runId:previousRankedRun.id,
-          select:"discord_user_id,display_name,rating,raw_rating,matches_played,rank",
-        }) : [],
-        previousTournamentRun ? loadGpiRatingsForRun({
-          table:"internal_tournament_gpi_ratings",
-          runId:previousTournamentRun.id,
-          select:"discord_user_id,display_name,rating,raw_rating,matches_played,weighted_matches,rank",
-        }) : [],
-        previousTournamentRun ? loadTournamentStrengthMatches(previousTournamentRun.latest_match_at) : [],
-      ]);
-      const memberMap = await loadDiscordMembersByIds([
-        ...rankedRatings.map(row => row.discord_user_id),
-        ...tournamentRatings.map(row => row.discord_user_id),
-        ...previousRankedRatings.map(row => row.discord_user_id),
-        ...previousTournamentRatings.map(row => row.discord_user_id),
-      ]);
-      const rows = buildHomeCombinedGpiRows(
-        rankedRatings,
-        tournamentRatings,
-        memberMap,
-        tournamentMatches,
-        tournamentRun,
-        hiddenIds
+      const visibleRows = (ratings) => ratings
+        .filter(row => !hiddenIds.has(normalizeDiscordId(row.discord_user_id)))
+        .map((row, index) => ({ ...row, visibleRank:index + 1 }));
+      const currentRows = visibleRows(currentRatings);
+      const previousRanks = new Map(
+        visibleRows(previousRatings).map(row => [normalizeDiscordId(row.discord_user_id), row.visibleRank])
       );
-      if(previousRankedRun && previousTournamentRun){
-        const previousRows = buildHomeCombinedGpiRows(
-          previousRankedRatings,
-          previousTournamentRatings,
-          memberMap,
-          previousTournamentMatches,
-          previousTournamentRun,
-          hiddenIds
-        );
-        const previousRanks = new Map(previousRows.map(row => [row.discordId, Number(row.rank)]));
-        rows.forEach((row) => {
-          const previousRank = previousRanks.get(row.discordId);
-          row.rankDelta = previousRank ? previousRank - Number(row.rank) : 0;
-        });
+      const memberMap = await loadDiscordMembersByIds(currentRows.map(row => row.discord_user_id));
+      if(homeGpiDate){
+        const date = new Date(currentRun.created_at);
+        const label = Number.isNaN(date.getTime()) ? "Date unavailable" : new Intl.DateTimeFormat("en-US", {
+          month:"long",
+          day:"numeric",
+          year:"numeric",
+          timeZone:"UTC",
+        }).format(date);
+        homeGpiDate.textContent = `Rankings as of ${label}`;
       }
-      return rows.slice(0, HOME_GPI_LIMIT).map(row => ({
-        discordId:row.discordId,
-        rank:row.rank,
-        rankDelta:row.rankDelta || 0,
-        displayName:row.displayName,
-        avatarUrl:row.avatarUrl,
-        rating:formatRating(row.ratingNumber),
-      }));
+      return currentRows.slice(0, HOME_GPI_LIMIT).map(row => {
+        const discordId = normalizeDiscordId(row.discord_user_id);
+        const member = memberMap.get(discordId);
+        const previousRank = previousRanks.get(discordId);
+        return {
+          discordId,
+          rank:row.visibleRank,
+          rankDelta:previousRank ? previousRank - row.visibleRank : 0,
+          displayName:memberDisplayName(member, row.display_name || "Player"),
+          avatarUrl:avatarUrlForMember(member),
+          rating:formatRating(row.rating),
+        };
+      });
     }
 
     function homeGpiRankHtml(row, fallbackRank){
@@ -2885,6 +2878,7 @@
       try{
         renderHomeGpiRows(await loadHomeGpiRows());
       }catch{
+        if(homeGpiDate) homeGpiDate.textContent = "Latest rankings date unavailable";
         if(homeGpiList) homeGpiList.innerHTML = `<li class="rail-empty">Unable to load GPI.</li>`;
       }
     }

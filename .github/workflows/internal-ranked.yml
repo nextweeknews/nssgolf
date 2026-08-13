@@ -7,6 +7,7 @@ on:
     paths:
       - "bot/internal-ranked*.js"
       - "bot/internal-ranked*.sql"
+      - "bot/combined-gpi*.js"
       - "bot/tournament-gpi*.js"
       - "package.json"
       - "package-lock.json"
@@ -17,6 +18,7 @@ on:
     paths:
       - "bot/internal-ranked*.js"
       - "bot/internal-ranked*.sql"
+      - "bot/combined-gpi*.js"
       - "bot/tournament-gpi*.js"
       - "package.json"
       - "package-lock.json"
@@ -31,6 +33,7 @@ on:
         options:
           - test
           - snapshot-current
+          - snapshot-combined
           - weekly-gpi
           - test-fetch
           - fetch
@@ -65,6 +68,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  snapshot-combined:
+    name: Publish current combined GPI snapshots
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run == 'snapshot-combined'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish the two latest stored GPI snapshots
+        run: npm run gpi:publish-combined
+        env:
+          NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
+          NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
+
   snapshot-current:
     name: Save current GPI snapshot marker
     runs-on: ubuntu-latest
@@ -134,9 +163,9 @@ jobs:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
           NSSGOLF_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY }}
 
-      # The site treats this final immutable Elo run as the atomic marker that
-      # the ranked and tournament portions of this snapshot both completed.
-      - name: Replay Elo history and publish the complete snapshot marker
+      # This final replay creates the Elo marker, builds the combined rows, and
+      # exposes the combined run only after every stored rating row is written.
+      - name: Replay Elo history and publish the complete GPI snapshot
         run: npm run internal-ranked:replay
         env:
           NSSGOLF_SUPABASE_URL: ${{ secrets.NSSGOLF_SUPABASE_URL }}
