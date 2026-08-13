@@ -2547,6 +2547,9 @@
         .select(config.ratingsSelect, { count:"exact" })
         .eq("run_id", runId);
       if(config.kind !== "combined") query = query.gte("matches_played", config.minMatches);
+      if(!currentAdminContext.isAdmin && hiddenPlayerIds.size){
+        query = query.not("discord_user_id", "in", `(${[...hiddenPlayerIds].join(",")})`);
+      }
       if(queryText){
         query = /^\d+$/.test(queryText)
           ? query.eq("discord_user_id", queryText)
@@ -2570,6 +2573,23 @@
         .in("discord_user_id", discordIds);
       if(error) throw error;
       return data || [];
+    }
+
+    async function loadHiddenRanks(runId, config){
+      if(currentAdminContext.isAdmin || !runId || !hiddenPlayerIds.size) return [];
+      const { data, error } = await supabase
+        .from(config.ratingTable)
+        .select("discord_user_id,rank")
+        .eq("run_id", runId)
+        .in("discord_user_id", [...hiddenPlayerIds]);
+      if(error) throw error;
+      return (data || []).map(row => Number(row.rank)).filter(Number.isFinite).sort((a, b) => a - b);
+    }
+
+    function rankWithoutHiddenPlayers(rank, hiddenRanks){
+      const storedRank = Number(rank) || 0;
+      if(!storedRank) return 0;
+      return storedRank - hiddenRanks.filter(hiddenRank => hiddenRank < storedRank).length;
     }
 
     async function loadTournamentStrengthMatches(latestMatchAt = ""){
@@ -4569,17 +4589,27 @@
       if(!cached){
         const pageResult = await loadRatingsPageForRun(latestRun.id, config, currentPage);
         const ids = pageResult.rows.map(row => normalizeDiscordId(row.discord_user_id)).filter(Boolean);
-        const [membersById, previousRatings] = await Promise.all([
+        const [membersById, previousRatings, currentHiddenRanks, previousHiddenRanks] = await Promise.all([
           loadMembers(ids),
           previousRun ? loadPreviousRanks(previousRun.id, config, ids) : [],
+          loadHiddenRanks(latestRun.id, config),
+          previousRun ? loadHiddenRanks(previousRun.id, config) : [],
         ]);
         const rows = config.kind === "combined"
           ? buildStoredCombinedRows(pageResult.rows, membersById)
           : buildLeaderboardRows(pageResult.rows, membersById, { preserveStoredRanks:true });
+        if(!currentAdminContext.isAdmin){
+          rows.forEach((row) => {
+            const visibleRank = rankWithoutHiddenPlayers(row.storedRank ?? row.rankNumber, currentHiddenRanks);
+            row.rankSortNumber = visibleRank;
+            row.rankNumber = visibleRank;
+            row.rank = visibleRank;
+          });
+        }
         if(previousRun){
           applyRankDeltas(rows, previousRatings.map(row => ({
             discord_user_id:row.discord_user_id,
-            rankNumber:Number(row.rank) || 0,
+            rankNumber:rankWithoutHiddenPlayers(row.rank, previousHiddenRanks),
           })));
         }
         cached = { rows, total:pageResult.count };
