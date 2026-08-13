@@ -1101,6 +1101,7 @@
 
     .rank-delta.is-up{ color:#22c55e; }
     .rank-delta.is-down{ color:#ef4444; }
+    .rank-delta.is-flat{ color:var(--muted); }
     .rank-delta .lucide{ width:12px; height:12px; stroke-width:3; }
 
     .leaderboard-table:not(.is-gpi) .player-cell{
@@ -2657,7 +2658,7 @@
 
     function rankCellHtml(row){
       const delta = Number(row.rankDelta) || 0;
-      let movement = `<span class="rank-delta" aria-hidden="true"></span>`;
+      let movement = `<span class="rank-delta is-flat" aria-label="No rank change">-</span>`;
       if(delta > 0){
         movement = `<span class="rank-delta is-up" aria-label="Up ${delta}"><svg class="lucide lucide-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg>${escapeHtml(delta)}</span>`;
       }else if(delta < 0){

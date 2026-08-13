@@ -533,6 +533,7 @@
     }
     .home-gpi-rank-delta.is-up{ color:#22c55e; }
     .home-gpi-rank-delta.is-down{ color:#ef4444; }
+    .home-gpi-rank-delta.is-flat{ color:rgba(156,163,199,.72); }
     .home-gpi-rank-delta .lucide{ width:9px; height:9px; stroke-width:3; }
 
     .home-gpi-player{
@@ -2851,7 +2852,7 @@
     function homeGpiRankHtml(row, fallbackRank){
       const rank = escapeHtml(row.rank || fallbackRank);
       const delta = Number(row.rankDelta) || 0;
-      if(!delta) return `<span class="home-gpi-rank-value"><span class="home-gpi-rank-number">${rank}</span><span class="home-gpi-rank-delta" aria-hidden="true"></span></span>`;
+      if(!delta) return `<span class="home-gpi-rank-value"><span class="home-gpi-rank-number">${rank}</span><span class="home-gpi-rank-delta is-flat" aria-label="No rank change">-</span></span>`;
       const up = delta > 0;
       const amount = Math.abs(delta);
       const icon = up
