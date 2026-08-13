@@ -437,6 +437,9 @@
     }
     .all-stars-player{
       background: linear-gradient(90deg, #8c52ff40, #5ce1e640) !important;
+    }
+    .all-stars-player,
+    .all-stars-week-separator{
       border-right: 1px solid #5ce1e660 !important;
     }
     .weekly-round.all-stars-counted{
@@ -2700,7 +2703,7 @@
           ? `
             <div class="place ${rankClass(p.rank)}${top10Class}">${p.rank}</div>
             <div id="playerHost-${p.slug}"></div>
-            ${(p.rounds || []).map((v, i) => `<div class="weekly-round wk-hide-mobile${p.countedRoundIndices.includes(i) ? " all-stars-counted" : ""}">${escapeHtml(fmtScore(v))}</div>`).join("")}
+            ${(p.rounds || []).map((v, i) => `<div class="weekly-round wk-hide-mobile${p.countedRoundIndices.includes(i) ? " all-stars-counted" : ""}${i === 1 ? " all-stars-week-separator" : ""}">${escapeHtml(fmtScore(v))}</div>`).join("")}
             <div class="score-col">${escapeHtml(fmtScore(p.score))}</div>
           `
           : `
