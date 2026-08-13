@@ -1078,29 +1078,9 @@
       justify-content:flex-start;
     }
 
-    .sort-button::after{
-      content:"";
-      position:absolute;
-      top:50%;
-      right:0;
-      transform:translateY(-50%);
-      width:0;
-      height:0;
-      border-left:4px solid transparent;
-      border-right:4px solid transparent;
-      border-top:5px solid transparent;
-      opacity:.55;
-    }
-
-    .sort-button[aria-sort="ascending"]::after{
-      border-top:0;
-      border-bottom:5px solid var(--accent);
-      opacity:1;
-    }
-
-    .sort-button[aria-sort="descending"]::after{
-      border-top:5px solid var(--accent);
-      opacity:1;
+    .sort-button[aria-sort="ascending"],
+    .sort-button[aria-sort="descending"]{
+      color:var(--accent);
     }
 
     tbody tr:last-child td{ border-bottom:0; }
@@ -1527,8 +1507,10 @@
       }
 
       .table-controls{
-        align-items:stretch;
-        flex-direction:column;
+        display:grid;
+        grid-template-columns:minmax(0, 1fr) auto;
+        align-items:center;
+        gap:8px 12px;
       }
 
       .gpi-tabs{
@@ -1540,19 +1522,25 @@
       }
 
       .snapshot-nav{
-        position:sticky;
-        right:0;
-        flex:0 0 188px;
-        width:188px;
-        min-width:188px;
-        background:var(--bg);
+        position:static;
+        grid-column:1;
+        grid-row:2;
+        justify-self:start;
+        margin-left:0;
+        padding-bottom:0;
+        width:100%;
+        min-width:0;
+        max-width:218px;
       }
 
       .leaderboard-search{
+        grid-column:1 / -1;
         width:100%;
       }
 
       .pager{
+        grid-column:2;
+        grid-row:2;
         justify-content:flex-end;
         margin-left:0;
       }
@@ -1758,13 +1746,19 @@
       }
 
       .leaderboard-table .sort-button{
+        display:flex;
         align-items:center;
-        min-height:30px;
+        min-height:28px;
         overflow:hidden;
-        padding:0 0 8px;
+        padding:0;
         white-space:normal;
-        overflow-wrap:anywhere;
+        overflow-wrap:normal;
         line-height:1.05;
+      }
+
+      .leaderboard-table.is-gpi th:last-child,
+      .leaderboard-table.is-gpi td:last-child{
+        width:62px;
       }
 
       #leaderboard .leaderboard-table th:not(.player-heading) .sort-button{
@@ -1777,26 +1771,6 @@
         justify-content:flex-start;
         padding-left:0;
         padding-right:0;
-      }
-
-      #leaderboard .leaderboard-table .sort-button::after{
-        top:auto;
-        right:50%;
-        bottom:0;
-        transform:translateX(50%);
-        border-left-width:3px;
-        border-right-width:3px;
-        border-top-width:4px;
-      }
-
-      #leaderboard .leaderboard-table .sort-button[aria-sort="ascending"]::after{
-        border-bottom-width:4px;
-        transform:translateX(50%);
-      }
-
-      #leaderboard .leaderboard-table .sort-button[aria-sort="descending"]::after{
-        border-top-width:4px;
-        transform:translateX(50%);
       }
 
     }
@@ -2084,6 +2058,10 @@
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("status");
     const leaderboardEl = document.getElementById("leaderboard");
+    const gpiTabsEl = document.querySelector(".gpi-tabs");
+    const tableControlsEl = document.querySelector(".table-controls");
+    const pagerEl = document.querySelector(".pager");
+    const snapshotNavEl = document.querySelector(".snapshot-nav");
     const leaderboardTableEl = document.getElementById("leaderboardTable");
     const leaderboardHeaderEl = document.getElementById("leaderboardHeader");
     const leaderboardBodyEl = document.getElementById("leaderboardBody");
@@ -2115,6 +2093,7 @@
     const modalPlayerHeadEl = document.getElementById("modalPlayerHead");
     const modalBodyEl = document.getElementById("modalBody");
     const modalCloseEl = document.getElementById("modalClose");
+    const mobileGpiNavigationQuery = window.matchMedia("(max-width:720px)");
     const PAGE_SIZE = 100;
     const DEFAULT_GPI_BASE_RATING = 1200;
     const COMBINED_MIN_TOURNAMENT_MATCHES = 3;
@@ -2132,6 +2111,17 @@
     const GPI_HIDDEN_PLAYERS_TABLE = "gpi_hidden_players";
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const FETCH_NO_STORE = { cache:"no-store" };
+
+    function placeSnapshotNavigation(){
+      if(mobileGpiNavigationQuery.matches){
+        tableControlsEl.insertBefore(snapshotNavEl, pagerEl);
+      }else{
+        gpiTabsEl.appendChild(snapshotNavEl);
+      }
+    }
+
+    placeSnapshotNavigation();
+    mobileGpiNavigationQuery.addEventListener("change", placeSnapshotNavigation);
     const CHAMPIONSHIP_BRACKET = {
       sheetId:"10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q",
       fieldRange:"'Field'!B:C",
@@ -2900,11 +2890,11 @@
       if(activeConfig().kind === "combined"){
         leaderboardHeaderEl.innerHTML = `
           ${currentAdminContext.isAdmin ? `<th class="hide-cell">Hide</th>` : ""}
-          <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank">Rank</button></th>
+          <th class="rank-cell"><button class="sort-button" type="button" data-sort="rank"><span>Rank</span></button></th>
           <th class="player-heading">Player</th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating">GPI</button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating"><span class="desktop-label">Ranked / Provisional</span><span class="mobile-label">Ranked/Prov.</span></button></th>
-          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta"><span class="desktop-label">Tournament Delta</span><span class="mobile-label">Tourney Delta</span></button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rating"><span>GPI</span></button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="rankedRating"><span class="desktop-label">Ranked / Provisional</span><span class="mobile-label">Ranked/<br>Prov.</span></button></th>
+          <th class="rating-cell right"><button class="sort-button" type="button" data-sort="tournamentDelta"><span class="desktop-label">Tournament Delta</span><span class="mobile-label">Tourney<br>Delta</span></button></th>
         `;
         return;
       }
@@ -4572,7 +4562,8 @@
       const pageRequestId = ++leaderboardPageRequestId;
       currentPage = Math.max(0, page);
       leaderboardEl.hidden = false;
-      pageInfoEl.textContent = "Loading rankings...";
+      leaderboardBodyEl.innerHTML = "";
+      renderPager();
       prevPageEl.disabled = true;
       nextPageEl.disabled = true;
       const config = activeConfig();
