@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { fetchSeason } = require("./internal-ranked");
+const { fetchPlanForCurrentSeason, fetchSeason } = require("./internal-ranked");
 
 function match(timestamp, winnerId = "100", loserId = "200") {
   return {
@@ -16,6 +16,15 @@ function match(timestamp, winnerId = "100", loserId = "200") {
 }
 
 (async () => {
+  assert.deepEqual(fetchPlanForCurrentSeason(13, null, null), [{ season: 13 }]);
+  assert.deepEqual(fetchPlanForCurrentSeason(13, { timestamp_ms: 123 }, null), [
+    { season: 13, newerThanTimestampMs: 123 },
+  ]);
+  assert.deepEqual(fetchPlanForCurrentSeason(13, null, [9, 13]), [
+    { season: 9 },
+    { season: 13 },
+  ]);
+
   const originalFetch = global.fetch;
   const requestedCursors = [];
   const pages = [

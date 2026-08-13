@@ -455,10 +455,11 @@ function currentRankedLeagueSeason() {
   return Number(match[1]);
 }
 
-async function loadLatestStoredMatch(supabase) {
+async function loadLatestStoredMatch(supabase, season) {
   const { data, error } = await supabase
     .from("internal_ranked_matches")
-    .select("season,timestamp_ms")
+    .select("timestamp_ms")
+    .eq("season", season)
     .order("timestamp_ms", { ascending: false })
     .order("match_hash", { ascending: false })
     .limit(1)
@@ -468,57 +469,36 @@ async function loadLatestStoredMatch(supabase) {
   return data || null;
 }
 
-async function loadStoredSeasons(supabase, minimumSeason, maximumSeason) {
-  const { data, error } = await supabase
-    .from("internal_ranked_matches")
-    .select("season")
-    .gte("season", minimumSeason)
-    .lte("season", maximumSeason);
+function fetchPlanForCurrentSeason(currentSeason, latestStoredMatch, requestedSeasons) {
+  if (requestedSeasons) return requestedSeasons.map((season) => ({ season }));
+  if (!latestStoredMatch) return [{ season: currentSeason }];
 
-  if (error) throw new Error(`Stored season lookup failed: ${error.message}`);
-  return new Set((data || []).map((row) => Number(row.season)).filter(Number.isInteger));
+  const latestTimestampMs = Number(latestStoredMatch.timestamp_ms);
+  if (!Number.isInteger(latestTimestampMs)) {
+    throw new Error("Latest stored match has an invalid timestamp.");
+  }
+  return [{ season: currentSeason, newerThanTimestampMs: latestTimestampMs }];
 }
 
 async function fetchAndUpsert(options) {
   const supabase = createSupabaseServiceClient();
   const waitForTurn = createRateLimiter(options.delayMs);
   const currentSeason = currentRankedLeagueSeason();
-  const latestStoredMatch = await loadLatestStoredMatch(supabase);
   const requestedSeasons = options.seasons;
+  const latestStoredMatch = requestedSeasons
+    ? null
+    : await loadLatestStoredMatch(supabase, currentSeason);
   const results = [];
+  const fetchPlan = fetchPlanForCurrentSeason(currentSeason, latestStoredMatch, requestedSeasons);
 
-  let fetchPlan;
   if (requestedSeasons) {
-    fetchPlan = requestedSeasons.map((season) => ({ season }));
     console.log(`Fetching explicitly requested seasons: ${requestedSeasons.join(", ")}.`);
   } else if (!latestStoredMatch) {
-    fetchPlan = Array.from({ length: currentSeason - defaultFirstSeason + 1 }, (_, index) => ({
-      season: defaultFirstSeason + index,
-    }));
-    console.log(`No stored matches found; fetching Seasons ${defaultFirstSeason}-${currentSeason}.`);
+    console.log(`No stored Season ${currentSeason} matches found; fetching Season ${currentSeason}.`);
   } else {
-    const latestSeason = Number(latestStoredMatch.season);
     const latestTimestampMs = Number(latestStoredMatch.timestamp_ms);
-    if (!Number.isInteger(latestSeason) || latestSeason < 1 || !Number.isInteger(latestTimestampMs)) {
-      throw new Error("Latest stored match has an invalid season or timestamp.");
-    }
-
-    if (latestSeason > currentSeason) {
-      throw new Error(
-        `Latest stored match is in Season ${latestSeason}, which is newer than configured current Season ${currentSeason}.`
-      );
-    }
-
-    const storedSeasons = await loadStoredSeasons(supabase, defaultFirstSeason, currentSeason);
-    fetchPlan = [{
-      season: latestSeason,
-      newerThanTimestampMs: latestTimestampMs,
-    }];
-    for (let season = defaultFirstSeason; season <= currentSeason; season += 1) {
-      if (season !== latestSeason && !storedSeasons.has(season)) fetchPlan.push({ season });
-    }
     console.log(
-      `Latest stored match is in Season ${latestSeason} at ${latestTimestampMs}; fetching newer Season ${latestSeason} matches and all missing seasons through Season ${currentSeason}.`
+      `Latest stored Season ${currentSeason} match is at ${latestTimestampMs}; fetching only newer Season ${currentSeason} matches.`
     );
   }
 
@@ -1218,6 +1198,7 @@ if (require.main === module) {
 
 module.exports = {
   currentRankedLeagueSeason,
+  fetchPlanForCurrentSeason,
   fetchSeason,
   parseSeasons,
   syntheticCursorForSeason,

@@ -5,8 +5,8 @@ The `Internal Ranked League` GitHub Actions workflow publishes a complete Golf P
 ## Weekly sequence
 
 1. Read `CURRENT_RANKED_LEAGUE_SEASON` from `config.js`.
-2. Read the newest stored ranked match and create the TeamUp timestamp cursor for that season.
-3. Fetch only ranked matches newer than the cursor and upsert them into `internal_ranked_matches`.
+2. Read the newest stored match for the configured current season and create its TeamUp timestamp cursor.
+3. Fetch only newer matches from that current season and upsert them into `internal_ranked_matches`. Older seasons are static replay inputs and are never fetched by the scheduled run.
 4. Replay the complete stored ranked history into a new immutable PL/GPI run.
 5. Fetch every tournament in `bot/tournament-gpi.js` whose status is `active` or `historical`. Events or rounds containing `qualifier` or `qualifiers` are excluded.
 6. Replay the complete eligible tournament history into a new immutable tournament PL run.
