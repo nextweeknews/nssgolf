@@ -463,6 +463,16 @@
       justify-content:center;
       padding:14px;
     }
+    #mastersBracketGrid{
+      --qualifier-round-column-width:360px;
+      --qualifier-visible-games-width:148px;
+      --qualifier-scorepack-width:186px;
+    }
+    #mastersBracketGrid .qualifier-player-scorepack{
+      display:grid;
+      grid-template-columns:minmax(0, var(--qualifier-visible-games-width)) var(--qualifier-final-score-width);
+      justify-items:end;
+    }
     .qualifier-round-column{
       display:flex;
       flex-direction:column;
@@ -816,11 +826,11 @@
       </div>
 
       <div class="masters-tabs" role="tablist" aria-label="World Golf Masters views">
-        <button class="masters-tab" id="qualifiersTab" role="tab" type="button" data-view="qualifiers" data-state="active" aria-selected="true" aria-controls="qualifiersPanel">Qualifiers</button>
-        <button class="masters-tab" id="bracketTab" role="tab" type="button" data-view="bracket" data-state="inactive" aria-selected="false" aria-controls="bracketPanel">Bracket</button>
+        <button class="masters-tab" id="bracketTab" role="tab" type="button" data-view="bracket" data-state="active" aria-selected="true" aria-controls="bracketPanel">Bracket</button>
+        <button class="masters-tab" id="qualifiersTab" role="tab" type="button" data-view="qualifiers" data-state="inactive" aria-selected="false" aria-controls="qualifiersPanel">Qualifiers</button>
       </div>
 
-      <section class="panel" id="qualifiersPanel" role="tabpanel" aria-labelledby="qualifiersTab">
+      <section class="panel" id="qualifiersPanel" role="tabpanel" aria-labelledby="qualifiersTab" hidden>
         <div id="qualifiersStatus" class="status" aria-live="polite">Loading qualifiers...</div>
         <div id="defendingChampionMount"></div>
 
@@ -844,7 +854,7 @@
         </section>
       </section>
 
-      <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab" hidden>
+      <section class="panel" id="bracketPanel" role="tabpanel" aria-labelledby="bracketTab">
         <div class="qualifier-bracket-scroll">
           <div class="qualifier-bracket-grid" id="mastersBracketGrid" data-bracket-mode="actual"></div>
         </div>
@@ -863,6 +873,8 @@
     const MASTERS_SHEET = {
       sheetId:"16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE",
       qualifiersRange:"'Qualifiers'!A:T",
+      bracketRange:"'Bracket'!A1:P16",
+      discordIdsRange:"'Discord IDs'!A:B",
     };
     const BRACKET_ROUNDS = [
       { key:"R16", label:"Round of 16", matches:8 },
@@ -872,10 +884,11 @@
     ];
 
     const state = {
-      view:"qualifiers",
+      view:"bracket",
       qualifiers:[],
       qualifierBracketParticipants:[],
       qualifierBracketMatches:[],
+      bracketMatches:[],
       members:new Map(),
       loading:true,
       error:"",
@@ -1059,7 +1072,7 @@
       return participants;
     }
 
-    function qualifierBracketParticipantMap(participants){
+    function bracketParticipantMap(participants){
       const discordIdsByName = new Map();
       participants.forEach((participant) => {
         discordIdsByName.set(normalizeNameKey(participant.name), participant.discordId);
@@ -1086,7 +1099,7 @@
     }
 
     function parseQualifierBracketMatches(rows, participants){
-      const discordIdsByName = qualifierBracketParticipantMap(participants);
+      const discordIdsByName = bracketParticipantMap(participants);
       return rows
         .map((row, index) => ({
           id:normalizeText(row?.[7]) || `${index + 1}`,
@@ -1111,6 +1124,35 @@
           match.id
         ))
         .sort((left, right) => qualifierBracketSortValue(left) - qualifierBracketSortValue(right));
+    }
+
+    function parseBracketDiscordIds(rows){
+      return rows
+        .map(row => ({ name:normalizeText(row?.[0]), discordId:normalizeDiscordId(row?.[1]) }))
+        .filter(participant => participant.name && participant.discordId);
+    }
+
+    function parseMastersBracketMatches(rows, participants){
+      const discordIdsByName = bracketParticipantMap(participants);
+      return rows
+        .map((row, index) => ({
+          id:`${index + 1}`,
+          round:normalizeBracketRound(row?.[0]),
+          top:qualifierBracketSlot({
+            name:row?.[1],
+            gameScores:row?.slice(2, 7),
+            score:row?.[7],
+            discordIdsByName,
+          }),
+          bottom:qualifierBracketSlot({
+            name:row?.[8],
+            gameScores:row?.slice(9, 14),
+            score:row?.[14],
+            discordIdsByName,
+          }),
+          winner:normalizeText(row?.[15]),
+        }))
+        .filter(match => BRACKET_ROUNDS.some(round => round.key === match.round));
     }
 
     function qualificationKind(qualification){
@@ -1369,8 +1411,20 @@
       }).join("");
     }
 
-    function renderBlankBracket(){
-      renderBracketGrid(els.bracketGrid, [], { showScores:false });
+    function renderMastersBracket(){
+      if(state.loading){
+        renderBracketGrid(els.bracketGrid, []);
+        return;
+      }
+      if(state.error){
+        els.bracketGrid.innerHTML = `<p class="empty-state">${escapeHtml(state.error)}</p>`;
+        return;
+      }
+      if(!state.bracketMatches.length){
+        els.bracketGrid.innerHTML = `<p class="empty-state">No bracket data available yet.</p>`;
+        return;
+      }
+      renderBracketGrid(els.bracketGrid, state.bracketMatches);
     }
 
     function isValidView(view){
@@ -1379,7 +1433,7 @@
 
     function requestedViewFromUrl(){
       const view = new URLSearchParams(window.location.search).get(VIEW_QUERY_PARAM);
-      return isValidView(view) ? view : "qualifiers";
+      return isValidView(view) ? view : "bracket";
     }
 
     function writeViewUrlState(historyMode = "push"){
@@ -1391,7 +1445,7 @@
     }
 
     function setView(view, { updateUrl = true, historyMode = "push" } = {}){
-      state.view = isValidView(view) ? view : "qualifiers";
+      state.view = isValidView(view) ? view : "bracket";
       document.querySelectorAll(".masters-tab").forEach((tab) => {
         const active = tab.dataset.view === state.view;
         tab.dataset.state = active ? "active" : "inactive";
@@ -1402,25 +1456,33 @@
       if(updateUrl) writeViewUrlState(historyMode);
     }
 
-    async function loadQualifiers(){
+    async function loadMasters(){
       state.loading = true;
       state.error = "";
       renderQualifiers();
+      renderMastersBracket();
       try{
-        const rows = await fetchSheetRange(MASTERS_SHEET.sheetId, MASTERS_SHEET.qualifiersRange);
-        state.qualifiers = parseQualifierRows(rows);
-        state.qualifierBracketParticipants = parseQualifierBracketParticipants(rows);
-        state.qualifierBracketMatches = parseQualifierBracketMatches(rows, state.qualifierBracketParticipants);
+        const [qualifierRows, bracketRows, discordIdRows] = await Promise.all([
+          fetchSheetRange(MASTERS_SHEET.sheetId, MASTERS_SHEET.qualifiersRange),
+          fetchSheetRange(MASTERS_SHEET.sheetId, MASTERS_SHEET.bracketRange),
+          fetchSheetRange(MASTERS_SHEET.sheetId, MASTERS_SHEET.discordIdsRange),
+        ]);
+        state.qualifiers = parseQualifierRows(qualifierRows);
+        state.qualifierBracketParticipants = parseQualifierBracketParticipants(qualifierRows);
+        state.qualifierBracketMatches = parseQualifierBracketMatches(qualifierRows, state.qualifierBracketParticipants);
+        state.bracketMatches = parseMastersBracketMatches(bracketRows, parseBracketDiscordIds(discordIdRows));
         await loadMembers();
       }catch(error){
-        console.error("Unable to load World Golf Masters qualifiers.", error);
-        state.error = error?.message || "Unable to load qualifiers.";
+        console.error("Unable to load World Golf Masters data.", error);
+        state.error = error?.message || "Unable to load tournament data.";
         state.qualifiers = [];
         state.qualifierBracketParticipants = [];
         state.qualifierBracketMatches = [];
+        state.bracketMatches = [];
       }finally{
         state.loading = false;
         renderQualifiers();
+        renderMastersBracket();
       }
     }
 
@@ -1429,9 +1491,9 @@
     });
     window.addEventListener("popstate", () => setView(requestedViewFromUrl(), { updateUrl:false }));
 
-    renderBlankBracket();
+    renderMastersBracket();
     setView(requestedViewFromUrl(), { updateUrl:false });
-    loadQualifiers();
+    loadMasters();
   </script>
 </body>
 </html>
