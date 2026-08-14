@@ -1283,27 +1283,20 @@
 
     function renderQualifierBracketScore(slot){
       const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.filter(score => normalizeText(score)) : [];
-      const hasScore = normalizeText(slot?.score) || gameScores.length;
-      if(!hasScore) return "";
       const scoreWidth = gameScores.length > 0
         ? (gameScores.length * 28) + ((gameScores.length - 1) * 2)
         : 0;
       const gamesMarkup = gameScores.length > 0
         ? `<span class="qualifier-player-score-window" style="--game-score-width:${scoreWidth}px;"><span class="qualifier-player-games">${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score)}</span>`).join("")}</span></span>`
         : "";
-      const finalScoreMarkup = normalizeText(slot?.score)
-        ? `<span class="qualifier-player-final-score">${escapeHtml(slot.score)}</span>`
-        : "";
-      return `<span class="qualifier-player-scorepack">${gamesMarkup}${finalScoreMarkup}</span>`;
+      return `<span class="qualifier-player-scorepack">${gamesMarkup}<span class="qualifier-player-final-score">${escapeHtml(slot?.score ?? "")}</span></span>`;
     }
 
     function renderQualifierBracketRow(match, slot, { showScore = true } = {}){
       const isWinner = normalizeText(match?.winner) && normalizeNameKey(match.winner) === normalizeNameKey(slot?.name);
-      const hasScore = normalizeText(slot?.score) || (Array.isArray(slot?.gameScores) && slot.gameScores.some(score => normalizeText(score)));
       const rowClasses = [
         "qualifier-match-row",
-        showScore && hasScore ? "has-score" : "",
-        showScore && hasScore ? "" : "no-score",
+        showScore ? "has-score" : "no-score",
         isWinner ? "winner" : "",
       ].filter(Boolean).join(" ");
       return `
