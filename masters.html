@@ -464,17 +464,37 @@
       padding:14px;
     }
     #mastersBracketGrid{
-      --qualifier-round-column-width:360px;
+      --qualifier-round-column-width:401px;
       --qualifier-visible-games-width:148px;
-      --qualifier-scorepack-width:186px;
+      --qualifier-scorepack-width:227px;
     }
     #mastersBracketGrid .qualifier-player-scorepack{
       display:grid;
       grid-template-columns:minmax(0, var(--qualifier-visible-games-width)) var(--qualifier-final-score-width);
+      justify-content:end;
       justify-items:end;
+    }
+    #mastersBracketGrid .qualifier-player-scorepack.has-sudden-death{
+      grid-template-columns:minmax(0, var(--qualifier-visible-games-width)) 35px var(--qualifier-final-score-width);
+    }
+    #mastersBracketGrid .qualifier-player-sudden-death-score{
+      width:35px;
+      min-height:16px;
+      border-left:1px solid rgba(148,163,184,.46);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding-left:6px;
+      font-weight:900;
+      font-variant-numeric:tabular-nums;
+      text-align:center;
     }
     #mastersBracketGrid .qualifier-player-final-score{
       grid-column:2;
+    }
+    #mastersBracketGrid .qualifier-player-scorepack.has-sudden-death .qualifier-player-final-score{
+      grid-column:3;
     }
     .qualifier-round-column{
       display:flex;
@@ -876,7 +896,7 @@
     const MASTERS_SHEET = {
       sheetId:"16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE",
       qualifiersRange:"'Qualifiers'!A:T",
-      bracketRange:"'Bracket'!A1:P16",
+      bracketRange:"'Bracket'!A1:R16",
       discordIdsRange:"'Discord IDs'!A:B",
     };
     const BRACKET_ROUNDS = [
@@ -1091,13 +1111,14 @@
       return embedded ? Number(embedded[0]) : Number(match?.sourceIndex || 0);
     }
 
-    function qualifierBracketSlot({ name, score, gameScores = [], discordIdsByName }){
+    function qualifierBracketSlot({ name, score, gameScores = [], suddenDeath = "", discordIdsByName }){
       return {
         seed:null,
         name:normalizeText(name),
         discordId:discordIdsByName.get(normalizeNameKey(name)) || "",
         score:bracketScore(score),
         gameScores:(Array.isArray(gameScores) ? gameScores : []).map(bracketScore).filter(Boolean),
+        suddenDeath:bracketScore(suddenDeath),
       };
     }
 
@@ -1144,16 +1165,18 @@
           top:qualifierBracketSlot({
             name:row?.[1],
             gameScores:row?.slice(2, 7),
-            score:row?.[7],
+            suddenDeath:row?.[7],
+            score:row?.[8],
             discordIdsByName,
           }),
           bottom:qualifierBracketSlot({
-            name:row?.[8],
-            gameScores:row?.slice(9, 14),
-            score:row?.[14],
+            name:row?.[9],
+            gameScores:row?.slice(10, 15),
+            suddenDeath:row?.[15],
+            score:row?.[16],
             discordIdsByName,
           }),
-          winner:normalizeText(row?.[15]),
+          winner:normalizeText(row?.[17]),
         }))
         .filter(match => BRACKET_ROUNDS.some(round => round.key === match.round));
     }
@@ -1286,13 +1309,17 @@
 
     function renderQualifierBracketScore(slot){
       const gameScores = Array.isArray(slot?.gameScores) ? slot.gameScores.filter(score => normalizeText(score)) : [];
+      const suddenDeath = normalizeText(slot?.suddenDeath);
       const scoreWidth = gameScores.length > 0
         ? (gameScores.length * 28) + ((gameScores.length - 1) * 2)
         : 0;
       const gamesMarkup = gameScores.length > 0
         ? `<span class="qualifier-player-score-window" style="--game-score-width:${scoreWidth}px;"><span class="qualifier-player-games">${gameScores.map(score => `<span class="qualifier-player-set-score">${escapeHtml(score)}</span>`).join("")}</span></span>`
         : "";
-      return `<span class="qualifier-player-scorepack">${gamesMarkup}<span class="qualifier-player-final-score">${escapeHtml(slot?.score ?? "")}</span></span>`;
+      const suddenDeathMarkup = suddenDeath
+        ? `<span class="qualifier-player-sudden-death-score" aria-label="Sudden Death score">${escapeHtml(suddenDeath)}</span>`
+        : "";
+      return `<span class="qualifier-player-scorepack${suddenDeath ? " has-sudden-death" : ""}">${gamesMarkup}${suddenDeathMarkup}<span class="qualifier-player-final-score">${escapeHtml(slot?.score ?? "")}</span></span>`;
     }
 
     function renderQualifierBracketRow(match, slot, { showScore = true } = {}){
@@ -1315,8 +1342,8 @@
       return {
         id:`${roundKey}-${index + 1}`,
         round:roundKey,
-        top:{ seed:null, name:"", discordId:"", score:"", gameScores:[] },
-        bottom:{ seed:null, name:"", discordId:"", score:"", gameScores:[] },
+        top:{ seed:null, name:"", discordId:"", score:"", gameScores:[], suddenDeath:"" },
+        bottom:{ seed:null, name:"", discordId:"", score:"", gameScores:[], suddenDeath:"" },
         winner:"",
       };
     }
