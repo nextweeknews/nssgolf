@@ -805,6 +805,14 @@
         scroll-snap-align:start;
         scroll-snap-stop:always;
       }
+      #mastersBracketGrid .qualifier-match-row.has-score{
+        grid-template-columns:var(--qualifier-seed-col-width) minmax(0, 1fr) max-content;
+      }
+      #mastersBracketGrid .qualifier-player-scorepack{
+        display:flex;
+        width:auto;
+        min-width:0;
+      }
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css?v=8d3a54c66cc7" />
