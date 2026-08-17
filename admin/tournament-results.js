@@ -1,5 +1,5 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { buildEditorTables, buildUpdates } from "/admin/tournament-results-core.mjs?v=20260816-step10";
+import { buildEditorTables, buildUpdates } from "/admin/tournament-results-core.mjs?v=20260817-league-tabs";
 
 const DEFAULT_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-results";
 const runtimeConfig = globalThis.NSSGOLF_TOURNAMENT_EDITOR_CONFIG || {};
@@ -19,6 +19,7 @@ const saveButton = document.getElementById("editorSaveBtn");
 const resetButton = document.getElementById("editorResetBtn");
 const dirtyCount = document.getElementById("editorDirtyCount");
 const editorStatus = document.getElementById("editorStatus");
+const viewTabs = document.getElementById("editorViewTabs");
 const tablesMount = document.getElementById("editorTables");
 
 const state = {
@@ -26,6 +27,7 @@ const state = {
   event: null,
   tables: [],
   currentValues: new Map(),
+  activeGroupKey: "",
   saving: false,
 };
 
@@ -161,10 +163,12 @@ function createTable(table){
     header.textContent = "SD";
     headerRow.appendChild(header);
   }
-  const resultHeader = document.createElement("th");
-  resultHeader.scope = "col";
-  resultHeader.textContent = "Result";
-  headerRow.appendChild(resultHeader);
+  if(table.hasResult){
+    const resultHeader = document.createElement("th");
+    resultHeader.scope = "col";
+    resultHeader.textContent = "Result";
+    headerRow.appendChild(resultHeader);
+  }
 
   const thead = document.createElement("thead");
   thead.appendChild(headerRow);
@@ -182,7 +186,7 @@ function createTable(table){
       appendScoreCell(rowEl, row.roundScores[round], playerLabel);
     }
     if(table.hasSuddenDeath) appendScoreCell(rowEl, row.suddenDeath, playerLabel);
-    appendScoreCell(rowEl, row.result, playerLabel);
+    if(table.hasResult) appendScoreCell(rowEl, row.result, playerLabel);
     tbody.appendChild(rowEl);
   });
 
@@ -190,6 +194,49 @@ function createTable(table){
   scroll.appendChild(tableEl);
   section.append(heading, scroll);
   return section;
+}
+
+function editorGroups(){
+  const groups = [];
+  const seen = new Set();
+  state.tables.forEach((table) => {
+    if(!table.groupKey || seen.has(table.groupKey)) return;
+    seen.add(table.groupKey);
+    groups.push({ key: table.groupKey, label: table.groupLabel || table.groupKey });
+  });
+  return groups;
+}
+
+function showEditorGroup(groupKey){
+  state.activeGroupKey = groupKey;
+  viewTabs.querySelectorAll("[role='tab']").forEach((tab) => {
+    const selected = tab.dataset.groupKey === groupKey;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  });
+  tablesMount.querySelectorAll(".editor-table-section").forEach((section) => {
+    section.hidden = Boolean(groupKey) && section.dataset.groupKey !== groupKey;
+  });
+}
+
+function renderEditorTabs(){
+  const groups = editorGroups();
+  viewTabs.hidden = groups.length < 2;
+  viewTabs.replaceChildren(...groups.map((group) => {
+    const button = document.createElement("button");
+    button.className = "editor-view-tab";
+    button.type = "button";
+    button.role = "tab";
+    button.dataset.groupKey = group.key;
+    button.textContent = group.label;
+    button.addEventListener("click", () => showEditorGroup(group.key));
+    return button;
+  }));
+
+  const activeGroup = groups.some((group) => group.key === state.activeGroupKey)
+    ? state.activeGroupKey
+    : (groups[0]?.key || "");
+  showEditorGroup(activeGroup);
 }
 
 function renderEditor(){
@@ -202,7 +249,12 @@ function renderEditor(){
   backLink.href = state.event.routePath || "/";
   archiveButton.textContent = state.event.archived ? "Unarchive tournament" : "Archive tournament";
   archiveButton.classList.toggle("is-danger", !state.event.archived);
-  tablesMount.replaceChildren(...state.tables.map(createTable));
+  const sections = state.tables.map(createTable);
+  sections.forEach((section, index) => {
+    section.dataset.groupKey = state.tables[index].groupKey;
+  });
+  tablesMount.replaceChildren(...sections);
+  renderEditorTabs();
   updateActions();
 }
 

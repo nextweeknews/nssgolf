@@ -1,5 +1,5 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260816-step10";
+import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-league-tabs";
 import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
 import { playerUrlPathForSlug } from "/settings-data.js";
 

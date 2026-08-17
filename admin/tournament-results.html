@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=7a2eae15d69c" />
-  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260816-step8" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-league-tabs" />
 </head>
 <body>
   <header class="topbar">
@@ -48,11 +48,12 @@
         <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save scores</button>
       </div>
       <p class="editor-status" id="editorStatus" aria-live="polite"></p>
+      <div class="editor-view-tabs" id="editorViewTabs" role="tablist" aria-label="Tournament edit views" hidden></div>
       <div class="editor-tables" id="editorTables"></div>
     </section>
   </main>
 
   <script type="module" src="/site-topbar.js?v=4a03c415d038"></script>
-  <script type="module" src="/admin/tournament-results.js?v=033a31b29e9c"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260817-league-tabs"></script>
 </body>
 </html>

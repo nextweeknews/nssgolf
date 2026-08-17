@@ -1,6 +1,6 @@
 # Tournament admin edit range inventory
 
-Verified read-only against the live Google Sheets on 2026-08-16. The public page ranges remain the source of display data. Admin writes are separately limited to the score ranges below; identity, player-advancement, and winner cells are never writable through the Worker.
+Verified read-only against the live Google Sheets on 2026-08-17. The public page ranges remain the source of display data. Admin writes are separately limited to the score ranges below; identity, player-advancement, and winner cells are never writable through the Worker.
 
 ## World Golf Masters
 
@@ -23,13 +23,42 @@ Spreadsheet: `10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q`
 
 The Championship bracket also depends on hidden formula columns `AA3:AB66`. AA calculates each match winner from E/Q and AB mirrors AA for later-round player formulas. The public page does not request these columns, and the admin API does not expose them as writable cells.
 
+## Shotgun Pro League
+
+Spreadsheet: `1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o`
+
+The editor follows the active Season 7 period selector with separate Stage 1, Stage 2, Stage 3, and Championship tabs.
+
+| Edit tab | Admin table | Editable score ranges | Protected cells | Notes |
+| --- | --- | --- | --- | --- |
+| Stage 1–3 | Each stage's `B3:S101` block | `L:S` on team player rows `5:8`, `10:13`, continuing through `60:63`, plus solo-player rows `66:101` | `B:K` | L:S are the eight raw round scores. Team header and spacer rows are excluded from both the editor and the Worker allowlist. |
+| Championship | `B3:H23` | `E:H` on player rows `5:8`, `10:13`, `15:18`, and `20:23` | `B:D` | E:F are semifinal rounds and G:H are final rounds. |
+| Championship | `O3:P9`, `R4:S8` | `P3`, `P5`, `P7`, `P9`, `S4`, and `S8` | Team-name and champion cells | These are the team scores displayed in the public semifinal and final bracket. |
+
+The service account must be shared as an Editor on this workbook before the archived event is enabled for writes.
+
+## Super League
+
+Spreadsheet: `1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY`
+
+The editor follows the active `SUPER_LEAGUE_SEASON` (`Season 6`) and separates the public score surfaces into Season and Qualifiers tabs. The public Format tab is static, and Promotions has no Season 6 data, so neither produces an edit tab.
+
+| Edit tab | Admin table | Editable score ranges | Protected cells | Notes |
+| --- | --- | --- | --- | --- |
+| Season | `'Season 6'!I2:AB85` | `M:O`, `V:X` | `P:S`, `Y:AB` | Three raw round scores for each side of every regular-season matchup. |
+| Season | `'Season 6'!I87:AB92` | `M:O`, `V:X` | `P:S`, `Y:AB` | Three raw round scores for each side of each playoff matchup. |
+| Qualifiers | `'S6 Winners Bracket'!A3:H80` | `E5:E68`, `H5:H68` | Player, seed, match, and round formula columns | One bracket score for each side. The winner-bracket placement row is included. |
+| Qualifiers | `'S6 Losers Bracket'!A4:H62` | `E4:E62`, `H4:H62` | Player, seed, match, and round formula columns | One bracket score for each side. The loser-bracket placement row is included. |
+
+The service account must be shared as an Editor on this workbook before the archived event is enabled for writes.
+
 Google Sheet protection settings are defense in depth only. The Worker must enforce the Supabase-provided editable ranges before every `values:batchUpdate` request, so even an Editor-capable service account cannot overwrite formulas through the admin API.
 
 ## Worker contract
 
 Both operations require the signed-in user's Supabase access token as `Authorization: Bearer <token>` and return `Cache-Control: no-store`.
 
-- `GET /admin/tournament-results?eventKey=masters` returns the canonical event metadata, editor table definitions, and current Google `valueRanges`.
+- `GET /admin/tournament-results?eventKey=masters` returns the canonical event metadata, editor table definitions (including optional edit-tab grouping), and current Google `valueRanges`.
 - `POST /admin/tournament-results` accepts `{ "eventKey": "masters", "updates": [{ "range": "'Bracket'!C2", "values": [[-14]] }] }`.
 
 The Worker obtains the canonical spreadsheet ID and editable ranges from the authenticated Supabase RPC, ignores any client-supplied spreadsheet ID, writes with `valueInputOption: "RAW"`, and limits each request to 200 ranges, 2,000 cells, and a 1 MB body. Archived or disabled events remain readable but cannot be written.

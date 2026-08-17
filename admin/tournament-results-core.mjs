@@ -3,6 +3,10 @@ const EVENT_KEYS_BY_PATH = new Map([
   ["/masters.html", "masters"],
   ["/championship", "championship"],
   ["/championship.html", "championship"],
+  ["/proleague", "proleague"],
+  ["/proleague/index.html", "proleague"],
+  ["/superleague", "superleague"],
+  ["/superleague/index.html", "superleague"],
 ]);
 
 function normalizeText(value){
@@ -119,8 +123,10 @@ export function buildEditorTables(event, valueRanges){
   return (Array.isArray(event?.tables) ? event.tables : []).map((table) => {
     const tableRange = parseA1Range(table.source_range);
     const rows = [];
+    const excludedRows = new Set((table.excluded_rows || []).map(Number));
 
     for(let row = Number(table.data_start_row); row <= Number(table.data_end_row); row += 1){
+      if(excludedRows.has(row)) continue;
       const context = (table.context_columns || [])
         .map((column) => readColumn(valueRanges, tableRange.sheetName, column, row))
         .filter((value) => value.trim());
@@ -157,9 +163,12 @@ export function buildEditorTables(event, valueRanges){
     return {
       key: table.key,
       label: table.label || table.key,
+      groupKey: table.group_key || "",
+      groupLabel: table.group_label || "",
       sheetName: tableRange.sheetName,
       maxRoundCount: Math.max(0, ...rows.map((row) => row.roundScores.length)),
       hasSuddenDeath: rows.some((row) => row.suddenDeath),
+      hasResult: rows.some((row) => row.result),
       rows,
     };
   });

@@ -159,6 +159,35 @@ body{
 }
 .editor-status.error{ color:#fca5a5; }
 .editor-status.success{ color:#86efac; }
+.editor-view-tabs{
+  display:flex;
+  gap:7px;
+  margin:4px 0 16px;
+  overflow-x:auto;
+  scrollbar-width:thin;
+}
+.editor-view-tab{
+  appearance:none;
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 14px;
+  border:1px solid rgba(255,255,255,.13);
+  border-radius:999px;
+  background:rgba(255,255,255,.045);
+  color:rgba(233,238,248,.68);
+  font:inherit;
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.055em;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+.editor-view-tab:hover{ background:rgba(255,255,255,.09); color:#fff; }
+.editor-view-tab[aria-selected="true"]{
+  border-color:rgba(125,211,252,.52);
+  background:rgba(125,211,252,.13);
+  color:#e0f2fe;
+}
 .editor-tables{ display:grid; gap:22px; margin-top:12px; }
 .editor-table-section{ min-width:0; }
 .editor-table-heading{

@@ -128,6 +128,8 @@ DECLARE
   masters_editable_ranges text[];
   masters_formula_ranges text[];
   masters_editor_tables jsonb;
+  proleague_tables jsonb;
+  superleague_tables jsonb;
 BEGIN
   IF NOT public.is_tournament_result_admin() THEN
     RAISE EXCEPTION 'Discord administrator was not authorized';
@@ -137,8 +139,8 @@ BEGIN
   INTO context_count
   FROM public.get_tournament_admin_edit_context();
 
-  IF context_count <> 2 THEN
-    RAISE EXCEPTION 'expected two initial admin events, found %', context_count;
+  IF context_count <> 4 THEN
+    RAISE EXCEPTION 'expected four initial admin events, found %', context_count;
   END IF;
 
   SELECT source_ranges, editable_ranges, formula_ranges, editor_tables
@@ -188,6 +190,54 @@ BEGIN
       AND jsonb_array_length(editor_tables) = 1
   ) THEN
     RAISE EXCEPTION 'Championship edit or formula ranges do not match the live sheet inventory';
+  END IF;
+
+  SELECT editor_tables
+  INTO proleague_tables
+  FROM public.get_tournament_admin_edit_context('proleague');
+
+  IF jsonb_array_length(proleague_tables) <> 6
+    OR proleague_tables->0->>'group_key' <> 'stage-1'
+    OR proleague_tables->1->>'group_key' <> 'stage-2'
+    OR proleague_tables->2->>'group_key' <> 'stage-3'
+    OR proleague_tables->3->>'group_key' <> 'championship'
+  THEN
+    RAISE EXCEPTION 'Pro League edit tabs or table metadata are incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('proleague')
+    WHERE sheet_id = '1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o'
+      AND archived
+      AND NOT can_edit
+      AND '''Season 7, Stage 3''!L66:S101' = ANY(editable_ranges)
+      AND '''Season 7, Championship''!S8' = ANY(editable_ranges)
+  ) THEN
+    RAISE EXCEPTION 'Pro League was not registered archived with its active score ranges';
+  END IF;
+
+  SELECT editor_tables
+  INTO superleague_tables
+  FROM public.get_tournament_admin_edit_context('superleague');
+
+  IF jsonb_array_length(superleague_tables) <> 4
+    OR superleague_tables->0->>'group_key' <> 'season'
+    OR superleague_tables->2->>'group_key' <> 'qualifiers'
+  THEN
+    RAISE EXCEPTION 'Super League edit tabs or table metadata are incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('superleague')
+    WHERE sheet_id = '1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY'
+      AND archived
+      AND NOT can_edit
+      AND '''Season 6''!M2:O85' = ANY(editable_ranges)
+      AND '''S6 Losers Bracket''!H4:H62' = ANY(editable_ranges)
+  ) THEN
+    RAISE EXCEPTION 'Super League was not registered archived with its active score ranges';
   END IF;
 
   IF NOT EXISTS (

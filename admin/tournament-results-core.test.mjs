@@ -14,6 +14,8 @@ import {
 test("maps only supported tournament pages to the editor", () => {
   assert.equal(tournamentEditorUrlForPath("/masters.html"), "/admin/tournament-results.html?eventKey=masters");
   assert.equal(tournamentEditorUrlForPath("/championship"), "/admin/tournament-results.html?eventKey=championship");
+  assert.equal(tournamentEditorUrlForPath("/proleague/index.html"), "/admin/tournament-results.html?eventKey=proleague");
+  assert.equal(tournamentEditorUrlForPath("/superleague/"), "/admin/tournament-results.html?eventKey=superleague");
   assert.equal(tournamentEditorUrlForPath("/index.html"), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", false), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", true), "/admin/tournament-results.html?eventKey=masters");
@@ -71,6 +73,35 @@ test("builds player score rows from a source range subset", () => {
   assert.equal(tables[0].rows[0].roundScores[0].initialValue, "-2");
   assert.equal(tables[0].rows[0].suddenDeath.range, "'Bracket'!E2");
   assert.equal(tables[0].rows[0].result.initialValue, "2");
+});
+
+test("preserves editor tab metadata and excludes non-player sheet rows", () => {
+  const event = {
+    tables: [{
+      key: "stage-one",
+      label: "Player scores",
+      group_key: "stage-1",
+      group_label: "Stage 1",
+      source_range: "'Season 7, Stage 1'!B3:S10",
+      data_start_row: 5,
+      data_end_row: 10,
+      excluded_rows: [9],
+      players: [{ name_column: "C", round_score_columns: ["L", "M"] }],
+    }],
+  };
+  const tables = buildEditorTables(event, [{
+    range: "'Season 7, Stage 1'!B3:S10",
+    values: Array.from({ length: 8 }, (_, index) => {
+      const row = Array(18).fill("");
+      row[1] = `Player ${index + 3}`;
+      return row;
+    }),
+  }]);
+
+  assert.equal(tables[0].groupKey, "stage-1");
+  assert.equal(tables[0].groupLabel, "Stage 1");
+  assert.deepEqual(tables[0].rows.map((row) => row.sourceRow), [5, 6, 7, 8, 10]);
+  assert.equal(tables[0].hasResult, false);
 });
 
 test("sends only consecutive dirty cells so stale neighbors are not overwritten", () => {
