@@ -271,6 +271,12 @@ export function editorMatchups(rows){
   }));
 }
 
+export function matchupHasBye(matchup, currentValues = new Map()){
+  return Array.isArray(matchup?.players) && matchup.players.some((row) => (
+    editorPlayerName(row, currentValues).toLowerCase() === "bye"
+  ));
+}
+
 function currentCellValue(cell, currentValues){
   return cell ? normalizeText(currentValues.get(cell.range) ?? cell.initialValue) : "";
 }

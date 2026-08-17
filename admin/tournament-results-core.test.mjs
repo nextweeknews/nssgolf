@@ -11,6 +11,7 @@ import {
   getTournamentAdminFlag,
   isEditorRowSelected,
   isEditorRowVisible,
+  matchupHasBye,
   nextBlankPlayerRow,
   parseA1Range,
   playerFilterBackspaceState,
@@ -142,6 +143,11 @@ test("groups players from the same sheet row into one bracket matchup", () => {
     { sourceRow:2, players:["Player 1", "Player 2"] },
     { sourceRow:3, players:["Player 3"] },
   ]);
+});
+
+test("identifies matchups containing a BYE player", () => {
+  assert.equal(matchupHasBye({ players:[{ playerName:"Player 1" }, { playerName:" BYE " }] }), true);
+  assert.equal(matchupHasBye({ players:[{ playerName:"Player 1" }, { playerName:"bye week" }] }), false);
 });
 
 test("builds Championship matchups with nine rounds and no sudden death", () => {

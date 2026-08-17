@@ -8,12 +8,13 @@ import {
   editorPlayerOptions,
   isEditorRowSelected,
   isEditorRowVisible,
+  matchupHasBye,
   nextBlankPlayerRow,
   playerFilterBackspaceState,
   proLeagueViewKey,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-superleague-periods";
+} from "/admin/tournament-results-core.mjs?v=20260817-superleague-bye";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -301,12 +302,12 @@ function createBracketMatchupTable(table, visibleRows){
 
   const tbody = document.createElement("tbody");
   editorMatchups(visibleRows).filter((matchup) => (
-    !isSuperLeague || matchup.players.some((row) => (
+    !isSuperLeague || (!matchupHasBye(matchup, state.currentValues) && matchup.players.some((row) => (
       playerNameForRow(row)
       || row.seed
       || row.context.some((value) => value.trim())
       || row.editableCells.some((cell) => cell.initialValue)
-    ))
+    )))
   )).forEach((matchup) => {
     const rowEl = document.createElement("tr");
     rowEl.dataset.sourceRow = String(matchup.sourceRow);
