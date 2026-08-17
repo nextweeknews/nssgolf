@@ -195,6 +195,28 @@ function ensurePageNavigation(){
   select.replaceWith(button, dropdown);
 }
 
+function ensureTournamentEditLink(){
+  const pageNavigation = document.querySelector(".page-nav-select");
+  const container = pageNavigation?.parentElement;
+  if(!container) return null;
+
+  const existing = document.getElementById("topbarTournamentEditLink");
+  if(existing) return existing;
+
+  const link = document.createElement("a");
+  link.className = "topbar-edit-link";
+  link.id = "topbarTournamentEditLink";
+  link.setAttribute("aria-label", "Edit tournament results");
+  link.title = "Edit tournament results";
+  link.hidden = true;
+  link.append(createMenuIcon([
+    "M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497Z",
+    "m15 5 4 4",
+  ]));
+  container.appendChild(link);
+  return link;
+}
+
 function ensureTopbarMenu(){
   const topbarInner = document.querySelector(".topbar-inner");
   if(!topbarInner) return null;
@@ -210,13 +232,6 @@ function ensureTopbarMenu(){
   const greeting = document.createElement("span");
   greeting.className = "user-greeting";
   greeting.id = "topbarUserGreeting";
-
-  const tournamentEditLink = document.createElement("a");
-  tournamentEditLink.className = "topbar-edit-link";
-  tournamentEditLink.id = "topbarTournamentEditLink";
-  tournamentEditLink.textContent = "Edit";
-  tournamentEditLink.setAttribute("aria-label", "Edit tournament results");
-  tournamentEditLink.hidden = true;
 
   const button = document.createElement("button");
   button.className = "user-menu-button";
@@ -287,7 +302,7 @@ function ensureTopbarMenu(){
   });
 
   dropdown.append(viewPlayer, playerSettings, adminSettings, divider, logout);
-  menu.append(tournamentEditLink, greeting, button, dropdown);
+  menu.append(greeting, button, dropdown);
   topbarInner.appendChild(menu);
   return menu;
 }
@@ -363,14 +378,16 @@ async function getApprovedPlayerUrl(discordId){
 async function renderTopbarAuth(){
   const menu = ensureTopbarMenu();
   const signInButton = ensureTopbarSignInButton();
+  const tournamentEditLink = ensureTournamentEditLink();
   if(!menu) return;
 
   const { data } = await supabase.auth.getSession();
   const session = data?.session || null;
   if(!session?.user){
-    const tournamentEditLink = menu.querySelector("#topbarTournamentEditLink");
-    tournamentEditLink.hidden = true;
-    tournamentEditLink.removeAttribute("href");
+    if(tournamentEditLink){
+      tournamentEditLink.hidden = true;
+      tournamentEditLink.removeAttribute("href");
+    }
     menu.hidden = true;
     menu.classList.remove("is-visible");
     setMenuOpen(menu, false);
@@ -433,17 +450,18 @@ async function renderTopbarAuth(){
   adminSettings.hidden = !isAdmin;
   adminSettings.dataset.settingsUrl = "/admin-settings.html";
 
-  const tournamentEditLink = menu.querySelector("#topbarTournamentEditLink");
   const tournamentEditorUrl = tournamentEditorUrlForUser(
     globalThis.location?.pathname,
     isAdmin,
     globalThis.location?.search,
   );
-  tournamentEditLink.hidden = !tournamentEditorUrl;
-  if(tournamentEditorUrl){
-    tournamentEditLink.href = tournamentEditorUrl;
-  }else{
-    tournamentEditLink.removeAttribute("href");
+  if(tournamentEditLink){
+    tournamentEditLink.hidden = !tournamentEditorUrl;
+    if(tournamentEditorUrl){
+      tournamentEditLink.href = tournamentEditorUrl;
+    }else{
+      tournamentEditLink.removeAttribute("href");
+    }
   }
 
   menu.hidden = false;
