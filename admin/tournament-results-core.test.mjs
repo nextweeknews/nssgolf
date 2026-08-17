@@ -229,6 +229,44 @@ test("uses Super League tab metadata within a season view", () => {
   assert.equal(editorMatchups(table.rows).length, 1);
 });
 
+test("builds read-only Super League formula cells outside editable cells", () => {
+  const [table] = buildEditorTables({ eventKey:"superleague", tables:[{
+    key:"season-7-season",
+    source_range:"'Season 7'!A2:L2",
+    data_start_row:2,
+    data_end_row:2,
+    players:[
+      {
+        name_column:"C",
+        round_score_columns:["D"],
+        formula_columns:[
+          { column:"E", label:"W" },
+          { column:"F", label:"L" },
+          { column:"G", label:"Dif" },
+          { column:"H", label:"M" },
+        ],
+      },
+      {
+        name_column:"I",
+        round_score_columns:["J"],
+        formula_columns:[
+          { column:"K", label:"W" },
+          { column:"L", label:"L" },
+        ],
+      },
+    ],
+  }] }, [{
+    range:"'Season 7'!A2:L2",
+    values:[["", "", "Player 1", -10, 1, 0, 4, 2, "Player 2", -8, 0, 1]],
+  }]);
+
+  assert.deepEqual(table.rows[0].formulaCells.map((cell) => [cell.label, cell.initialValue]), [
+    ["W", "1"], ["L", "0"], ["Dif", "4"], ["M", "2"],
+  ]);
+  assert.equal(table.maxFormulaCount, 4);
+  assert.deepEqual(table.rows[0].editableCells.map((cell) => cell.range), ["'Season 7'!D2"]);
+});
+
 test("builds Pro League team presentation and reserves blank individual-player rows", () => {
   const event = {
     tables: [{

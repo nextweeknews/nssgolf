@@ -14,7 +14,7 @@ import {
   proLeagueViewKey,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-superleague-bye";
+} from "/admin/tournament-results-core.mjs?v=20260817-superleague-formulas";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -237,8 +237,19 @@ function appendBracketPlayerHeaders(headerRow, table, playerNumber, showSeed = f
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     appendHeaderCell(headerRow, table.rows[0]?.roundScores[round - 1]?.label || `R${round}`);
   }
+  const formulaHeaders = table.rows.find((row) => row.playerSlot === playerNumber && row.formulaCells.length)?.formulaCells || [];
+  for(let formula = 0; formula < table.maxFormulaCount; formula += 1){
+    appendHeaderCell(headerRow, formulaHeaders[formula]?.label || "");
+  }
   if(table.hasSuddenDeath) appendHeaderCell(headerRow, "SD", "editor-sudden-death");
   if(table.hasResult) appendHeaderCell(headerRow, "Score");
+}
+
+function appendFormulaCell(rowEl, formulaCell){
+  const cell = document.createElement("td");
+  cell.className = "editor-formula-cell";
+  cell.textContent = formulaCell?.initialValue || "—";
+  rowEl.appendChild(cell);
 }
 
 function appendBracketPlayerCells(rowEl, table, row, playerNumber, showSeed = false){
@@ -247,6 +258,7 @@ function appendBracketPlayerCells(rowEl, table, row, playerNumber, showSeed = fa
     if(showSeed) appendTextCell(rowEl, "", `editor-seed-cell ${separator}`.trim());
     appendTextCell(rowEl, "", `editor-player-cell ${showSeed ? "" : separator}`.trim());
     for(let round = 0; round < table.maxRoundCount; round += 1) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
+    for(let formula = 0; formula < table.maxFormulaCount; formula += 1) appendFormulaCell(rowEl, null);
     if(table.hasSuddenDeath) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
     if(table.hasResult) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
     return;
@@ -257,6 +269,9 @@ function appendBracketPlayerCells(rowEl, table, row, playerNumber, showSeed = fa
   const playerLabel = playerNameForRow(row) || `Player slot ${row.playerSlot}`;
   for(let round = 0; round < table.maxRoundCount; round += 1){
     appendScoreCell(rowEl, row.roundScores[round], playerLabel);
+  }
+  for(let formula = 0; formula < table.maxFormulaCount; formula += 1){
+    appendFormulaCell(rowEl, row.formulaCells[formula]);
   }
   if(table.hasSuddenDeath) appendScoreCell(rowEl, row.suddenDeath, playerLabel);
   if(table.hasResult) appendScoreCell(rowEl, row.result, playerLabel);

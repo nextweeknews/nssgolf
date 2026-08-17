@@ -506,6 +506,16 @@ body{
 }
 .editor-table.is-bracket-matchups .editor-score-cell{ min-width:48px; text-align:center; }
 .editor-table.is-bracket-matchups .editor-score-input{ width:42px; padding-inline:4px; }
+.editor-table.is-bracket-matchups .editor-formula-cell{
+  width:42px;
+  min-width:42px;
+  padding-inline:5px;
+  background:rgba(148,163,184,.055);
+  color:rgba(233,238,248,.78);
+  font-weight:800;
+  font-variant-numeric:tabular-nums;
+  text-align:center;
+}
 .editor-table.is-bracket-matchups .editor-matchup-separator{
   border-left:2px solid rgba(125,211,252,.38);
 }

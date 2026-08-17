@@ -295,6 +295,17 @@ BEGIN
     OR superleague_tables->4->>'tab_key' <> 'promotions'
     OR superleague_tables->5->>'group_key' <> 'season-6'
     OR superleague_tables->8->>'tab_key' <> 'qualifier-losers'
+    OR superleague_tables->0->'players'->0->'formula_columns' <> '[
+      {"column":"P","label":"W"},
+      {"column":"Q","label":"L"},
+      {"column":"R","label":"Dif"},
+      {"column":"S","label":"M"}
+    ]'::jsonb
+    OR superleague_tables->1->'players'->0->'formula_columns' <> '[
+      {"column":"P","label":"W"},
+      {"column":"Q","label":"L"},
+      {"column":"S","label":"M"}
+    ]'::jsonb
   THEN
     RAISE EXCEPTION 'Super League edit tabs or table metadata are incomplete';
   END IF;

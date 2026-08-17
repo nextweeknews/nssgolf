@@ -203,6 +203,15 @@ export function buildEditorTables(event, valueRanges){
         const result = player.result_column
           ? scoreCell(valueRanges, tableRange.sheetName, player.result_column, row, "result", "Result")
           : null;
+        const formulaCells = (player.formula_columns || []).map((formula) => {
+          const column = normalizeText(formula?.column).trim();
+          return {
+            type:"formula",
+            label:normalizeText(formula?.label).trim(),
+            column,
+            initialValue:readColumn(valueRanges, tableRange.sheetName, column, row),
+          };
+        });
         const addPlayer = table.add_player || null;
         const isAddPlayerSlot = playerIndex === 0
           && row >= Number(addPlayer?.start_row)
@@ -227,6 +236,7 @@ export function buildEditorTables(event, valueRanges){
           nameCell,
           isAddPlayerSlot,
           roundScores,
+          formulaCells,
           suddenDeath,
           result,
           editableCells,
@@ -252,6 +262,7 @@ export function buildEditorTables(event, valueRanges){
       roundLabelStyle: table.round_label_style || "",
       canAddPlayers: Boolean(table.add_player),
       maxRoundCount: Math.max(0, ...rows.map((row) => row.roundScores.length)),
+      maxFormulaCount: Math.max(0, ...rows.map((row) => row.formulaCells.length)),
       hasSuddenDeath: rows.some((row) => row.suddenDeath),
       hasResult: rows.some((row) => row.result),
       rows,
