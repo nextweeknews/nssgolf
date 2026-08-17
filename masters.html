@@ -895,7 +895,7 @@
 
   <script type="module" src="/site-topbar.js?v=8909462d6be2"></script>
   <script type="module">
-    import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 
     const supabase = createBrowserSupabaseClient();
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
@@ -1502,7 +1502,11 @@
         state.qualifierBracketParticipants = parseQualifierBracketParticipants(qualifierRows);
         state.qualifierBracketMatches = parseQualifierBracketMatches(qualifierRows, state.qualifierBracketParticipants);
         state.bracketMatches = parseMastersBracketMatches(bracketRows, parseBracketDiscordIds(discordIdRows));
-        await loadMembers();
+        try{
+          await loadMembers();
+        }catch(error){
+          console.warn("Unable to enrich World Golf Masters players.", error);
+        }
       }catch(error){
         console.error("Unable to load World Golf Masters data.", error);
         state.error = error?.message || "Unable to load tournament data.";
