@@ -20,6 +20,7 @@ import {
   parseA1Range,
   playerFilterBackspaceState,
   proLeagueViewKey,
+  retryEditorRead,
   superLeagueDivisionClass,
   superLeagueViewKey,
   tournamentEditorUrlForPath,
@@ -71,6 +72,18 @@ test("maps Super League seasons, tabs, and division styles", () => {
   assert.equal(superLeagueDivisionClass("Division 2"), "editor-division-2");
   assert.equal(superLeagueDivisionClass("3"), "editor-division-3");
   assert.equal(superLeagueDivisionClass(""), "");
+});
+
+test("retries an interrupted editor read once", async () => {
+  let attempts = 0;
+  const result = await retryEditorRead(async () => {
+    attempts += 1;
+    if(attempts === 1) throw new TypeError("Failed to fetch");
+    return "loaded";
+  });
+
+  assert.equal(result, "loaded");
+  assert.equal(attempts, 2);
 });
 
 test("maps Pro League seasons and stages to editor view keys", () => {

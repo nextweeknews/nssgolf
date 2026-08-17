@@ -32,20 +32,20 @@ test("defaults the dashboard to its landing page", () => {
 });
 
 test("maps every standalone admin surface into the dashboard frame", () => {
-  assert.equal(parseAdminRoute("?section=event-signups&event=summer").frameUrl, "/event-signups.html?event=summer&embed=1&v=20260818-admin-mobile");
-  assert.equal(parseAdminRoute("?section=build-list").frameUrl, "/build.html?embed=1&v=20260818-admin-mobile");
-  assert.equal(parseAdminRoute("?section=championship-points").frameUrl, "/championship.html?view=settings&embed=1&v=20260818-admin-mobile");
-  assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1&v=20260818-admin-mobile");
+  assert.equal(parseAdminRoute("?section=event-signups&event=summer").frameUrl, "/event-signups.html?event=summer&embed=1&v=20260818-mobile-editor-fixes");
+  assert.equal(parseAdminRoute("?section=build-list").frameUrl, "/build.html?embed=1&v=20260818-mobile-editor-fixes");
+  assert.equal(parseAdminRoute("?section=championship-points").frameUrl, "/championship.html?view=settings&embed=1&v=20260818-mobile-editor-fixes");
+  assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1&v=20260818-mobile-editor-fixes");
   assert.equal(
     parseAdminRoute("?section=action-logs").frameUrl,
-    "/admin/action-logs.html?embed=1&v=20260818-admin-mobile",
+    "/admin/action-logs.html?embed=1&v=20260818-mobile-editor-fixes",
   );
 });
 
 test("preserves result editor and signup subview state in the dashboard URL", () => {
   assert.equal(
     parseAdminRoute("?section=results-editor&eventKey=proleague&season=7&stage=3").frameUrl,
-    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260818-admin-mobile",
+    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260818-mobile-editor-fixes",
   );
   assert.equal(
     routeFromEmbeddedPage("/admin/tournament-results.html", "?eventKey=proleague&season=7&stage=3&embed=1"),

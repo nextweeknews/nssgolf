@@ -52,19 +52,21 @@ function makeTestPrivateKeyPem() {
   return testPrivateKeyPemPromise;
 }
 
-test("returns the deployed CORS headers for an allowed preflight", async () => {
-  const response = await worker.fetch(
-    new Request("https://worker.example/", {
-      method: "OPTIONS",
-      headers: { Origin: "https://nssgolf.com" },
-    }),
-    makeEnv().env,
-  );
+test("returns the deployed CORS headers for allowed production preflights", async () => {
+  for(const origin of ["https://nssgolf.com", "https://www.nssgolf.com"]){
+    const response = await worker.fetch(
+      new Request("https://worker.example/", {
+        method: "OPTIONS",
+        headers: { Origin: origin },
+      }),
+      makeEnv().env,
+    );
 
-  assert.equal(response.status, 204);
-  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://nssgolf.com");
-  assert.equal(response.headers.get("Access-Control-Allow-Methods"), "GET, POST, OPTIONS");
-  assert.equal(response.headers.get("Vary"), "Origin");
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
+    assert.equal(response.headers.get("Access-Control-Allow-Methods"), "GET, POST, OPTIONS");
+    assert.equal(response.headers.get("Vary"), "Origin");
+  }
 });
 
 test("rejects a browser origin outside the deployed allowlist", async () => {

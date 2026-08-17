@@ -293,8 +293,16 @@ body.sidebar-collapsed .admin-sidebar{ transform:translateX(calc(-100% - 8px)); 
   .admin-breadcrumb-group,.admin-breadcrumb-separator{ display:none; }
 }
 @media (max-width:680px){
-  .admin-header{ flex-wrap:wrap; padding-block:8px; }
-  .admin-header-actions{ width:100%; justify-content:flex-end; }
+  .admin-header{ flex-wrap:nowrap; gap:6px; padding:0 10px; }
+  .admin-breadcrumb{ flex:1 1 auto; overflow:hidden; }
+  .admin-header-actions{ width:auto; gap:4px; justify-content:flex-end; }
+  .admin-header-link{
+    width:32px;
+    min-width:32px;
+    min-height:32px;
+    padding:0;
+  }
+  .admin-header-link > span{ display:none; }
 }
 @media (prefers-reduced-motion:reduce){
   .admin-loading-spinner{ animation-duration:1.6s; }

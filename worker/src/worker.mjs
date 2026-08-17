@@ -489,6 +489,7 @@ export default {
     const allowedOrigins = [
       "https://nextweeknews.github.io",
       "https://nssgolf.com",
+      "https://www.nssgolf.com",
     ];
 
     if (origin && !allowedOrigins.includes(origin)) {

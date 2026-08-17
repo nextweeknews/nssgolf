@@ -14,9 +14,10 @@ import {
   orderEditorRowsByPlayerSelection,
   playerFilterBackspaceState,
   proLeagueViewKey,
+  retryEditorRead,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-player-order";
+} from "/admin/tournament-results-core.mjs?v=20260818-mobile-editor-fixes";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -156,7 +157,7 @@ async function refreshFormulaValuesAfterSave(){
     const url = new URL(workerUrl);
     url.searchParams.set("eventKey", eventKey);
     if(state.activeViewKey) url.searchParams.set("viewKey", state.activeViewKey);
-    const response = await fetch(url, { headers:{ Accept:"application/json" }, cache:"no-store" });
+    const response = await retryEditorRead(() => fetch(url, { headers:{ Accept:"application/json" }, cache:"no-store" }));
     const payload = await response.json().catch(() => null);
     if(!response.ok) throw new Error(errorMessage(payload, "Unable to refresh formula values."));
 
@@ -966,7 +967,7 @@ async function loadEditor(requestedViewKey = eventKey === "proleague"
     const url = new URL(workerUrl);
     url.searchParams.set("eventKey", eventKey);
     if(requestedViewKey) url.searchParams.set("viewKey", requestedViewKey);
-    const response = await fetch(url, { headers:{ Accept:"application/json" }, cache: "no-store" });
+    const response = await retryEditorRead(() => fetch(url, { headers:{ Accept:"application/json" }, cache: "no-store" }));
     const payload = await response.json().catch(() => null);
     if(!response.ok){
       if(response.status === 401){

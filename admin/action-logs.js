@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "/admin/action-logs-core.mjs?v=20260817-compact-change-values";
-import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260818-admin-mobile";
+import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260818-mobile-editor-fixes";
 
 const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-action-logs";
 const supabase = createBrowserSupabaseClient();

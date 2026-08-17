@@ -139,6 +139,14 @@ export function superLeagueDivisionClass(value){
   return division ? `editor-division-${division}` : "";
 }
 
+export async function retryEditorRead(read){
+  try{
+    return await read();
+  }catch{
+    return read();
+  }
+}
+
 export function weekRoundLabel(roundIndex){
   const index = Number(roundIndex);
   return `${Math.floor(index / 2) + 1}-${(index % 2) + 1}`;

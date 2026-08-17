@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/admin/dashboard.css?v=20260817-brand-logo" />
+  <link rel="stylesheet" href="/admin/dashboard.css?v=20260818-mobile-editor-fixes" />
 </head>
 <body>
   <div class="admin-loading" id="adminLoading" role="status" aria-label="Loading admin dashboard">
@@ -65,11 +65,11 @@
           <span class="admin-breadcrumb-page" id="adminBreadcrumbPage">Overview</span>
         </div>
         <div class="admin-header-actions" id="adminHeaderActions" hidden>
-          <a class="admin-header-link" id="adminPublicPageLink" href="/" target="_blank" rel="noopener noreferrer">
+          <a class="admin-header-link" id="adminPublicPageLink" href="/" target="_blank" rel="noopener noreferrer" aria-label="View public page" title="View public page">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
             <span>VIEW PUBLIC PAGE</span>
           </a>
-          <a class="admin-header-link" id="adminGoogleSheetLink" href="https://docs.google.com/spreadsheets/" target="_blank" rel="noopener noreferrer">
+          <a class="admin-header-link" id="adminGoogleSheetLink" href="https://docs.google.com/spreadsheets/" target="_blank" rel="noopener noreferrer" aria-label="View Google Sheet" title="View Google Sheet">
             <svg class="admin-google-sheet-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path class="sheet-page" d="M6 2h8l4 4v16H6z"/>
               <path class="sheet-fold" d="M14 2v5h5"/>
@@ -88,6 +88,6 @@
     </main>
   </div>
 
-  <script type="module" src="/admin/dashboard.js?v=20260818-admin-mobile"></script>
+  <script type="module" src="/admin/dashboard.js?v=20260818-mobile-editor-fixes"></script>
 </body>
 </html>

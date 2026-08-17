@@ -772,9 +772,13 @@ html.admin-embedded .editor-page-head{ margin:0; }
   }
   #editorPanel .editor-title{
     min-width:0;
-    max-width:128px;
+    max-width:none;
+    flex:1 1 auto;
+    overflow:hidden;
     font-size:clamp(11px,3.45vw,14px);
     line-height:1.08;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   }
   #editorPanel .editor-head-actions{
     width:auto;
@@ -784,13 +788,18 @@ html.admin-embedded .editor-page-head{ margin:0; }
     flex-wrap:nowrap;
   }
   #editorPanel .editor-dirty-count{
-    width:76px;
-    max-width:22vw;
-    overflow-wrap:anywhere;
+    width:auto;
+    max-width:110px;
+    overflow:hidden;
     font-size:8px;
     line-height:1.15;
     text-align:right;
-    white-space:normal;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  html.admin-embedded #editorPanel .editor-page-head{
+    margin:0;
+    padding:8px 4px;
   }
   .editor-action-button,
   .editor-player-filter-clear{
@@ -841,12 +850,20 @@ html.admin-embedded .editor-page-head{ margin:0; }
   .editor-select-wrap{ gap:4px; }
   .editor-select-label{ font-size:8px; letter-spacing:.05em; }
   .editor-select{
-    min-width:78px;
-    min-height:30px;
+    appearance:none;
+    min-width:0;
+    min-height:42px;
     border-radius:7px;
-    padding:0 22px 0 7px;
+    padding:0 25px 0 8px;
+    background-color:#101c32;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m6 8 4 4 4-4' fill='none' stroke='%23cbd5e1' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position:right 7px center;
+    background-repeat:no-repeat;
+    background-size:12px;
     font-size:9px;
   }
+  #editorSeasonSelect{ width:100px; }
+  #editorStageSelect{ width:90px; }
   .editor-view-tabs{ gap:4px; margin:2px 0 8px; }
   .editor-view-tab{ min-height:29px; padding-inline:9px; font-size:8px; letter-spacing:.035em; }
   .editor-view-tabs.is-radix{ margin:7px 0 9px; }
@@ -857,70 +874,70 @@ html.admin-embedded .editor-page-head{ margin:0; }
   .editor-table-heading h2,
   .editor-worldcup-group-title{ font-size:10px; }
   .editor-table-heading span{ font-size:8px; }
-  .editor-table-scroll{ border-radius:8px; }
+  .editor-table-scroll{ position:relative; isolation:isolate; border-radius:8px; }
   .editor-table{ font-size:9px; }
   .editor-table th,
   .editor-table td{
-    height:30px;
-    padding:2px 4px;
+    height:34px;
+    padding:3px 6px;
   }
   .editor-table th{ font-size:7px; letter-spacing:.045em; }
-  .editor-header-round-row th{ top:30px; }
-  .editor-context-cell{ min-width:78px; max-width:108px; }
-  .editor-seed-cell{ min-width:32px; }
+  .editor-header-round-row th{ top:34px; }
+  .editor-context-cell{ min-width:90px; max-width:122px; }
+  .editor-seed-cell{ min-width:36px; }
   .editor-player-heading,
   .editor-player-cell{
     position:sticky;
     left:0;
-    min-width:104px;
-    max-width:126px;
-    background:#0b1426 !important;
+    min-width:118px;
+    max-width:142px;
     box-shadow:2px 0 0 rgba(125,211,252,.18);
   }
-  .editor-player-heading{ z-index:5; }
-  .editor-player-cell{ z-index:1; }
+  .editor-table .editor-player-heading{ top:0; z-index:6; background:#0b1426; }
+  .editor-player-cell{ z-index:3; }
+  .editor-player-cell:not(.has-team-style){ background:#0b1426; }
   .editor-player-cell.is-dirty{ box-shadow:inset 0 0 0 2px rgba(250,204,21,.55),2px 0 0 rgba(125,211,252,.18); }
   .editor-player-name-input{
-    min-width:94px;
-    height:24px;
+    min-width:108px;
+    height:30px;
     border-radius:5px;
     padding-inline:5px;
     font-size:9px;
   }
   .editor-team-logo{ width:22px; height:22px; margin-right:4px; }
-  .editor-score-cell{ min-width:38px; padding:2px !important; }
+  .editor-score-cell{ min-width:48px; padding:3px !important; }
   .editor-score-input{
-    width:33px;
-    height:24px;
+    width:42px;
+    height:30px;
     border-radius:5px;
-    padding-inline:3px;
-    font-size:10px;
+    padding-inline:4px;
+    font-size:16px;
   }
   .editor-table.is-bracket-matchups .editor-context-cell{
-    min-width:42px;
-    max-width:52px;
+    min-width:48px;
+    max-width:58px;
   }
   .editor-table.is-bracket-matchups .editor-player-cell,
   .editor-table.is-championship-matchups .editor-player-cell{
-    min-width:94px;
-    max-width:112px;
+    min-width:108px;
+    max-width:128px;
   }
   .editor-table.is-bracket-matchups .editor-score-cell,
   .editor-table.is-championship-matchups .editor-score-cell{
-    width:34px;
-    min-width:34px;
-    max-width:34px;
+    width:44px;
+    min-width:44px;
+    max-width:44px;
   }
   .editor-table.is-bracket-matchups .editor-score-input,
   .editor-table.is-championship-matchups .editor-score-input{
-    width:30px;
-    padding-inline:2px;
-    font-size:9px;
+    width:38px;
+    padding-inline:3px;
+    font-size:16px;
   }
   .editor-table.is-bracket-matchups .editor-formula-cell{
-    width:32px;
-    min-width:32px;
-    padding-inline:3px;
+    width:38px;
+    min-width:38px;
+    padding-inline:4px;
   }
   .editor-table.is-championship-matchups .editor-context-cell,
   .editor-table.is-championship-matchups .editor-seed-cell{
@@ -937,12 +954,15 @@ html.admin-embedded .editor-page-head{ margin:0; }
   .editor-worldcup-group-layout{ gap:7px; }
   .editor-worldcup-round-title{ margin-bottom:4px; font-size:8px; }
   .editor-add-player{
-    width:30px;
-    min-width:30px;
+    width:auto;
+    min-width:0;
     min-height:30px;
     margin-top:6px;
-    padding:0;
+    gap:5px;
+    padding:0 10px;
+    font-size:9px;
   }
+  .editor-add-player .editor-button-label{ display:inline; }
 
   .action-log-list{ gap:7px; margin-top:8px; }
   .action-log-card{ border-radius:9px; overflow:hidden; }
