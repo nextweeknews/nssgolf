@@ -1,4 +1,4 @@
-import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { buildEditorTables, buildUpdates } from "/admin/tournament-results-core.mjs?v=20260816-step10";
 
 const DEFAULT_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-results";

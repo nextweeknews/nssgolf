@@ -2,6 +2,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const DEFAULT_SUPABASE_URL = "https://kwaprkwemtxizorpnrzq.supabase.co";
 const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_gJ6-wdgZYpDBF1YxxNrlLg_BrtYUeL_";
+const BROWSER_CLIENT_KEY = Symbol.for("nssgolf.supabase.browserClient");
 
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 export const DEFAULT_POST_AUTH_PATH = "/lightningcup/index.html";
@@ -76,7 +77,9 @@ export function getNextPathFromCurrentLocation(fallbackPath = DEFAULT_POST_AUTH_
 }
 
 export function createBrowserSupabaseClient({ detectSessionInUrl = false } = {}){
-  return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  if(globalThis[BROWSER_CLIENT_KEY]) return globalThis[BROWSER_CLIENT_KEY];
+
+  globalThis[BROWSER_CLIENT_KEY] = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       flowType: "pkce",
       persistSession: true,
@@ -85,4 +88,5 @@ export function createBrowserSupabaseClient({ detectSessionInUrl = false } = {})
       debug: false,
     },
   });
+  return globalThis[BROWSER_CLIENT_KEY];
 }
