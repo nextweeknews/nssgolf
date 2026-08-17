@@ -1489,7 +1489,10 @@
       height: 100%;
       min-height: 170px;
       position:relative;
+      visibility:hidden;
     }
+
+    .playoff-connector.is-positioned{ visibility:visible; }
 
     .playoff-connector-line{
       position:absolute;
@@ -3315,7 +3318,9 @@
       const championshipEl = document.getElementById("playoffChampionship");
       const thirdPlaceEl = document.getElementById("playoffThirdPlace");
       const oneOffsEl = document.getElementById("playoffOneOffs");
+      const connectorEl = document.querySelector(".playoff-connector");
 
+      connectorEl?.classList.remove("is-positioned");
       semifinalsEl.innerHTML = "";
       championshipEl.innerHTML = "";
       thirdPlaceEl.innerHTML = "";
@@ -3339,6 +3344,7 @@
       const connectorEl = document.querySelector(".playoff-connector");
       if(!bracketRow || !semifinalsEl || !championshipEl || !connectorEl) return;
 
+      connectorEl.classList.remove("is-positioned");
       bracketRow.style.setProperty("--playoff-finals-offset", "0px");
 
       if(getComputedStyle(connectorEl).display === "none") return;
@@ -3366,6 +3372,7 @@
       bracketRow.style.setProperty("--semi-top-center", `${topSemiRectShifted.top + topSemiRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
       bracketRow.style.setProperty("--semi-bottom-center", `${bottomSemiRectShifted.top + bottomSemiRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
       bracketRow.style.setProperty("--champ-center", `${champRectShifted.top + champRectShifted.height / 2 - rowRect.top + connectorYOffset}px`);
+      connectorEl.classList.add("is-positioned");
     }
 
     function renderScheduleWeek(){
@@ -4033,6 +4040,7 @@
         scheduleWeeks = [];
         playoffMatchups = [];
         playoffMetadata = null;
+        document.querySelector(".playoff-connector")?.classList.remove("is-positioned");
         qualifierBracketRowsCache = [];
         loserBracketRowsCache = [];
         promotionStandingsRowsCache = [];
