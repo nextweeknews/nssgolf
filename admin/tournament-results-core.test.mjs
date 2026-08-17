@@ -113,7 +113,7 @@ test("builds player score rows from a source range subset", () => {
   assert.equal(tables[0].rows[0].result.initialValue, "2");
 });
 
-test("groups Masters players from the same sheet row into one matchup", () => {
+test("groups players from the same sheet row into one bracket matchup", () => {
   const rows = [
     { sourceRow:2, playerSlot:2, playerName:"Player 2" },
     { sourceRow:2, playerSlot:1, playerName:"Player 1" },
@@ -126,6 +126,32 @@ test("groups Masters players from the same sheet row into one matchup", () => {
     { sourceRow:2, players:["Player 1", "Player 2"] },
     { sourceRow:3, players:["Player 3"] },
   ]);
+});
+
+test("builds Championship matchups with nine rounds and no sudden death", () => {
+  const event = {
+    eventKey:"championship",
+    tables:[{
+      key:"main-bracket",
+      source_range:"'Bracket'!A2:Z3",
+      data_start_row:3,
+      data_end_row:3,
+      context_columns:["A", "B"],
+      players:[
+        { seed_column:"C", name_column:"D", result_column:"E", round_score_columns:["F", "G", "H", "I", "J", "K", "L", "M", "N"] },
+        { seed_column:"O", name_column:"P", result_column:"Q", round_score_columns:["R", "S", "T", "U", "V", "W", "X", "Y", "Z"] },
+      ],
+    }],
+  };
+  const row = Array(26).fill("");
+  Object.assign(row, { 0:"57", 1:"QF", 3:"Player 1", 4:"3", 5:"-10", 15:"Player 2", 16:"1", 17:"-9" });
+  const [table] = buildEditorTables(event, [{ range:"'Bracket'!A2:Z3", values:[Array(26).fill(""), row] }]);
+
+  assert.equal(table.maxRoundCount, 9);
+  assert.equal(table.hasSuddenDeath, false);
+  assert.equal(table.rows.length, 2);
+  assert.equal(editorMatchups(table.rows).length, 1);
+  assert.deepEqual(table.rows.map((player) => player.result.range), ["'Bracket'!E3", "'Bracket'!Q3"]);
 });
 
 test("preserves editor tab metadata and excludes non-player sheet rows", () => {

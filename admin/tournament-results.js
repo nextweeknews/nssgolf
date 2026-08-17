@@ -227,7 +227,7 @@ function appendHeaderCell(rowEl, label, className = ""){
   rowEl.appendChild(header);
 }
 
-function appendMastersPlayerHeaders(headerRow, table, playerNumber){
+function appendBracketPlayerHeaders(headerRow, table, playerNumber){
   appendHeaderCell(headerRow, `Player ${playerNumber}`, playerNumber === 2 ? "editor-matchup-separator" : "");
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     appendHeaderCell(headerRow, table.rows[0]?.roundScores[round - 1]?.label || `R${round}`);
@@ -236,7 +236,7 @@ function appendMastersPlayerHeaders(headerRow, table, playerNumber){
   if(table.hasResult) appendHeaderCell(headerRow, "Score");
 }
 
-function appendMastersPlayerCells(rowEl, table, row, playerNumber){
+function appendBracketPlayerCells(rowEl, table, row, playerNumber){
   const separator = playerNumber === 2 ? "editor-matchup-separator" : "";
   if(!row){
     appendTextCell(rowEl, "", `editor-player-cell ${separator}`.trim());
@@ -255,11 +255,11 @@ function appendMastersPlayerCells(rowEl, table, row, playerNumber){
   if(table.hasResult) appendScoreCell(rowEl, row.result, playerLabel);
 }
 
-function mastersRoundLabel(row){
-  return row.context.find((value) => /^(?:R\d+|Final)$/i.test(value.trim())) || contextLabel(row);
+function bracketRoundLabel(row){
+  return row.context.find((value) => /^(?:R\d+|QF|SF|Final|3rd)$/i.test(value.trim())) || contextLabel(row);
 }
 
-function createMastersTable(table, visibleRows){
+function createBracketMatchupTable(table, visibleRows){
   const section = document.createElement("section");
   section.className = "editor-table-section";
   section.dataset.groupKey = table.groupKey;
@@ -268,11 +268,12 @@ function createMastersTable(table, visibleRows){
   const scroll = document.createElement("div");
   scroll.className = "editor-table-scroll";
   const tableEl = document.createElement("table");
-  tableEl.className = "editor-table is-masters-matchups";
+  tableEl.className = "editor-table is-bracket-matchups";
+  if(state.event?.eventKey === "championship") tableEl.classList.add("is-championship-matchups");
   const headerRow = document.createElement("tr");
   appendHeaderCell(headerRow, "Round");
-  appendMastersPlayerHeaders(headerRow, table, 1);
-  appendMastersPlayerHeaders(headerRow, table, 2);
+  appendBracketPlayerHeaders(headerRow, table, 1);
+  appendBracketPlayerHeaders(headerRow, table, 2);
   const thead = document.createElement("thead");
   thead.appendChild(headerRow);
 
@@ -280,9 +281,9 @@ function createMastersTable(table, visibleRows){
   editorMatchups(visibleRows).forEach((matchup) => {
     const rowEl = document.createElement("tr");
     rowEl.dataset.sourceRow = String(matchup.sourceRow);
-    appendTextCell(rowEl, mastersRoundLabel(matchup.players[0]), "editor-context-cell");
-    appendMastersPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 1), 1);
-    appendMastersPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 2), 2);
+    appendTextCell(rowEl, bracketRoundLabel(matchup.players[0]), "editor-context-cell");
+    appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 1), 1);
+    appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 2), 2);
     tbody.appendChild(rowEl);
   });
 
@@ -298,7 +299,7 @@ function createTable(table){
     && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(row, state.currentValues, state.selectedPlayers.keys()))
   ));
   if(state.selectedPlayers.size && !visibleRows.length) return null;
-  if(state.event?.eventKey === "masters") return createMastersTable(table, visibleRows);
+  if(["masters", "championship"].includes(state.event?.eventKey)) return createBracketMatchupTable(table, visibleRows);
 
   const section = document.createElement("section");
   section.className = "editor-table-section";
@@ -602,7 +603,7 @@ function renderEditor(){
   accessPanel.hidden = true;
   editorPanel.hidden = false;
   pageTitle.textContent = `${state.event.displayName} results`;
-  pageCopy.textContent = ["masters", "proleague"].includes(state.event.eventKey)
+  pageCopy.textContent = ["championship", "masters", "proleague"].includes(state.event.eventKey)
     ? ""
     : state.event.archived
       ? "This tournament is archived. Unarchive it to edit scores."

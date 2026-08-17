@@ -492,29 +492,43 @@ body{
 .editor-score-input:disabled{ opacity:.56; cursor:not-allowed; }
 .editor-sudden-death{ border-left:1px solid rgba(125,211,252,.38) !important; }
 .editor-week-separator{ border-right:2px solid rgba(125,211,252,.38) !important; }
-.editor-table.is-masters-matchups .editor-context-cell{
+.editor-table.is-bracket-matchups .editor-context-cell{
   min-width:68px;
   max-width:68px;
   color:#fff;
   font-weight:900;
   text-align:center;
 }
-.editor-table.is-masters-matchups th:first-child{ text-align:center; }
-.editor-table.is-masters-matchups .editor-player-cell{
+.editor-table.is-bracket-matchups th:first-child{ text-align:center; }
+.editor-table.is-bracket-matchups .editor-player-cell{
   min-width:138px;
   max-width:180px;
 }
-.editor-table.is-masters-matchups .editor-score-cell{ min-width:48px; text-align:center; }
-.editor-table.is-masters-matchups .editor-score-input{ width:42px; padding-inline:4px; }
-.editor-table.is-masters-matchups .editor-matchup-separator{
+.editor-table.is-bracket-matchups .editor-score-cell{ min-width:48px; text-align:center; }
+.editor-table.is-bracket-matchups .editor-score-input{ width:42px; padding-inline:4px; }
+.editor-table.is-bracket-matchups .editor-matchup-separator{
   border-left:2px solid rgba(125,211,252,.38);
 }
-.editor-table.is-masters-matchups .editor-score-cell.is-result .editor-score-input{
+.editor-table.is-bracket-matchups .editor-score-cell.is-result .editor-score-input{
   border-color:#fff;
   background:#fff;
   color:#000;
   font-weight:900;
   opacity:1;
+}
+.editor-table.is-championship-matchups .editor-player-cell{
+  width:120px;
+  min-width:120px;
+  max-width:120px;
+}
+.editor-table.is-championship-matchups .editor-score-cell{
+  width:40px;
+  min-width:40px;
+}
+.editor-table.is-championship-matchups .editor-score-input{
+  width:34px;
+  padding-inline:3px;
+  font-size:12px;
 }
 .editor-add-player{ margin-top:10px; }
 .editor-table .is-empty-player{ opacity:.58; }
