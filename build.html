@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
-  <link rel="stylesheet" href="/settings-page.css?v=baffa45483fa" />
+  <link rel="stylesheet" href="/settings-page.css?v=ff447963bcec" />
   <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-scroll" />
   <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
 </head>
@@ -45,7 +45,10 @@
         <div class="builder-toolbar">
           <a class="settings-button secondary" href="/admin/" target="_top">Admin dashboard</a>
           <div class="builder-actions">
-            <button class="settings-button" id="copyCsvBtn" type="button">Copy CSV</button>
+            <button class="settings-button mobile-icon-button" id="copyCsvBtn" type="button" aria-label="Copy CSV" title="Copy CSV">
+              <svg class="settings-button-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span class="settings-button-label">Copy CSV</span>
+            </button>
           </div>
         </div>
 

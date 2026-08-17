@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
-  <link rel="stylesheet" href="/settings-page.css?v=baffa45483fa" />
+  <link rel="stylesheet" href="/settings-page.css?v=ff447963bcec" />
   <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-scroll" />
   <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
 </head>
@@ -181,6 +181,10 @@
       return panel;
     }
 
+    function adminActionContent(iconPaths, label){
+      return `<svg class="settings-button-icon" viewBox="0 0 24 24" aria-hidden="true">${iconPaths}</svg><span class="settings-button-label">${label}</span>`;
+    }
+
     function renderUrlTable(target, claims, membersById, status){
       target.replaceChildren();
       if(!claims.length){
@@ -207,6 +211,7 @@
         const row = document.createElement("tr");
 
         const urlCell = document.createElement("td");
+        urlCell.dataset.label = "URL";
         if(status === "approved"){
           const urlLink = document.createElement("a");
           urlLink.className = "admin-url-slug";
@@ -221,12 +226,14 @@
         }
 
         const playerCell = document.createElement("td");
+        playerCell.dataset.label = "Player";
         const playerLink = document.createElement("a");
         playerLink.href = `/player.html?id=${encodeURIComponent(normalizeDiscordId(claim.discord_user_id))}`;
         playerLink.textContent = playerNameForClaim(claim, membersById);
         playerCell.appendChild(playerLink);
 
         const dateCell = document.createElement("td");
+        dateCell.dataset.label = status === "approved" ? "Approved" : "Requested";
         dateCell.className = "admin-url-muted";
         dateCell.textContent = formatDate(status === "approved" ? claim.approved_at : claim.requested_at) || "Unknown";
 
@@ -234,27 +241,33 @@
 
         if(status === "approved"){
           const approverCell = document.createElement("td");
+          approverCell.dataset.label = "Approved by";
           approverCell.className = "admin-url-muted";
           approverCell.textContent = normalizeText(claim.approved_by_username) || "Unknown";
           row.appendChild(approverCell);
         }
 
         const actionsCell = document.createElement("td");
+        actionsCell.dataset.label = "Actions";
         const actions = document.createElement("div");
         actions.className = "admin-url-actions";
         if(status === "pending"){
           const approve = document.createElement("button");
-          approve.className = "settings-button small";
+          approve.className = "settings-button small mobile-icon-button";
           approve.type = "button";
-          approve.textContent = "Approve";
+          approve.innerHTML = adminActionContent('<path d="m5 12 4 4L19 6"/>', "Approve");
+          approve.setAttribute("aria-label", "Approve URL");
+          approve.title = "Approve URL";
           approve.addEventListener("click", () => approveUrlClaim(claim));
           actions.appendChild(approve);
         }
 
         const revoke = document.createElement("button");
-        revoke.className = "settings-button small danger";
+        revoke.className = "settings-button small danger mobile-icon-button";
         revoke.type = "button";
-        revoke.textContent = "Revoke";
+        revoke.innerHTML = adminActionContent('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 15H6L5 6"/><path d="M10 11v6M14 11v6"/>', "Revoke");
+        revoke.setAttribute("aria-label", "Revoke URL");
+        revoke.title = "Revoke URL";
         revoke.addEventListener("click", () => revokeUrlClaim(claim));
         actions.appendChild(revoke);
         actionsCell.appendChild(actions);

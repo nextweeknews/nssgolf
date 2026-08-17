@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "/admin/action-logs-core.mjs?v=20260817-compact-change-values";
-import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260817-compact-change-values";
+import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260818-admin-mobile";
 
 const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-action-logs";
 const supabase = createBrowserSupabaseClient();
@@ -20,6 +20,10 @@ const eventColors = new Map(RESULT_EVENTS.map((event) => [event.key, event.color
 function setStatus(element, message, tone = ""){
   element.textContent = message || "";
   element.className = `editor-status ${tone}`.trim();
+}
+
+function actionButtonContent(iconPaths, label){
+  return `<svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true">${iconPaths}</svg><span class="editor-button-label">${label}</span>`;
 }
 
 function showAccess(message = "", tone = "", canSignIn = false, loading = false){
@@ -145,7 +149,9 @@ function actionCard(log){
   const viewChanges = document.createElement("button");
   viewChanges.className = "editor-button action-log-toggle";
   viewChanges.type = "button";
-  viewChanges.textContent = "View changes";
+  viewChanges.innerHTML = actionButtonContent('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>', "View changes");
+  viewChanges.title = "View changes";
+  viewChanges.setAttribute("aria-label", "View changes");
   viewChanges.dataset.toggleChanges = "";
   viewChanges.setAttribute("aria-expanded", "false");
   viewChanges.setAttribute("aria-controls", changesId);
@@ -159,7 +165,9 @@ function actionCard(log){
     const undo = document.createElement("button");
     undo.className = "editor-button action-log-undo";
     undo.type = "button";
-    undo.textContent = "Undo";
+    undo.innerHTML = actionButtonContent('<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>', "Undo");
+    undo.title = "Undo";
+    undo.setAttribute("aria-label", "Undo");
     undo.dataset.undoActionId = log.action_id;
     undo.disabled = busy;
     actions.appendChild(undo);
@@ -224,7 +232,10 @@ logsList.addEventListener("click", async (event) => {
     if(!details) return;
     const expanded = toggle.getAttribute("aria-expanded") === "true";
     toggle.setAttribute("aria-expanded", String(!expanded));
-    toggle.textContent = expanded ? "View changes" : "Hide changes";
+    const label = expanded ? "View changes" : "Hide changes";
+    toggle.querySelector(".editor-button-label").textContent = label;
+    toggle.title = label;
+    toggle.setAttribute("aria-label", label);
     details.hidden = expanded;
     return;
   }

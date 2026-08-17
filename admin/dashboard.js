@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { getTournamentAdminFlag } from "/admin/tournament-results-core.mjs?v=20260817-all-years";
-import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260817-compact-change-values";
+import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260818-admin-mobile";
 
 const supabase = createBrowserSupabaseClient();
 const loading = document.getElementById("adminLoading");

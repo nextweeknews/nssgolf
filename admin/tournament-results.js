@@ -316,13 +316,17 @@ function appendHeaderCell(rowEl, label, className = ""){
   const header = document.createElement("th");
   header.scope = "col";
   header.textContent = label;
-  if(className) header.classList.add(className);
+  if(className) header.classList.add(...className.split(/\s+/).filter(Boolean));
   rowEl.appendChild(header);
 }
 
 function appendBracketPlayerHeaders(headerRow, table, playerNumber, showSeed = false){
   if(showSeed) appendHeaderCell(headerRow, "Seed", playerNumber === 2 ? "editor-matchup-separator" : "");
-  appendHeaderCell(headerRow, `Player ${playerNumber}`, playerNumber === 2 && !showSeed ? "editor-matchup-separator" : "");
+  appendHeaderCell(
+    headerRow,
+    `Player ${playerNumber}`,
+    `editor-player-heading ${playerNumber === 2 && !showSeed ? "editor-matchup-separator" : ""}`.trim(),
+  );
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     appendHeaderCell(headerRow, table.rows[0]?.roundScores[round - 1]?.label || `R${round}`);
   }
@@ -499,6 +503,7 @@ function createTable(table, rows = null){
     const header = document.createElement("th");
     header.scope = "col";
     header.textContent = label;
+    if(label === "Player") header.classList.add("editor-player-heading");
     if(hasHeaderGroups) header.rowSpan = 2;
     headerRow.appendChild(header);
   });
@@ -571,7 +576,9 @@ function createTable(table, rows = null){
     addButton.className = "editor-button editor-add-player";
     addButton.type = "button";
     addButton.dataset.addPlayerTable = table.key;
-    addButton.textContent = "Add player";
+    addButton.innerHTML = '<svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="editor-button-label">Add player</span>';
+    addButton.setAttribute("aria-label", "Add player");
+    addButton.title = "Add player";
     section.appendChild(addButton);
   }
   return section;

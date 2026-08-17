@@ -143,7 +143,7 @@ export function parseAdminRoute(search = ""){
     const frameParams = new URLSearchParams({ eventKey });
     copyIfPresent(params, frameParams, ["view", "season", "stage", "year"]);
     frameParams.set("embed", "1");
-    frameParams.set("v", "20260817-formula-refresh");
+    frameParams.set("v", "20260818-admin-mobile");
     return {
       section,
       eventKey,
@@ -161,7 +161,7 @@ export function parseAdminRoute(search = ""){
   if(section === "event-signups") copyIfPresent(params, frameParams, ["event"]);
   if(section === "championship-points") frameParams.set("view", "settings");
   frameParams.set("embed", "1");
-  if(section === "action-logs") frameParams.set("v", "20260817-compact-change-values");
+  frameParams.set("v", "20260818-admin-mobile");
   return {
     section,
     eventKey:"",

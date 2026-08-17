@@ -384,6 +384,16 @@ a{ color:inherit; }
   cursor:not-allowed;
   opacity:.62;
 }
+.settings-button-icon{
+  display:none;
+  width:16px;
+  height:16px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
 .settings-status{
   min-height:18px;
   margin:14px 0 0;
@@ -1170,4 +1180,194 @@ a{ color:inherit; }
   .builder-actions .settings-button{
     min-height:44px;
   }
+
+  html.admin-embedded .settings-card{
+    padding:10px;
+    border-radius:10px;
+  }
+  html.admin-embedded .settings-page-head{ margin-bottom:9px; }
+  html.admin-embedded .settings-kicker{
+    margin-bottom:4px;
+    font-size:8px;
+    letter-spacing:.08em;
+  }
+  html.admin-embedded .settings-title{
+    font-size:15px;
+    line-height:1.08;
+  }
+  html.admin-embedded .settings-status{
+    min-height:14px;
+    margin-top:8px;
+    font-size:9px;
+  }
+  html.admin-embedded .settings-button.mobile-icon-button{
+    width:30px;
+    min-width:30px;
+    min-height:30px;
+    padding:0;
+  }
+  html.admin-embedded .mobile-icon-button .settings-button-icon{ display:block; }
+  html.admin-embedded .mobile-icon-button .settings-button-label{ display:none; }
+
+  html.admin-embedded .admin-url-panel{
+    gap:11px;
+    margin-top:12px;
+  }
+  html.admin-embedded .admin-url-section{ gap:6px; }
+  html.admin-embedded .admin-url-title{ font-size:10px; }
+  html.admin-embedded .admin-url-panel .admin-url-table-wrap{
+    overflow:visible;
+    border:0;
+    border-radius:0;
+    background:transparent;
+  }
+  html.admin-embedded .admin-url-panel .admin-url-table{
+    min-width:0;
+    border-collapse:separate;
+  }
+  html.admin-embedded .admin-url-panel .admin-url-table thead{ display:none; }
+  html.admin-embedded .admin-url-panel .admin-url-table tbody{
+    display:grid;
+    gap:6px;
+  }
+  html.admin-embedded .admin-url-panel .admin-url-table tr{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px 8px;
+    padding:7px;
+    border:1px solid rgba(255,255,255,.10);
+    border-radius:8px;
+    background:rgba(255,255,255,.035);
+  }
+  html.admin-embedded .admin-url-panel .admin-url-table td{
+    display:block;
+    min-width:0;
+    padding:0;
+    border:0;
+    font-size:9px;
+    overflow-wrap:anywhere;
+  }
+  html.admin-embedded .admin-url-panel .admin-url-table td::before{
+    content:attr(data-label);
+    display:block;
+    margin-bottom:2px;
+    color:rgba(233,238,248,.48);
+    font-size:7px;
+    font-weight:900;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+  }
+  html.admin-embedded .admin-url-panel .admin-url-table td[data-label="URL"],
+  html.admin-embedded .admin-url-panel .admin-url-table td[data-label="Actions"]{ grid-column:1 / -1; }
+  html.admin-embedded .admin-url-panel .admin-url-actions{ gap:5px; }
+  html.admin-embedded .admin-url-panel .placeholder-panel{
+    margin-top:0;
+    padding:10px;
+  }
+  html.admin-embedded .admin-url-panel .placeholder-panel p{ font-size:9px; }
+
+  html.admin-embedded .builder-panel{
+    gap:7px;
+    margin-top:9px;
+  }
+  html.admin-embedded .builder-toolbar{ align-items:center; }
+  html.admin-embedded .builder-actions,
+  html.admin-embedded .builder-actions .settings-button{ width:auto; }
+  html.admin-embedded .builder-actions{ margin-left:auto; }
+  html.admin-embedded .builder-actions .settings-button{ min-height:30px; }
+  html.admin-embedded .builder-table{
+    min-width:0;
+    border-radius:6px;
+  }
+  html.admin-embedded .builder-row-col{ width:28px; }
+  html.admin-embedded .builder-discord-col{ width:112px; }
+  html.admin-embedded .builder-table th{
+    padding:5px;
+    font-size:8px;
+    letter-spacing:.035em;
+  }
+  html.admin-embedded .builder-table th,
+  html.admin-embedded .builder-table td{ font-size:10px; }
+  html.admin-embedded .builder-header-copy{ width:20px; height:20px; }
+  html.admin-embedded .builder-header-copy svg{ width:12px; height:12px; }
+  html.admin-embedded .builder-search-input,
+  html.admin-embedded .builder-discord-input{
+    min-height:29px;
+    padding-inline:5px;
+    font-size:9px;
+  }
+  html.admin-embedded .builder-search-input::placeholder{ font-size:8px; letter-spacing:.035em; }
+  html.admin-embedded .builder-row-index{ min-height:29px; padding-left:10px; font-size:8px; }
+  html.admin-embedded .builder-drag-handle{
+    left:0;
+    width:15px;
+    opacity:.7;
+  }
+  html.admin-embedded .builder-drag-handle svg{ width:11px; height:11px; }
+  html.admin-embedded .builder-row-remove{
+    right:0;
+    width:20px;
+    opacity:.66;
+  }
+  html.admin-embedded .builder-discord-input{ padding-right:20px; }
+  html.admin-embedded .builder-icon-button svg{ width:11px; height:11px; }
+  html.admin-embedded .builder-add-row-bar{ width:28px; height:25px; min-height:25px; margin-top:3px; }
+  html.admin-embedded .builder-search-results{
+    gap:3px;
+    max-height:210px;
+    padding:5px;
+    border-radius:9px;
+  }
+  html.admin-embedded .builder-search-result{ gap:6px; padding:5px; border-radius:7px; }
+  html.admin-embedded .builder-search-avatar{ width:24px; height:24px; }
+  html.admin-embedded .builder-search-display{ font-size:9px; }
+  html.admin-embedded .builder-search-username{ font-size:8px; }
+
+  html.admin-embedded .event-signups-layout{
+    gap:10px;
+    margin-top:10px;
+  }
+  html.admin-embedded .event-list-panel{ gap:5px; }
+  html.admin-embedded .event-list{
+    display:flex;
+    gap:5px;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
+  html.admin-embedded .event-list-item{
+    width:138px;
+    flex:0 0 138px;
+    border-radius:7px;
+    padding:7px;
+  }
+  html.admin-embedded .event-list-name{ font-size:9px; }
+  html.admin-embedded .event-list-meta{ margin-top:2px; font-size:8px; }
+  html.admin-embedded .event-signups-panel{ gap:6px; }
+  html.admin-embedded .event-signups-head{
+    align-items:center;
+    flex-direction:row;
+    gap:6px;
+  }
+  html.admin-embedded .event-signups-title{ font-size:11px; }
+  html.admin-embedded .event-signups-actions{
+    margin-left:auto;
+    justify-content:flex-end;
+    gap:5px;
+  }
+  html.admin-embedded .event-signups-count{ font-size:8px; }
+  html.admin-embedded .event-signups-table{ min-width:500px; }
+  html.admin-embedded .event-signups-table th,
+  html.admin-embedded .event-signups-table td{
+    padding:5px 6px;
+    font-size:8px;
+  }
+  html.admin-embedded .event-signups-table .event-player-cell{ min-width:150px; }
+  html.admin-embedded .event-seed-cell,
+  html.admin-embedded .event-gpi-rank-cell,
+  html.admin-embedded .event-gpi-cell{ width:48px; }
+  html.admin-embedded .event-time-cell{ width:105px; }
+  html.admin-embedded .event-player-link{ gap:6px; }
+  html.admin-embedded .event-player-avatar{ width:24px; height:24px; }
+  html.admin-embedded .event-player-name{ font-size:9px; }
+  html.admin-embedded .event-player-user{ font-size:7px; }
 }

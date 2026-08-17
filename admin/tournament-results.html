@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
-  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-editor-layout" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260818-admin-mobile" />
   <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-spinner" />
   <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
 </head>
@@ -38,8 +38,14 @@
         <h1 class="editor-title" id="editorTitle">Tournament results</h1>
         <div class="editor-head-actions">
           <span class="editor-dirty-count" id="editorDirtyCount" aria-live="polite">No unsaved changes</span>
-          <button class="editor-button" id="editorResetBtn" type="button" disabled>Reset</button>
-          <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save changes</button>
+          <button class="editor-button editor-action-button" id="editorResetBtn" type="button" aria-label="Reset changes" title="Reset changes" disabled>
+            <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            <span class="editor-button-label">Reset</span>
+          </button>
+          <button class="editor-button editor-action-button primary" id="editorSaveBtn" type="button" aria-label="Save changes" title="Save changes" disabled>
+            <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            <span class="editor-button-label">Save changes</span>
+          </button>
         </div>
       </div>
 
@@ -53,7 +59,10 @@
               </div>
               <div class="editor-player-filter-options" id="editorPlayerFilterOptions" role="listbox" hidden></div>
             </div>
-            <button class="editor-button editor-player-filter-clear" id="editorPlayerFilterClear" type="button" hidden>Clear</button>
+            <button class="editor-button editor-player-filter-clear" id="editorPlayerFilterClear" type="button" aria-label="Clear player filter" title="Clear player filter" hidden>
+              <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg>
+              <span class="editor-button-label">Clear</span>
+            </button>
           </div>
           <div class="editor-period-selects">
             <label class="editor-select-wrap">
@@ -73,6 +82,6 @@
   </main>
 
   <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
-  <script type="module" src="/admin/tournament-results.js?v=20260817-formula-refresh"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260818-admin-mobile"></script>
 </body>
 </html>
