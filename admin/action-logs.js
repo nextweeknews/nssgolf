@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "/admin/action-logs-core.mjs?v=20260817-row-layout";
-import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260817-action-log-row";
+import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "/admin/action-logs-core.mjs?v=20260817-compact-change-values";
+import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260817-compact-change-values";
 
 const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-action-logs";
 const supabase = createBrowserSupabaseClient();
@@ -57,16 +57,19 @@ function actionChange(change){
   const header = document.createElement("span");
   header.className = "action-change-header";
   header.textContent = change.header;
+  const values = document.createElement("span");
+  values.className = "action-change-values";
   const before = document.createElement("span");
-  before.className = "action-change-value";
+  before.className = `action-change-value before${change.beforeBlank ? " is-blank" : ""}`;
   before.textContent = change.before;
   const arrow = document.createElement("span");
   arrow.className = "action-change-arrow";
   arrow.textContent = "→";
   const after = document.createElement("span");
-  after.className = "action-change-value";
+  after.className = `action-change-value after${change.afterBlank ? " is-blank" : ""}`;
   after.textContent = change.after;
-  row.append(player, header, before, arrow, after);
+  values.append(before, arrow, after);
+  row.append(player, header, values);
   return row;
 }
 
@@ -136,26 +139,25 @@ function actionCard(log){
   const actions = document.createElement("div");
   actions.className = "action-log-actions";
   const status = statusDetails(log);
-  if(status){
-    const badge = document.createElement("span");
-    badge.className = `action-log-status ${status.className}`;
-    badge.textContent = status.label;
-    actions.appendChild(badge);
-  }
 
   const changes = Array.isArray(log.changes) ? log.changes : [];
   const changesId = `action-log-changes-${log.action_id}`;
   const viewChanges = document.createElement("button");
-  viewChanges.className = "editor-button";
+  viewChanges.className = "editor-button action-log-toggle";
   viewChanges.type = "button";
   viewChanges.textContent = "View changes";
   viewChanges.dataset.toggleChanges = "";
   viewChanges.setAttribute("aria-expanded", "false");
   viewChanges.setAttribute("aria-controls", changesId);
   actions.appendChild(viewChanges);
-  if(log.can_undo){
+  if(status){
+    const badge = document.createElement("span");
+    badge.className = `action-log-status ${status.className}`;
+    badge.textContent = status.label;
+    actions.appendChild(badge);
+  }else if(log.can_undo){
     const undo = document.createElement("button");
-    undo.className = "editor-button";
+    undo.className = "editor-button action-log-undo";
     undo.type = "button";
     undo.textContent = "Undo";
     undo.dataset.undoActionId = log.action_id;

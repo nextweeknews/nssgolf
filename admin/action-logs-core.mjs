@@ -46,12 +46,18 @@ export function actionLogChangeRows(change){
   const count = Math.max(before.length, after.length, headers.length, 1);
   const firstColumn = startColumn(change?.range);
   const playerName = text(change?.playerName) || "Player unavailable";
-  return Array.from({ length:count }, (_, index) => ({
-    playerName,
-    header:headers[index] || (firstColumn ? `Cell ${columnLetters(firstColumn + index)}` : "Changed value"),
-    before:before[index] === "" || before[index] === null || before[index] === undefined ? "—" : String(before[index]),
-    after:after[index] === "" || after[index] === null || after[index] === undefined ? "—" : String(after[index]),
-  }));
+  return Array.from({ length:count }, (_, index) => {
+    const beforeBlank = before[index] === "" || before[index] === null || before[index] === undefined;
+    const afterBlank = after[index] === "" || after[index] === null || after[index] === undefined;
+    return {
+      playerName,
+      header:headers[index] || (firstColumn ? `Cell ${columnLetters(firstColumn + index)}` : "Changed value"),
+      before:beforeBlank ? "blank" : String(before[index]),
+      after:afterBlank ? "blank" : String(after[index]),
+      beforeBlank,
+      afterBlank,
+    };
+  });
 }
 
 export function addUndoChangeContext(logs){

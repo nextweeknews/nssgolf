@@ -688,10 +688,22 @@ html.admin-embedded .editor-page-head{ margin:0; }
 }
 .action-log-event{ color:var(--action-event-color); font-size:11px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; }
 .action-log-cell-count{ white-space:nowrap; }
-.action-log-actions{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+.action-log-actions{
+  width:208px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 76px;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+.action-log-toggle{ color:#7dd3fc; border-color:rgba(125,211,252,.48); }
+.action-log-toggle:hover:not(:disabled){ color:#bae6fd; border-color:rgba(125,211,252,.72); background:rgba(14,165,233,.12); }
+.action-log-undo{ color:#fca5a5; border-color:rgba(252,165,165,.48); }
+.action-log-undo:hover:not(:disabled){ color:#fecaca; border-color:rgba(252,165,165,.72); background:rgba(239,68,68,.12); }
 .action-log-status{
   display:inline-flex;
   align-items:center;
+  justify-content:center;
   min-height:28px;
   border:1px solid rgba(255,255,255,.13);
   border-radius:999px;
@@ -709,7 +721,7 @@ html.admin-embedded .editor-page-head{ margin:0; }
 .action-change-list{ display:grid; gap:7px; padding-top:12px; }
 .action-change{
   display:grid;
-  grid-template-columns:minmax(150px,1.1fr) minmax(100px,.8fr) minmax(0,1fr) auto minmax(0,1fr);
+  grid-template-columns:minmax(150px,1.1fr) minmax(100px,.8fr) minmax(180px,1fr);
   align-items:center;
   gap:9px;
   padding:9px;
@@ -720,7 +732,17 @@ html.admin-embedded .editor-page-head{ margin:0; }
 }
 .action-change-player{ overflow:hidden; color:#fff; font-weight:850; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
 .action-change-header{ color:#bae6fd; font-weight:800; }
-.action-change-value{ min-width:0; overflow-wrap:anywhere; color:rgba(233,238,248,.72); }
+.action-change-values{
+  width:min(100%,180px);
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+}
+.action-change-value{ min-width:0; overflow-wrap:anywhere; color:rgba(233,238,248,.82); }
+.action-change-value.before{ text-align:right; }
+.action-change-value.after{ text-align:left; }
+.action-change-value.is-blank{ color:var(--muted); font-style:italic; }
 .action-change-arrow{ color:rgba(233,238,248,.35); }
 .action-log-error{ margin:0; padding:0 14px 13px; color:#fca5a5; font-size:11px; }
 .action-log-empty{ margin:22px 0; color:var(--muted); text-align:center; }

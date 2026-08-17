@@ -131,6 +131,13 @@ test("reuses the dirty-state label for transient editor feedback", async () => {
   assert.match(script, /if\(editorMessage && tone === "success"\)[\s\S]+}, 2500\);/);
 });
 
+test("refreshes formula-backed values after a successful save", async () => {
+  const script = await readFile(new URL("./tournament-results.js", import.meta.url), "utf8");
+
+  assert.match(script, /async function refreshFormulaValuesAfterSave\(\)/);
+  assert.match(script, /const formulaValuesRefreshed = await refreshFormulaValuesAfterSave\(\);[\s\S]+renderEditor\(\);/);
+});
+
 test("uses the server-authorized admin RPC for top-bar access", async () => {
   const calls = [];
   const client = {

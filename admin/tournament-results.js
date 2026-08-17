@@ -146,6 +146,31 @@ function hasUnsavedWork(){
   return dirtyCells().length > 0 || state.addedPlayerRows.size > 0;
 }
 
+function hasFormulaCells(){
+  return state.tables.some((table) => table.rows.some((row) => row.formulaCells.length));
+}
+
+async function refreshFormulaValuesAfterSave(){
+  if(!hasFormulaCells()) return true;
+  try{
+    const url = new URL(workerUrl);
+    url.searchParams.set("eventKey", eventKey);
+    if(state.activeViewKey) url.searchParams.set("viewKey", state.activeViewKey);
+    const response = await fetch(url, { headers:{ Accept:"application/json" }, cache:"no-store" });
+    const payload = await response.json().catch(() => null);
+    if(!response.ok) throw new Error(errorMessage(payload, "Unable to refresh formula values."));
+
+    state.event = payload.event;
+    state.activeViewKey = payload.event.activeViewKey || state.activeViewKey;
+    state.tables = buildEditorTables(payload.event, payload.valueRanges);
+    state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
+    return true;
+  }catch(error){
+    console.error("Unable to refresh tournament formula values.", error);
+    return false;
+  }
+}
+
 function updateActions(){
   const count = dirtyCells().length;
   const addedCount = state.addedPlayerRows.size;
@@ -1159,9 +1184,14 @@ saveButton.addEventListener("click", async () => {
       cell.initialValue = state.currentValues.get(cell.range);
     });
     state.addedPlayerRows.clear();
+    const formulaValuesRefreshed = await refreshFormulaValuesAfterSave();
     renderEditor();
     const savedCellCount = Number(payload.totalUpdatedCells) || changedCellCount;
-    setEditorStatus(`${savedCellCount} ${savedCellCount === 1 ? "change" : "changes"} saved.`, "success");
+    const savedMessage = `${savedCellCount} ${savedCellCount === 1 ? "change" : "changes"} saved.`;
+    setEditorStatus(
+      formulaValuesRefreshed ? savedMessage : `${savedMessage} Formula values could not be refreshed.`,
+      formulaValuesRefreshed ? "success" : "error",
+    );
   }catch(error){
     setEditorStatus(error?.message || "Unable to save tournament results.", "error");
   }finally{

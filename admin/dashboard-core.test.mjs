@@ -38,14 +38,14 @@ test("maps every standalone admin surface into the dashboard frame", () => {
   assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1");
   assert.equal(
     parseAdminRoute("?section=action-logs").frameUrl,
-    "/admin/action-logs.html?embed=1&v=20260817-action-log-row",
+    "/admin/action-logs.html?embed=1&v=20260817-compact-change-values",
   );
 });
 
 test("preserves result editor and signup subview state in the dashboard URL", () => {
   assert.equal(
     parseAdminRoute("?section=results-editor&eventKey=proleague&season=7&stage=3").frameUrl,
-    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260817-status-messages",
+    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260817-formula-refresh",
   );
   assert.equal(
     routeFromEmbeddedPage("/admin/tournament-results.html", "?eventKey=proleague&season=7&stage=3&embed=1"),
@@ -95,8 +95,8 @@ test("formats action-log rows without exposing raw range payloads", () => {
   assert.equal(actionLogTimestamp("2026-08-17T12:00:00Z", "en-US").includes("August 17, 2026"), true);
   assert.equal(actionLogCellCount({ changes:[change] }), 2);
   assert.deepEqual(actionLogChangeRows(change), [
-    { playerName:"Aidan", header:"R1", before:"3", after:"1" },
-    { playerName:"Aidan", header:"R2", before:"—", after:"-2" },
+    { playerName:"Aidan", header:"R1", before:"3", after:"1", beforeBlank:false, afterBlank:false },
+    { playerName:"Aidan", header:"R2", before:"blank", after:"-2", beforeBlank:true, afterBlank:false },
   ]);
 });
 
