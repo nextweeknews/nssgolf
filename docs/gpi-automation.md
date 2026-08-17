@@ -15,6 +15,8 @@ The `Internal Ranked League` GitHub Actions workflow publishes a complete Golf P
 
 The combined run is the public snapshot. It remains marked `combined_building` while its rating rows are inserted and changes to `combined` only after every row succeeds. If a workflow fails before that change, visitors continue to see the preceding complete snapshot rather than a mixture of old and new results.
 
+The Elo replay keeps match-by-match transitions in memory only. Each completed weekly run stores one current and peak Elo snapshot per player in `internal_ranked_elo_ratings`; `internal_ranked_matches` remains the canonical history for exact replays after corrected matches or calculation changes.
+
 The date shown by the site comes from `config.ranking_at`, falling back to the run's `created_at` for older records. This keeps the public ranking date independent from workflow runtime while preserving the immutable run chronology.
 
 The previous combined run identifies the comparison snapshot. The homepage and all GPI tables calculate rank movement as `previous rank - current rank`; positive movement uses the green Lucide up arrow, negative movement uses the red Lucide down arrow, and unchanged or new players show a gray dash.

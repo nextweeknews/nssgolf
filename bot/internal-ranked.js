@@ -786,6 +786,7 @@ async function replayStoredMatches(options) {
     loss_score: 0,
     pre_match_ratings: true,
     duplicate_policy: "exact_result_signature_within_2_minutes_skipped_before_insert",
+    stored_outputs: "weekly_player_current_and_peak",
   };
 
   const { data: runRow, error: runError } = await supabase
@@ -811,6 +812,7 @@ async function replayStoredMatches(options) {
     discord_user_id: row.discord_user_id,
     display_name: row.display_name,
     rating: roundRating(row.rating),
+    peak_rating: roundRating(row.peak_rating),
     matches_played: row.matches_played,
     pairwise_wins: row.pairwise_wins,
     pairwise_losses: row.pairwise_losses,
@@ -824,38 +826,14 @@ async function replayStoredMatches(options) {
     rank: row.rank,
   }));
 
-  const matchResultRows = replay.matchResults.map((row) => ({
-    run_id: runId,
-    match_hash: row.match_hash,
-    season: row.season,
-    timestamp_ms: row.timestamp_ms,
-    played_at: row.played_at,
-    discord_user_id: row.discord_user_id,
-    display_name: row.display_name,
-    place: row.place,
-    rating_before: roundRating(row.rating_before),
-    rating_delta: roundRating(row.rating_delta),
-    rating_after: roundRating(row.rating_after),
-    pairwise_wins: row.pairwise_wins,
-    pairwise_losses: row.pairwise_losses,
-    pairwise_ties: row.pairwise_ties,
-  }));
-
   await insertReplayRows(
     supabase,
     "internal_ranked_elo_ratings",
     ratingRows,
     "Final rating insert failed"
   );
-  await insertReplayRows(
-    supabase,
-    "internal_ranked_elo_match_results",
-    matchResultRows,
-    "Per-match Elo result insert failed"
-  );
-
   console.log(
-    `Replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} players, ${matchResultRows.length} player-match rows.`
+    `Replay complete: run ${runId}, ${replay.matchCount} matches, ${ratingRows.length} weekly player snapshots.`
   );
   const { data: snapshotRun, error: snapshotError } = await supabase
     .from("internal_ranked_elo_runs")

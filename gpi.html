@@ -2843,10 +2843,14 @@
       return `<span class="rank-value"><span class="rank-number">${escapeHtml(row.rank || "")}</span>${movement}</span>`;
     }
 
-    function visibleLeaderboardRows(){
+    function visibleRowsForCurrentUser(rows){
       return currentAdminContext.isAdmin
-        ? allLeaderboardRows
-        : allLeaderboardRows.filter(row => !row.hidden);
+        ? rows
+        : rows.filter(row => !row.hidden);
+    }
+
+    function visibleLeaderboardRows(){
+      return visibleRowsForCurrentUser(allLeaderboardRows);
     }
 
     function rerankLeaderboardRows(){
@@ -4518,8 +4522,9 @@
       ];
       const membersById = await loadMembers(ids);
       const rows = buildCombinedLeaderboardRows(rankedRatings, tournamentRatings, membersById, tournamentMatches);
-      cacheCombinedRows(rows);
-      return rows;
+      const visibleRows = visibleRowsForCurrentUser(rows);
+      cacheCombinedRows(visibleRows);
+      return visibleRows;
     }
 
     async function renderPredictionPage(requestId){
@@ -4667,7 +4672,7 @@
       }
       if(pageRequestId !== leaderboardPageRequestId) return;
       allLeaderboardRows = cached.rows;
-      leaderboardRows = cached.rows.filter(row => currentAdminContext.isAdmin || !row.hidden);
+      leaderboardRows = visibleRowsForCurrentUser(cached.rows);
       totalRatings = cached.total;
       if(config.kind === "combined") cacheCombinedRows(leaderboardRows);
       renderLeaderboard();

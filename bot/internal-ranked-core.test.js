@@ -543,6 +543,34 @@ function match(timestamp, results, versus = "1v1v1") {
 }
 
 {
+  const replay = replayElo([
+    {
+      match_hash: "m1",
+      season: 7,
+      timestamp_ms: 1_000,
+      raw_match: match(1_000, [
+        { place: 1, players: ["100"] },
+        { place: 2, players: ["200"] },
+      ], "1v1"),
+    },
+    {
+      match_hash: "m2",
+      season: 7,
+      timestamp_ms: 2_000,
+      raw_match: match(2_000, [
+        { place: 1, players: ["200"] },
+        { place: 2, players: ["100"] },
+      ], "1v1"),
+    },
+  ], { baseRating: 1200, kFactor: 20 });
+  const player = replay.finalRatings.find((row) => row.discord_user_id === "100");
+
+  assert(player.rating < player.peak_rating);
+  assert.equal(player.peak_rating, 1210);
+  assert.equal("matchResults" in replay, false);
+}
+
+{
   const replay = replayNormalizedPlacementElo([
     {
       match_hash: "m1",
@@ -620,7 +648,9 @@ function match(timestamp, results, versus = "1v1v1") {
   const loser = replay.finalRatings.find((row) => row.discord_user_id === "200");
 
   assert.equal(winner.rating, 1210);
+  assert.equal(winner.peak_rating, 1210);
   assert.equal(loser.rating, 1190);
+  assert.equal(loser.peak_rating, 1200);
   assert.equal(winner.pairwise_wins, 1);
   assert.equal(winner.first_place_finishes, 1);
   assert.equal(winner.outcome_win_percentage, 1);

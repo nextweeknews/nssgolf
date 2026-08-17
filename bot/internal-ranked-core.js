@@ -259,6 +259,7 @@ function actualScore(leftPlace, rightPlace) {
 function initialPlayerState(baseRating) {
   return {
     rating: baseRating,
+    peak_rating: baseRating,
     matches_played: 0,
     pairwise_wins: 0,
     pairwise_losses: 0,
@@ -656,8 +657,6 @@ function replayElo(matchRows, options = {}) {
   });
 
   const ratings = new Map();
-  const matchResults = [];
-
   for (const matchRow of sortedMatches) {
     const players = playersFromMatch(matchRow);
     if (players.length < 2) continue;
@@ -720,6 +719,7 @@ function replayElo(matchRows, options = {}) {
       const playedAt = matchRow.played_at || playedAtFromTimestamp(matchRow.timestamp_ms);
 
       state.rating = after;
+      state.peak_rating = Math.max(state.peak_rating, after);
       state.matches_played += 1;
       state.pairwise_wins += stats.wins;
       state.pairwise_losses += stats.losses;
@@ -731,22 +731,6 @@ function replayElo(matchRows, options = {}) {
       state.display_name = player.display_name || state.display_name;
       state.first_played_at = state.first_played_at || playedAt;
       state.last_played_at = playedAt;
-
-      matchResults.push({
-        match_hash: matchRow.match_hash,
-        season: matchRow.season,
-        timestamp_ms: matchRow.timestamp_ms,
-        played_at: playedAt,
-        discord_user_id: player.discord_user_id,
-        display_name: player.display_name,
-        place: player.place,
-        rating_before: before,
-        rating_delta: delta,
-        rating_after: after,
-        pairwise_wins: stats.wins,
-        pairwise_losses: stats.losses,
-        pairwise_ties: stats.ties,
-      });
     }
   }
 
@@ -760,6 +744,7 @@ function replayElo(matchRows, options = {}) {
         discord_user_id: discordUserId,
         display_name: state.display_name,
         rating: state.rating,
+        peak_rating: state.peak_rating,
         matches_played: state.matches_played,
         pairwise_wins: state.pairwise_wins,
         pairwise_losses: state.pairwise_losses,
@@ -783,7 +768,6 @@ function replayElo(matchRows, options = {}) {
 
   return {
     finalRatings,
-    matchResults,
     matchCount: sortedMatches.length,
   };
 }
