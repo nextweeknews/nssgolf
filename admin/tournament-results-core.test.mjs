@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   addedPlayerRowSaveState,
+  bracketRoundLabel,
   buildEditorTables,
   buildUpdates,
   coerceScoreValue,
@@ -13,6 +14,7 @@ import {
   isEditorRowVisible,
   matchupHasBye,
   nextBlankPlayerRow,
+  noptationalDisplayName,
   parseA1Range,
   playerFilterBackspaceState,
   proLeagueViewKey,
@@ -129,6 +131,50 @@ test("parses quoted and normalized Google A1 ranges", () => {
   assert.equal(getCellValue([{ range: "Bracket!A1:C2", values: [["A", "B"], [1, 2, 3]] }], "Bracket", 3, 2), 3);
 });
 
+test("uses the public Noptational display-name line", () => {
+  assert.equal(noptationalDisplayName("Display Name\nDiscordUsername"), "Display Name");
+  assert.equal(noptationalDisplayName("\n  Display Name  \nDiscordUsername"), "Display Name");
+
+  const [table] = buildEditorTables({ eventKey:"noptational", tables:[{
+    key:"scores",
+    source_range:"'Round Scores (2026)'!A1:J2",
+    data_start_row:2,
+    data_end_row:2,
+    hide_context:true,
+    hide_seed:true,
+    header_groups:[{ label:"Classic", span:2 }, { label:"Resort", span:2 }],
+    players:[{ name_column:"A", round_score_columns:["B", "C", "D", "E"] }],
+  }] }, [{
+    range:"'Round Scores (2026)'!A1:J2",
+    values:[[], ["Display Name\nDiscordUsername", -1, -2, -3, -4]],
+  }]);
+
+  assert.equal(table.rows[0].playerName, "Display Name");
+  assert.deepEqual(table.headerGroups, [{ label:"Classic", span:2 }, { label:"Resort", span:2 }]);
+});
+
+test("ties World Cup standings rows to their group context", () => {
+  const [table] = buildEditorTables({ eventKey:"worldcup", tables:[{
+    key:"group-standings",
+    source_range:"'World Cup 2026'!A1:H8",
+    data_start_row:3,
+    data_end_row:8,
+    context_block:{ column:"E", start_row:2, block_size:6 },
+    row_filter:{ column:"E", nonempty:true, exclude_pattern:"^Group\\s" },
+    players:[{ name_column:"E", round_score_columns:["F", "G", "H"] }],
+  }] }, [{
+    range:"'World Cup 2026'!A1:H8",
+    values:[[], ["", "", "", "", "Group A"], ["", "", "", "", "USA", 3, 2, "1-0-0"]],
+  }]);
+
+  assert.deepEqual(table.rows[0].context, ["Group A"]);
+  assert.deepEqual(table.rows[0].roundScores.map((cell) => cell.range), [
+    "'World Cup 2026'!F3",
+    "'World Cup 2026'!G3",
+    "'World Cup 2026'!H3",
+  ]);
+});
+
 test("builds player score rows from a source range subset", () => {
   const event = {
     tables: [{
@@ -170,6 +216,11 @@ test("groups players from the same sheet row into one bracket matchup", () => {
     { sourceRow:2, players:["Player 1", "Player 2"] },
     { sourceRow:3, players:["Player 3"] },
   ]);
+});
+
+test("uses Lightning Cup round IDs without the match ID", () => {
+  assert.equal(bracketRoundLabel({ sourceRow:4, context:["1", "R64"] }), "R64");
+  assert.equal(bracketRoundLabel({ sourceRow:64, context:["Final"] }), "Final");
 });
 
 test("identifies matchups containing a BYE player", () => {
@@ -262,6 +313,41 @@ test("builds horizontally paired rows from offset sheet rows", () => {
     ["Group A", "USA B", "'World Cup 2025'!K3"],
   ]);
   assert.equal(table.rows[0].roundScores[0].label, "Pts");
+});
+
+test("builds World Open player-name inputs from each round's Field column", () => {
+  const [table] = buildEditorTables({ eventKey:"worldopen", tables:[{
+    key:"round-1",
+    source_range:"'2026 Results'!A1:F4",
+    data_start_row:2,
+    data_end_row:3,
+    player_options:{ column:"A", start_row:2, end_row:4 },
+    hide_context:true,
+    hide_seed:true,
+    matchup_layout:true,
+    players:[
+      { name_column:"C", editable_name:true, result_column:"D" },
+      { name_column:"E", editable_name:true, result_column:"F" },
+    ],
+  }] }, [{
+    range:"'2026 Results'!A1:F4",
+    values:[
+      ["Field", "", "Player 1", "Score", "Player 2", "Score"],
+      ["Aidan", "", "Aidan", 2, "Ricardo", 0],
+      ["Ricardo", "", "Nick", 1, "Jon", 2],
+      ["Nick"],
+    ],
+  }]);
+
+  assert.deepEqual(table.playerOptions, ["Aidan", "Ricardo", "Nick"]);
+  assert.deepEqual(table.rows.map((row) => row.nameCell.range), [
+    "'2026 Results'!C2", "'2026 Results'!E2", "'2026 Results'!C3", "'2026 Results'!E3",
+  ]);
+  const currentValues = new Map(table.rows.flatMap((row) => row.editableCells.map((cell) => [cell.range, cell.initialValue])));
+  currentValues.set("'2026 Results'!C2", "Nick");
+  assert.deepEqual(buildUpdates([table], currentValues), [
+    { range:"'2026 Results'!C2:C2", values:[["Nick"]] },
+  ]);
 });
 
 test("filters and strides template-discovered tournament rows", () => {

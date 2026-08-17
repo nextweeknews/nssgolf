@@ -30,3 +30,24 @@ html.admin-embedded .card{
 html.admin-embedded .settings-page-head{
   margin-bottom:18px;
 }
+
+.admin-loading-spinner{
+  width:20px;
+  height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  animation:admin-spinner-rotate .8s linear infinite;
+}
+.admin-loading-region{
+  min-height:clamp(180px,45vh,420px);
+  display:grid;
+  place-items:center;
+  color:rgba(233,238,248,.5);
+}
+@keyframes admin-spinner-rotate{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){
+  .admin-loading-spinner{ animation-duration:1.6s; }
+}

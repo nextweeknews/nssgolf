@@ -23,6 +23,17 @@ body{
   background:var(--admin-bg);
 }
 button,a{ font:inherit; }
+.admin-loading-spinner{
+  width:20px;
+  height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  animation:admin-spinner-rotate .8s linear infinite;
+}
+@keyframes admin-spinner-rotate{ to{ transform:rotate(360deg); } }
 .admin-loading,
 .admin-denied{
   min-height:100vh;
@@ -31,6 +42,7 @@ button,a{ font:inherit; }
   padding:24px;
   background-image:linear-gradient(to bottom,#071b34,#04142e,var(--admin-bg));
 }
+.admin-loading{ color:rgba(233,238,248,.5); }
 .admin-access-card{
   width:min(420px,100%);
   padding:28px;
@@ -211,6 +223,7 @@ button,a{ font:inherit; }
   color:rgba(233,238,248,.86);
   font-size:11px;
   font-weight:800;
+  text-transform:uppercase;
   text-decoration:none;
   white-space:nowrap;
 }
@@ -234,16 +247,13 @@ button,a{ font:inherit; }
   border-radius:0;
   background:transparent;
 }
+.admin-frame.is-loading{ visibility:hidden; }
 .admin-frame-loading{
   position:absolute;
-  inset:16px;
+  inset:0;
   display:grid;
   place-items:center;
-  border:1px solid var(--admin-border);
-  border-radius:12px;
-  background:var(--admin-panel);
-  color:var(--admin-muted);
-  font-size:12px;
+  color:rgba(233,238,248,.5);
   pointer-events:none;
 }
 .admin-scrim{ display:none; }
@@ -251,7 +261,6 @@ body.sidebar-collapsed .admin-shell{ grid-template-columns:0 minmax(0,1fr); }
 body.sidebar-collapsed .admin-sidebar{ transform:translateX(calc(-100% - 8px)); opacity:0; }
 @media (min-width:1100px){
   .admin-content{ padding:24px; }
-  .admin-frame-loading{ inset:24px; }
 }
 @media (max-width:840px){
   .admin-shell{ grid-template-columns:minmax(0,1fr); padding:0; }
@@ -279,7 +288,6 @@ body.sidebar-collapsed .admin-sidebar{ transform:translateX(calc(-100% - 8px)); 
   }
   body.sidebar-open .admin-scrim{ opacity:1; pointer-events:auto; }
   .admin-content{ padding:12px; }
-  .admin-frame-loading{ inset:12px; }
   .admin-breadcrumb-group,.admin-breadcrumb-separator{ display:none; }
 }
 @media (max-width:680px){
@@ -287,5 +295,6 @@ body.sidebar-collapsed .admin-sidebar{ transform:translateX(calc(-100% - 8px)); 
   .admin-header-actions{ width:100%; justify-content:flex-end; }
 }
 @media (prefers-reduced-motion:reduce){
+  .admin-loading-spinner{ animation-duration:1.6s; }
   .admin-shell,.admin-sidebar,.admin-nav-chevron,.admin-scrim{ transition:none; }
 }

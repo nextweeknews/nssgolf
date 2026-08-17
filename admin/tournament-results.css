@@ -86,6 +86,15 @@ body{
   gap:14px;
   text-align:center;
 }
+.editor-access-panel.is-loading{
+  min-height:calc(100vh - 132px);
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:rgba(233,238,248,.5);
+}
+html.admin-embedded .editor-access-panel.is-loading{ min-height:100vh; }
 .editor-page-head{
   min-height:58px;
   display:flex;
@@ -444,9 +453,8 @@ body{
   overflow:hidden;
   text-overflow:ellipsis;
   font-weight:900;
+  text-transform:uppercase;
 }
-.editor-player-cell.has-team-style,
-.editor-player-cell.is-pro-league{ text-transform:uppercase; }
 .editor-player-cell > span{ vertical-align:middle; }
 .editor-player-name-input{
   width:100%;
@@ -528,20 +536,64 @@ body{
   opacity:1;
 }
 .editor-table.is-championship-matchups .editor-player-cell{
-  width:115px;
-  min-width:115px;
-  max-width:115px;
+  width:auto;
+  min-width:108px;
+  max-width:190px;
+}
+.editor-table.is-championship-matchups .editor-context-cell,
+.editor-table.is-championship-matchups .editor-seed-cell{
+  width:64px;
 }
 .editor-table.is-championship-matchups .editor-context-cell{ min-width:64px; max-width:64px; }
+.editor-table.is-championship-matchups .editor-seed-cell{ width:52px; min-width:52px; max-width:52px; }
 .editor-table.is-championship-matchups .editor-score-cell{
   width:40px;
   min-width:40px;
+  max-width:40px;
 }
 .editor-table.is-championship-matchups .editor-score-input{
   width:34px;
   padding-inline:3px;
   font-size:12px;
 }
+.editor-header-group-row th[scope="colgroup"]{
+  color:#fff;
+  background:#14223b;
+}
+.editor-header-round-row th{ top:41px; }
+.editor-worldcup-group{
+  display:grid;
+  gap:10px;
+  padding-top:2px;
+}
+.editor-worldcup-group + .editor-worldcup-group{
+  padding-top:20px;
+  border-top:1px solid rgba(255,255,255,.11);
+}
+.editor-worldcup-group-title,
+.editor-worldcup-round-title{
+  margin:0;
+  color:#fff;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.editor-worldcup-group-title{ font-size:15px; }
+.editor-worldcup-round-title{
+  margin:0 2px 7px;
+  color:rgba(233,238,248,.72);
+  font-size:10px;
+  text-align:center;
+}
+.editor-worldcup-group-layout{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(300px,1fr));
+  gap:12px;
+  overflow-x:auto;
+  overscroll-behavior-inline:contain;
+}
+.editor-worldcup-standings{ grid-column:1 / -1; }
+.editor-worldcup-group .editor-table-section{ min-width:0; }
 .editor-table.is-superleague-matchups .editor-player-cell{ min-width:160px; max-width:220px; }
 .editor-table.is-superleague-matchups .editor-seed-cell{ min-width:52px; }
 .editor-table.is-superleague-matchups.is-superleague-winners .editor-context-cell{
@@ -577,6 +629,8 @@ body{
 @media (max-width:760px){
   .editor-view-tabs.is-radix{ grid-template-columns:repeat(var(--editor-tab-columns,2),minmax(112px,1fr)); overflow-x:auto; }
   .editor-table.is-superleague-matchups .editor-player-cell{ min-width:138px; }
+  .editor-worldcup-group-layout{ grid-template-columns:minmax(300px,1fr); }
+  .editor-worldcup-standings{ grid-column:auto; }
 }
 
 html.admin-embedded,

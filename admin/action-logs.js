@@ -4,6 +4,7 @@ const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tourn
 const supabase = createBrowserSupabaseClient();
 
 const accessPanel = document.getElementById("logsAccessPanel");
+const accessSpinner = document.getElementById("logsAccessSpinner");
 const accessStatus = document.getElementById("logsAccessStatus");
 const loginButton = document.getElementById("logsLoginBtn");
 const logsPanel = document.getElementById("logsPanel");
@@ -17,11 +18,14 @@ function setStatus(element, message, tone = ""){
   element.className = `editor-status ${tone}`.trim();
 }
 
-function showAccess(message, tone = "", canSignIn = false){
+function showAccess(message = "", tone = "", canSignIn = false, loading = false){
   logsPanel.hidden = true;
   accessPanel.hidden = false;
-  loginButton.hidden = !canSignIn;
-  setStatus(accessStatus, message, tone);
+  accessPanel.classList.toggle("is-loading", loading);
+  accessSpinner.hidden = !loading;
+  accessStatus.hidden = loading;
+  loginButton.hidden = loading || !canSignIn;
+  if(!loading) setStatus(accessStatus, message, tone);
 }
 
 async function requestHeaders(){
@@ -122,7 +126,7 @@ function actionCard(log){
 }
 
 async function loadLogs(){
-  showAccess("Checking admin access…");
+  showAccess("", "", false, true);
   try{
     const response = await fetch(`${WORKER_URL}?limit=100`, {
       headers: await requestHeaders(),

@@ -1,6 +1,7 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import {
   addedPlayerRowSaveState,
+  bracketRoundLabel,
   buildEditorTables,
   buildUpdates,
   editorMatchups,
@@ -14,7 +15,7 @@ import {
   proLeagueViewKey,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-player-search";
+} from "/admin/tournament-results-core.mjs?v=20260817-editor-layout";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -25,6 +26,7 @@ const eventKey = new URL(globalThis.location.href).searchParams.get("eventKey")?
 const supabase = createBrowserSupabaseClient();
 
 const accessPanel = document.getElementById("editorAccessPanel");
+const accessSpinner = document.getElementById("editorAccessSpinner");
 const editorPanel = document.getElementById("editorPanel");
 const loginButton = document.getElementById("editorLoginBtn");
 const accessStatus = document.getElementById("editorAccessStatus");
@@ -99,11 +101,14 @@ function errorMessage(data, fallback){
   return typeof data?.error === "string" && data.error.trim() ? data.error : fallback;
 }
 
-function showAccessPanel({ message, tone = "", canSignIn = false }){
+function showAccessPanel({ message = "", tone = "", canSignIn = false, loading = false }){
   editorPanel.hidden = true;
   accessPanel.hidden = false;
-  loginButton.hidden = !canSignIn;
-  setAccessStatus(message, tone);
+  accessPanel.classList.toggle("is-loading", loading);
+  accessSpinner.hidden = !loading;
+  accessStatus.hidden = loading;
+  loginButton.hidden = loading || !canSignIn;
+  if(!loading) setAccessStatus(message, tone);
 }
 
 async function requestHeaders(){
@@ -170,7 +175,16 @@ function playerNameForRow(row){
   return editorPlayerName(row, state.currentValues);
 }
 
-function appendPlayerCell(rowEl, row, className = ""){
+function worldOpenRemainingPlayers(table, row){
+  const used = new Set(table.rows
+    .filter((candidate) => candidate !== row)
+    .map((candidate) => playerNameForRow(candidate).toLowerCase())
+    .filter(Boolean));
+  const current = playerNameForRow(row).toLowerCase();
+  return table.playerOptions.filter((name) => name.toLowerCase() === current || !used.has(name.toLowerCase()));
+}
+
+function appendPlayerCell(rowEl, row, className = "", table = null){
   const cell = document.createElement("td");
   cell.className = "editor-player-cell";
   if(className) cell.classList.add(className);
@@ -194,10 +208,10 @@ function appendPlayerCell(rowEl, row, className = ""){
     logo.addEventListener("error", () => logo.remove());
     cell.appendChild(logo);
   }
-  if(state.addedPlayerRows.has(row.key)){
+  if(state.addedPlayerRows.has(row.key) || (state.event?.eventKey === "worldopen" && row.nameCell)){
     const input = document.createElement("input");
     input.className = "editor-player-name-input";
-    input.type = "text";
+    input.type = state.event?.eventKey === "worldopen" ? "search" : "text";
     input.autocomplete = "off";
     input.spellcheck = false;
     input.placeholder = "Player name";
@@ -205,7 +219,23 @@ function appendPlayerCell(rowEl, row, className = ""){
     input.dataset.initialValue = row.nameCell.initialValue;
     input.dataset.playerNameRange = row.nameCell.range;
     input.setAttribute("aria-label", `Player name, sheet row ${row.sourceRow}`);
-    cell.appendChild(input);
+    if(state.event?.eventKey === "worldopen" && table){
+      const list = document.createElement("datalist");
+      list.id = `world-open-options-${row.key}`;
+      list.replaceChildren(...worldOpenRemainingPlayers(table, row).map((optionName) => {
+        const option = document.createElement("option");
+        option.value = optionName;
+        return option;
+      }));
+      input.setAttribute("list", list.id);
+      input.dataset.worldOpenPlayer = "true";
+      input.dataset.tableKey = table.key;
+      input.dataset.rowKey = row.key;
+      input.setAttribute("aria-description", "Search players remaining in this round's Field column");
+      cell.append(input, list);
+    }else{
+      cell.appendChild(input);
+    }
   }else{
     const name = document.createElement("span");
     name.textContent = playerName || "—";
@@ -284,7 +314,7 @@ function appendBracketPlayerCells(rowEl, table, row, playerNumber, showSeed = fa
   }
 
   if(showSeed) appendTextCell(rowEl, row.seed, `editor-seed-cell ${separator}`.trim());
-  appendPlayerCell(rowEl, row, showSeed ? "" : separator);
+  appendPlayerCell(rowEl, row, showSeed ? "" : separator, table);
   const playerLabel = playerNameForRow(row) || `Player slot ${row.playerSlot}`;
   for(let round = 0; round < table.maxRoundCount; round += 1){
     appendScoreCell(rowEl, row.roundScores[round], playerLabel);
@@ -294,10 +324,6 @@ function appendBracketPlayerCells(rowEl, table, row, playerNumber, showSeed = fa
   }
   if(table.hasSuddenDeath) appendScoreCell(rowEl, row.suddenDeath, playerLabel);
   if(table.hasResult) appendScoreCell(rowEl, row.result, playerLabel);
-}
-
-function bracketRoundLabel(row){
-  return row.context.find((value) => /^(?:R\d+|QF|SF|Final|3rd)$/i.test(value.trim())) || contextLabel(row);
 }
 
 function createBracketMatchupTable(table, visibleRows){
@@ -360,7 +386,9 @@ function createBracketMatchupTable(table, visibleRows){
       appendTextCell(rowEl, firstPlayer.context[0], "editor-context-cell editor-period-cell");
       appendTextCell(rowEl, firstPlayer.context[1], "editor-context-cell editor-division-cell");
     }else{
-      const context = isWinners ? firstPlayer.context[1] : contextLabel(firstPlayer);
+      const context = isWinners
+        ? firstPlayer.context[1]
+        : state.event?.eventKey === "lightningcup" ? bracketRoundLabel(firstPlayer) : contextLabel(firstPlayer);
       appendTextCell(rowEl, context, "editor-context-cell");
     }
     appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 1), 1, showSeed);
@@ -374,9 +402,9 @@ function createBracketMatchupTable(table, visibleRows){
   return section;
 }
 
-function createTable(table){
+function visibleRowsForTable(table){
   const isMatchupTable = table.matchupLayout || ["masters", "championship", "superleague"].includes(state.event?.eventKey);
-  const visibleRows = table.rows.filter((row) => (
+  return table.rows.filter((row) => (
     (isEditorRowVisible(row, state.currentValues) || state.addedPlayerRows.has(row.key))
     && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(
       row,
@@ -385,6 +413,11 @@ function createTable(table){
       isMatchupTable ? table.rows : [],
     ))
   ));
+}
+
+function createTable(table, rows = null){
+  const isMatchupTable = table.matchupLayout || ["masters", "championship", "superleague"].includes(state.event?.eventKey);
+  const visibleRows = rows || visibleRowsForTable(table);
   if(state.selectedPlayers.size && !visibleRows.length) return null;
   if(isMatchupTable){
     return createBracketMatchupTable(table, visibleRows);
@@ -393,7 +426,7 @@ function createTable(table){
   const section = document.createElement("section");
   section.className = "editor-table-section";
   section.dataset.groupKey = table.groupKey;
-  const showHeading = state.event?.eventKey !== "proleague" || table.label !== "Player scores";
+  const showHeading = !table.groupKey && (state.event?.eventKey !== "proleague" || table.label !== "Player scores");
   section.setAttribute(showHeading ? "aria-labelledby" : "aria-label", showHeading ? `editor-table-${table.key}` : table.label);
 
   const heading = document.createElement("div");
@@ -412,12 +445,31 @@ function createTable(table){
   if(state.event?.eventKey === "proleague") tableEl.classList.add("is-pro-league");
 
   const headerRow = document.createElement("tr");
+  const hasHeaderGroups = table.headerGroups.length > 0;
+  if(hasHeaderGroups) headerRow.className = "editor-header-group-row";
   const leadingHeaders = [
     ...(!table.hideContext ? ["Match / source"] : []),
     ...(!table.hideSeed ? ["Seed"] : []),
     "Player",
   ];
-  leadingHeaders.forEach((label) => appendHeaderCell(headerRow, label));
+  leadingHeaders.forEach((label) => {
+    const header = document.createElement("th");
+    header.scope = "col";
+    header.textContent = label;
+    if(hasHeaderGroups) header.rowSpan = 2;
+    headerRow.appendChild(header);
+  });
+  if(hasHeaderGroups){
+    table.headerGroups.forEach((group) => {
+      const header = document.createElement("th");
+      header.scope = "colgroup";
+      header.colSpan = group.span;
+      header.textContent = group.label;
+      headerRow.appendChild(header);
+    });
+  }
+  const roundHeaderRow = hasHeaderGroups ? document.createElement("tr") : headerRow;
+  if(hasHeaderGroups) roundHeaderRow.className = "editor-header-round-row";
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     const header = document.createElement("th");
     header.scope = "col";
@@ -425,24 +477,25 @@ function createTable(table){
     if(table.roundLabelStyle === "week-round" && round % 2 === 0 && round < table.maxRoundCount){
       header.classList.add("editor-week-separator");
     }
-    headerRow.appendChild(header);
+    roundHeaderRow.appendChild(header);
   }
   if(table.hasSuddenDeath){
     const header = document.createElement("th");
     header.scope = "col";
     header.className = "editor-sudden-death";
     header.textContent = "SD";
-    headerRow.appendChild(header);
+    roundHeaderRow.appendChild(header);
   }
   if(table.hasResult){
     const resultHeader = document.createElement("th");
     resultHeader.scope = "col";
     resultHeader.textContent = "Result";
-    headerRow.appendChild(resultHeader);
+    roundHeaderRow.appendChild(resultHeader);
   }
 
   const thead = document.createElement("thead");
   thead.appendChild(headerRow);
+  if(hasHeaderGroups) thead.appendChild(roundHeaderRow);
   const tbody = document.createElement("tbody");
 
   visibleRows.forEach((row) => {
@@ -451,7 +504,7 @@ function createTable(table){
     if(!playerNameForRow(row) && !row.editableCells.some((cell) => cell.initialValue)) rowEl.classList.add("is-empty-player");
     if(!table.hideContext) appendTextCell(rowEl, contextLabel(row), "editor-context-cell");
     if(!table.hideSeed) appendTextCell(rowEl, row.seed, "editor-seed-cell");
-    appendPlayerCell(rowEl, row);
+    appendPlayerCell(rowEl, row, "", table);
     const playerLabel = playerNameForRow(row) || `Player slot ${row.playerSlot}`;
     for(let round = 0; round < table.maxRoundCount; round += 1){
       appendScoreCell(
@@ -481,11 +534,83 @@ function createTable(table){
   return section;
 }
 
+function createWorldCupGroupStageSections(){
+  const groupTables = state.tables.filter((table) => table.groupKey === "group-stage");
+  const standings = groupTables.find((table) => table.key === "group-standings");
+  const rounds = groupTables.filter((table) => /^group-games-\d+$/.test(table.key));
+  if(!standings || !rounds.length) return [];
+
+  const groupNames = [];
+  const seen = new Set();
+  groupTables.forEach((table) => table.rows.forEach((row) => {
+    const name = row.context[0]?.trim();
+    if(!/^Group\s+[A-Z]$/i.test(name || "") || seen.has(name.toLowerCase())) return;
+    seen.add(name.toLowerCase());
+    groupNames.push(name);
+  }));
+
+  return groupNames.map((groupName) => {
+    const section = document.createElement("section");
+    section.className = "editor-table-section editor-worldcup-group";
+    section.dataset.groupKey = "group-stage";
+    section.setAttribute("aria-labelledby", `editor-worldcup-${groupName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+
+    const title = document.createElement("h2");
+    title.className = "editor-worldcup-group-title";
+    title.id = section.getAttribute("aria-labelledby");
+    title.textContent = groupName;
+
+    const layout = document.createElement("div");
+    layout.className = "editor-worldcup-group-layout";
+    const tables = [standings, ...rounds].map((table, index) => {
+      const groupRows = visibleRowsForTable(table).filter((row) => row.context[0]?.trim() === groupName);
+      if(!groupRows.length) return null;
+      const wrapper = document.createElement("div");
+      wrapper.className = index === 0 ? "editor-worldcup-standings" : "editor-worldcup-round";
+      if(index > 0){
+        const roundTitle = document.createElement("h3");
+        roundTitle.className = "editor-worldcup-round-title";
+        roundTitle.textContent = `Round ${index}`;
+        wrapper.appendChild(roundTitle);
+      }
+      const tableSection = createTable({ ...table, hideContext:true }, groupRows);
+      if(tableSection) wrapper.appendChild(tableSection);
+      return wrapper;
+    }).filter(Boolean);
+    if(!tables.length) return null;
+    layout.append(...tables);
+    section.append(title, layout);
+    return section;
+  }).filter(Boolean);
+}
+
 function renderTables(){
-  const sections = state.tables.map(createTable).filter(Boolean);
+  const isWorldCup = state.event?.eventKey === "worldcup";
+  const sections = isWorldCup
+    ? [
+        ...createWorldCupGroupStageSections(),
+        ...state.tables.filter((table) => table.groupKey !== "group-stage").map((table) => createTable(table)).filter(Boolean),
+      ]
+    : state.tables.map((table) => createTable(table)).filter(Boolean);
   tablesMount.replaceChildren(...sections);
   renderEditorTabs();
+  refreshWorldOpenPlayerInputs();
   updateActions();
+}
+
+function refreshWorldOpenPlayerInputs(){
+  if(state.event?.eventKey !== "worldopen") return;
+  tablesMount.querySelectorAll("input[data-world-open-player]").forEach((input) => {
+    const table = state.tables.find((candidate) => candidate.key === input.dataset.tableKey);
+    const row = table?.rows.find((candidate) => candidate.key === input.dataset.rowKey);
+    const list = input.list;
+    if(!table || !row || !list) return;
+    list.replaceChildren(...worldOpenRemainingPlayers(table, row).map((optionName) => {
+      const option = document.createElement("option");
+      option.value = optionName;
+      return option;
+    }));
+  });
 }
 
 function editorGroups(){
@@ -785,7 +910,7 @@ async function loadEditor(requestedViewKey = eventKey === "proleague"
     return;
   }
 
-  showAccessPanel({ message: "Loading tournament results…" });
+  showAccessPanel({ loading:true });
 
   try{
     const url = new URL(workerUrl);
@@ -816,7 +941,8 @@ async function loadEditor(requestedViewKey = eventKey === "proleague"
     state.addedPlayerRows.clear();
     setEditorStatus("");
     renderEditor();
-  }catch{
+  }catch(error){
+    console.error("Unable to load tournament editor.", error);
     showAccessPanel({ message: "Unable to reach the tournament editor service.", tone: "error" });
   }
 }
@@ -835,6 +961,7 @@ tablesMount.addEventListener("input", (event) => {
   if(!input) return;
   state.currentValues.set(input.dataset.scoreRange || input.dataset.playerNameRange, input.value);
   setEditorStatus("");
+  if(input.dataset.worldOpenPlayer) refreshWorldOpenPlayerInputs();
   updateActions();
 });
 
@@ -956,8 +1083,39 @@ function prepareAddedPlayerRowsForSave(){
   return { valid: true, removedBlankRow };
 }
 
+function validateWorldOpenPlayerNames(){
+  if(state.event?.eventKey !== "worldopen") return true;
+  for(const table of state.tables){
+    const allowed = new Map(table.playerOptions.map((name) => [name.toLowerCase(), name]));
+    const used = new Set();
+    for(const row of table.rows){
+      if(!row.nameCell) continue;
+      const value = playerNameForRow(row);
+      if(!value) continue;
+      const key = value.toLowerCase();
+      const canonical = allowed.get(key);
+      if(!canonical){
+        setEditorStatus("Select a player from this round's Field list.", "error");
+        [...tablesMount.querySelectorAll("input[data-player-name-range]")]
+          .find((input) => input.dataset.playerNameRange === row.nameCell.range)?.focus();
+        return false;
+      }
+      if(used.has(key)){
+        setEditorStatus(`${canonical} is already assigned in this round.`, "error");
+        [...tablesMount.querySelectorAll("input[data-player-name-range]")]
+          .find((input) => input.dataset.playerNameRange === row.nameCell.range)?.focus();
+        return false;
+      }
+      used.add(key);
+      state.currentValues.set(row.nameCell.range, canonical);
+    }
+  }
+  return true;
+}
+
 saveButton.addEventListener("click", async () => {
   if(state.saving || !state.event?.canEdit) return;
+  if(!validateWorldOpenPlayerNames()) return;
   const prepared = prepareAddedPlayerRowsForSave();
   if(!prepared.valid) return;
   const updates = buildUpdates(state.tables, state.currentValues);

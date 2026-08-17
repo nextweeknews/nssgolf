@@ -58,7 +58,7 @@ The service account must be shared as an Editor on this workbook before writes a
 
 Spreadsheet: `1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM`
 
-The editor mirrors the seven public rounds as tabs. A year selector is generated from workbook tabs named `YYYY Results`, so a new same-layout tab is available without a code change. Each matchup remains one horizontal row; only the two score columns in each round's matchup block are editable. Field lists, matchup names, display flags, advancement formulas, and the champion formula remain read-only.
+The editor mirrors the seven public rounds as tabs. A year selector is generated from workbook tabs named `YYYY Results`, so a new same-layout tab is available without a code change. Each matchup remains one horizontal row. Both player slots use searchable inputs sourced from that round's `Field` column, and a field player can only be assigned once within the round. Player names and the two score columns in each round's matchup block are editable; field lists, display flags, advancement formulas, and the champion formula remain read-only.
 
 ## Lightning Cup
 
@@ -70,13 +70,13 @@ The editor mirrors the public region tabs: Wii Plaza, Wuhu Island, Wedge Island,
 
 Spreadsheet: `1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00`
 
-The editor separates Classic, Resort, Specials, and 18 Holes into tabs matching the tournament's four scoring levels. A year selector is generated from workbook tabs named `Round Scores (YYYY)`. Player names remain read-only; only `B2:J72` in each detected year tab is writable.
+The editor shows Classic, Resort, Specials, and 18 Holes together in one table, with grouped course headers and round numbers matching the public leaderboard. A year selector is generated from workbook tabs named `Round Scores (YYYY)`. Player names remain read-only; only `B2:J72` in each detected year tab is writable.
 
 ## World Cup
 
 Spreadsheet: `1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk`
 
-The editor exposes every workbook tab named `World Cup YYYY`, including 2024 and 2025, and selects the newest detected year by default. Group Stage and Bracket are separate tabs. Standings values, the three group-match score columns, and both bracket score columns are writable; team names, group labels, bracket rounds, and matchup structure remain read-only.
+The editor exposes every workbook tab named `World Cup YYYY`, including 2024 and 2025, and selects the newest detected year by default. Group Stage and Bracket are separate tabs. Each Group Stage section keeps its standings inputs and three matchup rounds together by group. Standings values, the three group-match score columns, and both bracket score columns are writable; team names, group labels, bracket rounds, and matchup structure remain read-only.
 
 Year discovery is deliberately workbook- and layout-bound. It can create an editor view for a new matching tab in an existing configured workbook, but it does not infer a new spreadsheet ID or an unfamiliar column layout. Lightning Cup, World Championship, and World Golf Masters currently use unversioned sheet tabs, while Pro League and Super League have layouts that vary by season; future iterations of those events still require an explicit registry update.
 

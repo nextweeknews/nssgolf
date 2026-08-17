@@ -232,7 +232,9 @@ BEGIN
     WHERE sheet_id = '1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM'
       AND editor_tables->0->>'kind' = 'iteration-template'
       AND jsonb_array_length(editor_tables->0->'tables') = 7
-      AND editable_ranges @> ARRAY['''2026 Results''!AT2', '''2026 Results''!AV2']
+      AND editable_ranges @> ARRAY['''2026 Results''!C2:D33', '''2026 Results''!AU2:AV2']
+      AND editor_tables->0->'tables'->0->'player_options'->>'column' = 'A'
+      AND (editor_tables->0->'tables'->0->'players'->0->>'editable_name')::boolean
   ) THEN
     RAISE EXCEPTION 'World Open editor registry is incomplete';
   END IF;
@@ -252,7 +254,8 @@ BEGIN
     FROM public.get_tournament_admin_edit_context('noptational')
     WHERE sheet_id = '1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00'
       AND editor_tables->0->>'kind' = 'iteration-template'
-      AND jsonb_array_length(editor_tables->0->'tables') = 4
+      AND jsonb_array_length(editor_tables->0->'tables') = 1
+      AND jsonb_array_length(editor_tables->0->'tables'->0->'header_groups') = 4
       AND editable_ranges = ARRAY['''Round Scores (2026)''!B2:J72']
   ) THEN
     RAISE EXCEPTION 'Noptational editor registry is incomplete';
@@ -264,6 +267,7 @@ BEGIN
     WHERE sheet_id = '1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk'
       AND editor_tables->0->>'sheet_pattern' = '^World Cup (20\d{2})$'
       AND jsonb_array_length(editor_tables->0->'tables') = 5
+      AND editor_tables->0->'tables'->0->'context_block'->>'column' = 'E'
       AND editable_ranges @> ARRAY['''World Cup 2025''!V2:V120', '''World Cup 2024''!X2:X120']
   ) THEN
     RAISE EXCEPTION 'World Cup year-aware editor registry is incomplete';

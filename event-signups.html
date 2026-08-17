@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
   <link rel="stylesheet" href="/settings-page.css?v=baffa45483fa" />
-  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-scroll" />
+  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-spinner" />
   <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
 </head>
 <body>
@@ -46,6 +46,10 @@
         <button class="settings-button" id="adminLoginBtn" type="button">Log In With Discord</button>
       </div>
 
+      <div class="admin-loading-region" id="eventSignupsLoading" role="status" aria-label="Loading event signups">
+        <svg class="admin-loading-spinner" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+      </div>
+
       <div class="event-signups-layout" id="eventSignupsPanel" hidden>
         <aside class="event-list-panel" aria-labelledby="eventsTitle">
           <h2 class="admin-url-title" id="eventsTitle">Events</h2>
@@ -80,6 +84,7 @@
     const loginActions = document.getElementById("adminLoginActions");
     const loginBtn = document.getElementById("adminLoginBtn");
     const panel = document.getElementById("eventSignupsPanel");
+    const loadingEl = document.getElementById("eventSignupsLoading");
     const eventsList = document.getElementById("eventsList");
     const selectedEventTitle = document.getElementById("selectedEventTitle");
     const eventSignupCount = document.getElementById("eventSignupCount");
@@ -156,6 +161,14 @@
     function setStatus(message, tone = ""){
       statusEl.textContent = message || "";
       statusEl.className = `settings-status ${tone}`.trim();
+    }
+
+    function showLoading(loading){
+      loadingEl.hidden = !loading;
+      if(loading){
+        panel.hidden = true;
+        setStatus("");
+      }
     }
 
     function getDiscordIdentity(user){
@@ -684,7 +697,13 @@
           <span class="event-list-name">${escapeHtml(event.name)}</span>
           <span class="event-list-meta">${escapeHtml(formatLocalTime(event.created_at) || "Created date unknown")}</span>
         `;
-        button.addEventListener("click", () => selectEvent(event.id));
+        button.addEventListener("click", () => {
+          selectEvent(event.id).catch((error) => {
+            showLoading(false);
+            panel.hidden = false;
+            setStatus(error?.message || "Unable to load event signups.", "error");
+          });
+        });
         eventsList.appendChild(button);
       }
     }
@@ -801,7 +820,7 @@
       url.searchParams.set("event", eventId);
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
       renderEvents();
-      setStatus("Loading signups...");
+      showLoading(true);
       const signups = await loadSignupRows(eventId);
       const membersById = await loadMembers(signups.map(row => row.discord_user_id));
       state.rows = signups.map((signup) => {
@@ -822,12 +841,15 @@
       });
       assignSeeds(state.rows);
       renderSignupTable();
+      showLoading(false);
+      panel.hidden = false;
       setStatus("");
     }
 
     async function initialize(){
       const { data: sessionData } = await supabase.auth.getSession();
       if(!sessionData?.session?.user){
+        showLoading(false);
         loginActions.hidden = false;
         setStatus("Log in with Discord to access event signups.");
         return;
@@ -839,13 +861,13 @@
       const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
       const isAdmin = await playerHasAdminRole(discordId);
       if(!isAdmin){
+        showLoading(false);
         panel.hidden = true;
         setStatus("Your Discord account does not have the administrator role.", "error");
         return;
       }
 
-      panel.hidden = false;
-      setStatus("Loading events...");
+      showLoading(true);
       const [events, gpiById] = await Promise.all([
         loadSignupEvents(),
         loadCombinedGpiById(),
@@ -861,6 +883,8 @@
         await selectEvent(state.selectedEventId);
       }else{
         renderSignupTable();
+        showLoading(false);
+        panel.hidden = false;
         setStatus("");
       }
     }
@@ -880,6 +904,7 @@
 
     initialize().catch((error) => {
       console.error(error);
+      showLoading(false);
       setStatus(error?.message || "Unable to load event signups.", "error");
     });
   </script>

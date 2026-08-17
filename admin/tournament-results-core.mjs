@@ -21,6 +21,13 @@ function normalizeText(value){
   return value === null || value === undefined ? "" : String(value);
 }
 
+export function noptationalDisplayName(value){
+  return normalizeText(value)
+    .split(/\r?\n/)
+    .map((part) => part.trim())
+    .find(Boolean) || "";
+}
+
 export function columnNumber(letters){
   const value = String(letters || "").trim().toUpperCase();
   if(!/^[A-Z]+$/.test(value)) throw new Error("Invalid spreadsheet column.");
@@ -137,6 +144,13 @@ export function weekRoundLabel(roundIndex){
   return `${Math.floor(index / 2) + 1}-${(index % 2) + 1}`;
 }
 
+export function bracketRoundLabel(row){
+  const context = Array.isArray(row?.context) ? row.context : [];
+  return context.find((value) => /^(?:R\d+|QF|SF|Final|3rd)$/i.test(normalizeText(value).trim()))
+    || context.join(" · ")
+    || `Sheet row ${row?.sourceRow || ""}`.trim();
+}
+
 export async function getTournamentAdminFlag(client){
   try{
     const { data, error } = await client.rpc("is_tournament_result_admin");
@@ -221,7 +235,10 @@ export function buildEditorTables(event, valueRanges){
 
       (table.players || []).forEach((player, playerIndex) => {
         const playerRow = row + Number(player.row_offset || 0);
-        const playerName = readColumn(valueRanges, tableRange.sheetName, player.name_column, playerRow);
+        const rawPlayerName = readColumn(valueRanges, tableRange.sheetName, player.name_column, playerRow);
+        const playerName = event?.eventKey === "noptational"
+          ? noptationalDisplayName(rawPlayerName)
+          : rawPlayerName;
         const roundScores = (player.round_score_columns || []).map((column, roundIndex) => (
           scoreCell(
             valueRanges,
@@ -252,8 +269,15 @@ export function buildEditorTables(event, valueRanges){
         const isAddPlayerSlot = playerIndex === 0
           && row >= Number(addPlayer?.start_row)
           && row <= Number(addPlayer?.end_row);
-        const nameCell = isAddPlayerSlot
-          ? scoreCell(valueRanges, tableRange.sheetName, addPlayer.name_column, playerRow, "player-name", "Player")
+        const nameCell = player.editable_name || isAddPlayerSlot
+          ? scoreCell(
+              valueRanges,
+              tableRange.sheetName,
+              isAddPlayerSlot ? addPlayer.name_column : player.name_column,
+              playerRow,
+              "player-name",
+              "Player",
+            )
           : null;
         const editableCells = [nameCell, ...roundScores, suddenDeath, result].filter(Boolean);
 
@@ -297,6 +321,21 @@ export function buildEditorTables(event, valueRanges){
       nameIsTeam: Boolean(table.name_is_team),
       matchupLayout: Boolean(table.matchup_layout),
       roundLabelStyle: table.round_label_style || "",
+      headerGroups: Array.isArray(table.header_groups) ? table.header_groups.map((group) => ({
+        label:normalizeText(group?.label).trim(),
+        span:Math.max(1, Number(group?.span) || 1),
+      })) : [],
+      playerOptions: table.player_options
+        ? [...new Set(Array.from(
+            { length:Math.max(0, Number(table.player_options.end_row) - Number(table.player_options.start_row) + 1) },
+            (_, index) => readColumn(
+              valueRanges,
+              tableRange.sheetName,
+              table.player_options.column,
+              Number(table.player_options.start_row) + index,
+            ).trim(),
+          ).filter(Boolean))]
+        : [],
       canAddPlayers: Boolean(table.add_player),
       maxRoundCount: Math.max(0, ...rows.map((row) => row.roundScores.length)),
       maxFormulaCount: Math.max(0, ...rows.map((row) => row.formulaCells.length)),

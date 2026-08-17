@@ -73,6 +73,7 @@ function applyRoute({ historyMode = "replace", reloadFrame = true } = {}){
   frame.title = route.label;
   if(reloadFrame && frame.getAttribute("src") !== route.frameUrl){
     frameLoading.hidden = false;
+    frame.classList.add("is-loading");
     frame.src = route.frameUrl;
   }
 }
@@ -101,7 +102,10 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if(event.key === "Escape") closeSidebar();
 });
-frame.addEventListener("load", () => { frameLoading.hidden = true; });
+frame.addEventListener("load", () => {
+  frameLoading.hidden = true;
+  frame.classList.remove("is-loading");
+});
 globalThis.addEventListener("popstate", () => applyRoute());
 globalThis.addEventListener("message", (event) => {
   if(event.origin !== globalThis.location.origin || event.source !== frame.contentWindow) return;
