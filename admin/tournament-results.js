@@ -11,8 +11,10 @@ import {
   nextBlankPlayerRow,
   playerFilterBackspaceState,
   proLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-masters-matchups";
-import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE } from "/config.js";
+  superLeagueDivisionClass,
+  superLeagueViewKey,
+} from "/admin/tournament-results-core.mjs?v=20260817-superleague-periods";
+import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
 const DEFAULT_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-results";
@@ -39,6 +41,7 @@ const periodControls = document.getElementById("editorPeriodControls");
 const seasonSelect = document.getElementById("editorSeasonSelect");
 const stageWrap = document.getElementById("editorStageWrap");
 const stageSelect = document.getElementById("editorStageSelect");
+const playerFilter = document.getElementById("editorPlayerFilter");
 const playerFilterField = document.getElementById("editorPlayerFilterField");
 const playerFilterEntry = document.getElementById("editorPlayerFilterEntry");
 const playerFilterChips = document.getElementById("editorPlayerFilterChips");
@@ -227,8 +230,9 @@ function appendHeaderCell(rowEl, label, className = ""){
   rowEl.appendChild(header);
 }
 
-function appendBracketPlayerHeaders(headerRow, table, playerNumber){
-  appendHeaderCell(headerRow, `Player ${playerNumber}`, playerNumber === 2 ? "editor-matchup-separator" : "");
+function appendBracketPlayerHeaders(headerRow, table, playerNumber, showSeed = false){
+  if(showSeed) appendHeaderCell(headerRow, "Seed", playerNumber === 2 ? "editor-matchup-separator" : "");
+  appendHeaderCell(headerRow, `Player ${playerNumber}`, playerNumber === 2 && !showSeed ? "editor-matchup-separator" : "");
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     appendHeaderCell(headerRow, table.rows[0]?.roundScores[round - 1]?.label || `R${round}`);
   }
@@ -236,17 +240,19 @@ function appendBracketPlayerHeaders(headerRow, table, playerNumber){
   if(table.hasResult) appendHeaderCell(headerRow, "Score");
 }
 
-function appendBracketPlayerCells(rowEl, table, row, playerNumber){
+function appendBracketPlayerCells(rowEl, table, row, playerNumber, showSeed = false){
   const separator = playerNumber === 2 ? "editor-matchup-separator" : "";
   if(!row){
-    appendTextCell(rowEl, "", `editor-player-cell ${separator}`.trim());
+    if(showSeed) appendTextCell(rowEl, "", `editor-seed-cell ${separator}`.trim());
+    appendTextCell(rowEl, "", `editor-player-cell ${showSeed ? "" : separator}`.trim());
     for(let round = 0; round < table.maxRoundCount; round += 1) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
     if(table.hasSuddenDeath) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
     if(table.hasResult) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
     return;
   }
 
-  appendPlayerCell(rowEl, row, separator);
+  if(showSeed) appendTextCell(rowEl, row.seed, `editor-seed-cell ${separator}`.trim());
+  appendPlayerCell(rowEl, row, showSeed ? "" : separator);
   const playerLabel = playerNameForRow(row) || `Player slot ${row.playerSlot}`;
   for(let round = 0; round < table.maxRoundCount; round += 1){
     appendScoreCell(rowEl, row.roundScores[round], playerLabel);
@@ -270,20 +276,51 @@ function createBracketMatchupTable(table, visibleRows){
   const tableEl = document.createElement("table");
   tableEl.className = "editor-table is-bracket-matchups";
   if(state.event?.eventKey === "championship") tableEl.classList.add("is-championship-matchups");
+  const isSuperLeague = state.event?.eventKey === "superleague";
+  const isSeason = isSuperLeague && table.key.endsWith("-season");
+  const isPromotions = isSuperLeague && table.key.endsWith("-promotions");
+  const isWinners = isSuperLeague && table.key.endsWith("-qualifier-winners");
+  const showSeed = isSuperLeague && !isSeason;
+  if(isSuperLeague){
+    tableEl.classList.add("is-superleague-matchups");
+    if(isSeason) tableEl.classList.add("is-superleague-season");
+    if(isPromotions) tableEl.classList.add("is-superleague-promotions");
+    if(isWinners) tableEl.classList.add("is-superleague-winners");
+  }
   const headerRow = document.createElement("tr");
-  appendHeaderCell(headerRow, "Round");
-  appendBracketPlayerHeaders(headerRow, table, 1);
-  appendBracketPlayerHeaders(headerRow, table, 2);
+  if(isSeason || isPromotions){
+    appendHeaderCell(headerRow, isPromotions ? "Round" : "Week");
+    appendHeaderCell(headerRow, "Division");
+  }else{
+    appendHeaderCell(headerRow, isWinners ? "Round" : "Match / source");
+  }
+  appendBracketPlayerHeaders(headerRow, table, 1, showSeed);
+  appendBracketPlayerHeaders(headerRow, table, 2, showSeed);
   const thead = document.createElement("thead");
   thead.appendChild(headerRow);
 
   const tbody = document.createElement("tbody");
-  editorMatchups(visibleRows).forEach((matchup) => {
+  editorMatchups(visibleRows).filter((matchup) => (
+    !isSuperLeague || matchup.players.some((row) => (
+      playerNameForRow(row)
+      || row.seed
+      || row.context.some((value) => value.trim())
+      || row.editableCells.some((cell) => cell.initialValue)
+    ))
+  )).forEach((matchup) => {
     const rowEl = document.createElement("tr");
     rowEl.dataset.sourceRow = String(matchup.sourceRow);
-    appendTextCell(rowEl, bracketRoundLabel(matchup.players[0]), "editor-context-cell");
-    appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 1), 1);
-    appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 2), 2);
+    const firstPlayer = matchup.players[0];
+    if(isSeason || isPromotions){
+      if(isSeason) rowEl.classList.add(superLeagueDivisionClass(firstPlayer.context[1]));
+      appendTextCell(rowEl, firstPlayer.context[0], "editor-context-cell editor-period-cell");
+      appendTextCell(rowEl, firstPlayer.context[1], "editor-context-cell editor-division-cell");
+    }else{
+      const context = isWinners ? firstPlayer.context[1] : contextLabel(firstPlayer);
+      appendTextCell(rowEl, context, "editor-context-cell");
+    }
+    appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 1), 1, showSeed);
+    appendBracketPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 2), 2, showSeed);
     tbody.appendChild(rowEl);
   });
 
@@ -299,7 +336,7 @@ function createTable(table){
     && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(row, state.currentValues, state.selectedPlayers.keys()))
   ));
   if(state.selectedPlayers.size && !visibleRows.length) return null;
-  if(["masters", "championship"].includes(state.event?.eventKey)) return createBracketMatchupTable(table, visibleRows);
+  if(["masters", "championship", "superleague"].includes(state.event?.eventKey)) return createBracketMatchupTable(table, visibleRows);
 
   const section = document.createElement("section");
   section.className = "editor-table-section";
@@ -407,8 +444,13 @@ function editorGroups(){
     seen.add(table.groupKey);
     groups.push({ key: table.groupKey, label: table.groupLabel || table.groupKey });
   });
-  return state.event?.eventKey === "masters"
-    ? groups.sort((left, right) => ["bracket", "qualifiers"].indexOf(left.key) - ["bracket", "qualifiers"].indexOf(right.key))
+  const order = state.event?.eventKey === "masters"
+    ? ["bracket", "qualifiers"]
+    : state.event?.eventKey === "superleague"
+      ? ["season", "playoffs", "qualifier-winners", "qualifier-losers", "promotions"]
+      : [];
+  return order.length
+    ? groups.sort((left, right) => order.indexOf(left.key) - order.indexOf(right.key))
     : groups;
 }
 
@@ -426,6 +468,23 @@ function syncMastersUrls(groupKey, historyMode = "replace"){
   backLink.href = `${publicUrl.pathname}${publicUrl.search}`;
 }
 
+function syncSuperLeagueUrls(groupKey, historyMode = "replace"){
+  if(state.event?.eventKey !== "superleague") return;
+  const view = periodViews().find((candidate) => candidate.key === state.activeViewKey) || periodViews()[0];
+  if(!view) return;
+  const editorParams = new URLSearchParams({
+    eventKey:"superleague",
+    season:String(view.seasonValue),
+    view:groupKey || "season",
+  });
+  globalThis.history[`${historyMode}State`](null, "", `${globalThis.location.pathname}?${editorParams}`);
+
+  const page = groupKey === "promotions"
+    ? "promotions"
+    : groupKey?.startsWith("qualifier-") ? "qualifiers" : "season";
+  backLink.href = `/superleague/index.html?${new URLSearchParams({ season:String(view.seasonValue), page })}`;
+}
+
 function showEditorGroup(groupKey, historyMode = "replace"){
   state.activeGroupKey = groupKey;
   viewTabs.querySelectorAll("[role='tab']").forEach((tab) => {
@@ -437,16 +496,18 @@ function showEditorGroup(groupKey, historyMode = "replace"){
     section.hidden = Boolean(groupKey) && section.dataset.groupKey !== groupKey;
   });
   syncMastersUrls(groupKey, historyMode);
+  syncSuperLeagueUrls(groupKey, historyMode);
 }
 
 function renderEditorTabs(){
-  viewTabs.classList.toggle("is-masters", state.event?.eventKey === "masters");
+  viewTabs.classList.toggle("is-radix", ["masters", "superleague"].includes(state.event?.eventKey));
   if(state.event?.eventKey === "proleague"){
     viewTabs.hidden = true;
     viewTabs.replaceChildren();
     return;
   }
   const groups = editorGroups();
+  viewTabs.style.setProperty("--editor-tab-columns", String(groups.length || 1));
   viewTabs.hidden = groups.length < 2;
   viewTabs.replaceChildren(...groups.map((group) => {
     const button = document.createElement("button");
@@ -465,12 +526,12 @@ function renderEditorTabs(){
   showEditorGroup(activeGroup);
 }
 
-function proLeagueViews(){
+function periodViews(){
   return Array.isArray(state.event?.views) ? state.event.views : [];
 }
 
-function activeProLeagueView(){
-  return proLeagueViews().find((view) => view.key === state.activeViewKey) || null;
+function activePeriodView(){
+  return periodViews().find((view) => view.key === state.activeViewKey) || null;
 }
 
 function hidePlayerFilterOptions(){
@@ -563,11 +624,14 @@ function syncProLeagueUrls(view){
 }
 
 function renderPeriodControls(){
-  const views = proLeagueViews();
-  periodControls.hidden = state.event?.eventKey !== "proleague" || !views.length;
+  const isProLeague = state.event?.eventKey === "proleague";
+  const isSuperLeague = state.event?.eventKey === "superleague";
+  const views = periodViews();
+  periodControls.hidden = (!isProLeague && !isSuperLeague) || !views.length;
   if(periodControls.hidden) return;
 
-  const activeView = activeProLeagueView() || views[0];
+  const activeView = activePeriodView() || views[0];
+  playerFilter.hidden = isSuperLeague;
   const seasons = [];
   const seen = new Set();
   views.forEach((view) => {
@@ -583,6 +647,12 @@ function renderPeriodControls(){
     return option;
   }));
   seasonSelect.value = String(activeView.seasonValue);
+
+  if(isSuperLeague){
+    stageWrap.hidden = true;
+    syncSuperLeagueUrls(state.activeGroupKey);
+    return;
+  }
 
   const stages = views.filter((view) => String(view.seasonValue) === seasonSelect.value);
   const hasStages = stages.some((view) => view.stageValue !== null && view.stageValue !== undefined && view.stageValue !== "");
@@ -630,7 +700,22 @@ function initialMastersGroupKey(){
   return new URL(globalThis.location.href).searchParams.get("view") === "qualifiers" ? "qualifiers" : "bracket";
 }
 
-async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialProLeagueViewKey() : ""){
+function initialSuperLeagueGroupKey(){
+  const view = new URL(globalThis.location.href).searchParams.get("view");
+  if(view === "qualifiers") return "qualifier-winners";
+  return ["season", "playoffs", "qualifier-winners", "qualifier-losers", "promotions"].includes(view)
+    ? view
+    : "season";
+}
+
+function initialSuperLeagueViewKey(){
+  const season = new URL(globalThis.location.href).searchParams.get("season") || SUPER_LEAGUE_SEASON;
+  return superLeagueViewKey(season) || "season-6";
+}
+
+async function loadEditor(requestedViewKey = eventKey === "proleague"
+  ? initialProLeagueViewKey()
+  : eventKey === "superleague" ? initialSuperLeagueViewKey() : ""){
   if(!eventKey){
     showAccessPanel({ message: "Missing tournament event key.", tone: "error" });
     return;
@@ -663,7 +748,9 @@ async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialP
 
     state.event = payload.event;
     state.activeViewKey = payload.event.activeViewKey || requestedViewKey || "";
-    state.activeGroupKey = eventKey === "masters" ? initialMastersGroupKey() : "";
+    state.activeGroupKey = eventKey === "masters"
+      ? initialMastersGroupKey()
+      : eventKey === "superleague" ? initialSuperLeagueGroupKey() : "";
     state.tables = buildEditorTables(payload.event, payload.valueRanges);
     state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
     state.selectedPlayers.clear();
@@ -676,9 +763,9 @@ async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialP
   }
 }
 
-async function changeProLeagueView(view){
+async function changePeriodView(view){
   if(!view || view.key === state.activeViewKey) return;
-  if(hasUnsavedWork() && !globalThis.confirm("Discard unsaved changes and change the Pro League period?")){
+  if(hasUnsavedWork() && !globalThis.confirm("Discard unsaved changes and change the tournament period?")){
     renderPeriodControls();
     return;
   }
@@ -865,20 +952,24 @@ tablesMount.addEventListener("click", (event) => {
 });
 
 seasonSelect.addEventListener("change", () => {
-  const views = proLeagueViews().filter((view) => String(view.seasonValue) === seasonSelect.value);
+  const views = periodViews().filter((view) => String(view.seasonValue) === seasonSelect.value);
+  if(state.event?.eventKey === "superleague"){
+    void changePeriodView(views[0]);
+    return;
+  }
   const preferredStage = seasonSelect.value === String(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON)
     ? String(SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE)
     : "1";
   const view = views.find((candidate) => String(candidate.stageValue) === preferredStage) || views[0];
-  void changeProLeagueView(view);
+  void changePeriodView(view);
 });
 
 stageSelect.addEventListener("change", () => {
-  const view = proLeagueViews().find((candidate) => (
+  const view = periodViews().find((candidate) => (
     String(candidate.seasonValue) === seasonSelect.value
     && String(candidate.stageValue) === stageSelect.value
   ));
-  void changeProLeagueView(view);
+  void changePeriodView(view);
 });
 
 archiveButton.addEventListener("click", async () => {

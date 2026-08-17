@@ -15,6 +15,8 @@ import {
   parseA1Range,
   playerFilterBackspaceState,
   proLeagueViewKey,
+  superLeagueDivisionClass,
+  superLeagueViewKey,
   tournamentEditorUrlForPath,
   tournamentEditorUrlForUser,
 } from "./tournament-results-core.mjs";
@@ -34,9 +36,23 @@ test("maps only supported tournament pages to the editor", () => {
     "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3",
   );
   assert.equal(tournamentEditorUrlForPath("/superleague/"), "/admin/tournament-results.html?eventKey=superleague");
+  assert.equal(
+    tournamentEditorUrlForPath("/superleague/", "?season=7&page=qualifiers"),
+    "/admin/tournament-results.html?eventKey=superleague&season=7&view=qualifiers",
+  );
   assert.equal(tournamentEditorUrlForPath("/index.html"), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", false), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", true), "/admin/tournament-results.html?eventKey=masters");
+});
+
+test("maps Super League seasons, tabs, and division styles", () => {
+  assert.equal(superLeagueViewKey("Season 7"), "season-7");
+  assert.equal(superLeagueViewKey(6), "season-6");
+  assert.equal(superLeagueViewKey(5), "");
+  assert.equal(superLeagueDivisionClass("1"), "editor-division-1");
+  assert.equal(superLeagueDivisionClass("Division 2"), "editor-division-2");
+  assert.equal(superLeagueDivisionClass("3"), "editor-division-3");
+  assert.equal(superLeagueDivisionClass(""), "");
 });
 
 test("maps Pro League seasons and stages to editor view keys", () => {
@@ -181,6 +197,30 @@ test("preserves editor tab metadata and excludes non-player sheet rows", () => {
   assert.equal(tables[0].groupLabel, "Stage 1");
   assert.deepEqual(tables[0].rows.map((row) => row.sourceRow), [5, 6, 7, 8, 10]);
   assert.equal(tables[0].hasResult, false);
+});
+
+test("uses Super League tab metadata within a season view", () => {
+  const [table] = buildEditorTables({ eventKey:"superleague", tables:[{
+    key:"season-7-qualifier-winners",
+    group_key:"season-7",
+    group_label:"Season 7",
+    tab_key:"qualifier-winners",
+    tab_label:"Qualifiers - Winners",
+    season_value:7,
+    source_range:"'S7 Winners Bracket'!A3:H5",
+    data_start_row:5,
+    data_end_row:5,
+    context_columns:["A", "B"],
+    players:[
+      { seed_column:"C", name_column:"D", round_score_columns:[], result_column:"E" },
+      { seed_column:"F", name_column:"G", round_score_columns:[], result_column:"H" },
+    ],
+  }] }, [{ range:"'S7 Winners Bracket'!A3:H5", values:[[], [], ["1", "R64", "1", "A", "2", "2", "B", "0"]] }]);
+
+  assert.equal(table.groupKey, "qualifier-winners");
+  assert.equal(table.groupLabel, "Qualifiers - Winners");
+  assert.equal(table.seasonValue, 7);
+  assert.equal(editorMatchups(table.rows).length, 1);
 });
 
 test("builds Pro League team presentation and reserves blank individual-player rows", () => {

@@ -332,16 +332,16 @@ body{
   background:rgba(125,211,252,.13);
   color:#e0f2fe;
 }
-.editor-view-tabs.is-masters{
+.editor-view-tabs.is-radix{
   width:100%;
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-columns:repeat(var(--editor-tab-columns,2),minmax(0,1fr));
   gap:0;
   margin:14px 0 18px;
   border-bottom:1px solid rgba(148,163,184,.24);
   overflow:visible;
 }
-.editor-view-tabs.is-masters .editor-view-tab{
+.editor-view-tabs.is-radix .editor-view-tab{
   position:relative;
   min-height:35px;
   border:0;
@@ -353,7 +353,7 @@ body{
   line-height:1.2;
   transition:background-color 140ms ease,color 140ms ease,box-shadow 140ms ease;
 }
-.editor-view-tabs.is-masters .editor-view-tab::after{
+.editor-view-tabs.is-radix .editor-view-tab::after{
   content:"";
   position:absolute;
   left:0;
@@ -363,18 +363,18 @@ body{
   background:transparent;
   transition:background-color 140ms ease;
 }
-.editor-view-tabs.is-masters .editor-view-tab:hover{
+.editor-view-tabs.is-radix .editor-view-tab:hover{
   background:rgba(148,163,184,.10);
   color:rgba(255,255,255,.95);
 }
-.editor-view-tabs.is-masters .editor-view-tab[aria-selected="true"]{
+.editor-view-tabs.is-radix .editor-view-tab[aria-selected="true"]{
   background:rgba(var(--region-accent-rgb),.09);
   color:#fff8dc;
 }
-.editor-view-tabs.is-masters .editor-view-tab[aria-selected="true"]::after{
+.editor-view-tabs.is-radix .editor-view-tab[aria-selected="true"]::after{
   background:rgba(var(--region-accent-rgb),.82);
 }
-.editor-view-tabs.is-masters .editor-view-tab:focus-visible{
+.editor-view-tabs.is-radix .editor-view-tab:focus-visible{
   outline:none;
   box-shadow:inset 0 0 0 1px rgba(var(--region-accent-rgb),.48);
 }
@@ -530,6 +530,42 @@ body{
   width:34px;
   padding-inline:3px;
   font-size:12px;
+}
+.editor-table.is-superleague-matchups .editor-player-cell{ min-width:160px; max-width:220px; }
+.editor-table.is-superleague-matchups .editor-seed-cell{ min-width:52px; }
+.editor-table.is-superleague-matchups.is-superleague-winners .editor-context-cell{
+  width:64px;
+  min-width:64px;
+  max-width:64px;
+}
+.editor-table.is-superleague-matchups.is-superleague-winners .editor-seed-cell{
+  width:42px;
+  min-width:42px;
+  padding-inline:4px;
+}
+.editor-table.is-superleague-matchups:not(.is-superleague-winners):not(.is-superleague-season):not(.is-superleague-promotions) .editor-context-cell{
+  min-width:150px;
+  max-width:230px;
+  color:rgba(233,238,248,.62);
+  font-weight:500;
+  text-align:left;
+}
+.editor-table.is-superleague-season .editor-context-cell,
+.editor-table.is-superleague-promotions .editor-context-cell{
+  color:#fff;
+  font-weight:900;
+  text-align:center;
+}
+.editor-table.is-superleague-season .editor-period-cell,
+.editor-table.is-superleague-promotions .editor-period-cell{ min-width:58px; max-width:58px; }
+.editor-table.is-superleague-season .editor-division-cell,
+.editor-table.is-superleague-promotions .editor-division-cell{ min-width:72px; max-width:72px; }
+.editor-table.is-superleague-matchups tbody tr.editor-division-1 td:not(.is-dirty){ background:rgba(250,204,21,.075); }
+.editor-table.is-superleague-matchups tbody tr.editor-division-2 td:not(.is-dirty){ background:rgba(203,213,225,.065); }
+.editor-table.is-superleague-matchups tbody tr.editor-division-3 td:not(.is-dirty){ background:rgba(205,127,50,.085); }
+@media (max-width:760px){
+  .editor-view-tabs.is-radix{ grid-template-columns:repeat(var(--editor-tab-columns,2),minmax(112px,1fr)); overflow-x:auto; }
+  .editor-table.is-superleague-matchups .editor-player-cell{ min-width:138px; }
 }
 .editor-add-player{ margin-top:10px; }
 .editor-table .is-empty-player{ opacity:.58; }

@@ -76,6 +76,12 @@ export function tournamentEditorUrlForPath(pathname, search = ""){
       const value = publicParams.get(key)?.trim();
       if(value) editorParams.set(key, value);
     });
+  }else if(eventKey === "superleague"){
+    const publicParams = new URLSearchParams(search);
+    const season = publicParams.get("season")?.trim();
+    const page = publicParams.get("page")?.trim();
+    if(/^[67]$/.test(season || "")) editorParams.set("season", season);
+    if(["season", "qualifiers", "promotions"].includes(page)) editorParams.set("view", page);
   }
   return `/admin/tournament-results.html?${editorParams}`;
 }
@@ -91,6 +97,16 @@ export function proLeagueViewKey(season, stage = null){
   if(!/^\d+$/.test(seasonText)) return "";
   const stageText = normalizeText(stage).trim().toLowerCase();
   return stageText ? `season-${seasonText}-${stageText === "championship" ? stageText : `stage-${stageText}`}` : `season-${seasonText}`;
+}
+
+export function superLeagueViewKey(season){
+  const seasonText = normalizeText(season).trim().match(/(?:season\s*)?([67])$/i)?.[1] || "";
+  return seasonText ? `season-${seasonText}` : "";
+}
+
+export function superLeagueDivisionClass(value){
+  const division = normalizeText(value).trim().match(/(?:division\s*)?([123])$/i)?.[1];
+  return division ? `editor-division-${division}` : "";
 }
 
 export function weekRoundLabel(roundIndex){
@@ -224,8 +240,8 @@ export function buildEditorTables(event, valueRanges){
     return {
       key: table.key,
       label: table.label || table.key,
-      groupKey: table.group_key || mastersGroup?.key || "",
-      groupLabel: table.group_label || mastersGroup?.label || "",
+      groupKey: table.tab_key || table.group_key || mastersGroup?.key || "",
+      groupLabel: table.tab_label || table.group_label || mastersGroup?.label || "",
       seasonValue: table.season_value ?? null,
       seasonLabel: table.season_label || "",
       stageValue: table.stage_value ?? null,

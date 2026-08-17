@@ -289,9 +289,12 @@ BEGIN
   INTO superleague_tables
   FROM public.get_tournament_admin_edit_context('superleague');
 
-  IF jsonb_array_length(superleague_tables) <> 4
-    OR superleague_tables->0->>'group_key' <> 'season'
-    OR superleague_tables->2->>'group_key' <> 'qualifiers'
+  IF jsonb_array_length(superleague_tables) <> 9
+    OR superleague_tables->0->>'group_key' <> 'season-7'
+    OR superleague_tables->0->>'tab_key' <> 'season'
+    OR superleague_tables->4->>'tab_key' <> 'promotions'
+    OR superleague_tables->5->>'group_key' <> 'season-6'
+    OR superleague_tables->8->>'tab_key' <> 'qualifier-losers'
   THEN
     RAISE EXCEPTION 'Super League edit tabs or table metadata are incomplete';
   END IF;
@@ -302,6 +305,8 @@ BEGIN
     WHERE sheet_id = '1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY'
       AND archived
       AND NOT can_edit
+      AND '''Season 7''!M2:O136' = ANY(editable_ranges)
+      AND '''Season 7 Promotions''!V2:X11' = ANY(editable_ranges)
       AND '''Season 6''!M2:O85' = ANY(editable_ranges)
       AND '''S6 Losers Bracket''!H4:H62' = ANY(editable_ranges)
   ) THEN
