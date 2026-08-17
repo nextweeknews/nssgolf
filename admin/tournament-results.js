@@ -3,6 +3,7 @@ import {
   addedPlayerRowSaveState,
   buildEditorTables,
   buildUpdates,
+  editorMatchups,
   editorPlayerName,
   editorPlayerOptions,
   isEditorRowSelected,
@@ -10,7 +11,7 @@ import {
   nextBlankPlayerRow,
   playerFilterBackspaceState,
   proLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-token-backspace";
+} from "/admin/tournament-results-core.mjs?v=20260817-masters-matchups";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -146,9 +147,10 @@ function playerNameForRow(row){
   return editorPlayerName(row, state.currentValues);
 }
 
-function appendPlayerCell(rowEl, row){
+function appendPlayerCell(rowEl, row, className = ""){
   const cell = document.createElement("td");
   cell.className = "editor-player-cell";
+  if(className) cell.classList.add(className);
   if(state.event?.eventKey === "proleague") cell.classList.add("is-pro-league");
   const playerName = playerNameForRow(row);
   if(row.nameCell && state.currentValues.get(row.nameCell.range) !== row.nameCell.initialValue){
@@ -192,6 +194,7 @@ function appendPlayerCell(rowEl, row){
 function appendScoreCell(rowEl, scoreCell, playerLabel, weekSeparator = false){
   const cell = document.createElement("td");
   cell.className = "editor-score-cell";
+  if(scoreCell?.type === "result") cell.classList.add("is-result");
   if(weekSeparator) cell.classList.add("editor-week-separator");
   if(!scoreCell){
     cell.classList.add("is-unavailable");
@@ -215,12 +218,86 @@ function appendScoreCell(rowEl, scoreCell, playerLabel, weekSeparator = false){
   rowEl.appendChild(cell);
 }
 
+function appendHeaderCell(rowEl, label, className = ""){
+  const header = document.createElement("th");
+  header.scope = "col";
+  header.textContent = label;
+  if(className) header.classList.add(className);
+  rowEl.appendChild(header);
+}
+
+function appendMastersPlayerHeaders(headerRow, table, playerNumber){
+  appendHeaderCell(headerRow, `Player ${playerNumber}`, playerNumber === 2 ? "editor-matchup-separator" : "");
+  for(let round = 1; round <= table.maxRoundCount; round += 1){
+    appendHeaderCell(headerRow, table.rows[0]?.roundScores[round - 1]?.label || `R${round}`);
+  }
+  if(table.hasSuddenDeath) appendHeaderCell(headerRow, "SD", "editor-sudden-death");
+  if(table.hasResult) appendHeaderCell(headerRow, "Score");
+}
+
+function appendMastersPlayerCells(rowEl, table, row, playerNumber){
+  const separator = playerNumber === 2 ? "editor-matchup-separator" : "";
+  if(!row){
+    appendTextCell(rowEl, "", `editor-player-cell ${separator}`.trim());
+    for(let round = 0; round < table.maxRoundCount; round += 1) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
+    if(table.hasSuddenDeath) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
+    if(table.hasResult) appendScoreCell(rowEl, null, `Player ${playerNumber}`);
+    return;
+  }
+
+  appendPlayerCell(rowEl, row, separator);
+  const playerLabel = playerNameForRow(row) || `Player slot ${row.playerSlot}`;
+  for(let round = 0; round < table.maxRoundCount; round += 1){
+    appendScoreCell(rowEl, row.roundScores[round], playerLabel);
+  }
+  if(table.hasSuddenDeath) appendScoreCell(rowEl, row.suddenDeath, playerLabel);
+  if(table.hasResult) appendScoreCell(rowEl, row.result, playerLabel);
+}
+
+function mastersRoundLabel(row){
+  return row.context.find((value) => /^(?:R\d+|Final)$/i.test(value.trim())) || contextLabel(row);
+}
+
+function createMastersTable(table, visibleRows){
+  const section = document.createElement("section");
+  section.className = "editor-table-section";
+  section.dataset.groupKey = table.groupKey;
+  section.setAttribute("aria-label", table.groupLabel || table.label);
+
+  const scroll = document.createElement("div");
+  scroll.className = "editor-table-scroll";
+  const tableEl = document.createElement("table");
+  tableEl.className = "editor-table is-masters-matchups";
+  const headerRow = document.createElement("tr");
+  appendHeaderCell(headerRow, "Round");
+  appendMastersPlayerHeaders(headerRow, table, 1);
+  appendMastersPlayerHeaders(headerRow, table, 2);
+  const thead = document.createElement("thead");
+  thead.appendChild(headerRow);
+
+  const tbody = document.createElement("tbody");
+  editorMatchups(visibleRows).forEach((matchup) => {
+    const rowEl = document.createElement("tr");
+    rowEl.dataset.sourceRow = String(matchup.sourceRow);
+    appendTextCell(rowEl, mastersRoundLabel(matchup.players[0]), "editor-context-cell");
+    appendMastersPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 1), 1);
+    appendMastersPlayerCells(rowEl, table, matchup.players.find((row) => row.playerSlot === 2), 2);
+    tbody.appendChild(rowEl);
+  });
+
+  tableEl.append(thead, tbody);
+  scroll.appendChild(tableEl);
+  section.appendChild(scroll);
+  return section;
+}
+
 function createTable(table){
   const visibleRows = table.rows.filter((row) => (
     (isEditorRowVisible(row, state.currentValues) || state.addedPlayerRows.has(row.key))
     && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(row, state.currentValues, state.selectedPlayers.keys()))
   ));
   if(state.selectedPlayers.size && !visibleRows.length) return null;
+  if(state.event?.eventKey === "masters") return createMastersTable(table, visibleRows);
 
   const section = document.createElement("section");
   section.className = "editor-table-section";
@@ -249,12 +326,7 @@ function createTable(table){
     ...(!table.hideSeed ? ["Seed"] : []),
     "Player",
   ];
-  leadingHeaders.forEach((label) => {
-    const header = document.createElement("th");
-    header.scope = "col";
-    header.textContent = label;
-    headerRow.appendChild(header);
-  });
+  leadingHeaders.forEach((label) => appendHeaderCell(headerRow, label));
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     const header = document.createElement("th");
     header.scope = "col";
@@ -333,10 +405,26 @@ function editorGroups(){
     seen.add(table.groupKey);
     groups.push({ key: table.groupKey, label: table.groupLabel || table.groupKey });
   });
-  return groups;
+  return state.event?.eventKey === "masters"
+    ? groups.sort((left, right) => ["bracket", "qualifiers"].indexOf(left.key) - ["bracket", "qualifiers"].indexOf(right.key))
+    : groups;
 }
 
-function showEditorGroup(groupKey){
+function syncMastersUrls(groupKey, historyMode = "replace"){
+  if(state.event?.eventKey !== "masters") return;
+  const view = groupKey === "qualifiers" ? "qualifiers" : "bracket";
+  const editorUrl = new URL(globalThis.location.href);
+  editorUrl.searchParams.set("view", view);
+  const nextEditorUrl = `${editorUrl.pathname}${editorUrl.search}${editorUrl.hash}`;
+  const currentEditorUrl = `${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`;
+  if(nextEditorUrl !== currentEditorUrl) globalThis.history[`${historyMode}State`](null, "", nextEditorUrl);
+
+  const publicUrl = new URL(state.event.routePath || "/masters", globalThis.location.origin);
+  publicUrl.searchParams.set("view", view);
+  backLink.href = `${publicUrl.pathname}${publicUrl.search}`;
+}
+
+function showEditorGroup(groupKey, historyMode = "replace"){
   state.activeGroupKey = groupKey;
   viewTabs.querySelectorAll("[role='tab']").forEach((tab) => {
     const selected = tab.dataset.groupKey === groupKey;
@@ -346,6 +434,7 @@ function showEditorGroup(groupKey){
   tablesMount.querySelectorAll(".editor-table-section").forEach((section) => {
     section.hidden = Boolean(groupKey) && section.dataset.groupKey !== groupKey;
   });
+  syncMastersUrls(groupKey, historyMode);
 }
 
 function renderEditorTabs(){
@@ -363,13 +452,13 @@ function renderEditorTabs(){
     button.role = "tab";
     button.dataset.groupKey = group.key;
     button.textContent = group.label;
-    button.addEventListener("click", () => showEditorGroup(group.key));
+    button.addEventListener("click", () => showEditorGroup(group.key, "push"));
     return button;
   }));
 
   const activeGroup = groups.some((group) => group.key === state.activeGroupKey)
     ? state.activeGroupKey
-    : (groups[0]?.key || "");
+    : (state.event?.eventKey === "masters" ? "bracket" : (groups[0]?.key || ""));
   showEditorGroup(activeGroup);
 }
 
@@ -511,7 +600,7 @@ function renderEditor(){
   accessPanel.hidden = true;
   editorPanel.hidden = false;
   pageTitle.textContent = `${state.event.displayName} results`;
-  pageCopy.textContent = state.event.eventKey === "proleague"
+  pageCopy.textContent = ["masters", "proleague"].includes(state.event.eventKey)
     ? ""
     : state.event.archived
       ? "This tournament is archived. Unarchive it to edit scores."
@@ -532,6 +621,10 @@ function initialProLeagueViewKey(){
     ? (String(season) === String(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON) ? SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE : 1)
     : null;
   return proLeagueViewKey(season, params.get("stage") || fallbackStage);
+}
+
+function initialMastersGroupKey(){
+  return new URL(globalThis.location.href).searchParams.get("view") === "qualifiers" ? "qualifiers" : "bracket";
 }
 
 async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialProLeagueViewKey() : ""){
@@ -567,6 +660,7 @@ async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialP
 
     state.event = payload.event;
     state.activeViewKey = payload.event.activeViewKey || requestedViewKey || "";
+    state.activeGroupKey = eventKey === "masters" ? initialMastersGroupKey() : "";
     state.tables = buildEditorTables(payload.event, payload.valueRanges);
     state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
     state.selectedPlayers.clear();

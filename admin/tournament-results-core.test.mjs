@@ -6,6 +6,7 @@ import {
   buildUpdates,
   coerceScoreValue,
   editorPlayerOptions,
+  editorMatchups,
   getCellValue,
   getTournamentAdminFlag,
   isEditorRowSelected,
@@ -21,6 +22,11 @@ import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "../proleague/team-p
 
 test("maps only supported tournament pages to the editor", () => {
   assert.equal(tournamentEditorUrlForPath("/masters.html"), "/admin/tournament-results.html?eventKey=masters");
+  assert.equal(
+    tournamentEditorUrlForPath("/masters.html", "?view=qualifiers"),
+    "/admin/tournament-results.html?eventKey=masters&view=qualifiers",
+  );
+  assert.equal(tournamentEditorUrlForPath("/masters.html", "?view=unknown"), "/admin/tournament-results.html?eventKey=masters");
   assert.equal(tournamentEditorUrlForPath("/championship"), "/admin/tournament-results.html?eventKey=championship");
   assert.equal(tournamentEditorUrlForPath("/proleague/index.html"), "/admin/tournament-results.html?eventKey=proleague");
   assert.equal(
@@ -105,6 +111,21 @@ test("builds player score rows from a source range subset", () => {
   assert.equal(tables[0].rows[0].roundScores[0].initialValue, "-2");
   assert.equal(tables[0].rows[0].suddenDeath.range, "'Bracket'!E2");
   assert.equal(tables[0].rows[0].result.initialValue, "2");
+});
+
+test("groups Masters players from the same sheet row into one matchup", () => {
+  const rows = [
+    { sourceRow:2, playerSlot:2, playerName:"Player 2" },
+    { sourceRow:2, playerSlot:1, playerName:"Player 1" },
+    { sourceRow:3, playerSlot:1, playerName:"Player 3" },
+  ];
+  assert.deepEqual(editorMatchups(rows).map((matchup) => ({
+    sourceRow: matchup.sourceRow,
+    players: matchup.players.map((row) => row.playerName),
+  })), [
+    { sourceRow:2, players:["Player 1", "Player 2"] },
+    { sourceRow:3, players:["Player 3"] },
+  ]);
 });
 
 test("preserves editor tab metadata and excludes non-player sheet rows", () => {

@@ -67,7 +67,10 @@ export function tournamentEditorUrlForPath(pathname, search = ""){
   if(!eventKey) return "";
 
   const editorParams = new URLSearchParams({ eventKey });
-  if(eventKey === "proleague"){
+  if(eventKey === "masters"){
+    const view = new URLSearchParams(search).get("view")?.trim();
+    if(["bracket", "qualifiers"].includes(view)) editorParams.set("view", view);
+  }else if(eventKey === "proleague"){
     const publicParams = new URLSearchParams(search);
     ["season", "stage"].forEach((key) => {
       const value = publicParams.get(key)?.trim();
@@ -215,17 +218,20 @@ export function buildEditorTables(event, valueRanges){
       });
     }
 
+    const mastersGroup = event?.eventKey === "masters"
+      ? (table.key === "main-bracket" ? { key:"bracket", label:"Bracket" } : { key:"qualifiers", label:"Qualifiers" })
+      : null;
     return {
       key: table.key,
       label: table.label || table.key,
-      groupKey: table.group_key || "",
-      groupLabel: table.group_label || "",
+      groupKey: table.group_key || mastersGroup?.key || "",
+      groupLabel: table.group_label || mastersGroup?.label || "",
       seasonValue: table.season_value ?? null,
       seasonLabel: table.season_label || "",
       stageValue: table.stage_value ?? null,
       sheetName: tableRange.sheetName,
       hideContext: Boolean(table.hide_context),
-      hideSeed: Boolean(table.hide_seed),
+      hideSeed: event?.eventKey === "masters" || Boolean(table.hide_seed),
       nameIsTeam: Boolean(table.name_is_team),
       roundLabelStyle: table.round_label_style || "",
       canAddPlayers: Boolean(table.add_player),
@@ -235,6 +241,18 @@ export function buildEditorTables(event, valueRanges){
       rows,
     };
   });
+}
+
+export function editorMatchups(rows){
+  const matchups = new Map();
+  for(const row of Array.isArray(rows) ? rows : []){
+    if(!matchups.has(row.sourceRow)) matchups.set(row.sourceRow, []);
+    matchups.get(row.sourceRow).push(row);
+  }
+  return [...matchups.entries()].map(([sourceRow, players]) => ({
+    sourceRow,
+    players: players.sort((left, right) => left.playerSlot - right.playerSlot),
+  }));
 }
 
 function currentCellValue(cell, currentValues){

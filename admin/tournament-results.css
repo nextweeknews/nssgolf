@@ -445,6 +445,30 @@ body{
 .editor-score-input:disabled{ opacity:.56; cursor:not-allowed; }
 .editor-sudden-death{ border-left:1px solid rgba(125,211,252,.38) !important; }
 .editor-week-separator{ border-right:2px solid rgba(125,211,252,.38) !important; }
+.editor-table.is-masters-matchups .editor-context-cell{
+  min-width:68px;
+  max-width:68px;
+  color:#fff;
+  font-weight:900;
+  text-align:center;
+}
+.editor-table.is-masters-matchups th:first-child{ text-align:center; }
+.editor-table.is-masters-matchups .editor-player-cell{
+  min-width:138px;
+  max-width:180px;
+}
+.editor-table.is-masters-matchups .editor-score-cell{ min-width:48px; }
+.editor-table.is-masters-matchups .editor-score-input{ width:42px; padding-inline:4px; }
+.editor-table.is-masters-matchups .editor-matchup-separator{
+  border-left:2px solid rgba(125,211,252,.38);
+}
+.editor-table.is-masters-matchups .editor-score-cell.is-result .editor-score-input{
+  border-color:#fff;
+  background:#fff;
+  color:#000;
+  font-weight:900;
+  opacity:1;
+}
 .editor-add-player{ margin-top:10px; }
 .editor-table .is-empty-player{ opacity:.58; }
 .action-log-list{ display:grid; gap:12px; margin-top:14px; }

@@ -223,6 +223,19 @@ BEGIN
   IF jsonb_array_length(masters_editor_tables) <> 2
     OR masters_editor_tables->0->>'key' <> 'qualifier-bracket'
     OR masters_editor_tables->1->>'key' <> 'main-bracket'
+    OR NOT masters_editor_tables @> '[{
+      "key": "qualifier-bracket",
+      "group_key": "qualifiers",
+      "group_label": "Qualifiers",
+      "context_columns": ["I"],
+      "hide_seed": true
+    }, {
+      "key": "main-bracket",
+      "group_key": "bracket",
+      "group_label": "Bracket",
+      "context_columns": ["A"],
+      "hide_seed": true
+    }]'::jsonb
   THEN
     RAISE EXCEPTION 'Masters editor table metadata is incomplete';
   END IF;
