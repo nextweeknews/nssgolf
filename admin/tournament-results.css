@@ -517,10 +517,11 @@ body{
   opacity:1;
 }
 .editor-table.is-championship-matchups .editor-player-cell{
-  width:120px;
-  min-width:120px;
-  max-width:120px;
+  width:115px;
+  min-width:115px;
+  max-width:115px;
 }
+.editor-table.is-championship-matchups .editor-context-cell{ min-width:64px; max-width:64px; }
 .editor-table.is-championship-matchups .editor-score-cell{
   width:40px;
   min-width:40px;
