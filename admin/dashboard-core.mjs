@@ -7,18 +7,18 @@ export const RESULT_EVENTS = Object.freeze([
     sheetId:"1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o",
   },
   {
-    key:"worldopen",
-    label:"World Open",
-    color:"#5dff9c",
-    publicPath:"/worldopen/index.html",
-    sheetId:"1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM",
-  },
-  {
     key:"superleague",
     label:"Super League",
     color:"#d176ff",
     publicPath:"/superleague/index.html",
     sheetId:"1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY",
+  },
+  {
+    key:"worldopen",
+    label:"World Open",
+    color:"#5dff9c",
+    publicPath:"/worldopen/index.html",
+    sheetId:"1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM",
   },
   {
     key:"lightningcup",

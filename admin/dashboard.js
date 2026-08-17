@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { getTournamentAdminFlag } from "/admin/tournament-results-core.mjs?v=20260817-all-years";
-import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260817-all-years";
+import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260817-nested-results-nav";
 
 const supabase = createBrowserSupabaseClient();
 const loading = document.getElementById("adminLoading");
@@ -52,7 +52,6 @@ function renderNavigation(route){
   }));
 
   const resultsActive = route.section === "results-editor";
-  resultsParent.classList.toggle("is-active", resultsActive);
   resultsParent.setAttribute("aria-expanded", resultsActive ? "true" : "false");
   resultsChildren.hidden = !resultsActive;
 }

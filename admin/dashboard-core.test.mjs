@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 
 import { RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage, tournamentPublicUrl } from "./dashboard-core.mjs";
 
-test("matches the homepage event order and colors", () => {
+test("matches the sidebar event order and colors", () => {
   assert.deepEqual(
     RESULT_EVENTS.map(({ key, label, color }) => ({ key, label, color })),
     [
       { key:"proleague", label:"Shotgun Pro League", color:"#7dd3fc" },
-      { key:"worldopen", label:"World Open", color:"#5dff9c" },
       { key:"superleague", label:"Super League", color:"#d176ff" },
+      { key:"worldopen", label:"World Open", color:"#5dff9c" },
       { key:"lightningcup", label:"Lightning Cup", color:"#f6ff6a" },
       { key:"noptational", label:"The Noptational", color:"#818cf8" },
       { key:"championship", label:"World Championship", color:"#bef264" },

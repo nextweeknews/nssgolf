@@ -133,8 +133,7 @@ button,a{ font:inherit; }
 }
 .admin-nav-item:hover,
 .admin-nav-parent:hover{ background:rgba(255,255,255,.06); color:#fff; }
-.admin-nav-item[aria-current="page"],
-.admin-nav-parent.is-active{ background:rgba(125,211,252,.11); color:#fff; }
+.admin-nav-item[aria-current="page"]{ background:rgba(125,211,252,.11); color:#fff; }
 .admin-nav-icon{
   width:16px;
   height:16px;
@@ -150,6 +149,7 @@ button,a{ font:inherit; }
 .admin-nav-children{ display:block; margin:0; }
 .admin-nav-children[hidden]{ display:none; }
 .admin-nav-children .admin-nav-item{
+  padding-left:46px;
   color:var(--event-color);
   text-transform:uppercase;
 }
