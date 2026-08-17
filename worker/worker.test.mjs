@@ -635,6 +635,8 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
             range: "'Bracket'!D4:E4",
             before: [],
             after: [["1", ""]],
+            playerName: "Aidan",
+            headers: ["R1", "R2"],
           }],
           p_target_action_id: null,
         });
@@ -647,6 +649,8 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
             range: "'Bracket'!D4:E4",
             before: [[3, ""]],
             after: [["1", ""]],
+            playerName: "Aidan",
+            headers: ["R1", "R2"],
           }],
         });
         return Response.json([{ action_id: actionId, changes: [] }]);
@@ -693,7 +697,12 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
       body: JSON.stringify({
         eventKey: "masters",
         sheetId: "attacker-controlled-sheet",
-        updates: [{ range: "'Bracket'!D4:E4", values: [["1", null]] }],
+        updates: [{
+          range: "'Bracket'!D4:E4",
+          values: [["1", null]],
+          playerName: "Aidan",
+          headers: ["R1", "R2"],
+        }],
       }),
     }),
     env,

@@ -472,6 +472,8 @@ export function buildUpdates(editorTables, currentValues){
           updates.push({
             range: `${quotedSheetName(table.sheetName)}!${start.column}${start.row}:${end.column}${end.row}`,
             values: [dirtyRun.map((cell) => coerceScoreValue(currentValues.get(cell.range)))],
+            playerName:editorPlayerName(row, currentValues) || row.playerName,
+            headers:dirtyRun.map((cell) => cell.label),
           });
         }
       }

@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage, tournamentPublicUrl } from "./dashboard-core.mjs";
+import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "./action-logs-core.mjs";
 
 test("matches the sidebar event order and colors", () => {
   assert.deepEqual(
@@ -37,7 +38,7 @@ test("maps every standalone admin surface into the dashboard frame", () => {
   assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1");
   assert.equal(
     parseAdminRoute("?section=action-logs").frameUrl,
-    "/admin/action-logs.html?embed=1&v=20260817-no-description",
+    "/admin/action-logs.html?embed=1&v=20260817-action-log-row",
   );
 });
 
@@ -81,4 +82,39 @@ test("maps result editors to their matching public pages and Google Sheets", () 
     parseAdminRoute("?section=results-editor&eventKey=masters").sheetUrl,
     "https://docs.google.com/spreadsheets/d/16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE/edit",
   );
+});
+
+test("formats action-log rows without exposing raw range payloads", () => {
+  const change = {
+    range:"'Bracket'!D4:E4",
+    playerName:"Aidan",
+    headers:["R1", "R2"],
+    before:[[3, ""]],
+    after:[[1, -2]],
+  };
+  assert.equal(actionLogTimestamp("2026-08-17T12:00:00Z", "en-US").includes("August 17, 2026"), true);
+  assert.equal(actionLogCellCount({ changes:[change] }), 2);
+  assert.deepEqual(actionLogChangeRows(change), [
+    { playerName:"Aidan", header:"R1", before:"3", after:"1" },
+    { playerName:"Aidan", header:"R2", before:"—", after:"-2" },
+  ]);
+});
+
+test("carries player and header context into displayed undo changes", () => {
+  const logs = addUndoChangeContext([
+    {
+      action_id:"undo",
+      action_type:"undo",
+      target_action_id:"edit",
+      changes:[{ range:"'Bracket'!D4", before:[[1]], after:[[3]] }],
+    },
+    {
+      action_id:"edit",
+      action_type:"edit",
+      changes:[{ range:"'Bracket'!D4", playerName:"Aidan", headers:["R1"], before:[[3]], after:[[1]] }],
+    },
+  ]);
+  assert.equal(logs[0].changes[0].playerName, "Aidan");
+  assert.deepEqual(logs[0].changes[0].headers, ["R1"]);
+  assert.deepEqual(logs[0].changes[0].before, [[1]]);
 });

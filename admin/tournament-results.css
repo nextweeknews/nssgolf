@@ -657,18 +657,37 @@ html.admin-embedded .editor-page-head{ margin:0; }
   border:1px solid rgba(255,255,255,.11);
   border-radius:13px;
   background:var(--panel-strong);
-  padding:14px;
+  overflow:hidden;
 }
-.action-log-head{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
+.action-log-row{
+  display:grid;
+  grid-template-columns:minmax(155px,.9fr) minmax(175px,1.1fr) minmax(145px,.9fr) minmax(105px,.65fr) auto;
+  align-items:center;
   gap:14px;
+  padding:13px 14px;
 }
-.action-log-summary{ min-width:0; }
-.action-log-title{ margin:0; color:#fff; font-size:14px; font-weight:900; }
-.action-log-meta{ margin:5px 0 0; color:var(--muted); font-size:11px; line-height:1.5; }
-.action-log-meta a{ color:var(--accent); }
+.action-log-time,
+.action-log-cell-count{ color:var(--muted); font-size:11px; line-height:1.4; }
+.action-log-actor{ min-width:0; display:flex; align-items:center; gap:9px; color:#fff; font-size:12px; font-weight:850; }
+.action-log-actor > span:last-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.action-log-avatar,
+.action-log-avatar-fallback{
+  width:30px;
+  height:30px;
+  flex:0 0 auto;
+  border-radius:50%;
+  object-fit:cover;
+}
+.action-log-avatar-fallback{
+  display:grid;
+  place-items:center;
+  background:rgba(125,211,252,.16);
+  color:#bae6fd;
+  font-size:12px;
+  font-weight:950;
+}
+.action-log-event{ color:var(--action-event-color); font-size:11px; font-weight:900; letter-spacing:.05em; text-transform:uppercase; }
+.action-log-cell-count{ white-space:nowrap; }
 .action-log-actions{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
 .action-log-status{
   display:inline-flex;
@@ -683,16 +702,14 @@ html.admin-embedded .editor-page-head{ margin:0; }
   letter-spacing:.06em;
   text-transform:uppercase;
 }
-.action-log-status.succeeded{ color:#86efac; border-color:rgba(134,239,172,.28); }
 .action-log-status.failed{ color:#fca5a5; border-color:rgba(252,165,165,.28); }
 .action-log-status.pending{ color:#fde68a; border-color:rgba(253,230,138,.28); }
 .action-log-status.undone{ color:#c4b5fd; border-color:rgba(196,181,253,.28); }
-.action-log-changes{ margin-top:12px; }
-.action-log-changes summary{ color:rgba(233,238,248,.78); font-size:11px; font-weight:850; cursor:pointer; }
-.action-change-list{ display:grid; gap:8px; margin-top:9px; }
+.action-log-changes{ padding:0 14px 14px; border-top:1px solid rgba(255,255,255,.08); }
+.action-change-list{ display:grid; gap:7px; padding-top:12px; }
 .action-change{
   display:grid;
-  grid-template-columns:minmax(150px,1fr) minmax(0,1.25fr) auto minmax(0,1.25fr);
+  grid-template-columns:minmax(150px,1.1fr) minmax(100px,.8fr) minmax(0,1fr) auto minmax(0,1fr);
   align-items:center;
   gap:9px;
   padding:9px;
@@ -701,10 +718,11 @@ html.admin-embedded .editor-page-head{ margin:0; }
   background:rgba(255,255,255,.035);
   font-size:11px;
 }
-.action-change code{ overflow-wrap:anywhere; white-space:normal; color:#bae6fd; }
+.action-change-player{ overflow:hidden; color:#fff; font-weight:850; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
+.action-change-header{ color:#bae6fd; font-weight:800; }
 .action-change-value{ min-width:0; overflow-wrap:anywhere; color:rgba(233,238,248,.72); }
 .action-change-arrow{ color:rgba(233,238,248,.35); }
-.action-log-error{ margin:9px 0 0; color:#fca5a5; font-size:11px; }
+.action-log-error{ margin:0; padding:0 14px 13px; color:#fca5a5; font-size:11px; }
 .action-log-empty{ margin:22px 0; color:var(--muted); text-align:center; }
 
 @media (max-width:760px){
@@ -722,8 +740,7 @@ html.admin-embedded .editor-page-head{ margin:0; }
   .editor-select{ min-width:104px; }
   .editor-context-cell{ min-width:128px; max-width:168px; }
   .editor-player-cell{ min-width:142px; max-width:190px; }
-  .action-log-head{ display:grid; }
-  .action-log-actions{ justify-content:space-between; }
-  .action-change{ grid-template-columns:1fr; }
-  .action-change-arrow::before{ content:"After"; }
+  .action-log-card{ overflow-x:auto; }
+  .action-log-row,
+  .action-log-changes{ min-width:780px; }
 }

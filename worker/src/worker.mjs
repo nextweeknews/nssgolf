@@ -91,12 +91,18 @@ function validateAdminUpdates(updates, editableRanges) {
       });
     });
 
+    const playerName = String(update?.playerName || "").trim();
+    const headers = Array.isArray(update?.headers) ? update.headers.map((header) => String(header || "").trim()) : [];
+    if (playerName.length > 100 || headers.length > columnCount || headers.some((header) => !header || header.length > 100)) {
+      throw new AdminEditError(`Invalid action-log labels for range: ${range}`);
+    }
+
     totalCells += rowCount * columnCount;
     if (totalCells > MAX_ADMIN_CELLS) {
       throw new AdminEditError(`A request may update at most ${MAX_ADMIN_CELLS} cells.`);
     }
 
-    return { range, majorDimension: "ROWS", values };
+    return { range, majorDimension: "ROWS", values, playerName, headers };
   });
 }
 
@@ -302,6 +308,8 @@ function auditChanges(updates, beforeValues) {
     range: update.range,
     before: beforeValues[index],
     after: update.values,
+    playerName: update.playerName,
+    headers: update.headers,
   }));
 }
 
@@ -326,7 +334,10 @@ async function writeGoogleUpdates(accessToken, sheetId, updates) {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
+      body: JSON.stringify({
+        valueInputOption: "RAW",
+        data: updates.map(({ range, majorDimension, values }) => ({ range, majorDimension, values })),
+      }),
     },
   );
   const data = await response.json().catch(() => null);
@@ -694,6 +705,8 @@ export default {
               range: update.range,
               before: [],
               after: update.values,
+              playerName: update.playerName,
+              headers: update.headers,
             })),
             p_target_action_id: null,
           },

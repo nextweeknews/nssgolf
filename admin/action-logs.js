@@ -1,4 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
+import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "/admin/action-logs-core.mjs?v=20260817-row-layout";
+import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260817-action-log-row";
 
 const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-action-logs";
 const supabase = createBrowserSupabaseClient();
@@ -12,6 +14,8 @@ const logsStatus = document.getElementById("logsStatus");
 const logsList = document.getElementById("actionLogList");
 
 let busy = false;
+let actorProfiles = new Map();
+const eventColors = new Map(RESULT_EVENTS.map((event) => [event.key, event.color]));
 
 function setStatus(element, message, tone = ""){
   element.textContent = message || "";
@@ -37,62 +41,118 @@ async function requestHeaders(){
   };
 }
 
-function displayTime(value){
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "Unknown time" : date.toLocaleString();
-}
-
 function statusDetails(log){
   if(log.undone_by_action_id) return { label: "Undone", className: "undone" };
-  if(log.status === "succeeded") return { label: log.action_type === "undo" ? "Undo saved" : "Saved", className: "succeeded" };
   if(log.status === "failed") return { label: "Failed", className: "failed" };
-  return { label: "Pending", className: "pending" };
+  if(log.status === "pending") return { label: "Pending", className: "pending" };
+  return null;
 }
 
 function actionChange(change){
   const row = document.createElement("div");
   row.className = "action-change";
-  const range = document.createElement("code");
-  range.textContent = change?.range || "Unknown range";
+  const player = document.createElement("span");
+  player.className = "action-change-player";
+  player.textContent = change.playerName;
+  const header = document.createElement("span");
+  header.className = "action-change-header";
+  header.textContent = change.header;
   const before = document.createElement("span");
   before.className = "action-change-value";
-  before.textContent = JSON.stringify(change?.before ?? []);
+  before.textContent = change.before;
   const arrow = document.createElement("span");
   arrow.className = "action-change-arrow";
   arrow.textContent = "→";
   const after = document.createElement("span");
   after.className = "action-change-value";
-  after.textContent = JSON.stringify(change?.after ?? []);
-  row.append(range, before, arrow, after);
+  after.textContent = change.after;
+  row.append(player, header, before, arrow, after);
   return row;
+}
+
+async function loadActorProfiles(logs){
+  const ids = [...new Set(logs.map((log) => String(log.actor_discord_user_id || "").trim()).filter(Boolean))];
+  if(!ids.length) return new Map();
+  const { data, error } = await supabase
+    .from("discord_guild_members")
+    .select("discord_user_id,display_name,avatar_url,server_avatar_url,is_current_member,updated_at")
+    .in("discord_user_id", ids)
+    .order("is_current_member", { ascending:false })
+    .order("updated_at", { ascending:false });
+  if(error){
+    console.warn("Unable to load action-log admin profiles.", error);
+    return new Map();
+  }
+  const profiles = new Map();
+  (data || []).forEach((profile) => {
+    const id = String(profile.discord_user_id || "");
+    if(id && !profiles.has(id)) profiles.set(id, profile);
+  });
+  return profiles;
 }
 
 function actionCard(log){
   const card = document.createElement("article");
   card.className = "action-log-card";
 
-  const head = document.createElement("div");
-  head.className = "action-log-head";
-  const summary = document.createElement("div");
-  summary.className = "action-log-summary";
-  const title = document.createElement("h2");
-  title.className = "action-log-title";
-  title.textContent = `${log.actor_username || "Unknown admin"} ${log.action_type === "undo" ? "undid" : "edited"} ${log.event_display_name || log.event_key}`;
-  const meta = document.createElement("p");
-  meta.className = "action-log-meta";
-  const pageLink = document.createElement("a");
-  pageLink.href = log.route_path || "/";
-  pageLink.textContent = log.route_path || "/";
-  meta.append(`${displayTime(log.created_at)} · Discord ${log.actor_discord_user_id || "unknown"} · `, pageLink);
-  summary.append(title, meta);
+  const row = document.createElement("div");
+  row.className = "action-log-row";
+  const timestamp = document.createElement("time");
+  timestamp.className = "action-log-time";
+  timestamp.dateTime = log.created_at || "";
+  timestamp.textContent = actionLogTimestamp(log.created_at);
+
+  const profile = actorProfiles.get(String(log.actor_discord_user_id || ""));
+  const actor = document.createElement("div");
+  actor.className = "action-log-actor";
+  const avatarUrl = profile?.server_avatar_url || profile?.avatar_url || "";
+  if(avatarUrl){
+    const avatar = document.createElement("img");
+    avatar.className = "action-log-avatar";
+    avatar.src = avatarUrl;
+    avatar.alt = "";
+    avatar.loading = "lazy";
+    actor.appendChild(avatar);
+  }else{
+    const fallback = document.createElement("span");
+    fallback.className = "action-log-avatar-fallback";
+    fallback.textContent = (profile?.display_name || log.actor_username || "?").trim().slice(0, 1).toUpperCase();
+    actor.appendChild(fallback);
+  }
+  const actorName = document.createElement("span");
+  actorName.textContent = profile?.display_name || log.actor_username || "Unknown admin";
+  actor.appendChild(actorName);
+
+  const eventName = document.createElement("span");
+  eventName.className = "action-log-event";
+  eventName.style.setProperty("--action-event-color", eventColors.get(log.event_key) || "#e9eef8");
+  eventName.textContent = log.event_display_name || log.event_key || "Unknown event";
+
+  const cellCount = document.createElement("span");
+  cellCount.className = "action-log-cell-count";
+  const count = actionLogCellCount(log);
+  cellCount.textContent = `${count} ${count === 1 ? "cell" : "cells"} updated`;
 
   const actions = document.createElement("div");
   actions.className = "action-log-actions";
   const status = statusDetails(log);
-  const badge = document.createElement("span");
-  badge.className = `action-log-status ${status.className}`;
-  badge.textContent = status.label;
-  actions.appendChild(badge);
+  if(status){
+    const badge = document.createElement("span");
+    badge.className = `action-log-status ${status.className}`;
+    badge.textContent = status.label;
+    actions.appendChild(badge);
+  }
+
+  const changes = Array.isArray(log.changes) ? log.changes : [];
+  const changesId = `action-log-changes-${log.action_id}`;
+  const viewChanges = document.createElement("button");
+  viewChanges.className = "editor-button";
+  viewChanges.type = "button";
+  viewChanges.textContent = "View changes";
+  viewChanges.dataset.toggleChanges = "";
+  viewChanges.setAttribute("aria-expanded", "false");
+  viewChanges.setAttribute("aria-controls", changesId);
+  actions.appendChild(viewChanges);
   if(log.can_undo){
     const undo = document.createElement("button");
     undo.className = "editor-button";
@@ -102,18 +162,17 @@ function actionCard(log){
     undo.disabled = busy;
     actions.appendChild(undo);
   }
-  head.append(summary, actions);
-  card.appendChild(head);
+  row.append(timestamp, actor, eventName, cellCount, actions);
+  card.appendChild(row);
 
-  const changes = Array.isArray(log.changes) ? log.changes : [];
-  const details = document.createElement("details");
+  const details = document.createElement("div");
   details.className = "action-log-changes";
-  const detailsSummary = document.createElement("summary");
-  detailsSummary.textContent = `${changes.length} changed ${changes.length === 1 ? "range" : "ranges"}`;
+  details.id = changesId;
+  details.hidden = true;
   const changeList = document.createElement("div");
   changeList.className = "action-change-list";
-  changeList.replaceChildren(...changes.map(actionChange));
-  details.append(detailsSummary, changeList);
+  changeList.replaceChildren(...changes.flatMap(actionLogChangeRows).map(actionChange));
+  details.appendChild(changeList);
   card.appendChild(details);
 
   if(log.error_message){
@@ -141,7 +200,8 @@ async function loadLogs(){
 
     accessPanel.hidden = true;
     logsPanel.hidden = false;
-    const logs = Array.isArray(payload?.logs) ? payload.logs : [];
+    const logs = addUndoChangeContext(Array.isArray(payload?.logs) ? payload.logs : []);
+    actorProfiles = await loadActorProfiles(logs);
     logsList.replaceChildren(...logs.map(actionCard));
     if(!logs.length){
       const empty = document.createElement("p");
@@ -156,6 +216,16 @@ async function loadLogs(){
 }
 
 logsList.addEventListener("click", async (event) => {
+  const toggle = event.target.closest("button[data-toggle-changes]");
+  if(toggle){
+    const details = document.getElementById(toggle.getAttribute("aria-controls"));
+    if(!details) return;
+    const expanded = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!expanded));
+    toggle.textContent = expanded ? "View changes" : "Hide changes";
+    details.hidden = expanded;
+    return;
+  }
   const button = event.target.closest("button[data-undo-action-id]");
   if(!button || busy) return;
   if(!globalThis.confirm("Undo this score edit? The prior values will be written back to Google Sheets.")) return;

@@ -161,7 +161,7 @@ export function parseAdminRoute(search = ""){
   if(section === "event-signups") copyIfPresent(params, frameParams, ["event"]);
   if(section === "championship-points") frameParams.set("view", "settings");
   frameParams.set("embed", "1");
-  if(section === "action-logs") frameParams.set("v", "20260817-no-description");
+  if(section === "action-logs") frameParams.set("v", "20260817-action-log-row");
   return {
     section,
     eventKey:"",

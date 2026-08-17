@@ -372,7 +372,7 @@ test("builds World Open player-name inputs from each round's Field column", () =
   const currentValues = new Map(table.rows.flatMap((row) => row.editableCells.map((cell) => [cell.range, cell.initialValue])));
   currentValues.set("'2026 Results'!C2", "Nick");
   assert.deepEqual(buildUpdates([table], currentValues), [
-    { range:"'2026 Results'!C2:C2", values:[["Nick"]] },
+    { range:"'2026 Results'!C2:C2", values:[["Nick"]], playerName:"Nick", headers:["Player"] },
   ]);
 });
 
@@ -500,8 +500,8 @@ test("builds Pro League team presentation and reserves blank individual-player r
   assert.equal(isEditorRowSelected(blankSlot, currentValues, ["new player"]), true);
   currentValues.set("'Season 7, Stage 3'!L66", "-4");
   assert.deepEqual(buildUpdates(tables, currentValues), [
-    { range: "'Season 7, Stage 3'!C66:C66", values: [["New Player"]] },
-    { range: "'Season 7, Stage 3'!L66:L66", values: [[-4]] },
+    { range: "'Season 7, Stage 3'!C66:C66", values: [["New Player"]], playerName:"New Player", headers:["Player"] },
+    { range: "'Season 7, Stage 3'!L66:L66", values: [[-4]], playerName:"New Player", headers:["1-1"] },
   ]);
   assert.equal(nextBlankPlayerRow(tables[0], currentValues), null);
 });
@@ -528,8 +528,8 @@ test("sends only consecutive dirty cells so stale neighbors are not overwritten"
   values.set("'Bracket'!F2", "4&3");
 
   assert.deepEqual(buildUpdates(tables, values), [
-    { range: "'Bracket'!C2:D2", values: [[-1, -2]] },
-    { range: "'Bracket'!F2:F2", values: [["4&3"]] },
+    { range: "'Bracket'!C2:D2", values: [[-1, -2]], playerName:"Aidan", headers:["R1", "R2"] },
+    { range: "'Bracket'!F2:F2", values: [["4&3"]], playerName:"Aidan", headers:["Result"] },
   ]);
 });
 
