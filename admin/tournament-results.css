@@ -159,6 +159,32 @@ body{
 }
 .editor-status.error{ color:#fca5a5; }
 .editor-status.success{ color:#86efac; }
+.editor-period-controls{
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+  margin:4px 0 16px;
+  flex-wrap:wrap;
+}
+.editor-select-wrap{ display:grid; gap:5px; min-width:170px; }
+.editor-select-label{
+  color:rgba(233,238,248,.62);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.editor-select{
+  min-height:38px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:9px;
+  background:#101c32;
+  color:#fff;
+  padding:0 32px 0 11px;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+}
 .editor-view-tabs{
   display:flex;
   gap:7px;
@@ -247,10 +273,26 @@ body{
 .editor-table td:last-child{ border-right:0; }
 .editor-context-cell{ min-width:150px; max-width:230px; overflow:hidden; text-overflow:ellipsis; color:rgba(233,238,248,.62); }
 .editor-seed-cell{ min-width:52px; text-align:center !important; color:rgba(233,238,248,.56); }
-.editor-player-cell{ min-width:160px; max-width:230px; overflow:hidden; text-overflow:ellipsis; font-weight:800; }
+.editor-player-cell{
+  min-width:190px;
+  max-width:270px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-weight:900;
+}
+.editor-player-cell.has-team-style{ text-transform:uppercase; }
+.editor-player-cell > span{ vertical-align:middle; }
+.editor-team-logo{
+  width:31px;
+  height:31px;
+  margin-right:8px;
+  object-fit:cover;
+  vertical-align:middle;
+}
 .editor-score-cell{ min-width:62px; padding:4px !important; }
 .editor-score-cell.is-unavailable{ text-align:center; color:rgba(233,238,248,.25); }
 .editor-score-cell.is-dirty{ background:rgba(250,204,21,.11); }
+.editor-player-cell.is-dirty{ box-shadow:inset 0 0 0 2px rgba(250,204,21,.55); }
 .editor-score-input{
   width:54px;
   height:31px;
@@ -267,6 +309,8 @@ body{
 .editor-score-input:focus{ outline:2px solid rgba(125,211,252,.62); outline-offset:1px; }
 .editor-score-input:disabled{ opacity:.56; cursor:not-allowed; }
 .editor-sudden-death{ border-left:1px solid rgba(125,211,252,.38) !important; }
+.editor-week-separator{ border-right:2px solid rgba(125,211,252,.38) !important; }
+.editor-add-player{ margin-top:10px; }
 .editor-table .is-empty-player{ opacity:.58; }
 .action-log-list{ display:grid; gap:12px; margin-top:14px; }
 .action-log-card{

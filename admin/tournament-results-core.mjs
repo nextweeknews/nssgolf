@@ -61,14 +61,38 @@ export function a1Cell(sheetName, column, row){
   return `${quotedSheetName(sheetName)}!${columnLetters(column)}${row}`;
 }
 
-export function tournamentEditorUrlForPath(pathname){
+export function tournamentEditorUrlForPath(pathname, search = ""){
   const cleanPath = String(pathname || "").replace(/\/+$/, "") || "/";
   const eventKey = EVENT_KEYS_BY_PATH.get(cleanPath);
-  return eventKey ? `/admin/tournament-results.html?eventKey=${encodeURIComponent(eventKey)}` : "";
+  if(!eventKey) return "";
+
+  const editorParams = new URLSearchParams({ eventKey });
+  if(eventKey === "proleague"){
+    const publicParams = new URLSearchParams(search);
+    ["season", "stage"].forEach((key) => {
+      const value = publicParams.get(key)?.trim();
+      if(value) editorParams.set(key, value);
+    });
+  }
+  return `/admin/tournament-results.html?${editorParams}`;
 }
 
-export function tournamentEditorUrlForUser(pathname, isAdmin){
-  return isAdmin ? tournamentEditorUrlForPath(pathname) : "";
+export function tournamentEditorUrlForUser(pathname, isAdmin, search = ""){
+  return isAdmin ? tournamentEditorUrlForPath(pathname, search) : "";
+}
+
+export function proLeagueViewKey(season, stage = null){
+  const seasonText = normalizeText(season).trim().toLowerCase();
+  if(!seasonText) return "";
+  if(seasonText === "2026-all-stars") return seasonText;
+  if(!/^\d+$/.test(seasonText)) return "";
+  const stageText = normalizeText(stage).trim().toLowerCase();
+  return stageText ? `season-${seasonText}-${stageText === "championship" ? stageText : `stage-${stageText}`}` : `season-${seasonText}`;
+}
+
+export function weekRoundLabel(roundIndex){
+  const index = Number(roundIndex);
+  return `${Math.floor(index / 2) + 1}-${(index % 2) + 1}`;
 }
 
 export async function getTournamentAdminFlag(client){
@@ -119,6 +143,17 @@ function scoreCell(valueRanges, sheetName, column, row, type, label){
   };
 }
 
+function teamNameForRow(table, valueRanges, sheetName, row){
+  const block = table.team_block;
+  if(!block) return "";
+  const headerStartRow = Number(block.header_start_row);
+  const blockSize = Number(block.block_size);
+  const lastPlayerRow = Number(block.last_player_row);
+  if(!Number.isInteger(headerStartRow) || !Number.isInteger(blockSize) || blockSize < 2 || row <= headerStartRow || row > lastPlayerRow) return "";
+  const headerRow = headerStartRow + Math.floor((row - headerStartRow - 1) / blockSize) * blockSize;
+  return readColumn(valueRanges, sheetName, block.team_name_column, headerRow);
+}
+
 export function buildEditorTables(event, valueRanges){
   return (Array.isArray(event?.tables) ? event.tables : []).map((table) => {
     const tableRange = parseA1Range(table.source_range);
@@ -132,8 +167,16 @@ export function buildEditorTables(event, valueRanges){
         .filter((value) => value.trim());
 
       (table.players || []).forEach((player, playerIndex) => {
+        const playerName = readColumn(valueRanges, tableRange.sheetName, player.name_column, row);
         const roundScores = (player.round_score_columns || []).map((column, roundIndex) => (
-          scoreCell(valueRanges, tableRange.sheetName, column, row, "round", `R${roundIndex + 1}`)
+          scoreCell(
+            valueRanges,
+            tableRange.sheetName,
+            column,
+            row,
+            "round",
+            table.round_label_style === "week-round" ? weekRoundLabel(roundIndex) : `R${roundIndex + 1}`,
+          )
         ));
         const suddenDeath = player.sudden_death_column
           ? scoreCell(valueRanges, tableRange.sheetName, player.sudden_death_column, row, "sudden-death", "SD")
@@ -141,7 +184,14 @@ export function buildEditorTables(event, valueRanges){
         const result = player.result_column
           ? scoreCell(valueRanges, tableRange.sheetName, player.result_column, row, "result", "Result")
           : null;
-        const editableCells = [...roundScores, suddenDeath, result].filter(Boolean);
+        const addPlayer = table.add_player || null;
+        const isAddPlayerSlot = playerIndex === 0
+          && row >= Number(addPlayer?.start_row)
+          && row <= Number(addPlayer?.end_row);
+        const nameCell = isAddPlayerSlot
+          ? scoreCell(valueRanges, tableRange.sheetName, addPlayer.name_column, row, "player-name", "Player")
+          : null;
+        const editableCells = [nameCell, ...roundScores, suddenDeath, result].filter(Boolean);
 
         rows.push({
           key: `${table.key}-${row}-${playerIndex + 1}`,
@@ -151,7 +201,12 @@ export function buildEditorTables(event, valueRanges){
           seed: player.seed_column
             ? readColumn(valueRanges, tableRange.sheetName, player.seed_column, row)
             : "",
-          playerName: readColumn(valueRanges, tableRange.sheetName, player.name_column, row),
+          playerName,
+          teamName: table.name_is_team
+            ? playerName
+            : teamNameForRow(table, valueRanges, tableRange.sheetName, row),
+          nameCell,
+          isAddPlayerSlot,
           roundScores,
           suddenDeath,
           result,
@@ -165,13 +220,45 @@ export function buildEditorTables(event, valueRanges){
       label: table.label || table.key,
       groupKey: table.group_key || "",
       groupLabel: table.group_label || "",
+      seasonValue: table.season_value ?? null,
+      seasonLabel: table.season_label || "",
+      stageValue: table.stage_value ?? null,
       sheetName: tableRange.sheetName,
+      hideContext: Boolean(table.hide_context),
+      hideSeed: Boolean(table.hide_seed),
+      roundLabelStyle: table.round_label_style || "",
+      canAddPlayers: Boolean(table.add_player),
       maxRoundCount: Math.max(0, ...rows.map((row) => row.roundScores.length)),
       hasSuddenDeath: rows.some((row) => row.suddenDeath),
       hasResult: rows.some((row) => row.result),
       rows,
     };
   });
+}
+
+function currentCellValue(cell, currentValues){
+  return cell ? normalizeText(currentValues.get(cell.range) ?? cell.initialValue) : "";
+}
+
+export function isEditorRowVisible(row, currentValues){
+  if(!row?.isAddPlayerSlot) return true;
+  return Boolean(
+    currentCellValue(row.nameCell, currentValues).trim()
+    || row.editableCells.some((cell) => cell.type !== "player-name" && currentCellValue(cell, currentValues).trim()),
+  );
+}
+
+export function addPlayerToFirstBlankRow(table, playerName, currentValues){
+  const name = normalizeText(playerName).trim();
+  if(!name) throw new Error("Enter a player name.");
+  const lowerName = name.toLowerCase();
+  const duplicate = table.rows.some((row) => currentCellValue(row.nameCell, currentValues).trim().toLowerCase() === lowerName || row.playerName.trim().toLowerCase() === lowerName);
+  if(duplicate) throw new Error("That player is already listed in this period.");
+
+  const row = table.rows.find((candidate) => candidate.isAddPlayerSlot && !isEditorRowVisible(candidate, currentValues));
+  if(!row?.nameCell) return null;
+  currentValues.set(row.nameCell.range, name);
+  return row;
 }
 
 export function coerceScoreValue(value){

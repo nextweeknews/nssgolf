@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=7a2eae15d69c" />
-  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-league-tabs" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-proleague-editor" />
 </head>
 <body>
   <header class="topbar">
@@ -46,15 +46,25 @@
       <div class="editor-savebar">
         <span class="editor-dirty-count" id="editorDirtyCount">No unsaved changes</span>
         <button class="editor-button" id="editorResetBtn" type="button" disabled>Reset</button>
-        <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save scores</button>
+        <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save changes</button>
       </div>
       <p class="editor-status" id="editorStatus" aria-live="polite"></p>
+      <div class="editor-period-controls" id="editorPeriodControls" aria-label="Pro League period controls" hidden>
+        <label class="editor-select-wrap">
+          <span class="editor-select-label">Season</span>
+          <select class="editor-select" id="editorSeasonSelect"></select>
+        </label>
+        <label class="editor-select-wrap" id="editorStageWrap">
+          <span class="editor-select-label">Stage</span>
+          <select class="editor-select" id="editorStageSelect"></select>
+        </label>
+      </div>
       <div class="editor-view-tabs" id="editorViewTabs" role="tablist" aria-label="Tournament edit views" hidden></div>
       <div class="editor-tables" id="editorTables"></div>
     </section>
   </main>
 
-  <script type="module" src="/site-topbar.js?v=bc157abc408a"></script>
-  <script type="module" src="/admin/tournament-results.js?v=20260817-league-tabs"></script>
+  <script type="module" src="/site-topbar.js?v=80783f9506c0"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260817-proleague-editor"></script>
 </body>
 </html>

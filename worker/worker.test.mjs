@@ -312,6 +312,8 @@ test("loads canonical admin event ranges without caching", async () => {
       editableRanges: ["'Qualifiers'!K2:N16", "'Bracket'!C2:I16"],
       formulaRanges: ["'Qualifiers'!T2:T16", "'Bracket'!R2:R16"],
       tables: [{ key: "main-bracket", source_range: "'Bracket'!A1:R16" }],
+      views: [],
+      activeViewKey: "",
       editEnabled: true,
       archived: false,
       canEdit: true,
@@ -319,6 +321,121 @@ test("loads canonical admin event ranges without caching", async () => {
     },
     valueRanges: [{ range: "'Bracket'!A1:R16", values: [["Round 1"]] }],
   });
+});
+
+test("loads only the selected Pro League season and stage ranges", async () => {
+  const privateKey = await makeTestPrivateKeyPem();
+  const { env } = makeEnv({
+    bindings: {
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: "period-reader@example.iam.gserviceaccount.com",
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: privateKey,
+    },
+  });
+  const tables = [
+    {
+      key: "stage-2-scores",
+      group_key: "season-7-stage-2",
+      group_label: "Season 7, Stage 2",
+      season_value: 7,
+      season_label: "Season 7",
+      stage_value: 2,
+      source_range: "'Season 7, Stage 2'!A3:S101",
+    },
+    {
+      key: "stage-3-scores",
+      group_key: "season-7-stage-3",
+      group_label: "Season 7, Stage 3",
+      season_value: 7,
+      season_label: "Season 7",
+      stage_value: 3,
+      source_range: "'Season 7, Stage 3'!A3:S101",
+    },
+  ];
+
+  globalThis.fetch = async (input) => {
+    const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.hostname === "project.supabase.co") {
+      return Response.json([{
+        event_key: "proleague",
+        display_name: "Shotgun Pro League",
+        route_path: "/proleague",
+        sheet_id: "proleague-sheet",
+        source_ranges: tables.map((table) => table.source_range),
+        editable_ranges: ["'Season 7, Stage 3'!L5:S8"],
+        formula_ranges: ["'Season 7, Stage 3'!A4:K101"],
+        editor_tables: tables,
+        edit_enabled: true,
+        archived: false,
+        can_edit: true,
+        archived_at: null,
+      }]);
+    }
+    if (upstreamUrl.href === "https://oauth2.googleapis.com/token") {
+      return Response.json({ access_token: "period-read-token", expires_in: 3600 });
+    }
+    assert.deepEqual(upstreamUrl.searchParams.getAll("ranges"), ["'Season 7, Stage 3'!A3:S101"]);
+    return Response.json({ valueRanges: [{ range: "'Season 7, Stage 3'!A3:S101", values: [] }] });
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-results?eventKey=proleague&viewKey=season-7-stage-3", {
+      headers: { Authorization: "Bearer user-token" },
+    }),
+    env,
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.event.activeViewKey, "season-7-stage-3");
+  assert.deepEqual(payload.event.tables, [tables[1]]);
+  assert.deepEqual(payload.event.sourceRanges, [tables[1].source_range]);
+  assert.deepEqual(payload.event.views, [
+    { key: "season-7-stage-2", label: "Season 7, Stage 2", seasonValue: 7, seasonLabel: "Season 7", stageValue: 2 },
+    { key: "season-7-stage-3", label: "Season 7, Stage 3", seasonValue: 7, seasonLabel: "Season 7", stageValue: 3 },
+  ]);
+});
+
+test("rejects an unknown Pro League editor view before contacting Google", async () => {
+  const { env } = makeEnv();
+  let upstreamCalls = 0;
+  globalThis.fetch = async (input) => {
+    upstreamCalls += 1;
+    const upstreamUrl = new URL(String(input));
+    assert.equal(upstreamUrl.hostname, "project.supabase.co");
+    return Response.json([{
+      event_key: "proleague",
+      display_name: "Shotgun Pro League",
+      route_path: "/proleague",
+      sheet_id: "proleague-sheet",
+      source_ranges: ["'Season 7, Stage 3'!A3:S101"],
+      editable_ranges: ["'Season 7, Stage 3'!L5:S8"],
+      formula_ranges: ["'Season 7, Stage 3'!A4:K101"],
+      editor_tables: [{
+        key: "stage-3-scores",
+        group_key: "season-7-stage-3",
+        group_label: "Season 7, Stage 3",
+        season_value: 7,
+        season_label: "Season 7",
+        stage_value: 3,
+        source_range: "'Season 7, Stage 3'!A3:S101",
+      }],
+      edit_enabled: true,
+      archived: false,
+      can_edit: true,
+      archived_at: null,
+    }]);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-results?eventKey=proleague&viewKey=season-7-stage-99", {
+      headers: { Authorization: "Bearer user-token" },
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Unknown tournament editor view." });
+  assert.equal(upstreamCalls, 1);
 });
 
 test("maps an archived event authorization failure without calling Google", async () => {
@@ -377,7 +494,7 @@ test("rejects writes to formula cells outside the RPC-provided editable score ra
   );
 
   assert.equal(response.status, 400);
-  assert.match((await response.json()).error, /outside this event's editable score cells/);
+  assert.match((await response.json()).error, /outside this event's editable cells/);
   assert.equal(upstreamCalls, 1);
 });
 

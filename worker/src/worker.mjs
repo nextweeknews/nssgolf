@@ -71,7 +71,7 @@ function validateAdminUpdates(updates, editableRanges) {
     seenRanges.add(range);
 
     if (!allowedRanges.some((allowedRange) => rangeContains(allowedRange, parsedRange))) {
-      throw new AdminEditError(`Range is outside this event's editable score cells: ${range}`);
+      throw new AdminEditError(`Range is outside this event's editable cells: ${range}`);
     }
 
     const rowCount = parsedRange.endRow - parsedRange.startRow + 1;
@@ -350,6 +350,43 @@ async function completeActionLog(env, authorization, actionId, succeeded, errorM
   );
 }
 
+function tournamentEditorViews(tables) {
+  const views = [];
+  const seen = new Set();
+  for (const table of tables) {
+    const key = String(table?.group_key || "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    views.push({
+      key,
+      label: String(table?.group_label || key),
+      seasonValue: table?.season_value ?? null,
+      seasonLabel: String(table?.season_label || ""),
+      stageValue: table?.stage_value ?? null,
+    });
+  }
+  return views;
+}
+
+function selectedTournamentEditorConfig(context, requestedViewKey) {
+  const tables = context.editor_tables;
+  const views = tournamentEditorViews(tables);
+  if (!requestedViewKey) {
+    return { views, activeViewKey: "", tables, sourceRanges: context.source_ranges };
+  }
+
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedViewKey) || !views.some((view) => view.key === requestedViewKey)) {
+    throw new AdminEditError("Unknown tournament editor view.");
+  }
+  const selectedTables = tables.filter((table) => table?.group_key === requestedViewKey);
+  const allowedSourceRanges = new Set(context.source_ranges);
+  const sourceRanges = [...new Set(selectedTables.map((table) => String(table?.source_range || "").trim()))];
+  if (!sourceRanges.length || sourceRanges.some((range) => !allowedSourceRanges.has(range))) {
+    throw new AdminEditError("Tournament editor view configuration is incomplete.", 502);
+  }
+  return { views, activeViewKey: requestedViewKey, tables: selectedTables, sourceRanges };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -473,6 +510,7 @@ export default {
       try {
         if (request.method === "GET") {
           const eventKey = String(url.searchParams.get("eventKey") || "").trim();
+          const requestedViewKey = String(url.searchParams.get("viewKey") || "").trim();
           if (!eventKey) throw new AdminEditError("Missing eventKey.");
 
           const context = await callAdminRpc(
@@ -490,11 +528,12 @@ export default {
           ) {
             throw new AdminEditError("Tournament configuration is incomplete.", 502);
           }
+          const editorConfig = selectedTournamentEditorConfig(context, requestedViewKey);
           const accessToken = await getGoogleAccessToken(env);
           const googleUrl = new URL(
             `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(context.sheet_id)}/values:batchGet`,
           );
-          for (const range of context.source_ranges) googleUrl.searchParams.append("ranges", range);
+          for (const range of editorConfig.sourceRanges) googleUrl.searchParams.append("ranges", range);
           googleUrl.searchParams.set("majorDimension", "ROWS");
 
           const sheetResponse = await fetch(googleUrl, {
@@ -511,10 +550,12 @@ export default {
               eventKey: context.event_key,
               displayName: context.display_name,
               routePath: context.route_path,
-              sourceRanges: context.source_ranges,
+              sourceRanges: editorConfig.sourceRanges,
               editableRanges: context.editable_ranges,
               formulaRanges: context.formula_ranges,
-              tables: context.editor_tables,
+              tables: editorConfig.tables,
+              views: editorConfig.views,
+              activeViewKey: editorConfig.activeViewKey,
               editEnabled: context.edit_enabled,
               archived: context.archived,
               canEdit: context.can_edit,

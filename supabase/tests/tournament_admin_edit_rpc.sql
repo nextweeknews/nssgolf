@@ -245,13 +245,16 @@ BEGIN
   INTO proleague_tables
   FROM public.get_tournament_admin_edit_context('proleague');
 
-  IF jsonb_array_length(proleague_tables) <> 6
-    OR proleague_tables->0->>'group_key' <> 'stage-1'
-    OR proleague_tables->1->>'group_key' <> 'stage-2'
-    OR proleague_tables->2->>'group_key' <> 'stage-3'
-    OR proleague_tables->3->>'group_key' <> 'championship'
+  IF jsonb_array_length(proleague_tables) <> 18
+    OR proleague_tables->0->>'group_key' <> '2026-all-stars'
+    OR proleague_tables->1->>'group_key' <> 'season-7-stage-1'
+    OR proleague_tables->3->>'group_key' <> 'season-7-stage-3'
+    OR proleague_tables->4->>'group_key' <> 'season-7-championship'
+    OR proleague_tables->7->>'group_key' <> 'season-6-stage-1'
+    OR proleague_tables->13->>'group_key' <> 'season-5'
+    OR proleague_tables->17->>'group_key' <> 'season-1'
   THEN
-    RAISE EXCEPTION 'Pro League edit tabs or table metadata are incomplete';
+    RAISE EXCEPTION 'Pro League season and stage editor metadata are incomplete';
   END IF;
 
   IF NOT EXISTS (
@@ -260,10 +263,13 @@ BEGIN
     WHERE sheet_id = '1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o'
       AND archived
       AND NOT can_edit
+      AND '''2026 All-Stars''!D4:G35' = ANY(editable_ranges)
+      AND '''Season 7, Stage 3''!C66:C101' = ANY(editable_ranges)
       AND '''Season 7, Stage 3''!L66:S101' = ANY(editable_ranges)
       AND '''Season 7, Championship''!S8' = ANY(editable_ranges)
+      AND '''Season 1''!C41:C101' = ANY(editable_ranges)
   ) THEN
-    RAISE EXCEPTION 'Pro League was not registered archived with its active score ranges';
+    RAISE EXCEPTION 'Pro League was not registered archived with its period score and player-slot ranges';
   END IF;
 
   SELECT editor_tables

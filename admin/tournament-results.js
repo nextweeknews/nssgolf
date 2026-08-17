@@ -1,5 +1,13 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { buildEditorTables, buildUpdates } from "/admin/tournament-results-core.mjs?v=20260817-league-tabs";
+import {
+  addPlayerToFirstBlankRow,
+  buildEditorTables,
+  buildUpdates,
+  isEditorRowVisible,
+  proLeagueViewKey,
+} from "/admin/tournament-results-core.mjs?v=20260817-proleague-editor";
+import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE } from "/config.js";
+import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
 const DEFAULT_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-results";
 const runtimeConfig = globalThis.NSSGOLF_TOURNAMENT_EDITOR_CONFIG || {};
@@ -21,6 +29,10 @@ const dirtyCount = document.getElementById("editorDirtyCount");
 const editorStatus = document.getElementById("editorStatus");
 const viewTabs = document.getElementById("editorViewTabs");
 const tablesMount = document.getElementById("editorTables");
+const periodControls = document.getElementById("editorPeriodControls");
+const seasonSelect = document.getElementById("editorSeasonSelect");
+const stageWrap = document.getElementById("editorStageWrap");
+const stageSelect = document.getElementById("editorStageSelect");
 
 const state = {
   session: null,
@@ -28,6 +40,7 @@ const state = {
   tables: [],
   currentValues: new Map(),
   activeGroupKey: "",
+  activeViewKey: "",
   saving: false,
 };
 
@@ -63,12 +76,12 @@ async function requestHeaders(){
   };
 }
 
-function allScoreCells(){
+function allEditableCells(){
   return state.tables.flatMap((table) => table.rows.flatMap((row) => row.editableCells));
 }
 
 function dirtyCells(){
-  return allScoreCells().filter((cell) => state.currentValues.get(cell.range) !== cell.initialValue);
+  return allEditableCells().filter((cell) => state.currentValues.get(cell.range) !== cell.initialValue);
 }
 
 function updateActions(){
@@ -86,6 +99,10 @@ function updateActions(){
     input.disabled = locked;
     input.closest("td")?.classList.toggle("is-dirty", state.currentValues.get(range) !== input.dataset.initialValue);
   });
+  tablesMount.querySelectorAll("button[data-add-player-table]").forEach((button) => {
+    const table = state.tables.find((candidate) => candidate.key === button.dataset.addPlayerTable);
+    button.disabled = locked || !table?.rows.some((row) => row.isAddPlayerSlot && !isEditorRowVisible(row, state.currentValues));
+  });
 }
 
 function contextLabel(row){
@@ -99,9 +116,42 @@ function appendTextCell(rowEl, value, className = ""){
   rowEl.appendChild(cell);
 }
 
-function appendScoreCell(rowEl, scoreCell, playerLabel){
+function playerNameForRow(row){
+  return String(row.nameCell ? (state.currentValues.get(row.nameCell.range) ?? row.nameCell.initialValue) : row.playerName).trim();
+}
+
+function appendPlayerCell(rowEl, row){
+  const cell = document.createElement("td");
+  cell.className = "editor-player-cell";
+  const playerName = playerNameForRow(row);
+  if(row.nameCell && state.currentValues.get(row.nameCell.range) !== row.nameCell.initialValue){
+    cell.classList.add("is-dirty");
+  }
+  const style = getProLeagueTeamStyle(row.teamName);
+  if(row.teamName) cell.classList.add("has-team-style");
+  if(style){
+    cell.style.background = style.bg;
+    cell.style.color = style.fg;
+  }
+  if(row.teamName){
+    const logo = document.createElement("img");
+    logo.className = "editor-team-logo";
+    logo.src = proLeagueTeamLogoSrc(row.teamName);
+    logo.alt = `${row.teamName} logo`;
+    logo.loading = "lazy";
+    logo.addEventListener("error", () => logo.remove());
+    cell.appendChild(logo);
+  }
+  const name = document.createElement("span");
+  name.textContent = playerName || "—";
+  cell.appendChild(name);
+  rowEl.appendChild(cell);
+}
+
+function appendScoreCell(rowEl, scoreCell, playerLabel, weekSeparator = false){
   const cell = document.createElement("td");
   cell.className = "editor-score-cell";
+  if(weekSeparator) cell.classList.add("editor-week-separator");
   if(!scoreCell){
     cell.classList.add("is-unavailable");
     cell.textContent = "—";
@@ -144,7 +194,12 @@ function createTable(table){
   tableEl.className = "editor-table";
 
   const headerRow = document.createElement("tr");
-  ["Match / source", "Seed", "Player"].forEach((label) => {
+  const leadingHeaders = [
+    ...(!table.hideContext ? ["Match / source"] : []),
+    ...(!table.hideSeed ? ["Seed"] : []),
+    "Player",
+  ];
+  leadingHeaders.forEach((label) => {
     const header = document.createElement("th");
     header.scope = "col";
     header.textContent = label;
@@ -153,7 +208,10 @@ function createTable(table){
   for(let round = 1; round <= table.maxRoundCount; round += 1){
     const header = document.createElement("th");
     header.scope = "col";
-    header.textContent = `R${round}`;
+    header.textContent = table.rows[0]?.roundScores[round - 1]?.label || `R${round}`;
+    if(table.roundLabelStyle === "week-round" && round % 2 === 0 && round < table.maxRoundCount){
+      header.classList.add("editor-week-separator");
+    }
     headerRow.appendChild(header);
   }
   if(table.hasSuddenDeath){
@@ -174,16 +232,21 @@ function createTable(table){
   thead.appendChild(headerRow);
   const tbody = document.createElement("tbody");
 
-  table.rows.forEach((row) => {
+  table.rows.filter((row) => isEditorRowVisible(row, state.currentValues)).forEach((row) => {
     const rowEl = document.createElement("tr");
     rowEl.dataset.sourceRow = String(row.sourceRow);
-    if(!row.playerName && !row.editableCells.some((cell) => cell.initialValue)) rowEl.classList.add("is-empty-player");
-    appendTextCell(rowEl, contextLabel(row), "editor-context-cell");
-    appendTextCell(rowEl, row.seed, "editor-seed-cell");
-    appendTextCell(rowEl, row.playerName, "editor-player-cell");
-    const playerLabel = row.playerName || `Player slot ${row.playerSlot}`;
+    if(!playerNameForRow(row) && !row.editableCells.some((cell) => cell.initialValue)) rowEl.classList.add("is-empty-player");
+    if(!table.hideContext) appendTextCell(rowEl, contextLabel(row), "editor-context-cell");
+    if(!table.hideSeed) appendTextCell(rowEl, row.seed, "editor-seed-cell");
+    appendPlayerCell(rowEl, row);
+    const playerLabel = playerNameForRow(row) || `Player slot ${row.playerSlot}`;
     for(let round = 0; round < table.maxRoundCount; round += 1){
-      appendScoreCell(rowEl, row.roundScores[round], playerLabel);
+      appendScoreCell(
+        rowEl,
+        row.roundScores[round],
+        playerLabel,
+        table.roundLabelStyle === "week-round" && round % 2 === 1 && round < table.maxRoundCount - 1,
+      );
     }
     if(table.hasSuddenDeath) appendScoreCell(rowEl, row.suddenDeath, playerLabel);
     if(table.hasResult) appendScoreCell(rowEl, row.result, playerLabel);
@@ -193,6 +256,14 @@ function createTable(table){
   tableEl.append(thead, tbody);
   scroll.appendChild(tableEl);
   section.append(heading, scroll);
+  if(table.canAddPlayers){
+    const addButton = document.createElement("button");
+    addButton.className = "editor-button editor-add-player";
+    addButton.type = "button";
+    addButton.dataset.addPlayerTable = table.key;
+    addButton.textContent = "Add player";
+    section.appendChild(addButton);
+  }
   return section;
 }
 
@@ -220,6 +291,11 @@ function showEditorGroup(groupKey){
 }
 
 function renderEditorTabs(){
+  if(state.event?.eventKey === "proleague"){
+    viewTabs.hidden = true;
+    viewTabs.replaceChildren();
+    return;
+  }
   const groups = editorGroups();
   viewTabs.hidden = groups.length < 2;
   viewTabs.replaceChildren(...groups.map((group) => {
@@ -239,13 +315,76 @@ function renderEditorTabs(){
   showEditorGroup(activeGroup);
 }
 
+function proLeagueViews(){
+  return Array.isArray(state.event?.views) ? state.event.views : [];
+}
+
+function activeProLeagueView(){
+  return proLeagueViews().find((view) => view.key === state.activeViewKey) || null;
+}
+
+function syncProLeagueUrls(view){
+  if(!view) return;
+  const editorParams = new URLSearchParams(globalThis.location.search);
+  editorParams.set("eventKey", "proleague");
+  editorParams.set("season", String(view.seasonValue));
+  if(view.stageValue === null || view.stageValue === undefined || view.stageValue === "") editorParams.delete("stage");
+  else editorParams.set("stage", String(view.stageValue));
+  globalThis.history.replaceState(null, "", `${globalThis.location.pathname}?${editorParams}`);
+
+  const publicParams = new URLSearchParams({ season: String(view.seasonValue) });
+  if(view.stageValue !== null && view.stageValue !== undefined && view.stageValue !== ""){
+    publicParams.set("stage", String(view.stageValue));
+  }
+  backLink.href = `/proleague/index.html?${publicParams}`;
+}
+
+function renderPeriodControls(){
+  const views = proLeagueViews();
+  periodControls.hidden = state.event?.eventKey !== "proleague" || !views.length;
+  if(periodControls.hidden) return;
+
+  const activeView = activeProLeagueView() || views[0];
+  const seasons = [];
+  const seen = new Set();
+  views.forEach((view) => {
+    const value = String(view.seasonValue);
+    if(seen.has(value)) return;
+    seen.add(value);
+    seasons.push({ value, label: view.seasonLabel || `Season ${value}` });
+  });
+  seasonSelect.replaceChildren(...seasons.map(({ value, label }) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    return option;
+  }));
+  seasonSelect.value = String(activeView.seasonValue);
+
+  const stages = views.filter((view) => String(view.seasonValue) === seasonSelect.value);
+  const hasStages = stages.some((view) => view.stageValue !== null && view.stageValue !== undefined && view.stageValue !== "");
+  stageWrap.hidden = !hasStages;
+  stageSelect.replaceChildren(...stages.filter((view) => (
+    hasStages && view.stageValue !== null && view.stageValue !== undefined && view.stageValue !== ""
+  )).map((view) => {
+    const option = document.createElement("option");
+    option.value = String(view.stageValue);
+    option.textContent = view.stageValue === "championship" ? "Championship" : `Stage ${view.stageValue}`;
+    return option;
+  }));
+  if(hasStages) stageSelect.value = String(activeView.stageValue);
+  syncProLeagueUrls(activeView);
+}
+
 function renderEditor(){
   accessPanel.hidden = true;
   editorPanel.hidden = false;
   pageTitle.textContent = `${state.event.displayName} results`;
   pageCopy.textContent = state.event.archived
     ? "This tournament is archived. Unarchive it to edit scores."
-    : "Edit score cells below. Player names, seeds, context, and formula cells remain read-only.";
+    : state.event.eventKey === "proleague"
+      ? "Edit scores below. Add player uses an existing blank individual-player row in Google Sheets."
+      : "Edit score cells below. Player names, seeds, context, and formula cells remain read-only.";
   backLink.href = state.event.routePath || "/";
   archiveButton.textContent = state.event.archived ? "Unarchive tournament" : "Archive tournament";
   archiveButton.classList.toggle("is-danger", !state.event.archived);
@@ -254,11 +393,21 @@ function renderEditor(){
     section.dataset.groupKey = state.tables[index].groupKey;
   });
   tablesMount.replaceChildren(...sections);
+  renderPeriodControls();
   renderEditorTabs();
   updateActions();
 }
 
-async function loadEditor(){
+function initialProLeagueViewKey(){
+  const params = new URL(globalThis.location.href).searchParams;
+  const season = params.get("season") || SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON;
+  const fallbackStage = Number(season) >= 6
+    ? (String(season) === String(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON) ? SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE : 1)
+    : null;
+  return proLeagueViewKey(season, params.get("stage") || fallbackStage);
+}
+
+async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialProLeagueViewKey() : ""){
   if(!eventKey){
     showAccessPanel({ message: "Missing tournament event key.", tone: "error" });
     return;
@@ -275,6 +424,7 @@ async function loadEditor(){
   try{
     const url = new URL(workerUrl);
     url.searchParams.set("eventKey", eventKey);
+    if(requestedViewKey) url.searchParams.set("viewKey", requestedViewKey);
     const response = await fetch(url, { headers: await requestHeaders(), cache: "no-store" });
     const payload = await response.json().catch(() => null);
     if(!response.ok){
@@ -289,13 +439,23 @@ async function loadEditor(){
     }
 
     state.event = payload.event;
+    state.activeViewKey = payload.event.activeViewKey || requestedViewKey || "";
     state.tables = buildEditorTables(payload.event, payload.valueRanges);
-    state.currentValues = new Map(allScoreCells().map((cell) => [cell.range, cell.initialValue]));
+    state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
     setEditorStatus("");
     renderEditor();
   }catch{
     showAccessPanel({ message: "Unable to reach the tournament editor service.", tone: "error" });
   }
+}
+
+async function changeProLeagueView(view){
+  if(!view || view.key === state.activeViewKey) return;
+  if(dirtyCells().length && !globalThis.confirm("Discard unsaved changes and change the Pro League period?")){
+    renderPeriodControls();
+    return;
+  }
+  await loadEditor(view.key);
 }
 
 tablesMount.addEventListener("input", (event) => {
@@ -307,12 +467,9 @@ tablesMount.addEventListener("input", (event) => {
 });
 
 resetButton.addEventListener("click", () => {
-  allScoreCells().forEach((cell) => state.currentValues.set(cell.range, cell.initialValue));
-  tablesMount.querySelectorAll("input[data-score-range]").forEach((input) => {
-    input.value = input.dataset.initialValue;
-  });
+  allEditableCells().forEach((cell) => state.currentValues.set(cell.range, cell.initialValue));
+  renderEditor();
   setEditorStatus("Unsaved changes reset.");
-  updateActions();
 });
 
 saveButton.addEventListener("click", async () => {
@@ -333,20 +490,57 @@ saveButton.addEventListener("click", async () => {
     const payload = await response.json().catch(() => null);
     if(!response.ok) throw new Error(errorMessage(payload, "Unable to save tournament results."));
 
-    allScoreCells().forEach((cell) => {
+    allEditableCells().forEach((cell) => {
       cell.initialValue = state.currentValues.get(cell.range);
     });
     tablesMount.querySelectorAll("input[data-score-range]").forEach((input) => {
       input.dataset.initialValue = input.value;
     });
     const savedCellCount = Number(payload.totalUpdatedCells) || changedCellCount;
-    setEditorStatus(`${savedCellCount} score ${savedCellCount === 1 ? "cell" : "cells"} saved.`, "success");
+    setEditorStatus(`${savedCellCount} ${savedCellCount === 1 ? "change" : "changes"} saved.`, "success");
   }catch(error){
     setEditorStatus(error?.message || "Unable to save tournament results.", "error");
   }finally{
     state.saving = false;
     updateActions();
   }
+});
+
+tablesMount.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-add-player-table]");
+  if(!button || button.disabled) return;
+  const table = state.tables.find((candidate) => candidate.key === button.dataset.addPlayerTable);
+  const playerName = globalThis.prompt("Player name");
+  if(playerName === null) return;
+  try{
+    const row = addPlayerToFirstBlankRow(table, playerName, state.currentValues);
+    if(!row){
+      setEditorStatus("No blank individual-player rows remain in this period.", "error");
+      return;
+    }
+    renderEditor();
+    tablesMount.querySelector(`tr[data-source-row="${row.sourceRow}"] input[data-score-range]`)?.focus();
+    setEditorStatus(`${playerName.trim()} added to sheet row ${row.sourceRow}. Save changes to write the name and scores.`);
+  }catch(error){
+    setEditorStatus(error?.message || "Unable to add player.", "error");
+  }
+});
+
+seasonSelect.addEventListener("change", () => {
+  const views = proLeagueViews().filter((view) => String(view.seasonValue) === seasonSelect.value);
+  const preferredStage = seasonSelect.value === String(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON)
+    ? String(SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE)
+    : "1";
+  const view = views.find((candidate) => String(candidate.stageValue) === preferredStage) || views[0];
+  void changeProLeagueView(view);
+});
+
+stageSelect.addEventListener("change", () => {
+  const view = proLeagueViews().find((candidate) => (
+    String(candidate.seasonValue) === seasonSelect.value
+    && String(candidate.stageValue) === stageSelect.value
+  ));
+  void changeProLeagueView(view);
 });
 
 archiveButton.addEventListener("click", async () => {

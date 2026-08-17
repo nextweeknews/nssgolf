@@ -1913,6 +1913,7 @@
       SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
       SHOTGUN_PRO_LEAGUE_MAX_SEASON_TO_CHECK,
     } from "/config.js";
+    import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "./team-presentation.mjs?v=20260817-editor";
 
     const WORKER_URL  = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID    = "1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o";
@@ -1971,31 +1972,7 @@
     // Seasons 6+ stage sheets share same format
     const STAGED_FORMAT = { rosters: "A3:S63", teamRank: "U4:X15" };
 
-    const TEAM_STYLES = {
-      "ANIMALS":         { bg: "#2b2020", fg: "#ffffff" },
-      "TERRIFIC TIGERS": { bg: "#fe6d01", fg: "#000000" },
-      "BREAKERS":        { bg: "#f1c232", fg: "#1c4487" },
-      "DAGGERS":         { bg: "#ea9999", fg: "#1d2244" },
-      "SNIPERS":         { bg: "#275318", fg: "#ffe6cd" },
-      "MCSTROKERS":      { bg: "#4d94d8", fg: "#ffffff" },
-      "INFERNIX":        { bg: "#f6b26b", fg: "#000000" },
-      "INFERNIX*":       { bg: "#f6b26b", fg: "#000000" },
-      "DOUBLE-EAGLES":   { bg: "#1c4487", fg: "#ffffff" },
-      "PHANTOM TROUPE":  { bg: "#674ea7", fg: "#ffffff" },
-      "ASTERISM":        { bg: "#ba2636", fg: "#ffffff" },
-      "CARROTS":         { bg: "#ff9966", fg: "#000000" },
-      "SPOCCO COWS":     { bg: "#78206e", fg: "#ffffff" },
-      "BURGERS":         { bg: "#7e5444", fg: "#ffffff" },
-      "TREEMEISTERS":    { bg: "#2d6316", fg: "#ffffff" },
-      "FLAG SMOKERS":    { bg: "#03384B", fg: "#ffffff" },
-      "REVERIE":         { bg: "#d9d2e9", fg: "#00367a" },
-    };
-
-    function getTeamStyle(name) {
-      if (!name) return null;
-      const key = String(name).trim().toUpperCase();
-      return TEAM_STYLES[key] || null;
-    }
+    const getTeamStyle = getProLeagueTeamStyle;
 
     function normalizeValues(resp){
       if(!resp) return [];
@@ -2191,11 +2168,7 @@
       return byPlayer;
     }
 
-    const TEAM_LOGO_DIR = "logos";
-    const TEAM_LOGO_EXT = "png";
-    function teamLogoSrc(teamName){
-      return `${TEAM_LOGO_DIR}/${slugify(teamName)}.${TEAM_LOGO_EXT}`;
-    }
+    const teamLogoSrc = proLeagueTeamLogoSrc;
 
     function isStagedSeason(seasonNum){
       return Number(seasonNum) >= 6;
@@ -4349,6 +4322,6 @@
 
     })();
   </script>
-  <script type="module" src="/site-topbar.js?v=bc157abc408a"></script>
+  <script type="module" src="/site-topbar.js?v=80783f9506c0"></script>
 </body>
 </html>

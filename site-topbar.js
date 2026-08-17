@@ -1,5 +1,5 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-league-tabs";
+import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-proleague-editor";
 import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
 import { playerUrlPathForSlug } from "/settings-data.js";
 
@@ -434,7 +434,11 @@ async function renderTopbarAuth(){
   adminSettings.dataset.settingsUrl = "/admin-settings.html";
 
   const tournamentEditLink = menu.querySelector("#topbarTournamentEditLink");
-  const tournamentEditorUrl = tournamentEditorUrlForUser(globalThis.location?.pathname, isAdmin);
+  const tournamentEditorUrl = tournamentEditorUrlForUser(
+    globalThis.location?.pathname,
+    isAdmin,
+    globalThis.location?.search,
+  );
   tournamentEditLink.hidden = !tournamentEditorUrl;
   if(tournamentEditorUrl){
     tournamentEditLink.href = tournamentEditorUrl;
