@@ -1,13 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  addPlayerToFirstBlankRow,
+  addedPlayerRowSaveState,
   buildEditorTables,
   buildUpdates,
   coerceScoreValue,
+  editorPlayerOptions,
   getCellValue,
   getTournamentAdminFlag,
+  isEditorRowSelected,
   isEditorRowVisible,
+  nextBlankPlayerRow,
   parseA1Range,
   proLeagueViewKey,
   tournamentEditorUrlForPath,
@@ -152,15 +155,24 @@ test("builds Pro League team presentation and reserves blank individual-player r
   assert.equal(teamPlayer.teamName, "Terrific Tigers");
   assert.deepEqual(teamPlayer.roundScores.map((cell) => cell.label), ["1-1", "1-2", "2-1", "2-2", "3-1", "3-2", "4-1", "4-2"]);
   assert.equal(isEditorRowVisible(blankSlot, currentValues), false);
-  assert.equal(addPlayerToFirstBlankRow(tables[0], "New Player", currentValues), blankSlot);
+  assert.equal(nextBlankPlayerRow(tables[0], currentValues), blankSlot);
+  assert.equal(addedPlayerRowSaveState(blankSlot, currentValues), "empty");
+  currentValues.set("'Season 7, Stage 3'!L66", "-4");
+  assert.equal(addedPlayerRowSaveState(blankSlot, currentValues), "missing-name");
+  currentValues.set("'Season 7, Stage 3'!L66", "");
+  currentValues.set("'Season 7, Stage 3'!C66", "New Player");
+  assert.equal(addedPlayerRowSaveState(blankSlot, currentValues), "ready");
   assert.equal(currentValues.get("'Season 7, Stage 3'!C66"), "New Player");
   assert.equal(isEditorRowVisible(blankSlot, currentValues), true);
+  assert.deepEqual(editorPlayerOptions(tables, currentValues), ["Aidan", "New Player"]);
+  assert.equal(isEditorRowSelected(teamPlayer, currentValues, ["new player"]), false);
+  assert.equal(isEditorRowSelected(blankSlot, currentValues, ["new player"]), true);
   currentValues.set("'Season 7, Stage 3'!L66", "-4");
   assert.deepEqual(buildUpdates(tables, currentValues), [
     { range: "'Season 7, Stage 3'!C66:C66", values: [["New Player"]] },
     { range: "'Season 7, Stage 3'!L66:L66", values: [[-4]] },
   ]);
-  assert.throws(() => addPlayerToFirstBlankRow(tables[0], "Aidan", currentValues), /already listed/);
+  assert.equal(nextBlankPlayerRow(tables[0], currentValues), null);
 });
 
 test("sends only consecutive dirty cells so stale neighbors are not overwritten", () => {

@@ -226,6 +226,7 @@ export function buildEditorTables(event, valueRanges){
       sheetName: tableRange.sheetName,
       hideContext: Boolean(table.hide_context),
       hideSeed: Boolean(table.hide_seed),
+      nameIsTeam: Boolean(table.name_is_team),
       roundLabelStyle: table.round_label_style || "",
       canAddPlayers: Boolean(table.add_player),
       maxRoundCount: Math.max(0, ...rows.map((row) => row.roundScores.length)),
@@ -248,17 +249,46 @@ export function isEditorRowVisible(row, currentValues){
   );
 }
 
-export function addPlayerToFirstBlankRow(table, playerName, currentValues){
-  const name = normalizeText(playerName).trim();
-  if(!name) throw new Error("Enter a player name.");
-  const lowerName = name.toLowerCase();
-  const duplicate = table.rows.some((row) => currentCellValue(row.nameCell, currentValues).trim().toLowerCase() === lowerName || row.playerName.trim().toLowerCase() === lowerName);
-  if(duplicate) throw new Error("That player is already listed in this period.");
+export function editorPlayerName(row, currentValues){
+  return normalizeText(row?.nameCell ? currentCellValue(row.nameCell, currentValues) : row?.playerName).trim();
+}
 
-  const row = table.rows.find((candidate) => candidate.isAddPlayerSlot && !isEditorRowVisible(candidate, currentValues));
-  if(!row?.nameCell) return null;
-  currentValues.set(row.nameCell.range, name);
-  return row;
+export function editorPlayerOptions(tables, currentValues){
+  const names = new Map();
+  for(const table of tables){
+    if(table.nameIsTeam) continue;
+    for(const row of table.rows){
+      if(!isEditorRowVisible(row, currentValues)) continue;
+      const name = editorPlayerName(row, currentValues);
+      if(name) names.set(name.toLowerCase(), name);
+    }
+  }
+  return [...names.values()].sort((left, right) => left.localeCompare(right));
+}
+
+export function isEditorRowSelected(row, currentValues, selectedPlayerNames){
+  const selected = new Set([...selectedPlayerNames].map((name) => normalizeText(name).trim().toLowerCase()));
+  return !selected.size || selected.has(editorPlayerName(row, currentValues).toLowerCase());
+}
+
+export function nextBlankPlayerRow(table, currentValues, reservedRowKeys = []){
+  const reserved = new Set(reservedRowKeys);
+  const blankRows = table.rows.filter((row) => (
+    row.isAddPlayerSlot
+    && row.nameCell
+    && !reserved.has(row.key)
+    && !isEditorRowVisible(row, currentValues)
+  ));
+  const lastVisibleRow = Math.max(0, ...table.rows.filter((row) => isEditorRowVisible(row, currentValues)).map((row) => row.sourceRow));
+  return blankRows.find((row) => row.sourceRow > lastVisibleRow) || blankRows[0] || null;
+}
+
+export function addedPlayerRowSaveState(row, currentValues){
+  if(editorPlayerName(row, currentValues)) return "ready";
+  const hasScores = row.editableCells.some((cell) => (
+    cell.type !== "player-name" && currentCellValue(cell, currentValues).trim()
+  ));
+  return hasScores ? "missing-name" : "empty";
 }
 
 export function coerceScoreValue(value){

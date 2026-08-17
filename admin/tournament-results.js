@@ -1,11 +1,15 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import {
-  addPlayerToFirstBlankRow,
+  addedPlayerRowSaveState,
   buildEditorTables,
   buildUpdates,
+  editorPlayerName,
+  editorPlayerOptions,
+  isEditorRowSelected,
   isEditorRowVisible,
+  nextBlankPlayerRow,
   proLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-proleague-editor";
+} from "/admin/tournament-results-core.mjs?v=20260817-player-filter";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -33,6 +37,11 @@ const periodControls = document.getElementById("editorPeriodControls");
 const seasonSelect = document.getElementById("editorSeasonSelect");
 const stageWrap = document.getElementById("editorStageWrap");
 const stageSelect = document.getElementById("editorStageSelect");
+const playerFilterField = document.getElementById("editorPlayerFilterField");
+const playerFilterChips = document.getElementById("editorPlayerFilterChips");
+const playerFilterInput = document.getElementById("editorPlayerFilterInput");
+const playerFilterOptions = document.getElementById("editorPlayerFilterOptions");
+const playerFilterClear = document.getElementById("editorPlayerFilterClear");
 
 const state = {
   session: null,
@@ -41,6 +50,8 @@ const state = {
   currentValues: new Map(),
   activeGroupKey: "",
   activeViewKey: "",
+  selectedPlayers: new Map(),
+  addedPlayerRows: new Set(),
   saving: false,
 };
 
@@ -84,24 +95,36 @@ function dirtyCells(){
   return allEditableCells().filter((cell) => state.currentValues.get(cell.range) !== cell.initialValue);
 }
 
+function hasUnsavedWork(){
+  return dirtyCells().length > 0 || state.addedPlayerRows.size > 0;
+}
+
 function updateActions(){
   const count = dirtyCells().length;
+  const addedCount = state.addedPlayerRows.size;
   const locked = !state.event?.canEdit || state.saving;
-  dirtyCount.textContent = count ? `${count} unsaved ${count === 1 ? "cell" : "cells"}` : "No unsaved changes";
-  dirtyCount.classList.toggle("has-changes", count > 0);
-  saveButton.disabled = locked || count === 0;
-  resetButton.disabled = state.saving || count === 0;
-  archiveButton.disabled = state.saving || count > 0;
-  archiveButton.title = count > 0 ? "Save or reset changes before changing archive status." : "";
+  const cellText = count ? `${count} unsaved ${count === 1 ? "cell" : "cells"}` : "";
+  const rowText = addedCount ? `${addedCount} new player ${addedCount === 1 ? "row" : "rows"}` : "";
+  dirtyCount.textContent = [cellText, rowText].filter(Boolean).join(" · ") || "No unsaved changes";
+  dirtyCount.classList.toggle("has-changes", count > 0 || addedCount > 0);
+  saveButton.disabled = locked || (!count && !addedCount);
+  resetButton.disabled = state.saving || (!count && !addedCount);
+  archiveButton.disabled = state.saving || count > 0 || addedCount > 0;
+  archiveButton.title = count > 0 || addedCount > 0 ? "Save or reset changes before changing archive status." : "";
 
   tablesMount.querySelectorAll("input[data-score-range]").forEach((input) => {
     const range = input.dataset.scoreRange;
     input.disabled = locked;
     input.closest("td")?.classList.toggle("is-dirty", state.currentValues.get(range) !== input.dataset.initialValue);
   });
+  tablesMount.querySelectorAll("input[data-player-name-range]").forEach((input) => {
+    const range = input.dataset.playerNameRange;
+    input.disabled = locked;
+    input.closest("td")?.classList.toggle("is-dirty", state.currentValues.get(range) !== input.dataset.initialValue);
+  });
   tablesMount.querySelectorAll("button[data-add-player-table]").forEach((button) => {
     const table = state.tables.find((candidate) => candidate.key === button.dataset.addPlayerTable);
-    button.disabled = locked || !table?.rows.some((row) => row.isAddPlayerSlot && !isEditorRowVisible(row, state.currentValues));
+    button.disabled = locked || !table || !nextBlankPlayerRow(table, state.currentValues, state.addedPlayerRows);
   });
 }
 
@@ -117,12 +140,13 @@ function appendTextCell(rowEl, value, className = ""){
 }
 
 function playerNameForRow(row){
-  return String(row.nameCell ? (state.currentValues.get(row.nameCell.range) ?? row.nameCell.initialValue) : row.playerName).trim();
+  return editorPlayerName(row, state.currentValues);
 }
 
 function appendPlayerCell(rowEl, row){
   const cell = document.createElement("td");
   cell.className = "editor-player-cell";
+  if(state.event?.eventKey === "proleague") cell.classList.add("is-pro-league");
   const playerName = playerNameForRow(row);
   if(row.nameCell && state.currentValues.get(row.nameCell.range) !== row.nameCell.initialValue){
     cell.classList.add("is-dirty");
@@ -142,9 +166,23 @@ function appendPlayerCell(rowEl, row){
     logo.addEventListener("error", () => logo.remove());
     cell.appendChild(logo);
   }
-  const name = document.createElement("span");
-  name.textContent = playerName || "—";
-  cell.appendChild(name);
+  if(state.addedPlayerRows.has(row.key)){
+    const input = document.createElement("input");
+    input.className = "editor-player-name-input";
+    input.type = "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.placeholder = "Player name";
+    input.value = playerName;
+    input.dataset.initialValue = row.nameCell.initialValue;
+    input.dataset.playerNameRange = row.nameCell.range;
+    input.setAttribute("aria-label", `Player name, sheet row ${row.sourceRow}`);
+    cell.appendChild(input);
+  }else{
+    const name = document.createElement("span");
+    name.textContent = playerName || "—";
+    cell.appendChild(name);
+  }
   rowEl.appendChild(cell);
 }
 
@@ -165,7 +203,7 @@ function appendScoreCell(rowEl, scoreCell, playerLabel, weekSeparator = false){
   input.inputMode = "decimal";
   input.autocomplete = "off";
   input.spellcheck = false;
-  input.value = scoreCell.initialValue;
+  input.value = state.currentValues.get(scoreCell.range) ?? scoreCell.initialValue;
   input.dataset.initialValue = scoreCell.initialValue;
   input.dataset.scoreRange = scoreCell.range;
   input.setAttribute("aria-label", `${playerLabel}, ${scoreCell.label}, sheet row ${scoreCell.row}`);
@@ -175,9 +213,17 @@ function appendScoreCell(rowEl, scoreCell, playerLabel, weekSeparator = false){
 }
 
 function createTable(table){
+  const visibleRows = table.rows.filter((row) => (
+    (isEditorRowVisible(row, state.currentValues) || state.addedPlayerRows.has(row.key))
+    && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(row, state.currentValues, state.selectedPlayers.keys()))
+  ));
+  if(state.selectedPlayers.size && !visibleRows.length) return null;
+
   const section = document.createElement("section");
   section.className = "editor-table-section";
-  section.setAttribute("aria-labelledby", `editor-table-${table.key}`);
+  section.dataset.groupKey = table.groupKey;
+  const showHeading = state.event?.eventKey !== "proleague" || table.label !== "Player scores";
+  section.setAttribute(showHeading ? "aria-labelledby" : "aria-label", showHeading ? `editor-table-${table.key}` : table.label);
 
   const heading = document.createElement("div");
   heading.className = "editor-table-heading";
@@ -192,6 +238,7 @@ function createTable(table){
   scroll.className = "editor-table-scroll";
   const tableEl = document.createElement("table");
   tableEl.className = "editor-table";
+  if(state.event?.eventKey === "proleague") tableEl.classList.add("is-pro-league");
 
   const headerRow = document.createElement("tr");
   const leadingHeaders = [
@@ -232,7 +279,7 @@ function createTable(table){
   thead.appendChild(headerRow);
   const tbody = document.createElement("tbody");
 
-  table.rows.filter((row) => isEditorRowVisible(row, state.currentValues)).forEach((row) => {
+  visibleRows.forEach((row) => {
     const rowEl = document.createElement("tr");
     rowEl.dataset.sourceRow = String(row.sourceRow);
     if(!playerNameForRow(row) && !row.editableCells.some((cell) => cell.initialValue)) rowEl.classList.add("is-empty-player");
@@ -255,7 +302,8 @@ function createTable(table){
 
   tableEl.append(thead, tbody);
   scroll.appendChild(tableEl);
-  section.append(heading, scroll);
+  if(showHeading) section.appendChild(heading);
+  section.appendChild(scroll);
   if(table.canAddPlayers){
     const addButton = document.createElement("button");
     addButton.className = "editor-button editor-add-player";
@@ -265,6 +313,13 @@ function createTable(table){
     section.appendChild(addButton);
   }
   return section;
+}
+
+function renderTables(){
+  const sections = state.tables.map(createTable).filter(Boolean);
+  tablesMount.replaceChildren(...sections);
+  renderEditorTabs();
+  updateActions();
 }
 
 function editorGroups(){
@@ -321,6 +376,63 @@ function proLeagueViews(){
 
 function activeProLeagueView(){
   return proLeagueViews().find((view) => view.key === state.activeViewKey) || null;
+}
+
+function hidePlayerFilterOptions(){
+  playerFilterOptions.hidden = true;
+  playerFilterInput.setAttribute("aria-expanded", "false");
+}
+
+function renderPlayerFilterOptions(){
+  const query = playerFilterInput.value.trim().toLowerCase();
+  const matches = query
+    ? editorPlayerOptions(state.tables, state.currentValues)
+      .filter((name) => name.toLowerCase().includes(query) && !state.selectedPlayers.has(name.toLowerCase()))
+      .slice(0, 8)
+    : [];
+  playerFilterOptions.replaceChildren(...matches.map((name) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.role = "option";
+    option.dataset.playerName = name;
+    option.textContent = name;
+    return option;
+  }));
+  playerFilterOptions.hidden = !matches.length;
+  playerFilterInput.setAttribute("aria-expanded", String(matches.length > 0));
+}
+
+function renderPlayerFilter(){
+  playerFilterChips.replaceChildren(...[...state.selectedPlayers.values()].map((name) => {
+    const chip = document.createElement("span");
+    chip.className = "editor-player-filter-chip";
+    chip.append(name);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.dataset.removePlayer = name;
+    remove.setAttribute("aria-label", `Remove ${name} filter`);
+    remove.textContent = "×";
+    chip.appendChild(remove);
+    return chip;
+  }));
+  playerFilterClear.hidden = !state.selectedPlayers.size;
+  renderPlayerFilterOptions();
+}
+
+function addPlayerFilter(name){
+  const cleanName = String(name || "").trim();
+  if(!cleanName) return;
+  state.selectedPlayers.set(cleanName.toLowerCase(), cleanName);
+  playerFilterInput.value = "";
+  hidePlayerFilterOptions();
+  renderPlayerFilter();
+  renderTables();
+}
+
+function removePlayerFilter(name){
+  state.selectedPlayers.delete(String(name || "").trim().toLowerCase());
+  renderPlayerFilter();
+  renderTables();
 }
 
 function syncProLeagueUrls(view){
@@ -380,22 +492,18 @@ function renderEditor(){
   accessPanel.hidden = true;
   editorPanel.hidden = false;
   pageTitle.textContent = `${state.event.displayName} results`;
-  pageCopy.textContent = state.event.archived
-    ? "This tournament is archived. Unarchive it to edit scores."
-    : state.event.eventKey === "proleague"
-      ? "Edit scores below. Add player uses an existing blank individual-player row in Google Sheets."
+  pageCopy.textContent = state.event.eventKey === "proleague"
+    ? ""
+    : state.event.archived
+      ? "This tournament is archived. Unarchive it to edit scores."
       : "Edit score cells below. Player names, seeds, context, and formula cells remain read-only.";
+  pageCopy.hidden = !pageCopy.textContent;
   backLink.href = state.event.routePath || "/";
   archiveButton.textContent = state.event.archived ? "Unarchive tournament" : "Archive tournament";
   archiveButton.classList.toggle("is-danger", !state.event.archived);
-  const sections = state.tables.map(createTable);
-  sections.forEach((section, index) => {
-    section.dataset.groupKey = state.tables[index].groupKey;
-  });
-  tablesMount.replaceChildren(...sections);
   renderPeriodControls();
-  renderEditorTabs();
-  updateActions();
+  renderPlayerFilter();
+  renderTables();
 }
 
 function initialProLeagueViewKey(){
@@ -442,6 +550,8 @@ async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialP
     state.activeViewKey = payload.event.activeViewKey || requestedViewKey || "";
     state.tables = buildEditorTables(payload.event, payload.valueRanges);
     state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
+    state.selectedPlayers.clear();
+    state.addedPlayerRows.clear();
     setEditorStatus("");
     renderEditor();
   }catch{
@@ -451,7 +561,7 @@ async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialP
 
 async function changeProLeagueView(view){
   if(!view || view.key === state.activeViewKey) return;
-  if(dirtyCells().length && !globalThis.confirm("Discard unsaved changes and change the Pro League period?")){
+  if(hasUnsavedWork() && !globalThis.confirm("Discard unsaved changes and change the Pro League period?")){
     renderPeriodControls();
     return;
   }
@@ -459,23 +569,94 @@ async function changeProLeagueView(view){
 }
 
 tablesMount.addEventListener("input", (event) => {
-  const input = event.target.closest("input[data-score-range]");
+  const input = event.target.closest("input[data-score-range], input[data-player-name-range]");
   if(!input) return;
-  state.currentValues.set(input.dataset.scoreRange, input.value);
+  state.currentValues.set(input.dataset.scoreRange || input.dataset.playerNameRange, input.value);
   setEditorStatus("");
   updateActions();
 });
 
+playerFilterInput.addEventListener("input", renderPlayerFilterOptions);
+playerFilterInput.addEventListener("keydown", (event) => {
+  if(event.key === "Escape"){
+    hidePlayerFilterOptions();
+    return;
+  }
+  if(event.key !== "Enter") return;
+  const firstMatch = playerFilterOptions.querySelector("[data-player-name]");
+  if(!firstMatch) return;
+  event.preventDefault();
+  addPlayerFilter(firstMatch.dataset.playerName);
+});
+
+playerFilterOptions.addEventListener("click", (event) => {
+  const option = event.target.closest("[data-player-name]");
+  if(option) addPlayerFilter(option.dataset.playerName);
+});
+
+playerFilterChips.addEventListener("click", (event) => {
+  const remove = event.target.closest("[data-remove-player]");
+  if(remove) removePlayerFilter(remove.dataset.removePlayer);
+});
+
+playerFilterClear.addEventListener("click", () => {
+  state.selectedPlayers.clear();
+  playerFilterInput.value = "";
+  renderPlayerFilter();
+  renderTables();
+});
+
+document.addEventListener("click", (event) => {
+  if(!playerFilterField.contains(event.target)) hidePlayerFilterOptions();
+});
+
 resetButton.addEventListener("click", () => {
   allEditableCells().forEach((cell) => state.currentValues.set(cell.range, cell.initialValue));
+  state.addedPlayerRows.clear();
   renderEditor();
   setEditorStatus("Unsaved changes reset.");
 });
 
+function prepareAddedPlayerRowsForSave(){
+  const blankRowKeys = [];
+  for(const rowKey of [...state.addedPlayerRows]){
+    const row = state.tables.flatMap((table) => table.rows).find((candidate) => candidate.key === rowKey);
+    if(!row) continue;
+    const name = editorPlayerName(row, state.currentValues);
+    const saveState = addedPlayerRowSaveState(row, state.currentValues);
+    if(saveState === "missing-name"){
+      setEditorStatus("Enter a player name or remove that row's scores before saving.", "error");
+      tablesMount.querySelector(`tr[data-source-row="${row.sourceRow}"] input[data-player-name-range]`)?.focus();
+      return { valid: false, removedBlankRow: false };
+    }
+    if(saveState === "empty"){
+      blankRowKeys.push(rowKey);
+      continue;
+    }
+    const duplicate = state.tables
+      .flatMap((table) => table.nameIsTeam ? [] : table.rows)
+      .some((candidate) => candidate !== row && editorPlayerName(candidate, state.currentValues).toLowerCase() === name.toLowerCase());
+    if(duplicate){
+      setEditorStatus("That player is already listed in this period.", "error");
+      tablesMount.querySelector(`tr[data-source-row="${row.sourceRow}"] input[data-player-name-range]`)?.focus();
+      return { valid: false, removedBlankRow: false };
+    }
+  }
+  blankRowKeys.forEach((rowKey) => state.addedPlayerRows.delete(rowKey));
+  const removedBlankRow = blankRowKeys.length > 0;
+  if(removedBlankRow) renderEditor();
+  return { valid: true, removedBlankRow };
+}
+
 saveButton.addEventListener("click", async () => {
   if(state.saving || !state.event?.canEdit) return;
+  const prepared = prepareAddedPlayerRowsForSave();
+  if(!prepared.valid) return;
   const updates = buildUpdates(state.tables, state.currentValues);
-  if(!updates.length) return;
+  if(!updates.length){
+    if(prepared.removedBlankRow) setEditorStatus("Empty player row removed.");
+    return;
+  }
   const changedCellCount = dirtyCells().length;
 
   state.saving = true;
@@ -493,9 +674,8 @@ saveButton.addEventListener("click", async () => {
     allEditableCells().forEach((cell) => {
       cell.initialValue = state.currentValues.get(cell.range);
     });
-    tablesMount.querySelectorAll("input[data-score-range]").forEach((input) => {
-      input.dataset.initialValue = input.value;
-    });
+    state.addedPlayerRows.clear();
+    renderEditor();
     const savedCellCount = Number(payload.totalUpdatedCells) || changedCellCount;
     setEditorStatus(`${savedCellCount} ${savedCellCount === 1 ? "change" : "changes"} saved.`, "success");
   }catch(error){
@@ -510,20 +690,15 @@ tablesMount.addEventListener("click", (event) => {
   const button = event.target.closest("button[data-add-player-table]");
   if(!button || button.disabled) return;
   const table = state.tables.find((candidate) => candidate.key === button.dataset.addPlayerTable);
-  const playerName = globalThis.prompt("Player name");
-  if(playerName === null) return;
-  try{
-    const row = addPlayerToFirstBlankRow(table, playerName, state.currentValues);
-    if(!row){
-      setEditorStatus("No blank individual-player rows remain in this period.", "error");
-      return;
-    }
-    renderEditor();
-    tablesMount.querySelector(`tr[data-source-row="${row.sourceRow}"] input[data-score-range]`)?.focus();
-    setEditorStatus(`${playerName.trim()} added to sheet row ${row.sourceRow}. Save changes to write the name and scores.`);
-  }catch(error){
-    setEditorStatus(error?.message || "Unable to add player.", "error");
+  const row = nextBlankPlayerRow(table, state.currentValues, state.addedPlayerRows);
+  if(!row){
+    setEditorStatus("No blank individual-player rows remain in this period.", "error");
+    return;
   }
+  state.addedPlayerRows.add(row.key);
+  renderEditor();
+  tablesMount.querySelector(`tr[data-source-row="${row.sourceRow}"] input[data-player-name-range]`)?.focus();
+  setEditorStatus(`New player row added at sheet row ${row.sourceRow}.`);
 });
 
 seasonSelect.addEventListener("change", () => {
@@ -544,7 +719,7 @@ stageSelect.addEventListener("change", () => {
 });
 
 archiveButton.addEventListener("click", async () => {
-  if(state.saving || dirtyCells().length) return;
+  if(state.saving || hasUnsavedWork()) return;
   const nextArchived = !state.event.archived;
   const action = nextArchived ? "archive" : "unarchive";
   if(!globalThis.confirm(`${action[0].toUpperCase()}${action.slice(1)} ${state.event.displayName}?`)) return;
@@ -583,7 +758,7 @@ loginButton.addEventListener("click", async () => {
 });
 
 globalThis.addEventListener("beforeunload", (event) => {
-  if(!dirtyCells().length) return;
+  if(!hasUnsavedWork()) return;
   event.preventDefault();
   event.returnValue = "";
 });

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=7a2eae15d69c" />
-  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-proleague-editor" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-player-filter" />
 </head>
 <body>
   <header class="topbar">
@@ -50,14 +50,24 @@
       </div>
       <p class="editor-status" id="editorStatus" aria-live="polite"></p>
       <div class="editor-period-controls" id="editorPeriodControls" aria-label="Pro League period controls" hidden>
-        <label class="editor-select-wrap">
-          <span class="editor-select-label">Season</span>
-          <select class="editor-select" id="editorSeasonSelect"></select>
-        </label>
-        <label class="editor-select-wrap" id="editorStageWrap">
-          <span class="editor-select-label">Stage</span>
-          <select class="editor-select" id="editorStageSelect"></select>
-        </label>
+        <div class="editor-player-filter" id="editorPlayerFilter">
+          <div class="editor-player-filter-field" id="editorPlayerFilterField">
+            <div class="editor-player-filter-chips" id="editorPlayerFilterChips"></div>
+            <input class="editor-player-filter-input" id="editorPlayerFilterInput" type="search" placeholder="Filter players…" autocomplete="off" aria-label="Filter players" aria-autocomplete="list" aria-controls="editorPlayerFilterOptions" aria-expanded="false" />
+            <div class="editor-player-filter-options" id="editorPlayerFilterOptions" role="listbox" hidden></div>
+          </div>
+          <button class="editor-button editor-player-filter-clear" id="editorPlayerFilterClear" type="button" hidden>Clear</button>
+        </div>
+        <div class="editor-period-selects">
+          <label class="editor-select-wrap">
+            <span class="editor-select-label">Season</span>
+            <select class="editor-select" id="editorSeasonSelect"></select>
+          </label>
+          <label class="editor-select-wrap" id="editorStageWrap">
+            <span class="editor-select-label">Stage</span>
+            <select class="editor-select" id="editorStageSelect"></select>
+          </label>
+        </div>
       </div>
       <div class="editor-view-tabs" id="editorViewTabs" role="tablist" aria-label="Tournament edit views" hidden></div>
       <div class="editor-tables" id="editorTables"></div>
@@ -65,6 +75,6 @@
   </main>
 
   <script type="module" src="/site-topbar.js?v=80783f9506c0"></script>
-  <script type="module" src="/admin/tournament-results.js?v=20260817-proleague-editor"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260817-player-filter"></script>
 </body>
 </html>
