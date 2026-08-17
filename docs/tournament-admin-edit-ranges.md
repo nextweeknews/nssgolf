@@ -62,3 +62,9 @@ Both operations require the signed-in user's Supabase access token as `Authoriza
 - `POST /admin/tournament-results` accepts `{ "eventKey": "masters", "updates": [{ "range": "'Bracket'!C2", "values": [[-14]] }] }`.
 
 The Worker obtains the canonical spreadsheet ID and editable ranges from the authenticated Supabase RPC, ignores any client-supplied spreadsheet ID, writes with `valueInputOption: "RAW"`, and limits each request to 200 ranges, 2,000 cells, and a 1 MB body. Archived or disabled events remain readable but cannot be written.
+
+## Required action log and undo flow
+
+Every score save is audit-gated. After validating the canonical event and editable ranges, the Worker reserves a pending action through `create_tournament_result_action_log()`, reads the current unformatted Google values, and fills that action with the exact before/after matrices through `set_tournament_result_action_log_changes()`. Google `values:batchUpdate` is not called unless both RPCs succeed. The Worker then marks the log succeeded or failed through `complete_tournament_result_action_log()`.
+
+`/admin/action-logs.html` lists these records through the admin-only `list_tournament_result_action_logs()` RPC. A successful edit can be undone once while its event remains active. Before undoing, the Worker confirms that every current Google value still equals the logged after-value; if any value changed later, undo returns a conflict instead of overwriting newer work. The inverse before/after payload is derived inside `create_tournament_result_action_log()` and the undo itself creates a second audit record before Google is updated.

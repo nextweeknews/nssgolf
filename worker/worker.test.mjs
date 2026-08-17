@@ -118,7 +118,7 @@ test("stores a direct YouTube channel ID in KV", async () => {
 test("forwards a Sheets GET with the deployed cache behavior", async () => {
   const { env } = makeEnv();
   let upstreamUrl = "";
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input, init = {}) => {
     upstreamUrl = String(input);
     return new Response(JSON.stringify({ range: "Bracket!A1:P16", values: [["Round 1"]] }), {
       headers: { "Content-Type": "application/json" },
@@ -180,6 +180,45 @@ test("requires a Supabase user token for the tournament results route", async ()
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Authentication required." });
   assert.equal(upstreamCalled, false);
+});
+
+test("loads tournament action logs through the authenticated admin RPC", async () => {
+  const { env } = makeEnv();
+  const actionId = "55555555-5555-4555-8555-555555555555";
+  globalThis.fetch = async (input, init = {}) => {
+    const upstreamUrl = new URL(String(input));
+    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/list_tournament_result_action_logs");
+    assert.equal(init.headers.Authorization, "Bearer user-token");
+    assert.deepEqual(JSON.parse(init.body), { p_limit: 25 });
+    return Response.json([{
+      action_id: actionId,
+      action_type: "edit",
+      status: "succeeded",
+      event_key: "masters",
+      actor_username: "Admin",
+      changes: [{ range: "'Bracket'!C2", before: [[1]], after: [[2]] }],
+      can_undo: true,
+    }]);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs?limit=25", {
+      headers: { Authorization: "Bearer user-token" },
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.deepEqual(await response.json(), { logs: [{
+    action_id: actionId,
+    action_type: "edit",
+    status: "succeeded",
+    event_key: "masters",
+    actor_username: "Admin",
+    changes: [{ range: "'Bracket'!C2", before: [[1]], after: [[2]] }],
+    can_undo: true,
+  }] });
 });
 
 test("rejects an oversized tournament results body without relying on Content-Length", async () => {
@@ -352,19 +391,55 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
   });
   const upstreamUrls = [];
   let googleWriteBody;
+  const actionId = "11111111-1111-4111-8111-111111111111";
 
   globalThis.fetch = async (input, init = {}) => {
     const upstreamUrl = new URL(String(input));
     upstreamUrls.push(upstreamUrl);
 
     if (upstreamUrl.hostname === "project.supabase.co") {
-      assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/authorize_tournament_result_edit");
-      return Response.json([{
-        event_key: "masters",
-        sheet_id: "canonical-masters-sheet",
-        source_ranges: ["'Bracket'!A1:R16"],
-        editable_ranges: ["'Bracket'!C2:I16", "'Bracket'!K2:Q16"],
-      }]);
+      const rpc = upstreamUrl.pathname.split("/").at(-1);
+      if (rpc === "authorize_tournament_result_edit") {
+        return Response.json([{
+          event_key: "masters",
+          sheet_id: "canonical-masters-sheet",
+          source_ranges: ["'Bracket'!A1:R16"],
+          editable_ranges: ["'Bracket'!C2:I16", "'Bracket'!K2:Q16"],
+        }]);
+      }
+      if (rpc === "create_tournament_result_action_log") {
+        assert.deepEqual(JSON.parse(init.body), {
+          p_event_key: "masters",
+          p_action_type: "edit",
+          p_changes: [{
+            range: "'Bracket'!D4:E4",
+            before: [],
+            after: [["1", ""]],
+          }],
+          p_target_action_id: null,
+        });
+        return Response.json([{ action_id: actionId, changes: [] }]);
+      }
+      if (rpc === "set_tournament_result_action_log_changes") {
+        assert.deepEqual(JSON.parse(init.body), {
+          p_action_id: actionId,
+          p_changes: [{
+            range: "'Bracket'!D4:E4",
+            before: [[3, ""]],
+            after: [["1", ""]],
+          }],
+        });
+        return Response.json([{ action_id: actionId, changes: [] }]);
+      }
+      if (rpc === "complete_tournament_result_action_log") {
+        assert.deepEqual(JSON.parse(init.body), {
+          p_action_id: actionId,
+          p_succeeded: true,
+          p_error_message: null,
+        });
+        return Response.json([{ action_id: actionId, status: "succeeded" }]);
+      }
+      throw new Error(`Unexpected Supabase RPC: ${rpc}`);
     }
 
     if (upstreamUrl.href === "https://oauth2.googleapis.com/token") {
@@ -372,6 +447,12 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
       assert.equal(tokenBody.get("grant_type"), "urn:ietf:params:oauth:grant-type:jwt-bearer");
       assert.equal(tokenBody.get("assertion").split(".").length, 3);
       return Response.json({ access_token: "google-access-token", expires_in: 3600 });
+    }
+
+    if (upstreamUrl.pathname.endsWith("/values:batchGet")) {
+      assert.deepEqual(upstreamUrl.searchParams.getAll("ranges"), ["'Bracket'!D4:E4"]);
+      assert.equal(upstreamUrl.searchParams.get("valueRenderOption"), "UNFORMATTED_VALUE");
+      return Response.json({ valueRanges: [{ range: "'Bracket'!D4:E4", values: [[3]] }] });
     }
 
     assert.equal(upstreamUrl.pathname, "/v4/spreadsheets/canonical-masters-sheet/values:batchUpdate");
@@ -400,17 +481,207 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
-  assert.equal(upstreamUrls.length, 3);
+  assert.equal(upstreamUrls.length, 7);
   assert.deepEqual(googleWriteBody, {
     valueInputOption: "RAW",
     data: [{ range: "'Bracket'!D4:E4", majorDimension: "ROWS", values: [["1", ""]] }],
   });
   assert.deepEqual(await response.json(), {
     eventKey: "masters",
+    actionId,
     updatedRanges: ["'Bracket'!D4:E4"],
     totalUpdatedCells: 2,
     totalUpdatedRows: 1,
     totalUpdatedColumns: 2,
     totalUpdatedSheets: 1,
   });
+});
+
+test("does not write to Google when the required audit log cannot be created", async () => {
+  const privateKey = await makeTestPrivateKeyPem();
+  const { env } = makeEnv({
+    bindings: {
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: "audit-gate-test@example.iam.gserviceaccount.com",
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: privateKey,
+    },
+  });
+  let googleWriteCalled = false;
+
+  globalThis.fetch = async (input) => {
+    const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.pathname.endsWith("/authorize_tournament_result_edit")) {
+      return Response.json([{
+        event_key: "masters",
+        sheet_id: "masters-sheet",
+        editable_ranges: ["'Bracket'!C2:I16"],
+      }]);
+    }
+    if (upstreamUrl.href === "https://oauth2.googleapis.com/token") {
+      return Response.json({ access_token: "audit-google-token", expires_in: 3600 });
+    }
+    if (upstreamUrl.pathname.endsWith("/values:batchGet")) {
+      return Response.json({ valueRanges: [{ values: [[1]] }] });
+    }
+    if (upstreamUrl.pathname.endsWith("/create_tournament_result_action_log")) {
+      return Response.json(
+        { code: "55000", message: "Unable to create the required audit log." },
+        { status: 400 },
+      );
+    }
+    if (upstreamUrl.pathname.endsWith("/values:batchUpdate")) googleWriteCalled = true;
+    throw new Error(`Unexpected upstream request: ${upstreamUrl}`);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-results", {
+      method: "POST",
+      headers: { Authorization: "Bearer user-token", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventKey: "masters",
+        updates: [{ range: "'Bracket'!C2", values: [[-1]] }],
+      }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 409);
+  assert.deepEqual(await response.json(), { error: "Unable to create the required audit log." });
+  assert.equal(googleWriteCalled, false);
+});
+
+test("undo logs a failed attempt instead of overwriting cells changed after the edit", async () => {
+  const privateKey = await makeTestPrivateKeyPem();
+  const { env } = makeEnv({
+    bindings: {
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: "undo-conflict-test@example.iam.gserviceaccount.com",
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: privateKey,
+    },
+  });
+  const actionId = "22222222-2222-4222-8222-222222222222";
+  const undoActionId = "66666666-6666-4666-8666-666666666666";
+  let undoLogCreated = false;
+  let googleWriteCalled = false;
+
+  globalThis.fetch = async (input, init = {}) => {
+    const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.pathname.endsWith("/get_tournament_result_action_for_undo")) {
+      return Response.json([{
+        action_id: actionId,
+        event_key: "masters",
+        sheet_id: "masters-sheet",
+        editable_ranges: ["'Bracket'!C2:I16"],
+        changes: [{ range: "'Bracket'!C2", before: [[1]], after: [[2]] }],
+      }]);
+    }
+    if (upstreamUrl.href === "https://oauth2.googleapis.com/token") {
+      return Response.json({ access_token: "undo-conflict-token", expires_in: 3600 });
+    }
+    if (upstreamUrl.pathname.endsWith("/create_tournament_result_action_log")) {
+      undoLogCreated = true;
+      return Response.json([{
+        action_id: undoActionId,
+        changes: [{ range: "'Bracket'!C2", before: [[2]], after: [[1]] }],
+      }]);
+    }
+    if (upstreamUrl.pathname.endsWith("/values:batchGet")) {
+      return Response.json({ valueRanges: [{ values: [[3]] }] });
+    }
+    if (upstreamUrl.pathname.endsWith("/complete_tournament_result_action_log")) {
+      const body = JSON.parse(init.body || "{}");
+      assert.equal(body.p_succeeded, false);
+      return Response.json([{ action_id: undoActionId, status: "failed" }]);
+    }
+    if (upstreamUrl.pathname.endsWith("/values:batchUpdate")) googleWriteCalled = true;
+    throw new Error(`Unexpected upstream request: ${upstreamUrl}`);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs", {
+      method: "POST",
+      headers: { Authorization: "Bearer user-token", "Content-Type": "application/json" },
+      body: JSON.stringify({ actionId }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 409);
+  assert.match((await response.json()).error, /cells have changed/);
+  assert.equal(undoLogCreated, true);
+  assert.equal(googleWriteCalled, false);
+});
+
+test("undo creates an inverse audit entry before restoring prior values", async () => {
+  const privateKey = await makeTestPrivateKeyPem();
+  const { env } = makeEnv({
+    bindings: {
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: "undo-success-test@example.iam.gserviceaccount.com",
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: privateKey,
+    },
+  });
+  const actionId = "33333333-3333-4333-8333-333333333333";
+  const undoActionId = "44444444-4444-4444-8444-444444444444";
+  const calls = [];
+
+  globalThis.fetch = async (input, init = {}) => {
+    const upstreamUrl = new URL(String(input));
+    calls.push(upstreamUrl.pathname);
+    if (upstreamUrl.pathname.endsWith("/get_tournament_result_action_for_undo")) {
+      return Response.json([{
+        action_id: actionId,
+        event_key: "masters",
+        sheet_id: "masters-sheet",
+        editable_ranges: ["'Bracket'!C2:I16"],
+        changes: [{ range: "'Bracket'!C2:D2", before: [[1, ""]], after: [[2, -1]] }],
+      }]);
+    }
+    if (upstreamUrl.href === "https://oauth2.googleapis.com/token") {
+      return Response.json({ access_token: "undo-success-token", expires_in: 3600 });
+    }
+    if (upstreamUrl.pathname.endsWith("/values:batchGet")) {
+      return Response.json({ valueRanges: [{ values: [[2, -1]] }] });
+    }
+    if (upstreamUrl.pathname.endsWith("/create_tournament_result_action_log")) {
+      assert.deepEqual(JSON.parse(init.body), {
+        p_event_key: "masters",
+        p_action_type: "undo",
+        p_changes: null,
+        p_target_action_id: actionId,
+      });
+      return Response.json([{
+        action_id: undoActionId,
+        changes: [{ range: "'Bracket'!C2:D2", before: [[2, -1]], after: [[1, ""]] }],
+      }]);
+    }
+    if (upstreamUrl.pathname.endsWith("/values:batchUpdate")) {
+      assert.deepEqual(JSON.parse(init.body), {
+        valueInputOption: "RAW",
+        data: [{ range: "'Bracket'!C2:D2", majorDimension: "ROWS", values: [[1, ""]] }],
+      });
+      return Response.json({ totalUpdatedCells: 2 });
+    }
+    if (upstreamUrl.pathname.endsWith("/complete_tournament_result_action_log")) {
+      assert.equal(JSON.parse(init.body).p_succeeded, true);
+      return Response.json([{ action_id: undoActionId, status: "succeeded" }]);
+    }
+    throw new Error(`Unexpected upstream request: ${upstreamUrl}`);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs", {
+      method: "POST",
+      headers: { Authorization: "Bearer user-token", "Content-Type": "application/json" },
+      body: JSON.stringify({ actionId }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    actionId: undoActionId,
+    undoneActionId: actionId,
+    updatedRanges: ["'Bracket'!C2:D2"],
+    totalUpdatedCells: 2,
+  });
+  assert.ok(calls.indexOf("/rest/v1/rpc/create_tournament_result_action_log")
+    < calls.indexOf("/v4/spreadsheets/masters-sheet/values:batchUpdate"));
 });

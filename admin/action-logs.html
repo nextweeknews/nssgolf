@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020b18" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>Admin Action Logs | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site-topbar.css?v=7a2eae15d69c" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-action-logs" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="editor-brand">
+        <a class="editor-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title">Admin action logs</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="editor-main">
+    <section class="editor-card editor-access-panel" id="logsAccessPanel" aria-live="polite">
+      <p class="editor-status" id="logsAccessStatus">Checking admin access…</p>
+      <button class="editor-button primary" id="logsLoginBtn" type="button" hidden>Sign in with Discord</button>
+    </section>
+
+    <section class="editor-card" id="logsPanel" aria-labelledby="logsTitle" hidden>
+      <div class="editor-page-head">
+        <div>
+          <h1 class="editor-title" id="logsTitle">Admin action logs</h1>
+          <p class="editor-copy">Tournament score edits and undos, including the authenticated admin and exact before-and-after values.</p>
+        </div>
+        <div class="editor-head-actions">
+          <a class="editor-button" href="/index.html">Home</a>
+        </div>
+      </div>
+      <p class="editor-status" id="logsStatus" aria-live="polite"></p>
+      <div class="action-log-list" id="actionLogList"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js?v=bc157abc408a"></script>
+  <script type="module" src="/admin/action-logs.js?v=20260817-action-logs"></script>
+</body>
+</html>

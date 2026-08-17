@@ -64,8 +64,34 @@ BEGIN
     'anon',
     'public.set_tournament_result_archived(text,boolean)',
     'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.create_tournament_result_action_log(text,text,jsonb,uuid)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.set_tournament_result_action_log_changes(uuid,jsonb)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.complete_tournament_result_action_log(uuid,boolean,text)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.get_tournament_result_action_for_undo(uuid)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.list_tournament_result_action_logs(integer)',
+    'EXECUTE'
   ) THEN
     RAISE EXCEPTION 'anon unexpectedly has execute privilege on an admin mutation RPC';
+  END IF;
+
+  IF has_schema_privilege('authenticated', 'private', 'USAGE')
+    OR has_table_privilege('authenticated', 'private.tournament_result_action_logs', 'SELECT')
+  THEN
+    RAISE EXCEPTION 'authenticated users can unexpectedly access the private action log table';
   END IF;
 
   IF has_table_privilege('anon', 'public.tournament_admin_events', 'SELECT') THEN
@@ -106,6 +132,25 @@ BEGIN
     WHEN insufficient_privilege THEN NULL;
   END;
 
+  BEGIN
+    PERFORM public.list_tournament_result_action_logs(10);
+    RAISE EXCEPTION 'non-admin unexpectedly read tournament action logs';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    PERFORM public.create_tournament_result_action_log(
+      'masters',
+      'edit',
+      '[{"range":"''Bracket''!C2","before":[[1]],"after":[[2]]}]'::jsonb,
+      NULL
+    );
+    RAISE EXCEPTION 'non-admin unexpectedly created a tournament action log';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+
   UPDATE public.tournament_admin_events
   SET archived = true
   WHERE event_key = 'masters';
@@ -130,6 +175,10 @@ DECLARE
   masters_editor_tables jsonb;
   proleague_tables jsonb;
   superleague_tables jsonb;
+  edit_action_id uuid;
+  undo_action_id uuid;
+  undo_changes jsonb;
+  failed_action_id uuid;
 BEGIN
   IF NOT public.is_tournament_result_admin() THEN
     RAISE EXCEPTION 'Discord administrator was not authorized';
@@ -303,6 +352,143 @@ BEGIN
   END IF;
 
   PERFORM public.authorize_tournament_result_edit('masters');
+
+  BEGIN
+    PERFORM public.create_tournament_result_action_log(
+      'masters',
+      'edit',
+      '[{"before":[],"after":[[1]]}]'::jsonb,
+      NULL
+    );
+    RAISE EXCEPTION 'an action log without a range was unexpectedly accepted';
+  EXCEPTION
+    WHEN invalid_parameter_value THEN NULL;
+  END;
+
+  SELECT action_id
+  INTO edit_action_id
+  FROM public.create_tournament_result_action_log(
+    'masters',
+    'edit',
+    '[{"range":"''Bracket''!C2:D2","before":[],"after":[[-1,-2]]}]'::jsonb,
+    NULL
+  );
+
+  BEGIN
+    PERFORM public.create_tournament_result_action_log(
+      'masters',
+      'edit',
+      '[{"range":"''Bracket''!C3","before":[],"after":[[1]]}]'::jsonb,
+      NULL
+    );
+    RAISE EXCEPTION 'a second pending Masters action was unexpectedly accepted';
+  EXCEPTION
+    WHEN object_not_in_prerequisite_state THEN NULL;
+  END;
+
+  BEGIN
+    PERFORM public.complete_tournament_result_action_log(edit_action_id, true, NULL);
+    RAISE EXCEPTION 'a tournament edit with placeholder before-values was unexpectedly completed';
+  EXCEPTION
+    WHEN object_not_in_prerequisite_state THEN NULL;
+  END;
+
+  PERFORM public.set_tournament_result_action_log_changes(
+    edit_action_id,
+    '[{"range":"''Bracket''!C2:D2","before":[[1,2]],"after":[[-1,-2]]}]'::jsonb
+  );
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.list_tournament_result_action_logs(10)
+    WHERE action_id = edit_action_id
+      AND action_type = 'edit'
+      AND status = 'pending'
+      AND event_key = 'masters'
+      AND route_path = '/masters'
+      AND actor_user_id = '11111111-1111-1111-1111-111111111111'
+      AND actor_discord_user_id = '900000000000000001'
+      AND actor_username = 'Admin'
+      AND NOT can_undo
+  ) THEN
+    RAISE EXCEPTION 'pending tournament edit log did not capture canonical actor and event data';
+  END IF;
+
+  PERFORM public.complete_tournament_result_action_log(edit_action_id, true, NULL);
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.list_tournament_result_action_logs(10)
+    WHERE action_id = edit_action_id
+      AND status = 'succeeded'
+      AND can_undo
+      AND completed_at IS NOT NULL
+      AND changes = '[{"range":"''Bracket''!C2:D2","before":[[1,2]],"after":[[-1,-2]]}]'::jsonb
+  ) THEN
+    RAISE EXCEPTION 'completed tournament edit log is not undoable or lost its values';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_result_action_for_undo(edit_action_id)
+    WHERE event_key = 'masters'
+      AND sheet_id = '16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE'
+      AND changes = '[{"range":"''Bracket''!C2:D2","before":[[1,2]],"after":[[-1,-2]]}]'::jsonb
+  ) THEN
+    RAISE EXCEPTION 'undo authorization did not return the canonical edit action';
+  END IF;
+
+  SELECT action_id, changes
+  INTO undo_action_id, undo_changes
+  FROM public.create_tournament_result_action_log('masters', 'undo', NULL, edit_action_id);
+
+  IF undo_changes <> '[{"range":"''Bracket''!C2:D2","before":[[-1,-2]],"after":[[1,2]]}]'::jsonb THEN
+    RAISE EXCEPTION 'undo action did not derive the exact inverse values';
+  END IF;
+
+  PERFORM public.complete_tournament_result_action_log(undo_action_id, true, NULL);
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.list_tournament_result_action_logs(10)
+    WHERE action_id = edit_action_id AND can_undo
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_tournament_result_action_logs(10)
+    WHERE action_id = edit_action_id
+      AND undone_by_action_id = undo_action_id
+      AND undone_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'successful undo did not close the original edit action';
+  END IF;
+
+  BEGIN
+    PERFORM public.get_tournament_result_action_for_undo(edit_action_id);
+    RAISE EXCEPTION 'already undone edit was authorized again';
+  EXCEPTION
+    WHEN object_not_in_prerequisite_state THEN NULL;
+  END;
+
+  SELECT action_id
+  INTO failed_action_id
+  FROM public.create_tournament_result_action_log(
+    'masters',
+    'edit',
+    '[{"range":"''Bracket''!C3","before":[[0]],"after":[[1]]}]'::jsonb,
+    NULL
+  );
+  PERFORM public.complete_tournament_result_action_log(failed_action_id, false, 'Google write failed.');
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.list_tournament_result_action_logs(10)
+    WHERE action_id = failed_action_id
+      AND status = 'failed'
+      AND error_message = 'Google write failed.'
+      AND NOT can_undo
+  ) THEN
+    RAISE EXCEPTION 'failed tournament edit was not retained as a non-undoable audit record';
+  END IF;
 
   BEGIN
     PERFORM public.get_tournament_admin_edit_context('missing-event');

@@ -228,6 +228,14 @@ function supabaseRpcStatus(data, fallbackStatus) {
 }
 
 async function callAdminRpc(env, authorization, functionName, body) {
+  const data = await callAdminRpcRows(env, authorization, functionName, body);
+  if (!data[0]) {
+    throw new AdminEditError("Tournament authorization returned no result.", 502);
+  }
+  return data[0];
+}
+
+async function callAdminRpcRows(env, authorization, functionName, body) {
   const supabaseUrl = String(env.SUPABASE_URL || "").replace(/\/+$/, "");
   const publishableKey = String(env.SUPABASE_PUBLISHABLE_KEY || "").trim();
   if (!supabaseUrl || !publishableKey) {
@@ -246,14 +254,100 @@ async function callAdminRpc(env, authorization, functionName, body) {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
     throw new AdminEditError(
-      typeof data?.message === "string" ? data.message : "Unable to authorize tournament editing.",
+      typeof data?.message === "string" ? data.message : "Unable to process tournament administration.",
       supabaseRpcStatus(data, response.status),
     );
   }
-  if (!Array.isArray(data) || !data[0]) {
-    throw new AdminEditError("Tournament authorization returned no event.", 502);
+  if (!Array.isArray(data)) {
+    throw new AdminEditError("Tournament administration returned an invalid response.", 502);
   }
-  return data[0];
+  return data;
+}
+
+function normalizeRangeValues(valueRange, range) {
+  const parsedRange = parseA1Range(range, true);
+  const rowCount = parsedRange.endRow - parsedRange.startRow + 1;
+  const columnCount = parsedRange.endColumn - parsedRange.startColumn + 1;
+  return Array.from({ length: rowCount }, (_, rowIndex) => (
+    Array.from({ length: columnCount }, (_, columnIndex) => (
+      valueRange?.values?.[rowIndex]?.[columnIndex] ?? ""
+    ))
+  ));
+}
+
+async function getGoogleRangeValues(accessToken, sheetId, ranges) {
+  const googleUrl = new URL(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values:batchGet`,
+  );
+  for (const range of ranges) googleUrl.searchParams.append("ranges", range);
+  googleUrl.searchParams.set("majorDimension", "ROWS");
+  googleUrl.searchParams.set("valueRenderOption", "UNFORMATTED_VALUE");
+  googleUrl.searchParams.set("dateTimeRenderOption", "SERIAL_NUMBER");
+
+  const response = await fetch(googleUrl, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    if ([401, 403].includes(response.status)) googleAccessTokenCache = null;
+    throw new AdminEditError("Unable to read current tournament sheet values.", 502);
+  }
+
+  const valueRanges = Array.isArray(data?.valueRanges) ? data.valueRanges : [];
+  return ranges.map((range, index) => normalizeRangeValues(valueRanges[index], range));
+}
+
+function auditChanges(updates, beforeValues) {
+  return updates.map((update, index) => ({
+    range: update.range,
+    before: beforeValues[index],
+    after: update.values,
+  }));
+}
+
+function updatesFromAuditChanges(changes, editableRanges) {
+  if (!Array.isArray(changes)) throw new AdminEditError("Tournament action log is invalid.", 502);
+  return validateAdminUpdates(
+    changes.map((change) => ({ range: change?.range, values: change?.after })),
+    editableRanges,
+  );
+}
+
+function rangeValuesMatch(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+async function writeGoogleUpdates(accessToken, sheetId, updates) {
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values:batchUpdate`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
+    },
+  );
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    if ([401, 403].includes(response.status)) googleAccessTokenCache = null;
+    throw new AdminEditError("Unable to update tournament sheet values.", 502);
+  }
+  return data;
+}
+
+async function completeActionLog(env, authorization, actionId, succeeded, errorMessage = null) {
+  return callAdminRpc(
+    env,
+    authorization,
+    "complete_tournament_result_action_log",
+    {
+      p_action_id: actionId,
+      p_succeeded: succeeded,
+      p_error_message: errorMessage,
+    },
+  );
 }
 
 export default {
@@ -447,25 +541,62 @@ export default {
 
         const updates = validateAdminUpdates(body?.updates, authorizationResult.editable_ranges);
         const accessToken = await getGoogleAccessToken(env);
-        const writeResponse = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(authorizationResult.sheet_id)}/values:batchUpdate`,
+        const action = await callAdminRpc(
+          env,
+          authorization,
+          "create_tournament_result_action_log",
           {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ valueInputOption: "RAW", data: updates }),
+            p_event_key: eventKey,
+            p_action_type: "edit",
+            p_changes: updates.map((update) => ({
+              range: update.range,
+              before: [],
+              after: update.values,
+            })),
+            p_target_action_id: null,
           },
         );
-        const writeData = await writeResponse.json().catch(() => null);
-        if (!writeResponse.ok) {
-          if ([401, 403].includes(writeResponse.status)) googleAccessTokenCache = null;
-          throw new AdminEditError("Unable to update tournament sheet values.", 502);
+
+        let writeData;
+        try {
+          const beforeValues = await getGoogleRangeValues(
+            accessToken,
+            authorizationResult.sheet_id,
+            updates.map((update) => update.range),
+          );
+          await callAdminRpc(
+            env,
+            authorization,
+            "set_tournament_result_action_log_changes",
+            {
+              p_action_id: action.action_id,
+              p_changes: auditChanges(updates, beforeValues),
+            },
+          );
+          writeData = await writeGoogleUpdates(accessToken, authorizationResult.sheet_id, updates);
+        } catch (error) {
+          await completeActionLog(
+            env,
+            authorization,
+            action.action_id,
+            false,
+            error instanceof Error ? error.message : "Tournament result write failed.",
+          ).catch(() => null);
+          throw error;
+        }
+
+        try {
+          await completeActionLog(env, authorization, action.action_id, true);
+        } catch {
+          throw new AdminEditError(
+            "Sheet values were updated, but the audit log could not be finalized. Do not retry this save.",
+            502,
+          );
         }
 
         return json({
           eventKey: authorizationResult.event_key,
+          actionId: action.action_id,
           updatedRanges: updates.map((update) => update.range),
           totalUpdatedCells: writeData?.totalUpdatedCells || 0,
           totalUpdatedRows: writeData?.totalUpdatedRows || 0,
@@ -477,6 +608,113 @@ export default {
           return json({ error: error.message }, error.status, { "Cache-Control": "no-store" });
         }
         return json({ error: "Tournament results request failed." }, 502, { "Cache-Control": "no-store" });
+      }
+    }
+
+    // =========================
+    // Authenticated tournament action logs
+    // GET  /admin/tournament-action-logs
+    // POST /admin/tournament-action-logs { actionId }
+    // =========================
+    if (url.pathname === "/admin/tournament-action-logs") {
+      if (!["GET", "POST"].includes(request.method)) {
+        return json({ error: "Method not allowed." }, 405, { Allow: "GET, POST, OPTIONS" });
+      }
+
+      const authorization = request.headers.get("Authorization") || "";
+      if (!/^Bearer\s+\S+$/i.test(authorization)) {
+        return json({ error: "Authentication required." }, 401, { "Cache-Control": "no-store" });
+      }
+
+      try {
+        if (request.method === "GET") {
+          const requestedLimit = Number(url.searchParams.get("limit") || 100);
+          const limit = Number.isInteger(requestedLimit) ? Math.min(200, Math.max(1, requestedLimit)) : 100;
+          const logs = await callAdminRpcRows(
+            env,
+            authorization,
+            "list_tournament_result_action_logs",
+            { p_limit: limit },
+          );
+          return json({ logs }, 200, { "Cache-Control": "no-store" });
+        }
+
+        const body = await readAdminJson(request);
+        const actionId = String(body?.actionId || "").trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actionId)) {
+          throw new AdminEditError("Invalid tournament action ID.");
+        }
+
+        const target = await callAdminRpc(
+          env,
+          authorization,
+          "get_tournament_result_action_for_undo",
+          { p_action_id: actionId },
+        );
+        if (!target.sheet_id || !Array.isArray(target.editable_ranges) || !Array.isArray(target.changes)) {
+          throw new AdminEditError("Tournament undo authorization is incomplete.", 502);
+        }
+
+        const accessToken = await getGoogleAccessToken(env);
+        const undoAction = await callAdminRpc(
+          env,
+          authorization,
+          "create_tournament_result_action_log",
+          {
+            p_event_key: target.event_key,
+            p_action_type: "undo",
+            p_changes: null,
+            p_target_action_id: actionId,
+          },
+        );
+
+        let writeData;
+        let updates;
+        try {
+          const ranges = target.changes.map((change) => String(change?.range || ""));
+          const currentValues = await getGoogleRangeValues(accessToken, target.sheet_id, ranges);
+          const hasConflict = target.changes.some((change, index) => (
+            !rangeValuesMatch(currentValues[index], change?.after)
+          ));
+          if (hasConflict) {
+            throw new AdminEditError(
+              "This edit cannot be undone because one or more Sheet cells have changed since it was saved.",
+              409,
+            );
+          }
+          updates = updatesFromAuditChanges(undoAction.changes, target.editable_ranges);
+          writeData = await writeGoogleUpdates(accessToken, target.sheet_id, updates);
+        } catch (error) {
+          await completeActionLog(
+            env,
+            authorization,
+            undoAction.action_id,
+            false,
+            error instanceof Error ? error.message : "Tournament result undo failed.",
+          ).catch(() => null);
+          throw error;
+        }
+
+        try {
+          await completeActionLog(env, authorization, undoAction.action_id, true);
+        } catch {
+          throw new AdminEditError(
+            "Sheet values were restored, but the undo log could not be finalized. Do not retry this undo.",
+            502,
+          );
+        }
+
+        return json({
+          actionId: undoAction.action_id,
+          undoneActionId: actionId,
+          updatedRanges: updates.map((update) => update.range),
+          totalUpdatedCells: writeData?.totalUpdatedCells || 0,
+        }, 200, { "Cache-Control": "no-store" });
+      } catch (error) {
+        if (error instanceof AdminEditError) {
+          return json({ error: error.message }, error.status, { "Cache-Control": "no-store" });
+        }
+        return json({ error: "Tournament action log request failed." }, 502, { "Cache-Control": "no-store" });
       }
     }
 
