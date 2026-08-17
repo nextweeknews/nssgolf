@@ -48,6 +48,14 @@ WHERE user_id = '22222222-2222-2222-2222-222222222222';
 
 DO $$
 BEGIN
+  IF NOT has_function_privilege(
+    'anon',
+    'public.get_tournament_editor_read_context(text)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'anon cannot execute the public tournament editor read RPC';
+  END IF;
+
   IF has_function_privilege(
     'anon',
     'public.get_tournament_admin_edit_context(text)',
@@ -113,6 +121,32 @@ BEGIN
   END IF;
 END;
 $$;
+
+SET LOCAL ROLE anon;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_editor_read_context('worldcup')
+    WHERE sheet_id = '1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk'
+      AND can_edit
+  ) THEN
+    RAISE EXCEPTION 'public World Cup editor context is unavailable';
+  END IF;
+
+  IF has_column_privilege(
+    'anon',
+    'public.tournament_admin_events',
+    'updated_by_user_id',
+    'SELECT'
+  ) THEN
+    RAISE EXCEPTION 'anon can read private tournament editor audit identities';
+  END IF;
+END;
+$$;
+
+RESET ROLE;
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
@@ -188,8 +222,51 @@ BEGIN
   INTO context_count
   FROM public.get_tournament_admin_edit_context();
 
-  IF context_count <> 4 THEN
-    RAISE EXCEPTION 'expected four initial admin events, found %', context_count;
+  IF context_count <> 8 THEN
+    RAISE EXCEPTION 'expected eight configured admin events, found %', context_count;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('worldopen')
+    WHERE sheet_id = '1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM'
+      AND editor_tables->0->>'kind' = 'iteration-template'
+      AND jsonb_array_length(editor_tables->0->'tables') = 7
+      AND editable_ranges @> ARRAY['''2026 Results''!AT2', '''2026 Results''!AV2']
+  ) THEN
+    RAISE EXCEPTION 'World Open editor registry is incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('lightningcup')
+    WHERE sheet_id = '1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ'
+      AND jsonb_array_length(editor_tables) = 5
+      AND editable_ranges @> ARRAY['''Bracket''!O4:Q66', '''Bracket''!R4:T66']
+  ) THEN
+    RAISE EXCEPTION 'Lightning Cup editor registry is incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('noptational')
+    WHERE sheet_id = '1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00'
+      AND editor_tables->0->>'kind' = 'iteration-template'
+      AND jsonb_array_length(editor_tables->0->'tables') = 4
+      AND editable_ranges = ARRAY['''Round Scores (2026)''!B2:J72']
+  ) THEN
+    RAISE EXCEPTION 'Noptational editor registry is incomplete';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('worldcup')
+    WHERE sheet_id = '1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk'
+      AND editor_tables->0->>'sheet_pattern' = '^World Cup (20\d{2})$'
+      AND jsonb_array_length(editor_tables->0->'tables') = 5
+      AND editable_ranges @> ARRAY['''World Cup 2025''!V2:V120', '''World Cup 2024''!X2:X120']
+  ) THEN
+    RAISE EXCEPTION 'World Cup year-aware editor registry is incomplete';
   END IF;
 
   SELECT source_ranges, editable_ranges, formula_ranges, editor_tables
@@ -274,15 +351,15 @@ BEGIN
     SELECT 1
     FROM public.get_tournament_admin_edit_context('proleague')
     WHERE sheet_id = '1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o'
-      AND archived
-      AND NOT can_edit
+      AND NOT archived
+      AND can_edit
       AND '''2026 All-Stars''!D4:G35' = ANY(editable_ranges)
       AND '''Season 7, Stage 3''!C66:C101' = ANY(editable_ranges)
       AND '''Season 7, Stage 3''!L66:S101' = ANY(editable_ranges)
       AND '''Season 7, Championship''!S8' = ANY(editable_ranges)
       AND '''Season 1''!C41:C101' = ANY(editable_ranges)
   ) THEN
-    RAISE EXCEPTION 'Pro League was not registered archived with its period score and player-slot ranges';
+    RAISE EXCEPTION 'Pro League was not enabled with its period score and player-slot ranges';
   END IF;
 
   SELECT editor_tables
@@ -314,35 +391,26 @@ BEGIN
     SELECT 1
     FROM public.get_tournament_admin_edit_context('superleague')
     WHERE sheet_id = '1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY'
-      AND archived
-      AND NOT can_edit
+      AND NOT archived
+      AND can_edit
       AND '''Season 7''!M2:O136' = ANY(editable_ranges)
       AND '''Season 7 Promotions''!V2:X11' = ANY(editable_ranges)
       AND '''Season 6''!M2:O85' = ANY(editable_ranges)
       AND '''S6 Losers Bracket''!H4:H62' = ANY(editable_ranges)
   ) THEN
-    RAISE EXCEPTION 'Super League was not registered archived with its active score ranges';
+    RAISE EXCEPTION 'Super League was not enabled with its active score ranges';
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
     FROM public.get_tournament_admin_edit_context('masters')
-    WHERE archived
-      AND NOT can_edit
-      AND archived_at IS NOT NULL
+    WHERE NOT archived
+      AND can_edit
+      AND archived_at IS NULL
       AND archived_by_user_id IS NULL
   ) THEN
-    RAISE EXCEPTION 'Masters did not initialize archived';
+    RAISE EXCEPTION 'Masters did not initialize editable';
   END IF;
-
-  BEGIN
-    PERFORM public.authorize_tournament_result_edit('masters');
-    RAISE EXCEPTION 'initially archived Masters event was authorized for editing';
-  EXCEPTION
-    WHEN object_not_in_prerequisite_state THEN NULL;
-  END;
-
-  PERFORM public.set_tournament_result_archived('masters', false);
 
   IF NOT EXISTS (
     SELECT 1
@@ -350,7 +418,7 @@ BEGIN
     WHERE sheet_id = '16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE'
       AND editable_ranges = masters_editable_ranges
   ) THEN
-    RAISE EXCEPTION 'unarchived Masters edit authorization did not return canonical config';
+    RAISE EXCEPTION 'Masters edit authorization did not return canonical config';
   END IF;
 
   PERFORM public.set_tournament_result_archived('masters', true);

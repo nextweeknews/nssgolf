@@ -37,7 +37,7 @@ The editor mirrors the public season/stage selector: 2026 All-Stars, Seasons 1â€
 | Championship | `B3:H23` | `E:H` on player rows `5:8`, `10:13`, `15:18`, and `20:23` | `B:D` | E:F are semifinal rounds and G:H are final rounds. |
 | Championship | `O3:P9`, `R4:S8` | `P3`, `P5`, `P7`, `P9`, `S4`, and `S8` | Team-name and champion cells | These are the team scores displayed in the public semifinal and final bracket. |
 
-The service account must be shared as an Editor on this workbook before the archived event is enabled for writes.
+The service account must be shared as an Editor on this workbook before writes are enabled.
 
 ## Super League
 
@@ -52,18 +52,44 @@ The editor follows the active `SUPER_LEAGUE_SEASON` (`Season 6`) and separates t
 | Qualifiers | `'S6 Winners Bracket'!A3:H80` | `E5:E68`, `H5:H68` | Player, seed, match, and round formula columns | One bracket score for each side. The winner-bracket placement row is included. |
 | Qualifiers | `'S6 Losers Bracket'!A4:H62` | `E4:E62`, `H4:H62` | Player, seed, match, and round formula columns | One bracket score for each side. The loser-bracket placement row is included. |
 
-The service account must be shared as an Editor on this workbook before the archived event is enabled for writes.
+The service account must be shared as an Editor on this workbook before writes are enabled.
+
+## World Open
+
+Spreadsheet: `1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM`
+
+The editor mirrors the seven public rounds as tabs. A year selector is generated from workbook tabs named `YYYY Results`, so a new same-layout tab is available without a code change. Each matchup remains one horizontal row; only the two score columns in each round's matchup block are editable. Field lists, matchup names, display flags, advancement formulas, and the champion formula remain read-only.
+
+## Lightning Cup
+
+Spreadsheet: `1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ`
+
+The editor mirrors the public region tabs: Wii Plaza, Wuhu Island, Wedge Island, Spocco Square, and Finals. Matchups remain one horizontal row with three editable set scores and one editable final score per player. Seeds, player advancement, automatic winner/loser cells, notes, and bracket metadata remain read-only.
+
+## The Noptational
+
+Spreadsheet: `1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00`
+
+The editor separates Classic, Resort, Specials, and 18 Holes into tabs matching the tournament's four scoring levels. A year selector is generated from workbook tabs named `Round Scores (YYYY)`. Player names remain read-only; only `B2:J72` in each detected year tab is writable.
+
+## World Cup
+
+Spreadsheet: `1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk`
+
+The editor exposes every workbook tab named `World Cup YYYY`, including 2024 and 2025, and selects the newest detected year by default. Group Stage and Bracket are separate tabs. Standings values, the three group-match score columns, and both bracket score columns are writable; team names, group labels, bracket rounds, and matchup structure remain read-only.
+
+Year discovery is deliberately workbook- and layout-bound. It can create an editor view for a new matching tab in an existing configured workbook, but it does not infer a new spreadsheet ID or an unfamiliar column layout. Lightning Cup, World Championship, and World Golf Masters currently use unversioned sheet tabs, while Pro League and Super League have layouts that vary by season; future iterations of those events still require an explicit registry update.
 
 Google Sheet protection settings are defense in depth only. The Worker must enforce the Supabase-provided editable ranges before every `values:batchUpdate` request, so even an Editor-capable service account cannot overwrite formulas through the admin API.
 
 ## Worker contract
 
-Both operations require the signed-in user's Supabase access token as `Authorization: Bearer <token>` and return `Cache-Control: no-store`.
+Both operations return `Cache-Control: no-store`. `GET` is a public read of already-public tournament values and the restricted editor layout metadata. `POST` requires the signed-in user's Supabase access token as `Authorization: Bearer <token>`.
 
 - `GET /admin/tournament-results?eventKey=masters` returns the canonical event metadata, editor table definitions (including optional edit-view grouping), and current Google `valueRanges`. Supplying a canonical `viewKey` restricts the Google read to that view's registered source ranges.
 - `POST /admin/tournament-results` accepts `{ "eventKey": "masters", "updates": [{ "range": "'Bracket'!C2", "values": [[-14]] }] }`.
 
-The Worker obtains the canonical spreadsheet ID and editable ranges from the authenticated Supabase RPC, ignores any client-supplied spreadsheet ID, writes with `valueInputOption: "RAW"`, and limits each request to 200 ranges, 2,000 cells, and a 1 MB body. Archived or disabled events remain readable but cannot be written.
+For reads, the Worker obtains the canonical spreadsheet ID and editor ranges from the anonymous, read-only `get_tournament_editor_read_context()` RPC. For writes, it obtains them again from the admin-only authorization RPC, ignores any client-supplied spreadsheet ID, writes with `valueInputOption: "RAW"`, and limits each request to 200 ranges, 2,000 cells, and a 1 MB body. Archived or disabled events remain readable but cannot be written.
 
 ## Required action log and undo flow
 

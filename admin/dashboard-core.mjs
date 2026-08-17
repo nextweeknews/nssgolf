@@ -1,8 +1,60 @@
 export const RESULT_EVENTS = Object.freeze([
-  { key:"masters", label:"World Golf Masters" },
-  { key:"championship", label:"Championship" },
-  { key:"proleague", label:"Pro League" },
-  { key:"superleague", label:"Super League" },
+  {
+    key:"proleague",
+    label:"Shotgun Pro League",
+    color:"#7dd3fc",
+    publicPath:"/proleague/index.html",
+    sheetId:"1qIM0HKhx9Y-3eCJCFzBqrbATwiPrK3C1ynATwZzRC1o",
+  },
+  {
+    key:"worldopen",
+    label:"World Open",
+    color:"#5dff9c",
+    publicPath:"/worldopen/index.html",
+    sheetId:"1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM",
+  },
+  {
+    key:"superleague",
+    label:"Super League",
+    color:"#d176ff",
+    publicPath:"/superleague/index.html",
+    sheetId:"1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY",
+  },
+  {
+    key:"lightningcup",
+    label:"Lightning Cup",
+    color:"#f6ff6a",
+    publicPath:"/lightningcup/index.html",
+    sheetId:"1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ",
+  },
+  {
+    key:"noptational",
+    label:"The Noptational",
+    color:"#818cf8",
+    publicPath:"/noptational.html",
+    sheetId:"1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00",
+  },
+  {
+    key:"championship",
+    label:"World Championship",
+    color:"#bef264",
+    publicPath:"/championship.html",
+    sheetId:"10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q",
+  },
+  {
+    key:"masters",
+    label:"World Golf Masters",
+    color:"#facc15",
+    publicPath:"/masters.html",
+    sheetId:"16r1G1StlWQflPjAqFbHip_Y3hRo85F6iS3jYyK25CwE",
+  },
+  {
+    key:"worldcup",
+    label:"World Cup",
+    color:"#60a5fa",
+    publicPath:"/worldcup.html",
+    sheetId:"1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk",
+  },
 ]);
 
 export const ADMIN_SECTIONS = Object.freeze([
@@ -31,6 +83,41 @@ export function adminUrl(section, params = {}){
   return `/admin/?${search}`;
 }
 
+export function tournamentPublicUrl(eventKey, params = new URLSearchParams()){
+  const event = RESULT_EVENTS.find((candidate) => candidate.key === eventKey);
+  if(!event) return "";
+
+  const publicParams = new URLSearchParams();
+  if(eventKey === "masters"){
+    const view = params.get("view")?.trim();
+    if(["bracket", "qualifiers"].includes(view)) publicParams.set("view", view);
+  }else if(eventKey === "proleague"){
+    copyIfPresent(params, publicParams, ["season", "stage"]);
+  }else if(eventKey === "superleague"){
+    copyIfPresent(params, publicParams, ["season"]);
+    const view = params.get("view")?.trim() || "";
+    const page = view === "promotions"
+      ? "promotions"
+      : (view === "qualifiers" || view.startsWith("qualifier-")) ? "qualifiers" : "season";
+    if(view || publicParams.has("season")) publicParams.set("page", page);
+  }else if(eventKey === "worldopen"){
+    const round = params.get("view")?.match(/^round-([1-7])$/)?.[1];
+    if(round) publicParams.set("round", round);
+  }else if(eventKey === "lightningcup"){
+    const region = params.get("view")?.trim();
+    publicParams.set("view", "results");
+    if(["wii-plaza", "wuhu-island", "wedge-island", "spocco-square", "finals"].includes(region)){
+      publicParams.set("region", region);
+    }
+  }else if(eventKey === "worldcup"){
+    copyIfPresent(params, publicParams, ["year"]);
+    const view = params.get("view")?.trim();
+    if(view === "group-stage") publicParams.set("tab", "group");
+    if(view === "bracket-stage") publicParams.set("tab", "bracket");
+  }
+  return `${event.publicPath}${publicParams.size ? `?${publicParams}` : ""}`;
+}
+
 export function parseAdminRoute(search = ""){
   const params = new URLSearchParams(search);
   const requestedSection = params.get("section")?.trim() || "";
@@ -54,7 +141,7 @@ export function parseAdminRoute(search = ""){
     const eventKey = RESULT_EVENT_KEYS.has(requestedEvent) ? requestedEvent : RESULT_EVENTS[0].key;
     const event = RESULT_EVENTS.find((candidate) => candidate.key === eventKey);
     const frameParams = new URLSearchParams({ eventKey });
-    copyIfPresent(params, frameParams, ["view", "season", "stage"]);
+    copyIfPresent(params, frameParams, ["view", "season", "stage", "year"]);
     frameParams.set("embed", "1");
     return {
       section,
@@ -63,6 +150,8 @@ export function parseAdminRoute(search = ""){
       label:event.label,
       frameUrl:`/admin/tournament-results.html?${frameParams}`,
       canonicalUrl:adminUrl(section, Object.fromEntries([...frameParams].filter(([key]) => key !== "embed"))),
+      publicUrl:tournamentPublicUrl(eventKey, params),
+      sheetUrl:`https://docs.google.com/spreadsheets/d/${event.sheetId}/edit`,
     };
   }
 
@@ -86,7 +175,7 @@ export function routeFromEmbeddedPage(pathname, search = ""){
   if(pathname === "/admin/landing.html") return "/admin/";
   if(pathname === "/admin/tournament-results.html"){
     const next = {};
-    ["eventKey", "view", "season", "stage"].forEach((key) => {
+    ["eventKey", "view", "season", "stage", "year"].forEach((key) => {
       const value = params.get(key)?.trim();
       if(value) next[key] = value;
     });

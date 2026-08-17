@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
-  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-superleague-formulas" />
-  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-dashboard" />
-  <script src="/admin/dashboard-embed.js?v=20260817-admin-dashboard"></script>
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260817-fixed-header" />
+  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-scroll" />
+  <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
 </head>
 <body>
   <header class="topbar">
@@ -28,57 +28,51 @@
 
   <main class="editor-main">
     <section class="editor-card editor-access-panel" id="editorAccessPanel" aria-live="polite">
-      <p class="editor-status" id="editorAccessStatus">Checking admin access…</p>
+      <p class="editor-status" id="editorAccessStatus">Loading tournament results…</p>
       <button class="editor-button primary" id="editorLoginBtn" type="button" hidden>Sign in with Discord</button>
     </section>
 
     <section class="editor-card" id="editorPanel" aria-labelledby="editorTitle" hidden>
       <div class="editor-page-head">
-        <div>
-          <h1 class="editor-title" id="editorTitle">Tournament results</h1>
-          <p class="editor-copy" id="editorCopy"></p>
-        </div>
+        <h1 class="editor-title" id="editorTitle">Tournament results</h1>
         <div class="editor-head-actions">
-          <a class="editor-button" href="/admin/?section=action-logs" target="_top">Action logs</a>
-          <a class="editor-button" id="editorBackLink" href="/">View tournament</a>
-          <button class="editor-button is-danger" id="editorArchiveBtn" type="button">Archive tournament</button>
+          <span class="editor-dirty-count" id="editorDirtyCount">No unsaved changes</span>
+          <button class="editor-button" id="editorResetBtn" type="button" disabled>Reset</button>
+          <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save changes</button>
         </div>
       </div>
 
-      <div class="editor-savebar">
-        <span class="editor-dirty-count" id="editorDirtyCount">No unsaved changes</span>
-        <button class="editor-button" id="editorResetBtn" type="button" disabled>Reset</button>
-        <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save changes</button>
-      </div>
-      <p class="editor-status" id="editorStatus" aria-live="polite"></p>
-      <div class="editor-period-controls" id="editorPeriodControls" aria-label="Tournament period controls" hidden>
-        <div class="editor-player-filter" id="editorPlayerFilter">
-          <div class="editor-player-filter-field" id="editorPlayerFilterField">
-            <div class="editor-player-filter-entry" id="editorPlayerFilterEntry">
-              <div class="editor-player-filter-chips" id="editorPlayerFilterChips"></div>
-              <input class="editor-player-filter-input" id="editorPlayerFilterInput" type="search" placeholder="Filter by individual players" autocomplete="off" aria-label="Filter players" aria-autocomplete="list" aria-controls="editorPlayerFilterOptions" aria-expanded="false" />
+      <div class="editor-body">
+        <p class="editor-status" id="editorStatus" aria-live="polite"></p>
+        <div class="editor-period-controls" id="editorPeriodControls" aria-label="Tournament period controls" hidden>
+          <div class="editor-player-filter" id="editorPlayerFilter">
+            <div class="editor-player-filter-field" id="editorPlayerFilterField">
+              <div class="editor-player-filter-entry" id="editorPlayerFilterEntry">
+                <div class="editor-player-filter-chips" id="editorPlayerFilterChips"></div>
+                <input class="editor-player-filter-input" id="editorPlayerFilterInput" type="search" placeholder="Filter by individual players" autocomplete="off" aria-label="Filter players" aria-autocomplete="list" aria-controls="editorPlayerFilterOptions" aria-expanded="false" />
+              </div>
+              <div class="editor-player-filter-options" id="editorPlayerFilterOptions" role="listbox" hidden></div>
             </div>
-            <div class="editor-player-filter-options" id="editorPlayerFilterOptions" role="listbox" hidden></div>
+            <button class="editor-button editor-player-filter-clear" id="editorPlayerFilterClear" type="button" hidden>Clear</button>
           </div>
-          <button class="editor-button editor-player-filter-clear" id="editorPlayerFilterClear" type="button" hidden>Clear</button>
+          <div class="editor-period-selects">
+            <label class="editor-select-wrap">
+              <span class="editor-select-label" id="editorSeasonLabel">Season</span>
+              <select class="editor-select" id="editorSeasonSelect"></select>
+            </label>
+            <label class="editor-select-wrap" id="editorStageWrap">
+              <span class="editor-select-label">Stage</span>
+              <select class="editor-select" id="editorStageSelect"></select>
+            </label>
+          </div>
         </div>
-        <div class="editor-period-selects">
-          <label class="editor-select-wrap">
-            <span class="editor-select-label">Season</span>
-            <select class="editor-select" id="editorSeasonSelect"></select>
-          </label>
-          <label class="editor-select-wrap" id="editorStageWrap">
-            <span class="editor-select-label">Stage</span>
-            <select class="editor-select" id="editorStageSelect"></select>
-          </label>
-        </div>
+        <div class="editor-view-tabs" id="editorViewTabs" role="tablist" aria-label="Tournament edit views" hidden></div>
+        <div class="editor-tables" id="editorTables"></div>
       </div>
-      <div class="editor-view-tabs" id="editorViewTabs" role="tablist" aria-label="Tournament edit views" hidden></div>
-      <div class="editor-tables" id="editorTables"></div>
     </section>
   </main>
 
-  <script type="module" src="/site-topbar.js?v=c370cc304844"></script>
-  <script type="module" src="/admin/tournament-results.js?v=20260817-superleague-formulas"></script>
+  <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260817-player-search"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ import {
   proLeagueViewKey,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-superleague-formulas";
+} from "/admin/tournament-results-core.mjs?v=20260817-player-search";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -29,9 +29,6 @@ const editorPanel = document.getElementById("editorPanel");
 const loginButton = document.getElementById("editorLoginBtn");
 const accessStatus = document.getElementById("editorAccessStatus");
 const pageTitle = document.getElementById("editorTitle");
-const pageCopy = document.getElementById("editorCopy");
-const backLink = document.getElementById("editorBackLink");
-const archiveButton = document.getElementById("editorArchiveBtn");
 const saveButton = document.getElementById("editorSaveBtn");
 const resetButton = document.getElementById("editorResetBtn");
 const dirtyCount = document.getElementById("editorDirtyCount");
@@ -40,6 +37,7 @@ const viewTabs = document.getElementById("editorViewTabs");
 const tablesMount = document.getElementById("editorTables");
 const periodControls = document.getElementById("editorPeriodControls");
 const seasonSelect = document.getElementById("editorSeasonSelect");
+const seasonLabel = document.getElementById("editorSeasonLabel");
 const stageWrap = document.getElementById("editorStageWrap");
 const stageSelect = document.getElementById("editorStageSelect");
 const playerFilter = document.getElementById("editorPlayerFilter");
@@ -51,7 +49,6 @@ const playerFilterOptions = document.getElementById("editorPlayerFilterOptions")
 const playerFilterClear = document.getElementById("editorPlayerFilterClear");
 
 const state = {
-  session: null,
   event: null,
   tables: [],
   currentValues: new Map(),
@@ -62,6 +59,31 @@ const state = {
   addedPlayerRows: new Set(),
   saving: false,
 };
+
+const EVENT_ACCENT_RGB = {
+  masters:"250,204,21",
+  championship:"190,242,100",
+  proleague:"125,211,252",
+  superleague:"209,118,255",
+  worldopen:"93,255,156",
+  lightningcup:"246,255,106",
+  noptational:"129,140,248",
+  worldcup:"96,165,250",
+};
+const LIGHTNING_CUP_ACCENT_RGB = {
+  "wii-plaza":"250,204,21",
+  "wuhu-island":"168,85,247",
+  "wedge-island":"125,211,252",
+  "spocco-square":"249,115,22",
+  finals:"234,179,8",
+};
+
+function applyEditorTheme(groupKey = ""){
+  const accent = state.event?.eventKey === "lightningcup"
+    ? LIGHTNING_CUP_ACCENT_RGB[groupKey] || EVENT_ACCENT_RGB.lightningcup
+    : EVENT_ACCENT_RGB[state.event?.eventKey] || "125,211,252";
+  document.documentElement.style.setProperty("--region-accent-rgb", accent);
+}
 
 function setAccessStatus(message, tone = ""){
   accessStatus.textContent = message || "";
@@ -88,7 +110,6 @@ async function requestHeaders(){
   const { data, error } = await supabase.auth.getSession();
   const session = data?.session || null;
   if(error || !session?.access_token) throw new Error("Your session has expired. Sign in again.");
-  state.session = session;
   return {
     Accept: "application/json",
     Authorization: `Bearer ${session.access_token}`,
@@ -117,8 +138,6 @@ function updateActions(){
   dirtyCount.classList.toggle("has-changes", count > 0 || addedCount > 0);
   saveButton.disabled = locked || (!count && !addedCount);
   resetButton.disabled = state.saving || (!count && !addedCount);
-  archiveButton.disabled = state.saving || count > 0 || addedCount > 0;
-  archiveButton.title = count > 0 || addedCount > 0 ? "Save or reset changes before changing archive status." : "";
 
   tablesMount.querySelectorAll("input[data-score-range]").forEach((input) => {
     const range = input.dataset.scoreRange;
@@ -296,7 +315,7 @@ function createBracketMatchupTable(table, visibleRows){
   const isSeason = isSuperLeague && table.key.endsWith("-season");
   const isPromotions = isSuperLeague && table.key.endsWith("-promotions");
   const isWinners = isSuperLeague && table.key.endsWith("-qualifier-winners");
-  const showSeed = isSuperLeague && !isSeason;
+  const showSeed = (table.matchupLayout && !table.hideSeed) || (isSuperLeague && !isSeason);
   if(isSuperLeague){
     tableEl.classList.add("is-superleague-matchups");
     if(isSeason) tableEl.classList.add("is-superleague-season");
@@ -304,7 +323,9 @@ function createBracketMatchupTable(table, visibleRows){
     if(isWinners) tableEl.classList.add("is-superleague-winners");
   }
   const headerRow = document.createElement("tr");
-  if(isSeason || isPromotions){
+  if(table.hideContext){
+    // The active tab already supplies the round or region label.
+  }else if(isSeason || isPromotions){
     appendHeaderCell(headerRow, isPromotions ? "Round" : "Week");
     appendHeaderCell(headerRow, "Division");
   }else{
@@ -323,11 +344,18 @@ function createBracketMatchupTable(table, visibleRows){
       || row.context.some((value) => value.trim())
       || row.editableCells.some((cell) => cell.initialValue)
     )))
-  )).forEach((matchup) => {
+  ) && matchup.players.some((row) => (
+    playerNameForRow(row)
+    || row.seed
+    || row.context.some((value) => value.trim())
+    || row.editableCells.some((cell) => String(cell.initialValue).trim())
+  ))).forEach((matchup) => {
     const rowEl = document.createElement("tr");
     rowEl.dataset.sourceRow = String(matchup.sourceRow);
     const firstPlayer = matchup.players[0];
-    if(isSeason || isPromotions){
+    if(table.hideContext){
+      // No leading context cell for tab-scoped matchup tables.
+    }else if(isSeason || isPromotions){
       if(isSeason) rowEl.classList.add(superLeagueDivisionClass(firstPlayer.context[1]));
       appendTextCell(rowEl, firstPlayer.context[0], "editor-context-cell editor-period-cell");
       appendTextCell(rowEl, firstPlayer.context[1], "editor-context-cell editor-division-cell");
@@ -347,12 +375,20 @@ function createBracketMatchupTable(table, visibleRows){
 }
 
 function createTable(table){
+  const isMatchupTable = table.matchupLayout || ["masters", "championship", "superleague"].includes(state.event?.eventKey);
   const visibleRows = table.rows.filter((row) => (
     (isEditorRowVisible(row, state.currentValues) || state.addedPlayerRows.has(row.key))
-    && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(row, state.currentValues, state.selectedPlayers.keys()))
+    && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(
+      row,
+      state.currentValues,
+      state.selectedPlayers.keys(),
+      isMatchupTable ? table.rows : [],
+    ))
   ));
   if(state.selectedPlayers.size && !visibleRows.length) return null;
-  if(["masters", "championship", "superleague"].includes(state.event?.eventKey)) return createBracketMatchupTable(table, visibleRows);
+  if(isMatchupTable){
+    return createBracketMatchupTable(table, visibleRows);
+  }
 
   const section = document.createElement("section");
   section.className = "editor-table-section";
@@ -479,9 +515,6 @@ function syncMastersUrls(groupKey, historyMode = "replace"){
   const currentEditorUrl = `${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`;
   if(nextEditorUrl !== currentEditorUrl) globalThis.history[`${historyMode}State`](null, "", nextEditorUrl);
 
-  const publicUrl = new URL(state.event.routePath || "/masters", globalThis.location.origin);
-  publicUrl.searchParams.set("view", view);
-  backLink.href = `${publicUrl.pathname}${publicUrl.search}`;
 }
 
 function syncSuperLeagueUrls(groupKey, historyMode = "replace"){
@@ -495,10 +528,19 @@ function syncSuperLeagueUrls(groupKey, historyMode = "replace"){
   });
   globalThis.history[`${historyMode}State`](null, "", `${globalThis.location.pathname}?${editorParams}`);
 
-  const page = groupKey === "promotions"
-    ? "promotions"
-    : groupKey?.startsWith("qualifier-") ? "qualifiers" : "season";
-  backLink.href = `/superleague/index.html?${new URLSearchParams({ season:String(view.seasonValue), page })}`;
+}
+
+function syncAdditionalEventUrls(groupKey, historyMode = "replace"){
+  if(!["worldopen", "lightningcup", "noptational", "worldcup"].includes(state.event?.eventKey)) return;
+  const editorUrl = new URL(globalThis.location.href);
+  editorUrl.searchParams.set("view", groupKey);
+  if(["worldopen", "noptational", "worldcup"].includes(state.event.eventKey)){
+    const view = activePeriodView() || periodViews()[0];
+    if(view?.seasonValue) editorUrl.searchParams.set("year", String(view.seasonValue));
+  }
+  const nextUrl = `${editorUrl.pathname}${editorUrl.search}${editorUrl.hash}`;
+  const currentUrl = `${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`;
+  if(nextUrl !== currentUrl) globalThis.history[`${historyMode}State`](null, "", nextUrl);
 }
 
 function showEditorGroup(groupKey, historyMode = "replace"){
@@ -513,10 +555,12 @@ function showEditorGroup(groupKey, historyMode = "replace"){
   });
   syncMastersUrls(groupKey, historyMode);
   syncSuperLeagueUrls(groupKey, historyMode);
+  syncAdditionalEventUrls(groupKey, historyMode);
+  applyEditorTheme(groupKey);
 }
 
 function renderEditorTabs(){
-  viewTabs.classList.toggle("is-radix", ["masters", "superleague"].includes(state.event?.eventKey));
+  viewTabs.classList.toggle("is-radix", state.event?.eventKey !== "proleague");
   if(state.event?.eventKey === "proleague"){
     viewTabs.hidden = true;
     viewTabs.replaceChildren();
@@ -632,22 +676,21 @@ function syncProLeagueUrls(view){
   else editorParams.set("stage", String(view.stageValue));
   globalThis.history.replaceState(null, "", `${globalThis.location.pathname}?${editorParams}`);
 
-  const publicParams = new URLSearchParams({ season: String(view.seasonValue) });
-  if(view.stageValue !== null && view.stageValue !== undefined && view.stageValue !== ""){
-    publicParams.set("stage", String(view.stageValue));
-  }
-  backLink.href = `/proleague/index.html?${publicParams}`;
 }
 
 function renderPeriodControls(){
   const isProLeague = state.event?.eventKey === "proleague";
   const isSuperLeague = state.event?.eventKey === "superleague";
+  const isYearEvent = ["worldopen", "noptational", "worldcup"].includes(state.event?.eventKey);
   const views = periodViews();
-  periodControls.hidden = (!isProLeague && !isSuperLeague) || !views.length;
-  if(periodControls.hidden) return;
+  const hasPeriodSelects = (isProLeague || isSuperLeague || isYearEvent) && views.length;
+  periodControls.hidden = false;
+  playerFilter.hidden = false;
+  periodControls.querySelector(".editor-period-selects").hidden = !hasPeriodSelects;
+  if(!hasPeriodSelects) return;
 
   const activeView = activePeriodView() || views[0];
-  playerFilter.hidden = isSuperLeague;
+  seasonLabel.textContent = isYearEvent ? "Year" : "Season";
   const seasons = [];
   const seen = new Set();
   views.forEach((view) => {
@@ -664,9 +707,10 @@ function renderPeriodControls(){
   }));
   seasonSelect.value = String(activeView.seasonValue);
 
-  if(isSuperLeague){
+  if(isSuperLeague || isYearEvent){
     stageWrap.hidden = true;
-    syncSuperLeagueUrls(state.activeGroupKey);
+    if(isSuperLeague) syncSuperLeagueUrls(state.activeGroupKey);
+    if(isYearEvent) syncAdditionalEventUrls(state.activeGroupKey);
     return;
   }
 
@@ -688,16 +732,9 @@ function renderPeriodControls(){
 function renderEditor(){
   accessPanel.hidden = true;
   editorPanel.hidden = false;
+  editorPanel.dataset.eventKey = state.event.eventKey;
   pageTitle.textContent = `${state.event.displayName} results`;
-  pageCopy.textContent = ["championship", "masters", "proleague"].includes(state.event.eventKey)
-    ? ""
-    : state.event.archived
-      ? "This tournament is archived. Unarchive it to edit scores."
-      : "Edit score cells below. Player names, seeds, context, and formula cells remain read-only.";
-  pageCopy.hidden = !pageCopy.textContent;
-  backLink.href = state.event.routePath || "/";
-  archiveButton.textContent = state.event.archived ? "Unarchive tournament" : "Archive tournament";
-  archiveButton.classList.toggle("is-danger", !state.event.archived);
+  applyEditorTheme(state.activeGroupKey);
   renderPeriodControls();
   renderPlayerFilter();
   renderTables();
@@ -729,27 +766,32 @@ function initialSuperLeagueViewKey(){
   return superLeagueViewKey(season) || "season-6";
 }
 
+function initialYearViewKey(){
+  const year = new URL(globalThis.location.href).searchParams.get("year") || "";
+  return /^20\d{2}$/.test(year) ? `${eventKey}-${year}` : "latest";
+}
+
+function initialAdditionalGroupKey(){
+  return new URL(globalThis.location.href).searchParams.get("view")?.trim() || "";
+}
+
 async function loadEditor(requestedViewKey = eventKey === "proleague"
   ? initialProLeagueViewKey()
-  : eventKey === "superleague" ? initialSuperLeagueViewKey() : ""){
+  : eventKey === "superleague"
+    ? initialSuperLeagueViewKey()
+    : ["worldopen", "noptational", "worldcup"].includes(eventKey) ? initialYearViewKey() : ""){
   if(!eventKey){
     showAccessPanel({ message: "Missing tournament event key.", tone: "error" });
     return;
   }
 
-  showAccessPanel({ message: "Checking admin access…" });
-  const { data, error } = await supabase.auth.getSession();
-  state.session = data?.session || null;
-  if(error || !state.session?.access_token){
-    showAccessPanel({ message: "Sign in with Discord to access tournament editing.", canSignIn: true });
-    return;
-  }
+  showAccessPanel({ message: "Loading tournament results…" });
 
   try{
     const url = new URL(workerUrl);
     url.searchParams.set("eventKey", eventKey);
     if(requestedViewKey) url.searchParams.set("viewKey", requestedViewKey);
-    const response = await fetch(url, { headers: await requestHeaders(), cache: "no-store" });
+    const response = await fetch(url, { headers:{ Accept:"application/json" }, cache: "no-store" });
     const payload = await response.json().catch(() => null);
     if(!response.ok){
       if(response.status === 401){
@@ -766,7 +808,7 @@ async function loadEditor(requestedViewKey = eventKey === "proleague"
     state.activeViewKey = payload.event.activeViewKey || requestedViewKey || "";
     state.activeGroupKey = eventKey === "masters"
       ? initialMastersGroupKey()
-      : eventKey === "superleague" ? initialSuperLeagueGroupKey() : "";
+      : eventKey === "superleague" ? initialSuperLeagueGroupKey() : initialAdditionalGroupKey();
     state.tables = buildEditorTables(payload.event, payload.valueRanges);
     state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
     state.selectedPlayers.clear();
@@ -969,7 +1011,7 @@ tablesMount.addEventListener("click", (event) => {
 
 seasonSelect.addEventListener("change", () => {
   const views = periodViews().filter((view) => String(view.seasonValue) === seasonSelect.value);
-  if(state.event?.eventKey === "superleague"){
+  if(["superleague", "worldopen", "noptational", "worldcup"].includes(state.event?.eventKey)){
     void changePeriodView(views[0]);
     return;
   }
@@ -986,33 +1028,6 @@ stageSelect.addEventListener("change", () => {
     && String(candidate.stageValue) === stageSelect.value
   ));
   void changePeriodView(view);
-});
-
-archiveButton.addEventListener("click", async () => {
-  if(state.saving || hasUnsavedWork()) return;
-  const nextArchived = !state.event.archived;
-  const action = nextArchived ? "archive" : "unarchive";
-  if(!globalThis.confirm(`${action[0].toUpperCase()}${action.slice(1)} ${state.event.displayName}?`)) return;
-
-  state.saving = true;
-  updateActions();
-  setEditorStatus(`${action[0].toUpperCase()}${action.slice(1)}ing…`);
-  const { data, error } = await supabase.rpc("set_tournament_result_archived", {
-    p_event_key: state.event.eventKey,
-    p_archived: nextArchived,
-  });
-  state.saving = false;
-  if(error || !data?.[0]){
-    setEditorStatus(error?.message || `Unable to ${action} tournament.`, "error");
-    updateActions();
-    return;
-  }
-
-  state.event.archived = Boolean(data[0].archived);
-  state.event.canEdit = Boolean(data[0].can_edit);
-  state.event.archivedAt = data[0].archived_at || null;
-  renderEditor();
-  setEditorStatus(`Tournament ${state.event.archived ? "archived" : "unarchived"}.`, "success");
 });
 
 loginButton.addEventListener("click", async () => {

@@ -1,5 +1,5 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-admin-dashboard";
+import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-all-years";
 import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
 import { playerUrlPathForSlug } from "/settings-data.js";
 
@@ -378,6 +378,7 @@ async function getApprovedPlayerUrl(discordId){
 }
 
 async function renderTopbarAuth(){
+  if(new URLSearchParams(globalThis.location.search).get("embed") === "1") return;
   const menu = ensureTopbarMenu();
   const signInButton = ensureTopbarSignInButton();
   const tournamentEditLink = ensureTournamentEditLink();

@@ -246,7 +246,7 @@ async function callAdminRpcRows(env, authorization, functionName, body) {
     method: "POST",
     headers: {
       apikey: publishableKey,
-      Authorization: authorization,
+      Authorization: authorization || `Bearer ${publishableKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -368,6 +368,81 @@ function tournamentEditorViews(tables) {
   return views;
 }
 
+function hasIterationTemplates(tables) {
+  return Array.isArray(tables) && tables.some((table) => table?.kind === "iteration-template");
+}
+
+function replaceIterationTokens(value, replacements) {
+  if (typeof value === "string") {
+    return Object.entries(replacements).reduce(
+      (result, [key, replacement]) => result.replaceAll(`{${key}}`, String(replacement)),
+      value,
+    );
+  }
+  if (Array.isArray(value)) return value.map((item) => replaceIterationTokens(item, replacements));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => (
+      [key, replaceIterationTokens(item, replacements)]
+    )));
+  }
+  return value;
+}
+
+function expandTournamentIterations(context, sheetTitles) {
+  const staticTables = context.editor_tables.filter((table) => table?.kind !== "iteration-template");
+  const generatedTables = [];
+  const sourceRanges = [...(context.source_ranges || [])];
+  const editableRanges = [...(context.editable_ranges || [])];
+  const formulaRanges = [...(context.formula_ranges || [])];
+
+  for (const template of context.editor_tables.filter((table) => table?.kind === "iteration-template")) {
+    let pattern;
+    try {
+      pattern = new RegExp(template.sheet_pattern);
+    } catch {
+      throw new AdminEditError("Tournament iteration template is invalid.", 502);
+    }
+    for (const sheetTitle of sheetTitles) {
+      const match = String(sheetTitle).match(pattern);
+      if (!match) continue;
+      const iteration = match[Number(template.iteration_group || 1)];
+      const iterationNumber = Number(iteration);
+      if (!iteration || !Number.isInteger(iterationNumber)) continue;
+      if (Number.isFinite(Number(template.min_iteration)) && iterationNumber < Number(template.min_iteration)) continue;
+      if (Number.isFinite(Number(template.max_iteration)) && iterationNumber > Number(template.max_iteration)) continue;
+      if ((template.exclude_iterations || []).map(Number).includes(iterationNumber)) continue;
+
+      const replacements = { sheet: String(sheetTitle).replaceAll("'", "''"), iteration };
+      generatedTables.push(...replaceIterationTokens(template.tables || [], replacements));
+      sourceRanges.push(...replaceIterationTokens(template.source_ranges || [], replacements));
+      editableRanges.push(...replaceIterationTokens(template.editable_ranges || [], replacements));
+      formulaRanges.push(...replaceIterationTokens(template.formula_ranges || [], replacements));
+    }
+  }
+
+  return {
+    ...context,
+    editor_tables: [...staticTables, ...generatedTables],
+    source_ranges: [...new Set(sourceRanges)],
+    editable_ranges: [...new Set(editableRanges)],
+    formula_ranges: [...new Set(formulaRanges)],
+  };
+}
+
+async function getGoogleSheetTitles(accessToken, sheetId) {
+  const metadataUrl = new URL(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}`,
+  );
+  metadataUrl.searchParams.set("fields", "sheets.properties.title");
+  const response = await fetch(metadataUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    if ([401, 403].includes(response.status)) googleAccessTokenCache = null;
+    throw new AdminEditError("Unable to discover tournament sheet years.", 502);
+  }
+  return (data?.sheets || []).map((sheet) => sheet?.properties?.title).filter(Boolean);
+}
+
 function selectedTournamentEditorConfig(context, requestedViewKey) {
   const tables = context.editor_tables;
   const views = tournamentEditorViews(tables);
@@ -375,17 +450,22 @@ function selectedTournamentEditorConfig(context, requestedViewKey) {
     return { views, activeViewKey: "", tables, sourceRanges: context.source_ranges };
   }
 
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedViewKey) || !views.some((view) => view.key === requestedViewKey)) {
+  const resolvedViewKey = requestedViewKey === "latest"
+    ? [...views].sort((left, right) => Number(right.seasonValue || 0) - Number(left.seasonValue || 0))[0]?.key || ""
+    : requestedViewKey;
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(resolvedViewKey) || !views.some((view) => view.key === resolvedViewKey)) {
     throw new AdminEditError("Unknown tournament editor view.");
   }
-  const selectedTables = tables.filter((table) => table?.group_key === requestedViewKey);
+  const selectedTables = tables.filter((table) => table?.group_key === resolvedViewKey);
   const allowedSourceRanges = new Set(context.source_ranges);
   const sourceRanges = [...new Set(selectedTables.map((table) => String(table?.source_range || "").trim()))];
   if (!sourceRanges.length || sourceRanges.some((range) => !allowedSourceRanges.has(range))) {
     throw new AdminEditError("Tournament editor view configuration is incomplete.", 502);
   }
-  return { views, activeViewKey: requestedViewKey, tables: selectedTables, sourceRanges };
+  return { views, activeViewKey: resolvedViewKey, tables: selectedTables, sourceRanges };
 }
+
+export { expandTournamentIterations, selectedTournamentEditorConfig, validateAdminUpdates };
 
 export default {
   async fetch(request, env) {
@@ -503,7 +583,7 @@ export default {
       }
 
       const authorization = request.headers.get("Authorization") || "";
-      if (!/^Bearer\s+\S+$/i.test(authorization)) {
+      if (request.method === "POST" && !/^Bearer\s+\S+$/i.test(authorization)) {
         return json({ error: "Authentication required." }, 401, { "Cache-Control": "no-store" });
       }
 
@@ -515,8 +595,8 @@ export default {
 
           const context = await callAdminRpc(
             env,
-            authorization,
-            "get_tournament_admin_edit_context",
+            "",
+            "get_tournament_editor_read_context",
             { p_event_key: eventKey },
           );
           if (
@@ -528,8 +608,17 @@ export default {
           ) {
             throw new AdminEditError("Tournament configuration is incomplete.", 502);
           }
-          const editorConfig = selectedTournamentEditorConfig(context, requestedViewKey);
-          const accessToken = await getGoogleAccessToken(env);
+          let accessToken = null;
+          let expandedContext = context;
+          if (hasIterationTemplates(context.editor_tables)) {
+            accessToken = await getGoogleAccessToken(env);
+            expandedContext = expandTournamentIterations(
+              context,
+              await getGoogleSheetTitles(accessToken, context.sheet_id),
+            );
+          }
+          const editorConfig = selectedTournamentEditorConfig(expandedContext, requestedViewKey);
+          accessToken ||= await getGoogleAccessToken(env);
           const googleUrl = new URL(
             `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(context.sheet_id)}/values:batchGet`,
           );
@@ -551,8 +640,8 @@ export default {
               displayName: context.display_name,
               routePath: context.route_path,
               sourceRanges: editorConfig.sourceRanges,
-              editableRanges: context.editable_ranges,
-              formulaRanges: context.formula_ranges,
+              editableRanges: expandedContext.editable_ranges,
+              formulaRanges: expandedContext.formula_ranges,
               tables: editorConfig.tables,
               views: editorConfig.views,
               activeViewKey: editorConfig.activeViewKey,
@@ -580,8 +669,20 @@ export default {
           throw new AdminEditError("Tournament authorization is incomplete.", 502);
         }
 
-        const updates = validateAdminUpdates(body?.updates, authorizationResult.editable_ranges);
-        const accessToken = await getGoogleAccessToken(env);
+        let accessToken = null;
+        let expandedAuthorization = authorizationResult;
+        if (hasIterationTemplates(authorizationResult.editor_tables)) {
+          accessToken = await getGoogleAccessToken(env);
+          expandedAuthorization = expandTournamentIterations(
+            {
+              ...authorizationResult,
+              formula_ranges: authorizationResult.formula_ranges || [],
+            },
+            await getGoogleSheetTitles(accessToken, authorizationResult.sheet_id),
+          );
+        }
+        const updates = validateAdminUpdates(body?.updates, expandedAuthorization.editable_ranges);
+        accessToken ||= await getGoogleAccessToken(env);
         const action = await callAdminRpc(
           env,
           authorization,

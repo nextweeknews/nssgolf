@@ -13,6 +13,14 @@
     }, globalThis.location.origin);
   };
 
+  const notifyHeight = () => {
+    if(globalThis.parent === globalThis || !document.body) return;
+    globalThis.parent.postMessage({
+      type:"nssgolf-admin-size",
+      height:Math.max(document.body.scrollHeight, document.body.offsetHeight),
+    }, globalThis.location.origin);
+  };
+
   ["pushState", "replaceState"].forEach((method) => {
     const original = globalThis.history[method].bind(globalThis.history);
     globalThis.history[method] = (...args) => {
@@ -23,5 +31,10 @@
   });
 
   globalThis.addEventListener("popstate", notifyParent);
-  globalThis.addEventListener("DOMContentLoaded", notifyParent, { once:true });
+  globalThis.addEventListener("DOMContentLoaded", () => {
+    notifyParent();
+    notifyHeight();
+    new ResizeObserver(notifyHeight).observe(document.body);
+  }, { once:true });
+  globalThis.addEventListener("load", notifyHeight, { once:true });
 })();

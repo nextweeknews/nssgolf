@@ -43,18 +43,18 @@ Create and verify schema changes locally first. Before any approved hosted chang
 
 ### Tournament admin edit Worker
 
-The Sheets Worker exposes authenticated `GET /admin/tournament-results?eventKey=...` and `POST /admin/tournament-results` routes. Before deploying them:
+The Sheets Worker exposes a public read-only `GET /admin/tournament-results?eventKey=...` route and an authenticated `POST /admin/tournament-results` route. Before deploying them:
 
 1. Apply the pending Supabase tournament-admin migration.
 2. Enable the Google Sheets API and create a Google service account.
-3. Share the Masters and Championship spreadsheets with that service-account email as an Editor.
+3. Share each configured tournament spreadsheet with that service-account email as an Editor.
 4. Store `GOOGLE_API_KEY`, `YOUTUBE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` with `npx wrangler secret put NAME --config worker/wrangler.jsonc`. Do not place their values in the repository.
 
 Migrate the existing Google and YouTube plaintext bindings before the first repo-based deployment. The admin route uses the service account for both Sheets reads and writes; the legacy public read proxy continues to use `GOOGLE_API_KEY`. Admin authorization uses the caller's Supabase access token and the publishable project key.
 
 The source, editable-score, and formula ranges for the first rollout events are recorded in [the tournament admin edit range inventory](docs/tournament-admin-edit-ranges.md). The Worker accepts writes only within the configured editable-score ranges.
 
-Authenticated Discord admins can open `/admin/?section=results-editor&eventKey=masters` or `eventKey=championship` from the event page's top-bar **Edit** control. The `/admin/` dashboard also contains the other result editors and admin-only tools in one sidebar. The editor displays player and formula-backed context as read-only, batches only changed score cells through the Worker, and uses `set_tournament_result_archived()` to archive or unarchive an event. Public and non-admin users do not see the top-bar control, and both the dashboard and the editor GET/save requests remain independently authorized. Masters is initialized archived for the first production release and must be explicitly unarchived by an administrator before any score write can succeed.
+Authenticated Discord admins can open a configured event's results editor from its public-page top-bar **Edit** control or from the `/admin/` dashboard sidebar. The editor displays player and formula-backed context as read-only and batches only changed score cells through the Worker. Public and non-admin users do not see the top-bar control. The dashboard authorizes once on entry; public editor reads do not repeat that check, while every save remains independently authenticated and authorized.
 
 ## Discord Member Scan Bot
 

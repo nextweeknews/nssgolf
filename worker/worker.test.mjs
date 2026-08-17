@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { webcrypto } from "node:crypto";
 import test from "node:test";
 
-import worker from "./src/worker.mjs";
+import worker, { expandTournamentIterations, selectedTournamentEditorConfig, validateAdminUpdates } from "./src/worker.mjs";
 
 const originalFetch = globalThis.fetch;
 
@@ -164,7 +164,7 @@ test("keeps the existing JSON POST compatibility for Sheets reads", async () => 
   assert.deepEqual(await response.json(), { values: [[1, 2, 3]] });
 });
 
-test("requires a Supabase user token for the tournament results route", async () => {
+test("requires a Supabase user token for tournament result writes", async () => {
   const { env } = makeEnv();
   let upstreamCalled = false;
   globalThis.fetch = async () => {
@@ -173,13 +173,117 @@ test("requires a Supabase user token for the tournament results route", async ()
   };
 
   const response = await worker.fetch(
-    new Request("https://worker.example/admin/tournament-results?eventKey=masters"),
+    new Request("https://worker.example/admin/tournament-results", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ eventKey:"masters", updates:[] }),
+    }),
     env,
   );
 
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Authentication required." });
   assert.equal(upstreamCalled, false);
+});
+
+test("discovers year-named editor tabs and selects the latest iteration", () => {
+  const context = {
+    source_ranges:["'World Cup 2025'!A1:X120"],
+    editable_ranges:["'World Cup 2025'!V2:V120"],
+    formula_ranges:[],
+    editor_tables:[{
+      kind:"iteration-template",
+      sheet_pattern:"^World Cup (20\\d{2})$",
+      iteration_group:1,
+      source_ranges:["'{sheet}'!A1:X120"],
+      editable_ranges:["'{sheet}'!V2:V120"],
+      formula_ranges:["'{sheet}'!U2:U120"],
+      tables:[{
+        key:"bracket",
+        group_key:"worldcup-{iteration}",
+        group_label:"{iteration}",
+        season_value:"{iteration}",
+        season_label:"{iteration}",
+        source_range:"'{sheet}'!A1:X120",
+      }],
+    }],
+  };
+
+  const expanded = expandTournamentIterations(context, ["World Cup 2025", "Notes", "World Cup 2026"]);
+  const selected = selectedTournamentEditorConfig(expanded, "latest");
+
+  assert.equal(selected.activeViewKey, "worldcup-2026");
+  assert.deepEqual(selected.sourceRanges, ["'World Cup 2026'!A1:X120"]);
+  assert.ok(expanded.editable_ranges.includes("'World Cup 2026'!V2:V120"));
+  assert.ok(expanded.formula_ranges.includes("'World Cup 2026'!U2:U120"));
+  assert.deepEqual(
+    validateAdminUpdates([{ range:"'World Cup 2026'!V2", values:[[2]] }], expanded.editable_ranges)[0].values,
+    [[2]],
+  );
+  assert.throws(
+    () => validateAdminUpdates([{ range:"'World Cup 2027'!V2", values:[[2]] }], expanded.editable_ranges),
+    /outside this event's editable cells/,
+  );
+});
+
+test("loads a newly discovered tournament year through Google metadata", async () => {
+  const privateKey = await makeTestPrivateKeyPem();
+  const { env } = makeEnv({ bindings: {
+    GOOGLE_SERVICE_ACCOUNT_EMAIL:"iteration-reader@example.iam.gserviceaccount.com",
+    GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY:privateKey,
+  } });
+  globalThis.fetch = async (input) => {
+    const upstreamUrl = new URL(String(input));
+    if(upstreamUrl.hostname === "project.supabase.co"){
+      return Response.json([{
+        event_key:"worldcup",
+        display_name:"World Cup",
+        route_path:"/worldcup",
+        sheet_id:"worldcup-sheet",
+        source_ranges:["'World Cup 2025'!A1:X120"],
+        editable_ranges:["'World Cup 2025'!V2:V120"],
+        formula_ranges:[],
+        editor_tables:[{
+          kind:"iteration-template",
+          sheet_pattern:"^World Cup (20\\d{2})$",
+          iteration_group:1,
+          source_ranges:["'{sheet}'!A1:X120"],
+          editable_ranges:["'{sheet}'!V2:V120"],
+          formula_ranges:[],
+          tables:[{
+            key:"bracket", group_key:"worldcup-{iteration}", group_label:"{iteration}",
+            season_value:"{iteration}", season_label:"{iteration}", source_range:"'{sheet}'!A1:X120",
+          }],
+        }],
+        edit_enabled:true,
+        archived:false,
+        can_edit:true,
+        archived_at:null,
+      }]);
+    }
+    if(upstreamUrl.href === "https://oauth2.googleapis.com/token"){
+      return Response.json({ access_token:"iteration-read-token", expires_in:3600 });
+    }
+    if(upstreamUrl.pathname === "/v4/spreadsheets/worldcup-sheet"){
+      assert.equal(upstreamUrl.searchParams.get("fields"), "sheets.properties.title");
+      return Response.json({ sheets:[
+        { properties:{ title:"World Cup 2025" } },
+        { properties:{ title:"World Cup 2026" } },
+      ] });
+    }
+    assert.equal(upstreamUrl.pathname, "/v4/spreadsheets/worldcup-sheet/values:batchGet");
+    assert.deepEqual(upstreamUrl.searchParams.getAll("ranges"), ["'World Cup 2026'!A1:X120"]);
+    return Response.json({ valueRanges:[{ range:"'World Cup 2026'!A1:X120", values:[] }] });
+  };
+
+  const response = await worker.fetch(new Request(
+    "https://worker.example/admin/tournament-results?eventKey=worldcup&viewKey=latest",
+  ), env);
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.event.activeViewKey, "worldcup-2026");
+  assert.ok(payload.event.editableRanges.includes("'World Cup 2026'!V2:V120"));
 });
 
 test("loads tournament action logs through the authenticated admin RPC", async () => {
@@ -258,7 +362,8 @@ test("loads canonical admin event ranges without caching", async () => {
     upstreamUrls.push(upstreamUrl);
 
     if (upstreamUrl.hostname === "project.supabase.co") {
-      assert.equal(init.headers.Authorization, "Bearer user-token");
+      assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/get_tournament_editor_read_context");
+      assert.equal(init.headers.Authorization, "Bearer test-publishable-key");
       assert.equal(init.headers.apikey, "test-publishable-key");
       assert.deepEqual(JSON.parse(init.body), { p_event_key: "masters" });
       return Response.json([{
@@ -294,9 +399,7 @@ test("loads canonical admin event ranges without caching", async () => {
   };
 
   const response = await worker.fetch(
-    new Request("https://worker.example/admin/tournament-results?eventKey=masters", {
-      headers: { Authorization: "Bearer user-token" },
-    }),
+    new Request("https://worker.example/admin/tournament-results?eventKey=masters"),
     env,
   );
 

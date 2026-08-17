@@ -41,6 +41,19 @@ test("maps only supported tournament pages to the editor", () => {
     tournamentEditorUrlForPath("/superleague/", "?season=7&page=qualifiers"),
     "/admin/?section=results-editor&eventKey=superleague&season=7&view=qualifiers",
   );
+  assert.equal(
+    tournamentEditorUrlForPath("/worldopen/index.html", "?round=5"),
+    "/admin/?section=results-editor&eventKey=worldopen&view=round-5",
+  );
+  assert.equal(
+    tournamentEditorUrlForPath("/lightningcup/", "?view=results&region=wuhu-island"),
+    "/admin/?section=results-editor&eventKey=lightningcup&view=wuhu-island",
+  );
+  assert.equal(tournamentEditorUrlForPath("/noptational.html"), "/admin/?section=results-editor&eventKey=noptational");
+  assert.equal(
+    tournamentEditorUrlForPath("/worldcup.html", "?year=2024&tab=bracket"),
+    "/admin/?section=results-editor&eventKey=worldcup&year=2024&view=bracket-stage",
+  );
   assert.equal(tournamentEditorUrlForPath("/index.html"), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", false), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", true), "/admin/?section=results-editor&eventKey=masters");
@@ -74,6 +87,20 @@ test("selects a player filter token before Backspace removes it", () => {
     armedName: "",
     removeName: "Ricardo",
   });
+});
+
+test("keeps both player slots when a selected player is in a 1v1 matchup", () => {
+  const rows = [
+    { sourceRow: 2, playerName: "Aidan" },
+    { sourceRow: 2, playerName: "Ricardo" },
+    { sourceRow: 3, playerName: "Nick" },
+    { sourceRow: 3, playerName: "Jon" },
+  ];
+
+  assert.equal(isEditorRowSelected(rows[0], new Map(), ["ricardo"], rows), true);
+  assert.equal(isEditorRowSelected(rows[1], new Map(), ["ricardo"], rows), true);
+  assert.equal(isEditorRowSelected(rows[2], new Map(), ["ricardo"], rows), false);
+  assert.equal(isEditorRowSelected(rows[3], new Map(), ["ricardo"], rows), false);
 });
 
 test("uses the server-authorized admin RPC for top-bar access", async () => {
@@ -203,6 +230,55 @@ test("preserves editor tab metadata and excludes non-player sheet rows", () => {
   assert.equal(tables[0].groupLabel, "Stage 1");
   assert.deepEqual(tables[0].rows.map((row) => row.sourceRow), [5, 6, 7, 8, 10]);
   assert.equal(tables[0].hasResult, false);
+});
+
+test("builds horizontally paired rows from offset sheet rows", () => {
+  const [table] = buildEditorTables({ tables:[{
+    key:"group-games",
+    source_range:"'World Cup 2025'!E1:K8",
+    data_start_row:2,
+    data_end_row:8,
+    included_rows:[2, 5, 8],
+    context_block:{ column:"E", start_row:2, block_size:6 },
+    matchup_layout:true,
+    round_labels:["Pts"],
+    players:[
+      { name_column:"J", round_score_columns:["K"] },
+      { name_column:"J", round_score_columns:["K"], row_offset:1 },
+    ],
+  }] }, [{
+    range:"'World Cup 2025'!E1:K8",
+    values:[
+      [], ["Group A", "", "", "", "", "USA A", 2], ["USA A", "", "", "", "", "USA B", 0],
+      [], ["USA C", "", "", "", "", "USA C", 1], ["USA D", "", "", "", "", "USA D", 1],
+      [], ["Group B", "", "", "", "", "Taiwan", 2],
+    ],
+  }]);
+
+  assert.equal(table.matchupLayout, true);
+  assert.deepEqual(table.rows.map((row) => row.sourceRow), [2, 2, 5, 5, 8, 8]);
+  assert.deepEqual(table.rows.slice(0, 2).map((row) => [row.context[0], row.playerName, row.roundScores[0].range]), [
+    ["Group A", "USA A", "'World Cup 2025'!K2"],
+    ["Group A", "USA B", "'World Cup 2025'!K3"],
+  ]);
+  assert.equal(table.rows[0].roundScores[0].label, "Pts");
+});
+
+test("filters and strides template-discovered tournament rows", () => {
+  const [table] = buildEditorTables({ tables:[{
+    key:"standings",
+    source_range:"'World Cup 2026'!E1:H8",
+    data_start_row:2,
+    data_end_row:8,
+    row_stride:2,
+    row_filter:{ column:"E", nonempty:true, exclude_pattern:"^Group\\s" },
+    players:[{ name_column:"E", round_score_columns:["F"] }],
+  }] }, [{
+    range:"'World Cup 2026'!E1:H8",
+    values:[[], ["Group A"], [], ["USA", 3], [], [""], [], ["Canada", 1]],
+  }]);
+
+  assert.deepEqual(table.rows.map((row) => [row.sourceRow, row.playerName]), [[4, "USA"], [8, "Canada"]]);
 });
 
 test("uses Super League tab metadata within a season view", () => {

@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { getTournamentAdminFlag } from "/admin/tournament-results-core.mjs?v=20260817-superleague-formulas";
-import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260817-admin-dashboard";
+import { getTournamentAdminFlag } from "/admin/tournament-results-core.mjs?v=20260817-all-years";
+import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260817-all-years";
 
 const supabase = createBrowserSupabaseClient();
 const loading = document.getElementById("adminLoading");
@@ -12,6 +12,9 @@ const frame = document.getElementById("adminFrame");
 const frameLoading = document.getElementById("adminFrameLoading");
 const breadcrumbGroup = document.getElementById("adminBreadcrumbGroup");
 const breadcrumbPage = document.getElementById("adminBreadcrumbPage");
+const headerActions = document.getElementById("adminHeaderActions");
+const publicPageLink = document.getElementById("adminPublicPageLink");
+const googleSheetLink = document.getElementById("adminGoogleSheetLink");
 const resultsParent = document.getElementById("resultsEditorToggle");
 const resultsChildren = document.getElementById("resultsEditorChildren");
 
@@ -33,6 +36,7 @@ function renderNavigation(route){
     link.className = "admin-nav-item";
     link.href = adminUrl("results-editor", { eventKey:event.key });
     link.textContent = event.label;
+    link.style.setProperty("--event-color", event.color);
     if(route.section === "results-editor" && route.eventKey === event.key) link.setAttribute("aria-current", "page");
     return link;
   }));
@@ -61,6 +65,11 @@ function applyRoute({ historyMode = "replace", reloadFrame = true } = {}){
   renderNavigation(route);
   breadcrumbGroup.textContent = route.groupLabel;
   breadcrumbPage.textContent = route.label;
+  headerActions.hidden = route.section !== "results-editor";
+  if(route.section === "results-editor"){
+    publicPageLink.href = route.publicUrl;
+    googleSheetLink.href = route.sheetUrl;
+  }
   document.title = `${route.label} | NSS Golf Admin`;
   frame.title = route.label;
   if(reloadFrame && frame.getAttribute("src") !== route.frameUrl){
@@ -96,7 +105,9 @@ document.addEventListener("keydown", (event) => {
 frame.addEventListener("load", () => { frameLoading.hidden = true; });
 globalThis.addEventListener("popstate", () => applyRoute());
 globalThis.addEventListener("message", (event) => {
-  if(event.origin !== globalThis.location.origin || event.source !== frame.contentWindow || event.data?.type !== "nssgolf-admin-route") return;
+  if(event.origin !== globalThis.location.origin || event.source !== frame.contentWindow) return;
+  if(event.data?.type === "nssgolf-admin-size") return;
+  if(event.data?.type !== "nssgolf-admin-route") return;
   const nextUrl = routeFromEmbeddedPage(event.data.pathname, event.data.search);
   if(nextUrl && nextUrl !== `${globalThis.location.pathname}${globalThis.location.search}`){
     globalThis.history.replaceState(null, "", nextUrl);
