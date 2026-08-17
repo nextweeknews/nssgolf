@@ -292,7 +292,7 @@ function createBracketMatchupTable(table, visibleRows){
     appendHeaderCell(headerRow, isPromotions ? "Round" : "Week");
     appendHeaderCell(headerRow, "Division");
   }else{
-    appendHeaderCell(headerRow, isWinners ? "Round" : "Match / source");
+    appendHeaderCell(headerRow, !isSuperLeague || isWinners ? "Round" : "Match / source");
   }
   appendBracketPlayerHeaders(headerRow, table, 1, showSeed);
   appendBracketPlayerHeaders(headerRow, table, 2, showSeed);
