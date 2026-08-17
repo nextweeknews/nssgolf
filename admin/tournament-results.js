@@ -405,6 +405,14 @@ function renderPlayerFilterOptions(){
   playerFilterInput.setAttribute("aria-expanded", String(matches.length > 0));
 }
 
+function updatePlayerFilterPlaceholder(){
+  playerFilterInput.placeholder = (
+    document.activeElement === playerFilterInput
+    || playerFilterInput.value
+    || state.selectedPlayers.size
+  ) ? "" : "Filter by individual players";
+}
+
 function renderPlayerFilter(scrollToEnd = false){
   if(!state.selectedPlayers.has(state.armedPlayerFilter)) state.armedPlayerFilter = "";
   playerFilterChips.replaceChildren(...[...state.selectedPlayers.values()].map((name) => {
@@ -422,6 +430,7 @@ function renderPlayerFilter(scrollToEnd = false){
     return chip;
   }));
   playerFilterClear.hidden = !state.selectedPlayers.size;
+  updatePlayerFilterPlaceholder();
   renderPlayerFilterOptions();
   if(scrollToEnd) playerFilterEntry.scrollLeft = playerFilterEntry.scrollWidth;
 }
@@ -587,6 +596,7 @@ tablesMount.addEventListener("input", (event) => {
 });
 
 playerFilterInput.addEventListener("input", () => {
+  updatePlayerFilterPlaceholder();
   if(state.armedPlayerFilter){
     state.armedPlayerFilter = "";
     renderPlayerFilter();
@@ -594,6 +604,8 @@ playerFilterInput.addEventListener("input", () => {
     renderPlayerFilterOptions();
   }
 });
+playerFilterInput.addEventListener("focus", updatePlayerFilterPlaceholder);
+playerFilterInput.addEventListener("blur", updatePlayerFilterPlaceholder);
 playerFilterInput.addEventListener("keydown", (event) => {
   if(event.key === "Escape"){
     hidePlayerFilterOptions();
