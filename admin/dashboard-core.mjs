@@ -143,13 +143,14 @@ export function parseAdminRoute(search = ""){
     const frameParams = new URLSearchParams({ eventKey });
     copyIfPresent(params, frameParams, ["view", "season", "stage", "year"]);
     frameParams.set("embed", "1");
+    frameParams.set("v", "20260817-player-order");
     return {
       section,
       eventKey,
       groupLabel:"Results Editor",
       label:event.label,
       frameUrl:`/admin/tournament-results.html?${frameParams}`,
-      canonicalUrl:adminUrl(section, Object.fromEntries([...frameParams].filter(([key]) => key !== "embed"))),
+      canonicalUrl:adminUrl(section, Object.fromEntries([...frameParams].filter(([key]) => !["embed", "v"].includes(key)))),
       publicUrl:tournamentPublicUrl(eventKey, params),
       sheetUrl:`https://docs.google.com/spreadsheets/d/${event.sheetId}/edit`,
     };
@@ -160,6 +161,7 @@ export function parseAdminRoute(search = ""){
   if(section === "event-signups") copyIfPresent(params, frameParams, ["event"]);
   if(section === "championship-points") frameParams.set("view", "settings");
   frameParams.set("embed", "1");
+  if(section === "action-logs") frameParams.set("v", "20260817-no-description");
   return {
     section,
     eventKey:"",
