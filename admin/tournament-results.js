@@ -444,6 +444,7 @@ function addPlayerFilter(name){
   hidePlayerFilterOptions();
   renderPlayerFilter(true);
   renderTables();
+  playerFilterInput.focus();
 }
 
 function removePlayerFilter(name){
