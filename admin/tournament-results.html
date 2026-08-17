@@ -37,14 +37,13 @@
       <div class="editor-page-head">
         <h1 class="editor-title" id="editorTitle">Tournament results</h1>
         <div class="editor-head-actions">
-          <span class="editor-dirty-count" id="editorDirtyCount">No unsaved changes</span>
+          <span class="editor-dirty-count" id="editorDirtyCount" aria-live="polite">No unsaved changes</span>
           <button class="editor-button" id="editorResetBtn" type="button" disabled>Reset</button>
           <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save changes</button>
         </div>
       </div>
 
       <div class="editor-body">
-        <p class="editor-status" id="editorStatus" aria-live="polite"></p>
         <div class="editor-period-controls" id="editorPeriodControls" aria-label="Tournament period controls" hidden>
           <div class="editor-player-filter" id="editorPlayerFilter">
             <div class="editor-player-filter-field" id="editorPlayerFilterField">
@@ -74,6 +73,6 @@
   </main>
 
   <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
-  <script type="module" src="/admin/tournament-results.js?v=20260817-player-order"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260817-status-messages"></script>
 </body>
 </html>

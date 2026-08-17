@@ -44,7 +44,7 @@ test("maps every standalone admin surface into the dashboard frame", () => {
 test("preserves result editor and signup subview state in the dashboard URL", () => {
   assert.equal(
     parseAdminRoute("?section=results-editor&eventKey=proleague&season=7&stage=3").frameUrl,
-    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260817-player-order",
+    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260817-status-messages",
   );
   assert.equal(
     routeFromEmbeddedPage("/admin/tournament-results.html", "?eventKey=proleague&season=7&stage=3&embed=1"),

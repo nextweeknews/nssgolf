@@ -35,7 +35,6 @@ const pageTitle = document.getElementById("editorTitle");
 const saveButton = document.getElementById("editorSaveBtn");
 const resetButton = document.getElementById("editorResetBtn");
 const dirtyCount = document.getElementById("editorDirtyCount");
-const editorStatus = document.getElementById("editorStatus");
 const viewTabs = document.getElementById("editorViewTabs");
 const tablesMount = document.getElementById("editorTables");
 const periodControls = document.getElementById("editorPeriodControls");
@@ -62,6 +61,10 @@ const state = {
   addedPlayerRows: new Set(),
   saving: false,
 };
+
+let editorMessage = "";
+let editorMessageTone = "";
+let editorMessageTimer = 0;
 
 const EVENT_ACCENT_RGB = {
   masters:"250,204,21",
@@ -94,8 +97,17 @@ function setAccessStatus(message, tone = ""){
 }
 
 function setEditorStatus(message, tone = ""){
-  editorStatus.textContent = message || "";
-  editorStatus.className = `editor-status ${tone}`.trim();
+  clearTimeout(editorMessageTimer);
+  editorMessage = message || "";
+  editorMessageTone = tone;
+  updateActions();
+  if(editorMessage && tone === "success"){
+    editorMessageTimer = setTimeout(() => {
+      editorMessage = "";
+      editorMessageTone = "";
+      updateActions();
+    }, 2500);
+  }
 }
 
 function errorMessage(data, fallback){
@@ -140,8 +152,10 @@ function updateActions(){
   const locked = !state.event?.canEdit || state.saving;
   const cellText = count ? `${count} unsaved ${count === 1 ? "cell" : "cells"}` : "";
   const rowText = addedCount ? `${addedCount} new player ${addedCount === 1 ? "row" : "rows"}` : "";
-  dirtyCount.textContent = [cellText, rowText].filter(Boolean).join(" · ") || "No unsaved changes";
-  dirtyCount.classList.toggle("has-changes", count > 0 || addedCount > 0);
+  dirtyCount.textContent = editorMessage || [cellText, rowText].filter(Boolean).join(" · ") || "No unsaved changes";
+  dirtyCount.classList.toggle("has-changes", !editorMessage && (count > 0 || addedCount > 0));
+  dirtyCount.classList.toggle("error", editorMessageTone === "error");
+  dirtyCount.classList.toggle("success", editorMessageTone === "success");
   saveButton.disabled = locked || (!count && !addedCount);
   resetButton.disabled = state.saving || (!count && !addedCount);
 
@@ -1053,7 +1067,7 @@ resetButton.addEventListener("click", () => {
   allEditableCells().forEach((cell) => state.currentValues.set(cell.range, cell.initialValue));
   state.addedPlayerRows.clear();
   renderEditor();
-  setEditorStatus("Unsaved changes reset.");
+  setEditorStatus("Unsaved changes reset.", "success");
 });
 
 function prepareAddedPlayerRowsForSave(){
@@ -1124,7 +1138,7 @@ saveButton.addEventListener("click", async () => {
   if(!prepared.valid) return;
   const updates = buildUpdates(state.tables, state.currentValues);
   if(!updates.length){
-    if(prepared.removedBlankRow) setEditorStatus("Empty player row removed.");
+    if(prepared.removedBlankRow) setEditorStatus("Empty player row removed.", "success");
     return;
   }
   const changedCellCount = dirtyCells().length;
@@ -1168,7 +1182,7 @@ tablesMount.addEventListener("click", (event) => {
   state.addedPlayerRows.add(row.key);
   renderEditor();
   tablesMount.querySelector(`tr[data-source-row="${row.sourceRow}"] input[data-player-name-range]`)?.focus();
-  setEditorStatus(`New player row added at sheet row ${row.sourceRow}.`);
+  setEditorStatus(`New player row added at sheet row ${row.sourceRow}.`, "success");
 });
 
 seasonSelect.addEventListener("change", () => {

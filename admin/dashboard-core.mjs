@@ -143,7 +143,7 @@ export function parseAdminRoute(search = ""){
     const frameParams = new URLSearchParams({ eventKey });
     copyIfPresent(params, frameParams, ["view", "season", "stage", "year"]);
     frameParams.set("embed", "1");
-    frameParams.set("v", "20260817-player-order");
+    frameParams.set("v", "20260817-status-messages");
     return {
       section,
       eventKey,

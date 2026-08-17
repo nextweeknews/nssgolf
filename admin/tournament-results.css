@@ -154,6 +154,8 @@ html.admin-embedded .editor-access-panel.is-loading{ min-height:100vh; }
   white-space:nowrap;
 }
 .editor-dirty-count.has-changes{ color:#fde68a; }
+.editor-dirty-count.error{ color:#fca5a5; }
+.editor-dirty-count.success{ color:#86efac; }
 .editor-status{
   min-height:20px;
   margin:12px 0 0;

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import {
   addedPlayerRowSaveState,
   bracketRoundLabel,
@@ -117,6 +118,17 @@ test("orders filtered player rows by the selection input order", () => {
     orderEditorRowsByPlayerSelection(rows, new Map(), ["Ricardo", "Aidan"]).map((row) => row.playerName),
     ["Ricardo", "Aidan", "Nick"],
   );
+});
+
+test("reuses the dirty-state label for transient editor feedback", async () => {
+  const [html, script] = await Promise.all([
+    readFile(new URL("./tournament-results.html", import.meta.url), "utf8"),
+    readFile(new URL("./tournament-results.js", import.meta.url), "utf8"),
+  ]);
+
+  assert.doesNotMatch(html, /id="editorStatus"/);
+  assert.match(html, /id="editorDirtyCount" aria-live="polite"/);
+  assert.match(script, /if\(editorMessage && tone === "success"\)[\s\S]+}, 2500\);/);
 });
 
 test("uses the server-authorized admin RPC for top-bar access", async () => {
