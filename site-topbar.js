@@ -1,5 +1,5 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
-import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-superleague-periods";
+import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260817-admin-dashboard";
 import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
 import { playerUrlPathForSlug } from "/settings-data.js";
 
@@ -24,6 +24,8 @@ const PAGE_NAV_GROUPS = [
   ],
 ];
 const PRIVATE_AFTER_LOGOUT_PATHS = new Set([
+  "/admin",
+  "/admin/",
   "/admin-settings.html",
   "/admin/tournament-results",
   "/admin/tournament-results.html",
@@ -278,7 +280,7 @@ function ensureTopbarMenu(){
 
   const adminSettings = createMenuButton({
     id: "adminSettingsBtn",
-    text: "Admin actions",
+    text: "Admin",
     icon: [
       "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.81 17 5 19 5a1 1 0 0 1 1 1v7Z",
       "m9 12 2 2 4-4",
@@ -448,7 +450,7 @@ async function renderTopbarAuth(){
   const adminSettings = menu.querySelector("#adminSettingsBtn");
   const isAdmin = await getTournamentAdminFlag(supabase);
   adminSettings.hidden = !isAdmin;
-  adminSettings.dataset.settingsUrl = "/admin-settings.html";
+  adminSettings.dataset.settingsUrl = "/admin/";
 
   const tournamentEditorUrl = tournamentEditorUrlForUser(
     globalThis.location?.pathname,

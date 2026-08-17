@@ -83,7 +83,7 @@ export function tournamentEditorUrlForPath(pathname, search = ""){
     if(/^[67]$/.test(season || "")) editorParams.set("season", season);
     if(["season", "qualifiers", "promotions"].includes(page)) editorParams.set("view", page);
   }
-  return `/admin/tournament-results.html?${editorParams}`;
+  return `/admin/?section=results-editor&${editorParams}`;
 }
 
 export function tournamentEditorUrlForUser(pathname, isAdmin, search = ""){

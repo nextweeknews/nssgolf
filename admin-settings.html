@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Admin Actions | NSS Golf</title>
+  <title>Custom Player URLs | NSS Golf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
   <link rel="stylesheet" href="/settings-page.css?v=baffa45483fa" />
+  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-dashboard" />
+  <script src="/admin/dashboard-embed.js?v=20260817-admin-dashboard"></script>
 </head>
 <body>
   <header class="topbar">
@@ -17,11 +19,11 @@
         <a class="settings-home-btn" href="/index.html" aria-label="NSS Golf home">
           <img src="/logos/golf.png" alt="" />
         </a>
-        <div class="topbar-page-title" aria-label="Admin Actions">
+        <div class="topbar-page-title" aria-label="Custom Player URLs">
           <svg class="topbar-page-title-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.81 17 5 19 5a1 1 0 0 1 1 1v7Z"></path>
           </svg>
-          <span>Admin Actions</span>
+          <span>Custom Player URLs</span>
         </div>
       </div>
     </div>
@@ -29,12 +31,9 @@
 
   <main class="settings-main">
     <section class="settings-card" aria-labelledby="admin-title">
-      <h1 class="settings-title" id="admin-title">Admin Actions</h1>
+      <h1 class="settings-title" id="admin-title">Custom Player URLs</h1>
       <div class="settings-actions admin-action-links">
-        <a class="settings-button secondary" href="/build.html">Build</a>
-        <a class="settings-button secondary" href="/championship.html?view=admin-results">Championship Results</a>
-        <a class="settings-button secondary" href="/championship.html?view=settings">Championship Points</a>
-        <a class="settings-button secondary" href="/event-signups.html">Event Signups</a>
+        <a class="settings-button secondary" href="/admin/">Admin dashboard</a>
       </div>
       <div class="settings-actions" id="adminLoginActions" hidden>
         <button class="settings-button" id="adminLoginBtn" type="button">Log In With Discord</button>
@@ -53,7 +52,7 @@
     </section>
   </main>
 
-  <script type="module" src="/site-topbar.js?v=5bc766e0a565"></script>
+  <script type="module" src="/site-topbar.js?v=c370cc304844"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
     import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";

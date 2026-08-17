@@ -24,26 +24,26 @@ import {
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "../proleague/team-presentation.mjs";
 
 test("maps only supported tournament pages to the editor", () => {
-  assert.equal(tournamentEditorUrlForPath("/masters.html"), "/admin/tournament-results.html?eventKey=masters");
+  assert.equal(tournamentEditorUrlForPath("/masters.html"), "/admin/?section=results-editor&eventKey=masters");
   assert.equal(
     tournamentEditorUrlForPath("/masters.html", "?view=qualifiers"),
-    "/admin/tournament-results.html?eventKey=masters&view=qualifiers",
+    "/admin/?section=results-editor&eventKey=masters&view=qualifiers",
   );
-  assert.equal(tournamentEditorUrlForPath("/masters.html", "?view=unknown"), "/admin/tournament-results.html?eventKey=masters");
-  assert.equal(tournamentEditorUrlForPath("/championship"), "/admin/tournament-results.html?eventKey=championship");
-  assert.equal(tournamentEditorUrlForPath("/proleague/index.html"), "/admin/tournament-results.html?eventKey=proleague");
+  assert.equal(tournamentEditorUrlForPath("/masters.html", "?view=unknown"), "/admin/?section=results-editor&eventKey=masters");
+  assert.equal(tournamentEditorUrlForPath("/championship"), "/admin/?section=results-editor&eventKey=championship");
+  assert.equal(tournamentEditorUrlForPath("/proleague/index.html"), "/admin/?section=results-editor&eventKey=proleague");
   assert.equal(
     tournamentEditorUrlForPath("/proleague/index.html", "?season=7&stage=3"),
-    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3",
+    "/admin/?section=results-editor&eventKey=proleague&season=7&stage=3",
   );
-  assert.equal(tournamentEditorUrlForPath("/superleague/"), "/admin/tournament-results.html?eventKey=superleague");
+  assert.equal(tournamentEditorUrlForPath("/superleague/"), "/admin/?section=results-editor&eventKey=superleague");
   assert.equal(
     tournamentEditorUrlForPath("/superleague/", "?season=7&page=qualifiers"),
-    "/admin/tournament-results.html?eventKey=superleague&season=7&view=qualifiers",
+    "/admin/?section=results-editor&eventKey=superleague&season=7&view=qualifiers",
   );
   assert.equal(tournamentEditorUrlForPath("/index.html"), "");
   assert.equal(tournamentEditorUrlForUser("/masters.html", false), "");
-  assert.equal(tournamentEditorUrlForUser("/masters.html", true), "/admin/tournament-results.html?eventKey=masters");
+  assert.equal(tournamentEditorUrlForUser("/masters.html", true), "/admin/?section=results-editor&eventKey=masters");
 });
 
 test("maps Super League seasons, tabs, and division styles", () => {

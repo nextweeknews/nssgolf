@@ -33,6 +33,7 @@
     "sync:player-shell": "node scripts/sync-player-shell.js --write",
     "test:supabase-admin": "supabase test db --local supabase/tests/tournament_admin_edit_rpc.sql",
     "test:tournament-editor": "node --test admin/tournament-results-core.test.mjs",
+    "test:admin-dashboard": "node --test admin/dashboard-core.test.mjs",
     "test:worker": "node --test worker/worker.test.mjs",
     "test:global-ranks": "node bot/global-ranks-core.test.js",
     "test:internal-ranked": "node bot/internal-ranked-core.test.js && node bot/internal-ranked.test.js && node bot/combined-gpi.test.js",

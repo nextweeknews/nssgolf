@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;950&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
   <link rel="stylesheet" href="/settings-page.css?v=baffa45483fa" />
+  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-dashboard" />
+  <script src="/admin/dashboard-embed.js?v=20260817-admin-dashboard"></script>
 </head>
 <body>
   <header class="topbar">
@@ -37,7 +39,7 @@
           <p class="settings-kicker">Admin Actions</p>
           <h1 class="settings-title" id="eventSignupsTitle">Event Signups</h1>
         </div>
-        <a class="settings-button secondary" href="/admin-settings.html">Admin Actions</a>
+        <a class="settings-button secondary" href="/admin/" target="_top">Admin dashboard</a>
       </div>
 
       <div class="settings-actions" id="adminLoginActions" hidden>
@@ -69,7 +71,7 @@
     </section>
   </main>
 
-  <script type="module" src="/site-topbar.js?v=5bc766e0a565"></script>
+  <script type="module" src="/site-topbar.js?v=c370cc304844"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
     import { ADMIN_ROLE_ID } from "/settings-data.js";

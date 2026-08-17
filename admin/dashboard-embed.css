@@ -1,0 +1,32 @@
+html.admin-embedded,
+html.admin-embedded body{
+  min-height:0;
+  background:transparent;
+  background-image:none;
+}
+html.admin-embedded .topbar,
+html.admin-embedded .admin-action-links,
+html.admin-embedded .card-head,
+html.admin-embedded .champ-tabs,
+html.admin-embedded .settings-page-head > .settings-button,
+html.admin-embedded .builder-toolbar > .settings-button,
+html.admin-embedded .editor-head-actions > a[href^="/admin/action-logs"],
+html.admin-embedded #logsPanel .editor-head-actions{
+  display:none !important;
+}
+html.admin-embedded .settings-main,
+html.admin-embedded .editor-main,
+html.admin-embedded .container{
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:0;
+}
+html.admin-embedded .settings-card,
+html.admin-embedded .editor-card,
+html.admin-embedded .card{
+  box-shadow:none;
+}
+html.admin-embedded .settings-page-head{
+  margin-bottom:18px;
+}
