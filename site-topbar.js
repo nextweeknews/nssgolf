@@ -1,6 +1,7 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { getTournamentAdminFlag, tournamentEditorUrlForUser } from "/admin/tournament-results-core.mjs?v=20260816-step10";
 import { RANKED_LEAGUE_TEAMUP_URL } from "/config.js";
-import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
+import { playerUrlPathForSlug } from "/settings-data.js";
 
 const supabase = createBrowserSupabaseClient();
 const LOGOUT_HOME_PATH = "/lightningcup/index.html";
@@ -24,6 +25,8 @@ const PAGE_NAV_GROUPS = [
 ];
 const PRIVATE_AFTER_LOGOUT_PATHS = new Set([
   "/admin-settings.html",
+  "/admin/tournament-results",
+  "/admin/tournament-results.html",
   "/build.html",
   "/player-settings.html",
 ]);
@@ -208,6 +211,13 @@ function ensureTopbarMenu(){
   greeting.className = "user-greeting";
   greeting.id = "topbarUserGreeting";
 
+  const tournamentEditLink = document.createElement("a");
+  tournamentEditLink.className = "topbar-edit-link";
+  tournamentEditLink.id = "topbarTournamentEditLink";
+  tournamentEditLink.textContent = "Edit";
+  tournamentEditLink.setAttribute("aria-label", "Edit tournament results");
+  tournamentEditLink.hidden = true;
+
   const button = document.createElement("button");
   button.className = "user-menu-button";
   button.id = "topbarUserMenuBtn";
@@ -277,7 +287,7 @@ function ensureTopbarMenu(){
   });
 
   dropdown.append(viewPlayer, playerSettings, adminSettings, divider, logout);
-  menu.append(greeting, button, dropdown);
+  menu.append(tournamentEditLink, greeting, button, dropdown);
   topbarInner.appendChild(menu);
   return menu;
 }
@@ -332,24 +342,6 @@ async function getProfileForUser(user){
   }
 }
 
-async function playerHasAdminRole(discordId){
-  const cleanDiscordId = normalizeDiscordId(discordId);
-  if(!cleanDiscordId) return false;
-
-  try{
-    const { data, error } = await supabase
-      .from("discord_member_roles")
-      .select("role_id")
-      .eq("discord_user_id", cleanDiscordId)
-      .eq("role_id", ADMIN_ROLE_ID)
-      .maybeSingle();
-    if(error) return false;
-    return !!data;
-  }catch{
-    return false;
-  }
-}
-
 async function getApprovedPlayerUrl(discordId){
   const cleanDiscordId = normalizeDiscordId(discordId);
   if(!cleanDiscordId) return "";
@@ -376,6 +368,9 @@ async function renderTopbarAuth(){
   const { data } = await supabase.auth.getSession();
   const session = data?.session || null;
   if(!session?.user){
+    const tournamentEditLink = menu.querySelector("#topbarTournamentEditLink");
+    tournamentEditLink.hidden = true;
+    tournamentEditLink.removeAttribute("href");
     menu.hidden = true;
     menu.classList.remove("is-visible");
     setMenuOpen(menu, false);
@@ -434,9 +429,18 @@ async function renderTopbarAuth(){
   playerSettings.dataset.settingsUrl = "/player-settings.html";
 
   const adminSettings = menu.querySelector("#adminSettingsBtn");
-  const isAdmin = await playerHasAdminRole(discordId);
+  const isAdmin = await getTournamentAdminFlag(supabase);
   adminSettings.hidden = !isAdmin;
   adminSettings.dataset.settingsUrl = "/admin-settings.html";
+
+  const tournamentEditLink = menu.querySelector("#topbarTournamentEditLink");
+  const tournamentEditorUrl = tournamentEditorUrlForUser(globalThis.location?.pathname, isAdmin);
+  tournamentEditLink.hidden = !tournamentEditorUrl;
+  if(tournamentEditorUrl){
+    tournamentEditLink.href = tournamentEditorUrl;
+  }else{
+    tournamentEditLink.removeAttribute("href");
+  }
 
   menu.hidden = false;
   menu.classList.add("is-visible");

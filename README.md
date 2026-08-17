@@ -21,11 +21,40 @@ The ranked and tournament GPI refresh is automated every Monday at 00:00 UTC. Se
 </script>
 ```
 
+## Local Supabase development
+
+This repository is linked to Supabase project `kwaprkwemtxizorpnrzq`. The local stack uses the dedicated `5452x` port block so it can run alongside other Supabase projects on this machine.
+
+```sh
+supabase start
+supabase migration new descriptive_name
+supabase db reset --local
+supabase migration list --local
+npm run test:supabase-admin
+```
+
+Create and verify schema changes locally first. Before any approved hosted change, inspect `supabase db push --linked --dry-run`; do not run a non-dry-run push until the migration has been reviewed. Supabase CLI authentication remains in the native credential store, and secrets must not be committed to this repository.
+
 ## Team Up H2H Proxy
 
 - Lightning Cup match popovers now load ranked head-to-head data from the external Cloudflare Worker at `https://empty-poetry-4be0.nextweekmedia.workers.dev/`.
 - This repo remains GitHub Pages compatible because the Team Up proxy is no longer hosted from repo-local functions.
 - Store the Team Up secret only in the Cloudflare Worker secret named `NSSGOLF_TEAMUP_API_KEY`. Do not expose it via browser JavaScript or a public runtime config block.
+
+### Tournament admin edit Worker
+
+The Sheets Worker exposes authenticated `GET /admin/tournament-results?eventKey=...` and `POST /admin/tournament-results` routes. Before deploying them:
+
+1. Apply the pending Supabase tournament-admin migration.
+2. Enable the Google Sheets API and create a Google service account.
+3. Share the Masters and Championship spreadsheets with that service-account email as an Editor.
+4. Store `GOOGLE_API_KEY`, `YOUTUBE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` with `npx wrangler secret put NAME --config worker/wrangler.jsonc`. Do not place their values in the repository.
+
+Migrate the existing Google and YouTube plaintext bindings before the first repo-based deployment. The admin route uses the service account for both Sheets reads and writes; the legacy public read proxy continues to use `GOOGLE_API_KEY`. Admin authorization uses the caller's Supabase access token and the publishable project key.
+
+The source, editable-score, and formula ranges for the first rollout events are recorded in [the tournament admin edit range inventory](docs/tournament-admin-edit-ranges.md). The Worker accepts writes only within the configured editable-score ranges.
+
+Authenticated Discord admins can open `/admin/tournament-results.html?eventKey=masters` or `?eventKey=championship` from the event page's top-bar **Edit** control. The editor displays player and formula-backed context as read-only, batches only changed score cells through the Worker, and uses `set_tournament_result_archived()` to archive or unarchive an event. Public and non-admin users do not see the top-bar control, and both the editor GET and save POST remain independently authorized by the server. Masters is initialized archived for the first production release and must be explicitly unarchived by an administrator before any score write can succeed.
 
 ## Discord Member Scan Bot
 

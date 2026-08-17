@@ -36,6 +36,11 @@ jobs:
       - name: Check topbar asset versions
         run: npm run check:topbar-assets
 
+      - name: Test tournament editor and Worker
+        run: |
+          npm run test:tournament-editor
+          npm run test:worker
+
       - name: Build bundled assets
         run: |
           npm run build:home-tabs
@@ -53,7 +58,10 @@ jobs:
             --exclude='node_modules/' \
             --exclude='bot/' \
             --exclude='functions/' \
+            --exclude='worker/' \
+            --exclude='supabase/' \
             --exclude='scripts/' \
+            --exclude='admin/*.test.mjs' \
             --exclude='.DS_Store' \
             --exclude='.dockerignore' \
             --exclude='.env*' \

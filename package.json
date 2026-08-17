@@ -31,6 +31,9 @@
     "proleague:aliases:export-sql": "node bot/proleague-player-aliases.js export-sql",
     "proleague:aliases:import": "node bot/proleague-player-aliases.js import",
     "sync:player-shell": "node scripts/sync-player-shell.js --write",
+    "test:supabase-admin": "supabase test db --local supabase/tests/tournament_admin_edit_rpc.sql",
+    "test:tournament-editor": "node --test admin/tournament-results-core.test.mjs",
+    "test:worker": "node --test worker/worker.test.mjs",
     "test:global-ranks": "node bot/global-ranks-core.test.js",
     "test:internal-ranked": "node bot/internal-ranked-core.test.js && node bot/internal-ranked.test.js && node bot/combined-gpi.test.js",
     "test:tournament-gpi": "node bot/tournament-gpi.test.js",
@@ -62,5 +65,8 @@
     "flag-icons": "^7.5.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "wrangler": "^4.123.0"
   }
 }

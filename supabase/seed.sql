@@ -1,0 +1,1 @@
+-- Local development seed data can be added here when needed.

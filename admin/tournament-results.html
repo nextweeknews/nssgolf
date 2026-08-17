@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020b18" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>Edit Tournament Results | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site-topbar.css?v=7a2eae15d69c" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260816-step8" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="editor-brand">
+        <a class="editor-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title">Tournament editor</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="editor-main">
+    <section class="editor-card editor-access-panel" id="editorAccessPanel" aria-live="polite">
+      <p class="editor-status" id="editorAccessStatus">Checking admin access…</p>
+      <button class="editor-button primary" id="editorLoginBtn" type="button" hidden>Sign in with Discord</button>
+    </section>
+
+    <section class="editor-card" id="editorPanel" aria-labelledby="editorTitle" hidden>
+      <div class="editor-page-head">
+        <div>
+          <h1 class="editor-title" id="editorTitle">Tournament results</h1>
+          <p class="editor-copy" id="editorCopy"></p>
+        </div>
+        <div class="editor-head-actions">
+          <a class="editor-button" id="editorBackLink" href="/">View tournament</a>
+          <button class="editor-button is-danger" id="editorArchiveBtn" type="button">Archive tournament</button>
+        </div>
+      </div>
+
+      <div class="editor-savebar">
+        <span class="editor-dirty-count" id="editorDirtyCount">No unsaved changes</span>
+        <button class="editor-button" id="editorResetBtn" type="button" disabled>Reset</button>
+        <button class="editor-button primary" id="editorSaveBtn" type="button" disabled>Save scores</button>
+      </div>
+      <p class="editor-status" id="editorStatus" aria-live="polite"></p>
+      <div class="editor-tables" id="editorTables"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js?v=1d2d07c31cfd"></script>
+  <script type="module" src="/admin/tournament-results.js?v=20260816-step10"></script>
+</body>
+</html>

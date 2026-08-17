@@ -1,0 +1,28 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "small-mud-2771",
+  "main": "src/worker.mjs",
+  "preview_urls": false,
+  "compatibility_date": "2025-12-07",
+  "kv_namespaces": [
+    {
+      "binding": "UC_IDs",
+      "id": "0df4923a76df437aae4faf58a05867e8"
+    }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://kwaprkwemtxizorpnrzq.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_gJ6-wdgZYpDBF1YxxNrlLg_BrtYUeL_"
+  },
+  "secrets": {
+    "required": [
+      "GOOGLE_API_KEY",
+      "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+      "GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY",
+      "YOUTUBE_API_KEY"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  }
+}
