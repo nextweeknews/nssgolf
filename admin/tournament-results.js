@@ -195,6 +195,7 @@ function appendScoreCell(rowEl, scoreCell, playerLabel, weekSeparator = false){
   const cell = document.createElement("td");
   cell.className = "editor-score-cell";
   if(scoreCell?.type === "result") cell.classList.add("is-result");
+  if(scoreCell?.type === "sudden-death") cell.classList.add("editor-sudden-death");
   if(weekSeparator) cell.classList.add("editor-week-separator");
   if(!scoreCell){
     cell.classList.add("is-unavailable");
@@ -438,6 +439,7 @@ function showEditorGroup(groupKey, historyMode = "replace"){
 }
 
 function renderEditorTabs(){
+  viewTabs.classList.toggle("is-masters", state.event?.eventKey === "masters");
   if(state.event?.eventKey === "proleague"){
     viewTabs.hidden = true;
     viewTabs.replaceChildren();
