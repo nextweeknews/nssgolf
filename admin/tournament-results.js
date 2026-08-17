@@ -8,8 +8,9 @@ import {
   isEditorRowSelected,
   isEditorRowVisible,
   nextBlankPlayerRow,
+  playerFilterBackspaceState,
   proLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-player-filter";
+} from "/admin/tournament-results-core.mjs?v=20260817-token-backspace";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -38,6 +39,7 @@ const seasonSelect = document.getElementById("editorSeasonSelect");
 const stageWrap = document.getElementById("editorStageWrap");
 const stageSelect = document.getElementById("editorStageSelect");
 const playerFilterField = document.getElementById("editorPlayerFilterField");
+const playerFilterEntry = document.getElementById("editorPlayerFilterEntry");
 const playerFilterChips = document.getElementById("editorPlayerFilterChips");
 const playerFilterInput = document.getElementById("editorPlayerFilterInput");
 const playerFilterOptions = document.getElementById("editorPlayerFilterOptions");
@@ -51,6 +53,7 @@ const state = {
   activeGroupKey: "",
   activeViewKey: "",
   selectedPlayers: new Map(),
+  armedPlayerFilter: "",
   addedPlayerRows: new Set(),
   saving: false,
 };
@@ -402,10 +405,13 @@ function renderPlayerFilterOptions(){
   playerFilterInput.setAttribute("aria-expanded", String(matches.length > 0));
 }
 
-function renderPlayerFilter(){
+function renderPlayerFilter(scrollToEnd = false){
+  if(!state.selectedPlayers.has(state.armedPlayerFilter)) state.armedPlayerFilter = "";
   playerFilterChips.replaceChildren(...[...state.selectedPlayers.values()].map((name) => {
     const chip = document.createElement("span");
     chip.className = "editor-player-filter-chip";
+    chip.classList.toggle("is-selected", name.toLowerCase() === state.armedPlayerFilter);
+    chip.dataset.playerFilterToken = name;
     chip.append(name);
     const remove = document.createElement("button");
     remove.type = "button";
@@ -417,20 +423,23 @@ function renderPlayerFilter(){
   }));
   playerFilterClear.hidden = !state.selectedPlayers.size;
   renderPlayerFilterOptions();
+  if(scrollToEnd) playerFilterEntry.scrollLeft = playerFilterEntry.scrollWidth;
 }
 
 function addPlayerFilter(name){
   const cleanName = String(name || "").trim();
   if(!cleanName) return;
   state.selectedPlayers.set(cleanName.toLowerCase(), cleanName);
+  state.armedPlayerFilter = "";
   playerFilterInput.value = "";
   hidePlayerFilterOptions();
-  renderPlayerFilter();
+  renderPlayerFilter(true);
   renderTables();
 }
 
 function removePlayerFilter(name){
   state.selectedPlayers.delete(String(name || "").trim().toLowerCase());
+  state.armedPlayerFilter = "";
   renderPlayerFilter();
   renderTables();
 }
@@ -551,6 +560,7 @@ async function loadEditor(requestedViewKey = eventKey === "proleague" ? initialP
     state.tables = buildEditorTables(payload.event, payload.valueRanges);
     state.currentValues = new Map(allEditableCells().map((cell) => [cell.range, cell.initialValue]));
     state.selectedPlayers.clear();
+    state.armedPlayerFilter = "";
     state.addedPlayerRows.clear();
     setEditorStatus("");
     renderEditor();
@@ -576,11 +586,34 @@ tablesMount.addEventListener("input", (event) => {
   updateActions();
 });
 
-playerFilterInput.addEventListener("input", renderPlayerFilterOptions);
+playerFilterInput.addEventListener("input", () => {
+  if(state.armedPlayerFilter){
+    state.armedPlayerFilter = "";
+    renderPlayerFilter();
+  }else{
+    renderPlayerFilterOptions();
+  }
+});
 playerFilterInput.addEventListener("keydown", (event) => {
   if(event.key === "Escape"){
     hidePlayerFilterOptions();
     return;
+  }
+  if(event.key === "Backspace" && !playerFilterInput.value){
+    const nextState = playerFilterBackspaceState(state.selectedPlayers.keys(), state.armedPlayerFilter);
+    if(!nextState.armedName && !nextState.removeName) return;
+    event.preventDefault();
+    if(nextState.removeName){
+      removePlayerFilter(nextState.removeName);
+    }else{
+      state.armedPlayerFilter = nextState.armedName.toLowerCase();
+      renderPlayerFilter(true);
+    }
+    return;
+  }
+  if(state.armedPlayerFilter){
+    state.armedPlayerFilter = "";
+    renderPlayerFilter();
   }
   if(event.key !== "Enter") return;
   const firstMatch = playerFilterOptions.querySelector("[data-player-name]");
@@ -596,18 +629,38 @@ playerFilterOptions.addEventListener("click", (event) => {
 
 playerFilterChips.addEventListener("click", (event) => {
   const remove = event.target.closest("[data-remove-player]");
-  if(remove) removePlayerFilter(remove.dataset.removePlayer);
+  if(remove){
+    removePlayerFilter(remove.dataset.removePlayer);
+    return;
+  }
+  const chip = event.target.closest("[data-player-filter-token]");
+  if(!chip) return;
+  state.armedPlayerFilter = chip.dataset.playerFilterToken.toLowerCase();
+  renderPlayerFilter(true);
+  playerFilterInput.focus();
+});
+
+playerFilterInput.addEventListener("pointerdown", () => {
+  if(!state.armedPlayerFilter) return;
+  state.armedPlayerFilter = "";
+  renderPlayerFilter();
 });
 
 playerFilterClear.addEventListener("click", () => {
   state.selectedPlayers.clear();
+  state.armedPlayerFilter = "";
   playerFilterInput.value = "";
   renderPlayerFilter();
   renderTables();
 });
 
 document.addEventListener("click", (event) => {
-  if(!playerFilterField.contains(event.target)) hidePlayerFilterOptions();
+  if(playerFilterField.contains(event.target)) return;
+  hidePlayerFilterOptions();
+  if(state.armedPlayerFilter){
+    state.armedPlayerFilter = "";
+    renderPlayerFilter();
+  }
 });
 
 resetButton.addEventListener("click", () => {

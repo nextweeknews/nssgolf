@@ -204,23 +204,32 @@ body{
 }
 .editor-player-filter-field{
   position:relative;
-  display:flex;
-  align-items:center;
-  gap:6px;
   min-height:38px;
   min-width:0;
   flex:1 1 auto;
-  padding:3px 8px;
   border:1px solid rgba(255,255,255,.16);
   border-radius:9px;
   background:#101c32;
 }
 .editor-player-filter-field:focus-within{ border-color:rgba(125,211,252,.55); }
-.editor-player-filter-chips{ display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+.editor-player-filter-entry{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-height:36px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:3px 8px;
+  scrollbar-width:none;
+  white-space:nowrap;
+}
+.editor-player-filter-entry::-webkit-scrollbar{ display:none; }
+.editor-player-filter-chips{ display:contents; }
 .editor-player-filter-chip{
   display:inline-flex;
   align-items:center;
   gap:5px;
+  flex:0 0 auto;
   min-height:27px;
   border:1px solid rgba(125,211,252,.28);
   border-radius:7px;
@@ -230,6 +239,11 @@ body{
   font-size:11px;
   font-weight:800;
   text-transform:uppercase;
+}
+.editor-player-filter-chip.is-selected{
+  border-color:rgba(125,211,252,.85);
+  background:rgba(125,211,252,.25);
+  box-shadow:0 0 0 1px rgba(125,211,252,.35);
 }
 .editor-player-filter-chip button{
   width:25px;
@@ -246,7 +260,7 @@ body{
 .editor-player-filter-input{
   min-width:120px;
   min-height:30px;
-  flex:1 1 130px;
+  flex:1 0 120px;
   border:0;
   outline:0;
   background:transparent;

@@ -271,6 +271,15 @@ export function isEditorRowSelected(row, currentValues, selectedPlayerNames){
   return !selected.size || selected.has(editorPlayerName(row, currentValues).toLowerCase());
 }
 
+export function playerFilterBackspaceState(selectedPlayerNames, armedName = ""){
+  const lastName = [...selectedPlayerNames].at(-1) || "";
+  const isArmed = normalizeText(armedName).toLowerCase() === normalizeText(lastName).toLowerCase();
+  return {
+    armedName: isArmed ? "" : lastName,
+    removeName: isArmed ? lastName : "",
+  };
+}
+
 export function nextBlankPlayerRow(table, currentValues, reservedRowKeys = []){
   const reserved = new Set(reservedRowKeys);
   const blankRows = table.rows.filter((row) => (

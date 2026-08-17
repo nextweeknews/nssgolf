@@ -12,6 +12,7 @@ import {
   isEditorRowVisible,
   nextBlankPlayerRow,
   parseA1Range,
+  playerFilterBackspaceState,
   proLeagueViewKey,
   tournamentEditorUrlForPath,
   tournamentEditorUrlForUser,
@@ -39,6 +40,17 @@ test("maps Pro League seasons and stages to editor view keys", () => {
   assert.equal(proLeagueViewKey("2026-all-stars"), "2026-all-stars");
   assert.deepEqual(getProLeagueTeamStyle("Terrific Tigers"), { bg: "#fe6d01", fg: "#000000" });
   assert.equal(proLeagueTeamLogoSrc("Terrific Tigers"), "/proleague/logos/terrific-tigers.png");
+});
+
+test("selects a player filter token before Backspace removes it", () => {
+  assert.deepEqual(playerFilterBackspaceState(["Aidan", "Ricardo"]), {
+    armedName: "Ricardo",
+    removeName: "",
+  });
+  assert.deepEqual(playerFilterBackspaceState(["Aidan", "Ricardo"], "ricardo"), {
+    armedName: "",
+    removeName: "Ricardo",
+  });
 });
 
 test("uses the server-authorized admin RPC for top-bar access", async () => {
