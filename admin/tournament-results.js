@@ -11,11 +11,12 @@ import {
   isEditorRowVisible,
   matchupHasBye,
   nextBlankPlayerRow,
+  orderEditorRowsByPlayerSelection,
   playerFilterBackspaceState,
   proLeagueViewKey,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260817-editor-layout";
+} from "/admin/tournament-results-core.mjs?v=20260817-player-order";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -404,7 +405,7 @@ function createBracketMatchupTable(table, visibleRows){
 
 function visibleRowsForTable(table){
   const isMatchupTable = table.matchupLayout || ["masters", "championship", "superleague"].includes(state.event?.eventKey);
-  return table.rows.filter((row) => (
+  const rows = table.rows.filter((row) => (
     (isEditorRowVisible(row, state.currentValues) || state.addedPlayerRows.has(row.key))
     && (state.addedPlayerRows.has(row.key) || isEditorRowSelected(
       row,
@@ -413,6 +414,9 @@ function visibleRowsForTable(table){
       isMatchupTable ? table.rows : [],
     ))
   ));
+  return state.event?.eventKey === "proleague" && state.selectedPlayers.size
+    ? orderEditorRowsByPlayerSelection(rows, state.currentValues, state.selectedPlayers.keys())
+    : rows;
 }
 
 function createTable(table, rows = null){

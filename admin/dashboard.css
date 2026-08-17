@@ -99,6 +99,7 @@ button,a{ font:inherit; }
   height:var(--admin-header-height);
   display:flex;
   align-items:center;
+  gap:9px;
   flex:0 0 auto;
   padding:0 14px;
   border-bottom:1px solid rgba(255,255,255,.07);
@@ -109,6 +110,7 @@ button,a{ font:inherit; }
   text-decoration:none;
   text-transform:uppercase;
 }
+.admin-brand-logo{ width:24px; height:24px; flex:0 0 auto; object-fit:contain; }
 .admin-nav{
   flex:1 1 auto;
   min-height:0;

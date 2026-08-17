@@ -15,6 +15,7 @@ import {
   matchupHasBye,
   nextBlankPlayerRow,
   noptationalDisplayName,
+  orderEditorRowsByPlayerSelection,
   parseA1Range,
   playerFilterBackspaceState,
   proLeagueViewKey,
@@ -103,6 +104,19 @@ test("keeps both player slots when a selected player is in a 1v1 matchup", () =>
   assert.equal(isEditorRowSelected(rows[1], new Map(), ["ricardo"], rows), true);
   assert.equal(isEditorRowSelected(rows[2], new Map(), ["ricardo"], rows), false);
   assert.equal(isEditorRowSelected(rows[3], new Map(), ["ricardo"], rows), false);
+});
+
+test("orders filtered player rows by the selection input order", () => {
+  const rows = [
+    { playerName:"Aidan" },
+    { playerName:"Nick" },
+    { playerName:"Ricardo" },
+  ];
+
+  assert.deepEqual(
+    orderEditorRowsByPlayerSelection(rows, new Map(), ["Ricardo", "Aidan"]).map((row) => row.playerName),
+    ["Ricardo", "Aidan", "Nick"],
+  );
 });
 
 test("uses the server-authorized admin RPC for top-bar access", async () => {

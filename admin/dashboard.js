@@ -73,7 +73,6 @@ function applyRoute({ historyMode = "replace", reloadFrame = true } = {}){
   frame.title = route.label;
   if(reloadFrame && frame.getAttribute("src") !== route.frameUrl){
     frameLoading.hidden = false;
-    frame.classList.add("is-loading");
     frame.src = route.frameUrl;
   }
 }
@@ -97,14 +96,31 @@ document.getElementById("adminSidebarTrigger").addEventListener("click", () => {
 });
 document.getElementById("adminScrim").addEventListener("click", closeSidebar);
 document.addEventListener("click", (event) => {
-  if(event.target.closest(".admin-nav-item")) closeSidebar();
+  const link = event.target.closest("a[href]");
+  if(!link) return;
+  if(link.closest(".admin-sidebar")) closeSidebar();
+  if(
+    event.defaultPrevented
+    || event.button !== 0
+    || event.metaKey
+    || event.ctrlKey
+    || event.shiftKey
+    || event.altKey
+    || link.target === "_blank"
+    || link.origin !== globalThis.location.origin
+    || link.pathname !== "/admin/"
+  ) return;
+  event.preventDefault();
+  const nextUrl = `${link.pathname}${link.search}${link.hash}`;
+  if(nextUrl === `${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`) return;
+  globalThis.history.pushState(null, "", nextUrl);
+  applyRoute();
 });
 document.addEventListener("keydown", (event) => {
   if(event.key === "Escape") closeSidebar();
 });
 frame.addEventListener("load", () => {
   frameLoading.hidden = true;
-  frame.classList.remove("is-loading");
 });
 globalThis.addEventListener("popstate", () => applyRoute());
 globalThis.addEventListener("message", (event) => {

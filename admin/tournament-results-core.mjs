@@ -402,6 +402,14 @@ export function isEditorRowSelected(row, currentValues, selectedPlayerNames, mat
   return candidates.some((candidate) => selected.has(editorPlayerName(candidate, currentValues).toLowerCase()));
 }
 
+export function orderEditorRowsByPlayerSelection(rows, currentValues, selectedPlayerNames){
+  const order = new Map([...selectedPlayerNames].map((name, index) => [normalizeText(name).trim().toLowerCase(), index]));
+  return [...rows].sort((left, right) => (
+    (order.get(editorPlayerName(left, currentValues).toLowerCase()) ?? order.size)
+    - (order.get(editorPlayerName(right, currentValues).toLowerCase()) ?? order.size)
+  ));
+}
+
 export function playerFilterBackspaceState(selectedPlayerNames, armedName = ""){
   const lastName = [...selectedPlayerNames].at(-1) || "";
   const isArmed = normalizeText(armedName).toLowerCase() === normalizeText(lastName).toLowerCase();
