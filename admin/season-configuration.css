@@ -1,14 +1,18 @@
 .season-configuration-body{ padding:18px 0 0; }
 .season-configuration-form{
-  width:min(760px,100%);
+  width:max-content;
+  max-width:100%;
   display:grid;
+  justify-items:start;
   gap:12px;
 }
 .season-configuration-row{
   display:grid;
-  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.2fr);
+  grid-template-columns:max-content max-content;
   align-items:center;
-  gap:18px;
+  gap:14px;
+  width:max-content;
+  max-width:100%;
   min-height:76px;
   border:1px solid rgba(255,255,255,.10);
   border-radius:12px;
@@ -24,7 +28,7 @@
 }
 .season-configuration-fields{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-columns:repeat(2,max-content);
   gap:10px;
 }
 .season-configuration-field{ display:grid; gap:5px; }
@@ -58,7 +62,7 @@
   .season-configuration-body{ padding-top:10px; }
   .season-configuration-form{ gap:8px; }
   .season-configuration-row{
-    grid-template-columns:minmax(96px,.7fr) minmax(0,1.3fr);
+    grid-template-columns:max-content max-content;
     gap:9px;
     min-height:62px;
     border-radius:8px;
