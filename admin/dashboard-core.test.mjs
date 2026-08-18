@@ -54,7 +54,7 @@ test("loads embedded Championship Points without painting the public Championshi
   assert.match(page, /if\(isEmbeddedSettingsView\)\{[\s\S]*?loadChampionshipSettings\(\),[\s\S]*?refreshAdminState\(\),[\s\S]*?if\(state\.isAdmin\) return;/);
 });
 
-test("anchors the mobile admin header to visual-viewport keyboard shifts", async () => {
+test("anchors the entire mobile admin shell to visual-viewport keyboard shifts", async () => {
   const [script, styles] = await Promise.all([
     readFile(new URL("./dashboard.js", import.meta.url), "utf8"),
     readFile(new URL("./dashboard.css", import.meta.url), "utf8"),
@@ -64,8 +64,9 @@ test("anchors the mobile admin header to visual-viewport keyboard shifts", async
   assert.match(script, /--admin-visual-offset-left/);
   assert.match(script, /--admin-visual-offset-top/);
   assert.match(script, /--admin-visual-width/);
+  assert.match(script, /--admin-visual-height/);
   assert.match(script, /setTimeout\(applyAdminViewportAnchor, 400\)/);
-  assert.match(styles, /transform:translate\(var\(--admin-visual-offset-left,0px\),var\(--admin-visual-offset-top,0px\)\)/);
+  assert.match(styles, /\.admin-shell\{[\s\S]*?width:var\(--admin-visual-width,100%\);[\s\S]*?height:var\(--admin-visual-height,100dvh\);[\s\S]*?transform:translate\(var\(--admin-visual-offset-left,0px\),var\(--admin-visual-offset-top,0px\)\);/);
 });
 
 test("preserves result editor and signup subview state in the dashboard URL", () => {

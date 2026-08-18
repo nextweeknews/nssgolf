@@ -26,6 +26,7 @@ function applyAdminViewportAnchor(){
   rootStyle.setProperty("--admin-visual-offset-left", `${Math.max(0, Number(viewport?.offsetLeft) || 0, -bodyRect.left)}px`);
   rootStyle.setProperty("--admin-visual-offset-top", `${Math.max(0, Number(viewport?.offsetTop) || 0, -bodyRect.top)}px`);
   rootStyle.setProperty("--admin-visual-width", `${Math.max(1, Number(viewport?.width) || globalThis.innerWidth)}px`);
+  rootStyle.setProperty("--admin-visual-height", `${Math.max(1, Number(viewport?.height) || globalThis.innerHeight)}px`);
 }
 
 function syncAdminViewportAnchor(){

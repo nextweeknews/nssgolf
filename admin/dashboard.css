@@ -266,12 +266,14 @@ body.sidebar-collapsed .admin-sidebar{ transform:translateX(calc(-100% - 8px)); 
   .admin-content{ padding:24px; }
 }
 @media (max-width:840px){
-  .admin-shell{ grid-template-columns:minmax(0,1fr); padding:0; }
-  .admin-main{ border:0; border-radius:0; }
-  .admin-header{
+  .admin-shell{
     width:var(--admin-visual-width,100%);
+    height:var(--admin-visual-height,100dvh);
+    grid-template-columns:minmax(0,1fr);
+    padding:0;
     transform:translate(var(--admin-visual-offset-left,0px),var(--admin-visual-offset-top,0px));
   }
+  .admin-main{ border:0; border-radius:0; }
   .admin-sidebar{
     position:fixed;
     inset:8px auto 8px 8px;
