@@ -710,6 +710,10 @@ html.admin-embedded .editor-page-head{ margin:0; }
 .action-log-toggle:hover:not(:disabled){ color:#bae6fd; border-color:rgba(125,211,252,.72); background:rgba(14,165,233,.12); }
 .action-log-undo{ color:#fca5a5; border-color:rgba(252,165,165,.48); }
 .action-log-undo:hover:not(:disabled){ color:#fecaca; border-color:rgba(252,165,165,.72); background:rgba(239,68,68,.12); }
+.action-log-toggle,
+.action-log-undo{ gap:6px; }
+.action-log-toggle .editor-button-icon,
+.action-log-undo .editor-button-icon{ display:block; }
 .action-log-status{
   display:inline-flex;
   align-items:center;
@@ -756,6 +760,15 @@ html.admin-embedded .editor-page-head{ margin:0; }
 .action-change-arrow{ color:rgba(233,238,248,.35); }
 .action-log-error{ margin:0; padding:0 14px 13px; color:#fca5a5; font-size:11px; }
 .action-log-empty{ margin:22px 0; color:var(--muted); text-align:center; }
+.action-log-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:14px;
+}
+.action-log-pagination[hidden]{ display:none; }
+.action-log-page{ min-width:54px; color:var(--muted); font-size:10px; font-weight:850; text-align:center; text-transform:uppercase; }
 
 @media (max-width:760px){
   html.admin-embedded .editor-main{
@@ -1020,4 +1033,7 @@ html.admin-embedded .editor-page-head{ margin:0; }
   }
   .action-change-values{ width:100%; gap:4px; }
   .action-log-error{ padding:0 8px 8px; font-size:8px; }
+  .action-log-pagination{ gap:6px; margin-top:9px; }
+  .action-log-pagination .editor-button{ min-height:30px; padding:0 9px; font-size:8px; }
+  .action-log-page{ min-width:42px; font-size:8px; }
 }

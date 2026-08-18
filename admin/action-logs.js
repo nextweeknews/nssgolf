@@ -12,8 +12,17 @@ const loginButton = document.getElementById("logsLoginBtn");
 const logsPanel = document.getElementById("logsPanel");
 const logsStatus = document.getElementById("logsStatus");
 const logsList = document.getElementById("actionLogList");
+const pagination = document.getElementById("actionLogPagination");
+const previousPageButton = document.getElementById("actionLogPrevious");
+const pageLabel = document.getElementById("actionLogPage");
+const nextPageButton = document.getElementById("actionLogNext");
 
 let busy = false;
+let loadingLogs = false;
+let pageIndex = 0;
+let pageCursors = [""];
+let nextCursor = null;
+let currentLogCount = 0;
 let actorProfiles = new Map();
 const eventColors = new Map([
   ...RESULT_EVENTS.map((event) => [event.key, event.color]),
@@ -30,6 +39,13 @@ function setStatus(element, message, tone = ""){
 
 function actionButtonContent(iconPaths, label){
   return `<svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true">${iconPaths}</svg><span class="editor-button-label">${label}</span>`;
+}
+
+function renderPagination(){
+  pagination.hidden = currentLogCount === 0 || (pageIndex === 0 && !nextCursor);
+  pageLabel.textContent = `Page ${pageIndex + 1}`;
+  previousPageButton.disabled = loadingLogs || pageIndex === 0;
+  nextPageButton.disabled = loadingLogs || !nextCursor;
 }
 
 function showAccess(message = "", tone = "", canSignIn = false, loading = false){
@@ -155,7 +171,7 @@ function actionCard(log){
   const viewChanges = document.createElement("button");
   viewChanges.className = "editor-button action-log-toggle";
   viewChanges.type = "button";
-  viewChanges.innerHTML = actionButtonContent('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>', "View changes");
+  viewChanges.innerHTML = actionButtonContent('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>', "View");
   viewChanges.title = "View changes";
   viewChanges.setAttribute("aria-label", "View changes");
   viewChanges.dataset.toggleChanges = "";
@@ -201,10 +217,16 @@ function actionCard(log){
   return card;
 }
 
-async function loadLogs(){
-  showAccess("", "", false, true);
+async function loadLogs(cursor = pageCursors[pageIndex] || "", targetPage = pageIndex){
+  const initialLoad = logsPanel.hidden;
+  loadingLogs = true;
+  if(initialLoad) showAccess("", "", false, true);
+  else setStatus(logsStatus, "Loading action logs…");
+  renderPagination();
   try{
-    const response = await fetch(`${WORKER_URL}?limit=100`, {
+    const url = new URL(WORKER_URL);
+    if(cursor) url.searchParams.set("cursor", cursor);
+    const response = await fetch(url, {
       headers: await requestHeaders(),
       cache: "no-store",
     });
@@ -212,13 +234,21 @@ async function loadLogs(){
     if(!response.ok){
       const message = payload?.error || "Unable to load admin action logs.";
       if(response.status === 401) return showAccess(message, "error", true);
-      return showAccess(message, "error");
+      if(initialLoad) return showAccess(message, "error");
+      setStatus(logsStatus, message, "error");
+      return false;
     }
 
-    accessPanel.hidden = true;
-    logsPanel.hidden = false;
     const logs = addUndoChangeContext(Array.isArray(payload?.logs) ? payload.logs : []);
     actorProfiles = await loadActorProfiles(logs);
+    pageIndex = targetPage;
+    pageCursors[pageIndex] = cursor;
+    nextCursor = typeof payload?.nextCursor === "string" && payload.nextCursor ? payload.nextCursor : null;
+    pageCursors.length = pageIndex + 1;
+    if(nextCursor) pageCursors.push(nextCursor);
+    currentLogCount = logs.length;
+    accessPanel.hidden = true;
+    logsPanel.hidden = false;
     logsList.replaceChildren(...logs.map(actionCard));
     if(!logs.length){
       const empty = document.createElement("p");
@@ -227,10 +257,27 @@ async function loadLogs(){
       logsList.appendChild(empty);
     }
     setStatus(logsStatus, "");
+    return true;
   }catch(error){
-    showAccess(error?.message || "Unable to reach the tournament action log service.", "error", true);
+    const message = error?.message || "Unable to reach the tournament action log service.";
+    if(initialLoad) showAccess(message, "error", true);
+    else setStatus(logsStatus, message, "error");
+    return false;
+  }finally{
+    loadingLogs = false;
+    renderPagination();
   }
 }
+
+previousPageButton.addEventListener("click", () => {
+  if(loadingLogs || pageIndex === 0) return;
+  void loadLogs(pageCursors[pageIndex - 1], pageIndex - 1);
+});
+
+nextPageButton.addEventListener("click", () => {
+  if(loadingLogs || !nextCursor) return;
+  void loadLogs(nextCursor, pageIndex + 1);
+});
 
 logsList.addEventListener("click", async (event) => {
   const toggle = event.target.closest("button[data-toggle-changes]");
@@ -239,10 +286,10 @@ logsList.addEventListener("click", async (event) => {
     if(!details) return;
     const expanded = toggle.getAttribute("aria-expanded") === "true";
     toggle.setAttribute("aria-expanded", String(!expanded));
-    const label = expanded ? "View changes" : "Hide changes";
+    const label = expanded ? "View" : "Hide";
     toggle.querySelector(".editor-button-label").textContent = label;
-    toggle.title = label;
-    toggle.setAttribute("aria-label", label);
+    toggle.title = `${label} changes`;
+    toggle.setAttribute("aria-label", `${label} changes`);
     details.hidden = expanded;
     return;
   }
@@ -273,7 +320,7 @@ logsList.addEventListener("click", async (event) => {
     });
     const payload = await response.json().catch(() => null);
     if(!response.ok) throw new Error(payload?.error || "Unable to undo this admin action.");
-    await loadLogs();
+    await loadLogs(pageCursors[pageIndex], pageIndex);
     setStatus(logsStatus, visibilityAction
       ? "Visibility change undone and logged."
       : configurationAction ? "Season configuration undone and logged." : "Score edit undone and logged.", "success");

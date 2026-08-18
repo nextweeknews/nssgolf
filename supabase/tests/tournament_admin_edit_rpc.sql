@@ -110,7 +110,7 @@ BEGIN
     'EXECUTE'
   ) OR has_function_privilege(
     'anon',
-    'public.list_admin_action_logs(integer)',
+    'public.list_admin_action_logs(integer,timestamp with time zone,uuid)',
     'EXECUTE'
   ) OR has_function_privilege(
     'anon',
@@ -502,6 +502,9 @@ DECLARE
   failed_action_id uuid;
   visibility_action_id uuid;
   visibility_undo_id uuid;
+  cursor_action_id uuid;
+  cursor_next_action_id uuid;
+  cursor_created_at timestamp with time zone;
   valid_point_settings jsonb := jsonb_build_object(
     'lightningCup2026', jsonb_build_object(
       'winner', 100, 'runnerUp', 60, 'semifinalist', 40,
@@ -915,6 +918,30 @@ BEGIN
 
   PERFORM public.complete_tournament_result_action_log(undo_action_id, true, NULL);
 
+  UPDATE private.tournament_result_action_logs
+  SET
+    changes = jsonb_set(
+      jsonb_set(changes, '{0,playerName}', '"Player One"'::jsonb),
+      '{0,headers}',
+      '["Round 1", "Round 2"]'::jsonb
+    ),
+    created_at = transaction_timestamp() + interval '1 hour'
+  WHERE id = edit_action_id;
+
+  UPDATE private.tournament_result_action_logs
+  SET created_at = transaction_timestamp() + interval '2 hours'
+  WHERE id = undo_action_id;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(1)
+    WHERE action_id = undo_action_id
+      AND changes->0->>'playerName' = 'Player One'
+      AND changes->0->'headers' = '["Round 1", "Round 2"]'::jsonb
+  ) THEN
+    RAISE EXCEPTION 'paginated undo action lost target player or header context';
+  END IF;
+
   IF EXISTS (
     SELECT 1
     FROM public.list_tournament_result_action_logs(10)
@@ -1056,6 +1083,36 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Championship visibility or point-value isolation failed';
   END IF;
+
+  SELECT action_id, created_at
+  INTO cursor_action_id, cursor_created_at
+  FROM public.list_admin_action_logs(1);
+
+  SELECT action_id
+  INTO cursor_next_action_id
+  FROM public.list_admin_action_logs(1, cursor_created_at, cursor_action_id);
+
+  IF cursor_action_id IS NULL
+    OR cursor_next_action_id IS NULL
+    OR cursor_next_action_id = cursor_action_id
+  THEN
+    RAISE EXCEPTION 'combined admin action log cursor did not advance to the next row';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20, cursor_created_at, cursor_action_id)
+    WHERE (created_at, action_id) >= (cursor_created_at, cursor_action_id)
+  ) THEN
+    RAISE EXCEPTION 'combined admin action log cursor repeated an earlier row';
+  END IF;
+
+  BEGIN
+    PERFORM public.list_admin_action_logs(1, cursor_created_at, NULL);
+    RAISE EXCEPTION 'an incomplete admin action log cursor was accepted';
+  EXCEPTION
+    WHEN invalid_parameter_value THEN NULL;
+  END;
 
   BEGIN
     PERFORM public.get_tournament_admin_edit_context('missing-event');

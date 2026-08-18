@@ -445,43 +445,77 @@ test("loads a newly discovered tournament year through Google metadata", async (
   assert.ok(payload.event.editableRanges.includes("'World Cup 2026'!V2:V120"));
 });
 
-test("loads combined admin action logs through the authenticated admin RPC", async () => {
+test("cursor-paginates combined admin action logs in 50-row pages", async () => {
   const { env } = makeEnv();
-  const actionId = "55555555-5555-4555-8555-555555555555";
-  globalThis.fetch = async (input, init = {}) => {
-    const upstreamUrl = new URL(String(input));
-    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/list_admin_action_logs");
-    assert.equal(init.headers.Authorization, "Bearer user-token");
-    assert.deepEqual(JSON.parse(init.body), { p_limit: 25 });
-    return Response.json([{
-      action_id: actionId,
-      action_type: "edit",
-      status: "succeeded",
-      event_key: "masters",
-      actor_username: "Admin",
-      changes: [{ range: "'Bracket'!C2", before: [[1]], after: [[2]] }],
-      can_undo: true,
-    }]);
-  };
-
-  const response = await worker.fetch(
-    new Request("https://worker.example/admin/tournament-action-logs?limit=25", {
-      headers: { Authorization: "Bearer user-token" },
-    }),
-    env,
-  );
-
-  assert.equal(response.status, 200);
-  assert.equal(response.headers.get("Cache-Control"), "no-store");
-  assert.deepEqual(await response.json(), { logs: [{
-    action_id: actionId,
+  const logs = Array.from({ length: 51 }, (_, index) => ({
+    action_id: `55555555-5555-4555-8555-${String(index).padStart(12, "0")}`,
     action_type: "edit",
     status: "succeeded",
     event_key: "masters",
     actor_username: "Admin",
     changes: [{ range: "'Bracket'!C2", before: [[1]], after: [[2]] }],
+    created_at: new Date(Date.UTC(2026, 7, 18, 12, 0, 0) - (index * 1000)).toISOString(),
     can_undo: true,
-  }] });
+  }));
+  logs[49].created_at = "2026-08-18T11:59:11.123456+00:00";
+  let rpcCalls = 0;
+  globalThis.fetch = async (input, init = {}) => {
+    const upstreamUrl = new URL(String(input));
+    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/list_admin_action_logs");
+    assert.equal(init.headers.Authorization, "Bearer user-token");
+    rpcCalls += 1;
+    assert.deepEqual(JSON.parse(init.body), {
+      p_limit: 51,
+      p_before_created_at: rpcCalls === 1 ? null : logs[49].created_at,
+      p_before_action_id: rpcCalls === 1 ? null : logs[49].action_id,
+    });
+    return Response.json(rpcCalls === 1 ? logs : [logs[50]]);
+  };
+
+  const firstResponse = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs", {
+      headers: { Authorization: "Bearer user-token" },
+    }),
+    env,
+  );
+  const firstPage = await firstResponse.json();
+
+  assert.equal(firstResponse.status, 200);
+  assert.equal(firstResponse.headers.get("Cache-Control"), "no-store");
+  assert.equal(firstPage.logs.length, 50);
+  assert.equal(firstPage.logs.at(-1).action_id, logs[49].action_id);
+  assert.equal(typeof firstPage.nextCursor, "string");
+
+  const secondResponse = await worker.fetch(
+    new Request(`https://worker.example/admin/tournament-action-logs?cursor=${encodeURIComponent(firstPage.nextCursor)}`, {
+      headers: { Authorization: "Bearer user-token" },
+    }),
+    env,
+  );
+
+  assert.equal(secondResponse.status, 200);
+  assert.deepEqual(await secondResponse.json(), { logs: [logs[50]], nextCursor: null });
+  assert.equal(rpcCalls, 2);
+});
+
+test("rejects an invalid admin action log cursor before the RPC", async () => {
+  const { env } = makeEnv();
+  let upstreamCalled = false;
+  globalThis.fetch = async () => {
+    upstreamCalled = true;
+    throw new Error("Unexpected upstream request");
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs?cursor=invalid", {
+      headers: { Authorization: "Bearer user-token" },
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Invalid admin action log cursor." });
+  assert.equal(upstreamCalled, false);
 });
 
 test("undoes an audited visibility action without contacting Google", async () => {

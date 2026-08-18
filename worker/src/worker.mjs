@@ -3,7 +3,9 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const MAX_ADMIN_UPDATES = 200;
 const MAX_ADMIN_CELLS = 2000;
 const MAX_ADMIN_BODY_BYTES = 1_000_000;
+const ACTION_LOG_PAGE_SIZE = 50;
 const LIGHTNING_CUP_SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 let googleAccessTokenCache = null;
 
@@ -11,6 +13,28 @@ class AdminEditError extends Error {
   constructor(message, status = 400) {
     super(message);
     this.status = status;
+  }
+}
+
+function encodeActionLogCursor(log) {
+  return btoa(JSON.stringify([log.created_at, log.action_id]))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+}
+
+function parseActionLogCursor(value) {
+  if (!value) return { createdAt: null, actionId: null };
+  if (value.length > 256 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    throw new AdminEditError("Invalid admin action log cursor.");
+  }
+  try {
+    const base64 = value.replaceAll("-", "+").replaceAll("_", "/");
+    const [createdAt, actionId] = JSON.parse(atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4)));
+    if (typeof createdAt !== "string" || Number.isNaN(new Date(createdAt).getTime()) || !UUID_PATTERN.test(String(actionId || ""))) throw new Error();
+    return { createdAt, actionId };
+  } catch {
+    throw new AdminEditError("Invalid admin action log cursor.");
   }
 }
 
@@ -919,7 +943,7 @@ export default {
 
     // =========================
     // Authenticated admin action logs
-    // GET  /admin/tournament-action-logs
+    // GET  /admin/tournament-action-logs?cursor=<opaque>
     // POST /admin/tournament-action-logs { actionId }
     // =========================
     if (url.pathname === "/admin/tournament-action-logs") {
@@ -934,21 +958,28 @@ export default {
 
       try {
         if (request.method === "GET") {
-          const requestedLimit = Number(url.searchParams.get("limit") || 100);
-          const limit = Number.isInteger(requestedLimit) ? Math.min(200, Math.max(1, requestedLimit)) : 100;
+          const cursor = parseActionLogCursor(String(url.searchParams.get("cursor") || "").trim());
           const logs = await callAdminRpcRows(
             env,
             authorization,
             "list_admin_action_logs",
-            { p_limit: limit },
+            {
+              p_limit: ACTION_LOG_PAGE_SIZE + 1,
+              p_before_created_at: cursor.createdAt,
+              p_before_action_id: cursor.actionId,
+            },
           );
-          return json({ logs }, 200, { "Cache-Control": "no-store" });
+          const page = logs.slice(0, ACTION_LOG_PAGE_SIZE);
+          return json({
+            logs: page,
+            nextCursor: logs.length > ACTION_LOG_PAGE_SIZE ? encodeActionLogCursor(page.at(-1)) : null,
+          }, 200, { "Cache-Control": "no-store" });
         }
 
         requireJsonContentType(request);
         const body = await readAdminJson(request);
         const actionId = String(body?.actionId || "").trim();
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actionId)) {
+        if (!UUID_PATTERN.test(actionId)) {
           throw new AdminEditError("Invalid admin action ID.");
         }
 

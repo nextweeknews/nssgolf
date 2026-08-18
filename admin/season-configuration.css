@@ -36,7 +36,8 @@
   text-transform:uppercase;
 }
 .season-configuration-input{
-  width:100%;
+  width:52px;
+  max-width:100%;
   min-height:38px;
   border:1px solid rgba(255,255,255,.16);
   border-radius:8px;
@@ -68,6 +69,7 @@
   .season-configuration-field{ gap:3px; }
   .season-configuration-field > span{ font-size:7px; }
   .season-configuration-input{
+    width:48px;
     min-height:31px;
     border-radius:7px;
     padding-inline:7px;
