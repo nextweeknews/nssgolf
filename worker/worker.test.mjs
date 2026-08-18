@@ -338,6 +338,53 @@ test("discovers year-named editor tabs and selects the latest iteration", () => 
   );
 });
 
+test("discovers convention-named Pro League stages from season 8 onward", () => {
+  const context = {
+    source_ranges: ["'Season 7, Stage 1'!A3:S101"],
+    editable_ranges: ["'Season 7, Stage 1'!L5:S8"],
+    formula_ranges: ["'Season 7, Stage 1'!A4:K101"],
+    editor_tables: [{
+      key: "season-7-stage-1-scores",
+      group_key: "season-7-stage-1",
+      group_label: "Season 7, Stage 1",
+      season_value: 7,
+      season_label: "Season 7",
+      stage_value: 1,
+      source_range: "'Season 7, Stage 1'!A3:S101",
+    }, {
+      kind: "iteration-template",
+      sheet_pattern: "^Season ([0-9]+), Stage 1$",
+      iteration_group: 1,
+      min_iteration: 8,
+      source_ranges: ["'{sheet}'!A3:S101"],
+      editable_ranges: ["'{sheet}'!L5:S8", "'{sheet}'!C66:C101", "'{sheet}'!L66:S101"],
+      formula_ranges: ["'{sheet}'!A4:B101", "'{sheet}'!C4:C65", "'{sheet}'!D4:K101"],
+      tables: [{
+        key: "season-{iteration}-stage-1-scores",
+        group_key: "season-{iteration}-stage-1",
+        group_label: "Season {iteration}, Stage 1",
+        season_value: "{iteration}",
+        season_label: "Season {iteration}",
+        stage_value: 1,
+        source_range: "'{sheet}'!A3:S101",
+      }],
+    }],
+  };
+
+  const expanded = expandTournamentIterations(context, [
+    "Season 7, Stage 1",
+    "Season 8, Stage 1",
+    "Season 8, Stage 2",
+  ]);
+  const selected = selectedTournamentEditorConfig(expanded, "season-8-stage-1");
+
+  assert.equal(selected.activeViewKey, "season-8-stage-1");
+  assert.deepEqual(selected.sourceRanges, ["'Season 8, Stage 1'!A3:S101"]);
+  assert.ok(expanded.editable_ranges.includes("'Season 8, Stage 1'!C66:C101"));
+  assert.ok(expanded.formula_ranges.includes("'Season 8, Stage 1'!D4:K101"));
+  assert.equal(expanded.editor_tables.filter((table) => table.group_key === "season-7-stage-1").length, 1);
+});
+
 test("loads a newly discovered tournament year through Google metadata", async () => {
   const privateKey = await makeTestPrivateKeyPem();
   const { env } = makeEnv({ bindings: {

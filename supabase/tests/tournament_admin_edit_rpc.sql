@@ -693,7 +693,7 @@ BEGIN
   INTO proleague_tables
   FROM public.get_tournament_admin_edit_context('proleague');
 
-  IF jsonb_array_length(proleague_tables) <> 18
+  IF jsonb_array_length(proleague_tables) <> 21
     OR proleague_tables->0->>'group_key' <> '2026-all-stars'
     OR proleague_tables->1->>'group_key' <> 'season-7-stage-1'
     OR proleague_tables->3->>'group_key' <> 'season-7-stage-3'
@@ -701,6 +701,12 @@ BEGIN
     OR proleague_tables->7->>'group_key' <> 'season-6-stage-1'
     OR proleague_tables->13->>'group_key' <> 'season-5'
     OR proleague_tables->17->>'group_key' <> 'season-1'
+    OR proleague_tables->18->>'template_key' <> 'proleague-stage-1'
+    OR proleague_tables->18->>'sheet_pattern' <> '^Season ([0-9]+), Stage 1$'
+    OR (proleague_tables->18->>'min_iteration')::integer <> 8
+    OR proleague_tables->18->'tables'->0->>'group_key' <> 'season-{iteration}-stage-1'
+    OR NOT proleague_tables->18->'editable_ranges' @> '["''{sheet}''!C66:C101", "''{sheet}''!L66:S101"]'::jsonb
+    OR proleague_tables->20->>'template_key' <> 'proleague-stage-3'
   THEN
     RAISE EXCEPTION 'Pro League season and stage editor metadata are incomplete';
   END IF;
