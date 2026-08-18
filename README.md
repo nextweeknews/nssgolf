@@ -45,10 +45,10 @@ Create and verify schema changes locally first. Before any approved hosted chang
 
 The Sheets Worker exposes a public read-only `GET /admin/tournament-results?eventKey=...` route and an authenticated `POST /admin/tournament-results` route. Before deploying them:
 
-1. Apply the pending Supabase tournament-admin migration.
-2. Enable the Google Sheets API and create a Google service account.
-3. Share each configured tournament spreadsheet with that service-account email as an Editor.
-4. Store `GOOGLE_API_KEY`, `YOUTUBE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, and `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` with `npx wrangler secret put NAME --config worker/wrangler.jsonc`. Do not place their values in the repository.
+1. Enable the Google Sheets API, create a Google service account, and share each configured tournament spreadsheet with that service-account email as an Editor.
+2. Before changing the database, store `GOOGLE_API_KEY`, `YOUTUBE_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, and `SUPABASE_SECRET_KEY` with `npx wrangler secret put NAME --config worker/wrangler.jsonc`. `SUPABASE_SECRET_KEY` must be a server-side Supabase secret key used by the Worker-only audit and match-state RPCs. Do not place any of these values in the repository.
+3. In one coordinated release window, apply the reviewed Supabase migration, run the updated Discord member scan so it records a completed role-assignment generation, and immediately deploy the Worker. The hardened database revokes the old browser lifecycle/match-state paths, while the new Worker requires the new RPCs, so either half deployed alone temporarily blocks those writes.
+4. Confirm the Discord scan completed successfully, then deploy the static website last so browsers begin using the Worker-only paths after both server components are ready.
 
 Migrate the existing Google and YouTube plaintext bindings before the first repo-based deployment. The admin route uses the service account for both Sheets reads and writes; the legacy public read proxy continues to use `GOOGLE_API_KEY`. Admin authorization uses the caller's Supabase access token and the publishable project key.
 
@@ -72,7 +72,7 @@ This supports an indeterminate number of roles per player.
 
 ### Supabase setup
 
-Run the SQL in `bot/discord-member-schema.sql` in the Supabase SQL editor before running the bot. The tables have RLS enabled and are intended for server-side bot access through the service-role key.
+The linked project schema is managed by the versioned Supabase migrations. For a new environment, apply those migrations before running the bot. `bot/discord-member-schema.sql` remains an idempotent bootstrap reference, but it is not part of the linked production release path.
 
 Do not expose the service-role key in browser JavaScript.
 
@@ -118,14 +118,7 @@ Rank text accepts the stored infinity symbol, like `∞3`, and easier Discord in
 
 ### Supabase setup
 
-Run these SQL files in the Supabase SQL editor:
-
-```sh
-bot/discord-member-schema.sql
-bot/player-settings-schema.sql
-bot/global-rank-displays-schema.sql
-bot/championship-settings-schema.sql
-```
+Apply the versioned Supabase migrations before running the bot. Do not run the legacy standalone player, signup, ranking, Championship, alias, or Lightning Cup schema files against a migrated project: their retired pre-migration grants are guarded and will abort instead of replacing the canonical RLS model. `bot/global-rank-displays-schema.sql` is service-only, but the migration remains the production source of truth.
 
 The display-message table stores Discord webhook tokens and is intentionally service-role only. Do not grant browser clients access to it.
 
@@ -188,7 +181,7 @@ If the values are stored only as GitHub Secrets, run the existing **Discord memb
 
 The Shotgun Pro League Google Sheet uses stable player aliases that do not always match current Discord display names. Use a Supabase alias table to map those sheet names to Discord user IDs without rewriting historical sheet data.
 
-1. Run `bot/proleague-player-alias-schema.sql` in the Supabase SQL editor after `bot/discord-member-schema.sql`.
+1. Apply the versioned Supabase migrations, which include the alias table and its hardened grants.
 2. Refresh Discord member data. Locally, run `npm run discord:scan-members` with a local `.env`; if your credentials only live in GitHub Secrets, run the **Discord member scan** workflow in GitHub Actions.
 3. Generate a review CSV:
 

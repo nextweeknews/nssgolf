@@ -578,12 +578,14 @@ async function subscribeToMatchRealtime(){
       schema: "public",
       table: MATCH_STATE_TABLE,
       filter: changeFilter,
+      select: ["match_id", "state", "updated_at"],
     }, handlePostgresMatchStateChange)
     .on("postgres_changes", {
       event: "UPDATE",
       schema: "public",
       table: MATCH_STATE_TABLE,
       filter: changeFilter,
+      select: ["match_id", "state", "updated_at"],
     }, handlePostgresMatchStateChange)
     .on("presence", { event: "sync" }, () => {
       updateRealtimePresence(channel);

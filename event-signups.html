@@ -81,7 +81,6 @@
   <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { ADMIN_ROLE_ID } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
     const loginActions = document.getElementById("adminLoginActions");
@@ -201,17 +200,10 @@
       return data || null;
     }
 
-    async function playerHasAdminRole(discordId){
-      const cleanDiscordId = normalizeDiscordId(discordId);
-      if(!cleanDiscordId) return false;
-      const { data, error } = await supabase
-        .from("discord_member_roles")
-        .select("role_id")
-        .eq("discord_user_id", cleanDiscordId)
-        .eq("role_id", ADMIN_ROLE_ID)
-        .maybeSingle();
+    async function playerHasAdminRole(){
+      const { data, error } = await supabase.rpc("is_tournament_result_admin");
       if(error) throw error;
-      return !!data;
+      return data === true;
     }
 
     function memberDisplayName(signup, member, gpiRow){
@@ -862,7 +854,7 @@
       if(userError) throw userError;
       const profile = await loadProfileForUser(userData.user);
       const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
-      const isAdmin = await playerHasAdminRole(discordId);
+      const isAdmin = await playerHasAdminRole();
       if(!isAdmin){
         showLoading(false);
         panel.hidden = true;

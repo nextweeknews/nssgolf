@@ -25,6 +25,11 @@ VALUES
     'discord'
   );
 
+INSERT INTO auth.sessions (id, user_id)
+VALUES
+  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '11111111-1111-1111-1111-111111111111'),
+  ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '22222222-2222-2222-2222-222222222222');
+
 INSERT INTO public.discord_guild_members (guild_id, discord_user_id, username, display_name)
 VALUES
   ('800000000000000001', '900000000000000001', 'admin', 'Admin'),
@@ -35,6 +40,9 @@ VALUES ('800000000000000001', '1069007873985740890', 'Administrator');
 
 INSERT INTO public.discord_member_roles (guild_id, discord_user_id, role_id)
 VALUES ('800000000000000001', '900000000000000001', '1069007873985740890');
+
+INSERT INTO public.discord_guild_sync_state (guild_id, completed_at)
+VALUES ('800000000000000001', transaction_timestamp());
 
 UPDATE public.profiles
 SET username = 'admin',
@@ -112,11 +120,26 @@ BEGIN
     RAISE EXCEPTION 'anon unexpectedly has execute privilege on an admin mutation RPC';
   END IF;
 
-  IF has_schema_privilege('authenticated', 'private', 'USAGE')
-    OR has_table_privilege('authenticated', 'private.tournament_result_action_logs', 'SELECT')
+  IF has_table_privilege('authenticated', 'private.tournament_result_action_logs', 'SELECT')
     OR has_table_privilege('authenticated', 'private.admin_visibility_action_logs', 'SELECT')
   THEN
     RAISE EXCEPTION 'authenticated users can unexpectedly access the private action log table';
+  END IF;
+
+  IF has_function_privilege(
+    'authenticated',
+    'public.create_tournament_result_action_log(text,text,jsonb,uuid)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'authenticated',
+    'public.set_tournament_result_action_log_changes(uuid,jsonb)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'authenticated',
+    'public.complete_tournament_result_action_log(uuid,boolean,text)',
+    'EXECUTE'
+  ) THEN
+    RAISE EXCEPTION 'authenticated users can unexpectedly call Worker-only lifecycle RPCs';
   END IF;
 
   IF has_table_privilege('anon', 'public.tournament_admin_events', 'SELECT') THEN
@@ -146,8 +169,13 @@ BEGIN
     'public.tournament_admin_events',
     'editable_ranges',
     'UPDATE'
+  ) OR has_column_privilege(
+    'authenticated',
+    'public.tournament_admin_events',
+    'archived',
+    'UPDATE'
   ) THEN
-    RAISE EXCEPTION 'authenticated users can unexpectedly change canonical edit configuration';
+    RAISE EXCEPTION 'authenticated users can unexpectedly bypass tournament mutation RPCs';
   END IF;
 END;
 $$;
@@ -180,10 +208,9 @@ RESET ROLE;
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '22222222-2222-2222-2222-222222222222', true);
+SELECT set_config('request.jwt.claim.session_id', 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', true);
 
 DO $$
-DECLARE
-  affected_rows integer;
 BEGIN
   IF public.is_tournament_result_admin() THEN
     RAISE EXCEPTION 'mutable profile Discord ID granted admin access';
@@ -224,32 +251,72 @@ BEGIN
     WHEN insufficient_privilege THEN NULL;
   END;
 
-  BEGIN
-    PERFORM public.create_tournament_result_action_log(
-      'masters',
-      'edit',
-      '[{"range":"''Bracket''!C2","before":[[1]],"after":[[2]]}]'::jsonb,
-      NULL
-    );
-    RAISE EXCEPTION 'non-admin unexpectedly created a tournament action log';
-  EXCEPTION
-    WHEN insufficient_privilege THEN NULL;
-  END;
-
-  UPDATE public.tournament_admin_events
-  SET archived = true
-  WHERE event_key = 'masters';
-  GET DIAGNOSTICS affected_rows = ROW_COUNT;
-
-  IF affected_rows <> 0 THEN
-    RAISE EXCEPTION 'non-admin unexpectedly archived an event';
-  END IF;
 END;
 $$;
 
 RESET ROLE;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+SELECT set_config('request.jwt.claim.session_id', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', true);
+
+DO $$
+DECLARE
+  context_count integer;
+BEGIN
+  SELECT count(*)
+  INTO context_count
+  FROM public.get_tournament_admin_edit_context();
+
+  IF context_count <> 8 THEN
+    RAISE EXCEPTION 'authenticated admin context RPC returned % events', context_count;
+  END IF;
+
+  PERFORM public.set_tournament_result_archived('masters', false);
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.authorize_tournament_result_edit('masters')
+    WHERE event_key = 'masters'
+      AND cardinality(editable_ranges) > 0
+      AND jsonb_array_length(editor_tables) > 0
+  ) THEN
+    RAISE EXCEPTION 'authenticated admin could not authorize an active tournament edit';
+  END IF;
+
+  PERFORM public.set_tournament_result_archived('masters', true);
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.get_tournament_admin_edit_context('masters')
+    WHERE archived
+      AND archived_by_user_id = '11111111-1111-1111-1111-111111111111'
+      AND updated_by_user_id = '11111111-1111-1111-1111-111111111111'
+  ) THEN
+    RAISE EXCEPTION 'authenticated archive RPC did not preserve server audit metadata';
+  END IF;
+
+  PERFORM public.set_tournament_result_archived('masters', false);
+
+  BEGIN
+    UPDATE public.tournament_admin_events
+    SET archived = true
+    WHERE event_key = 'masters';
+    RAISE EXCEPTION 'authenticated admin bypassed the archive RPC';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+END;
+$$;
+
+RESET ROLE;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.sub', '11111111-1111-1111-1111-111111111111', true);
+SELECT set_config('request.jwt.claim.session_id', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', true);
+SELECT set_config(
+  'request.headers',
+  '{"x-nssgolf-actor-user-id":"11111111-1111-1111-1111-111111111111"}',
+  true
+);
 
 DO $$
 DECLARE
@@ -266,10 +333,75 @@ DECLARE
   failed_action_id uuid;
   visibility_action_id uuid;
   visibility_undo_id uuid;
+  valid_point_settings jsonb := jsonb_build_object(
+    'lightningCup2026', jsonb_build_object(
+      'winner', 100, 'runnerUp', 60, 'semifinalist', 40,
+      'quarterfinalist', 25, 'roundOf16', 15, 'roundOf32', 10, 'roundOf64', 5
+    ),
+    'worldCup2025', jsonb_build_object(
+      'winner', 100, 'runnerUp', 60, 'thirdPlace', 50, 'fourthPlace', 40,
+      'quarterfinalist', 25, 'roundOf16', 15, 'groupThird', 10, 'groupFourth', 5
+    ),
+    'worldOpen', jsonb_build_object(
+      'secondRound', 5, 'roundOf32', 10, 'roundOf16', 20,
+      'quarterfinalist', 30, 'semifinalist', 50, 'runnerUp', 70, 'winner', 101
+    ),
+    'noptational2026', jsonb_build_object(
+      'placements', to_jsonb(array_fill(10, ARRAY[44]))
+    ),
+    'superLeagueS5', jsonb_build_object(
+      'division1', to_jsonb(ARRAY[100,80,65,50,40,30,20,10]),
+      'division2', to_jsonb(ARRAY[75,55,40,30,20,15,10,5]),
+      'division3', to_jsonb(ARRAY[50,40,30,20,15,10,5,2])
+    ),
+    'superLeagueS6', jsonb_build_object(
+      'division1', to_jsonb(ARRAY[100,80,65,50,40,30,20,10]),
+      'division2', to_jsonb(ARRAY[75,55,40,30,20,15,10,5]),
+      'division3', to_jsonb(ARRAY[50,40,30,20,15,10,5,2])
+    )
+  );
 BEGIN
   IF NOT public.is_tournament_result_admin() THEN
     RAISE EXCEPTION 'Discord administrator was not authorized';
   END IF;
+
+  UPDATE public.discord_guild_members
+  SET is_current_member = false
+  WHERE guild_id = '800000000000000001'
+    AND discord_user_id = '900000000000000001';
+  IF public.is_tournament_result_admin() THEN
+    RAISE EXCEPTION 'a stale Discord member retained administrator access';
+  END IF;
+  UPDATE public.discord_guild_members
+  SET is_current_member = true
+  WHERE guild_id = '800000000000000001'
+    AND discord_user_id = '900000000000000001';
+
+  UPDATE public.discord_roles
+  SET is_current_role = false
+  WHERE guild_id = '800000000000000001'
+    AND role_id = '1069007873985740890';
+  IF public.is_tournament_result_admin() THEN
+    RAISE EXCEPTION 'a stale Discord role retained administrator access';
+  END IF;
+  UPDATE public.discord_roles
+  SET is_current_role = true
+  WHERE guild_id = '800000000000000001'
+    AND role_id = '1069007873985740890';
+
+  UPDATE public.discord_member_roles
+  SET scanned_at = transaction_timestamp() - interval '1 second'
+  WHERE guild_id = '800000000000000001'
+    AND discord_user_id = '900000000000000001'
+    AND role_id = '1069007873985740890';
+  IF public.is_tournament_result_admin() THEN
+    RAISE EXCEPTION 'a stale Discord role assignment retained administrator access';
+  END IF;
+  UPDATE public.discord_member_roles
+  SET scanned_at = transaction_timestamp()
+  WHERE guild_id = '800000000000000001'
+    AND discord_user_id = '900000000000000001'
+    AND role_id = '1069007873985740890';
 
   SELECT count(*)
   INTO context_count
@@ -725,14 +857,21 @@ BEGIN
     true
   );
 
-  PERFORM public.save_championship_point_values('{"worldOpen":{"winner":101}}'::jsonb);
+  BEGIN
+    PERFORM public.save_championship_point_values('{"worldOpen":{"winner":101}}'::jsonb);
+    RAISE EXCEPTION 'an incomplete Championship point schema was accepted';
+  EXCEPTION
+    WHEN invalid_parameter_value THEN NULL;
+  END;
+
+  PERFORM public.save_championship_point_values(valid_point_settings);
 
   IF NOT EXISTS (
     SELECT 1
     FROM public.championship_point_settings
     WHERE id = 'current'
       AND hidden_player_keys @> ARRAY['id:900000000000000002']
-      AND settings = '{"worldOpen":{"winner":101}}'::jsonb
+      AND settings = valid_point_settings
   ) OR NOT EXISTS (
     SELECT 1
     FROM public.list_admin_action_logs(20)

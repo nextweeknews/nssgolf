@@ -1953,7 +1953,6 @@
     const SUPABASE_SELECT_PAGE_SIZE = 1000;
     const REGION_TAB_PICK_TOTALS = new Map(REGION_TABS.map((tab) => [tab, tab === "Finals" ? 3 : 15]));
     const TOURNAMENT_YEAR = "2026";
-    const LIGHTNING_CUP_STARTS_AT_MS = Date.UTC(2026, 3, 10, 17, 0, 0);
     const VIEW_QUERY_RESULTS = "results";
     const VIEW_QUERY_BRACKET_GAME = "bracket-game";
     const BRACKET_GAME_TAB_QUERY_VALUE_BY_MAIN_TAB = {
@@ -1988,6 +1987,7 @@
       actualMatches: /** @type {ActualMatch[]} */ ([]),
       players: new Map(),
       lockFlag: "no",
+      bracketEventSettings: null,
       mainTab: "Actual Bracket",
       activeTab: "Wii Plaza",
       context: null,
@@ -2161,9 +2161,16 @@
     }
     function renderLightningCupCountdown(){
       if(!els.lightningCupCountdownStrip?.isConnected || !els.lightningCupCountdownTimer?.isConnected) return;
-      const remainingMs = LIGHTNING_CUP_STARTS_AT_MS - Date.now();
-      if(remainingMs <= 0){
+      const deadlineMs = Date.parse(state.bracketEventSettings?.edit_deadline_at || "");
+      if(!Number.isFinite(deadlineMs)){
         removeLightningCupCountdown();
+        return;
+      }
+      const remainingMs = deadlineMs - Date.now();
+      if(remainingMs <= 0){
+        state.lockFlag = "yes";
+        removeLightningCupCountdown();
+        if(state.context) renderView();
         return;
       }
       els.lightningCupCountdownStrip.hidden = false;
@@ -2186,7 +2193,8 @@
         lightningCupCountdownIntervalId = null;
       }
       renderLightningCupCountdown();
-      if(LIGHTNING_CUP_STARTS_AT_MS <= Date.now()) return;
+      const deadlineMs = Date.parse(state.bracketEventSettings?.edit_deadline_at || "");
+      if(!Number.isFinite(deadlineMs) || deadlineMs <= Date.now()) return;
       lightningCupCountdownIntervalId = window.setInterval(renderLightningCupCountdown, 1000);
     }
     const modalState = { chooseUsernameSubmitting: false };
@@ -2634,10 +2642,6 @@
         map.set(name, { name, best9: normalizeName(r[1]), best18: normalizeName(r[2]), bestGlobalScore: normalizeName(r[3]), bestGlobalRating: normalizeName(r[4]), discordId: normalizeName(r[6]) });
       });
       return map;
-    }
-
-    function parseLock(raw){
-      return normalizeName(raw?.values?.[0]?.[0]).toLowerCase() === "yes" ? "yes" : "no";
     }
 
     function normalizeDiscordPlayerId(value){
@@ -4023,18 +4027,6 @@
       );
     }
 
-    function getDiscordProviderIdFromIdentities(identities){
-      const list = Array.isArray(identities) ? identities : [];
-      const discordIdentity = list.find((identity) => normalizeName(identity?.provider).toLowerCase() === "discord");
-      if(!discordIdentity) return "";
-      return normalizeName(
-        discordIdentity.provider_id ||
-        discordIdentity.identity_data?.provider_id ||
-        discordIdentity.identity_data?.sub ||
-        discordIdentity.identity_data?.id
-      );
-    }
-
     async function syncProfileFromAuthUser(){
       const sessionUserId = normalizeName(state.session?.user?.id);
       if(!sessionUserId) return;
@@ -4049,57 +4041,9 @@
         // Keep profile bootstrap non-blocking if auth user enrichment is unavailable.
       }
 
-      const identities = Array.isArray(authUser?.identities)
-        ? authUser.identities
-        : Array.isArray(state.session?.user?.identities)
-          ? state.session.user.identities
-          : [];
-      const discordUserId = getDiscordProviderIdFromIdentities(identities);
-      const providerFullName = getProviderProfileName(authUser || state.session?.user);
       state.userAvatarUrl = getDiscordAvatarUrlFromAuthUser(authUser || state.session?.user);
-
-      let existingProfile = null;
       try{
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("user_id,username,discord_user_id,full_name")
-          .eq("user_id", sessionUserId)
-          .maybeSingle();
-        if(error) return;
-        existingProfile = data || null;
-      }catch{
-        return;
-      }
-
-      const existingUsername = normalizeName(existingProfile?.username);
-      const existingDiscordUserId = normalizeName(existingProfile?.discord_user_id);
-      const existingFullName = normalizeName(existingProfile?.full_name);
-
-      /** @type {{user_id:string,username?:string,discord_user_id?:string,full_name?:string}} */
-      const payload = { user_id: sessionUserId };
-      let shouldUpsert = !existingProfile;
-
-      if(discordUserId && discordUserId !== existingDiscordUserId){
-        payload.discord_user_id = discordUserId;
-        shouldUpsert = true;
-      }
-
-      if(providerFullName && providerFullName !== existingFullName){
-        payload.full_name = providerFullName;
-        shouldUpsert = true;
-      }
-
-      if(!existingUsername && providerFullName){
-        payload.username = providerFullName;
-        if(providerFullName !== normalizeName(existingProfile?.username)){
-          shouldUpsert = true;
-        }
-      }
-
-      if(!shouldUpsert) return;
-
-      try{
-        const { error } = await supabase.from("profiles").upsert(payload, { onConflict: "user_id" });
+        const { error } = await supabase.rpc("sync_my_profile");
         if(error) return;
       }catch{
         // Keep auth flow and onboarding resilient if profile sync fails.
@@ -4200,10 +4144,10 @@
       const emailPrefix = normalizeName(state.session.user.email).split("@")[0];
       const bracket_name = username || existingName || providerName || emailPrefix || "My Bracket";
       const payload = { user_id: userId, bracket_name, year: TOURNAMENT_YEAR };
-      const { error: upsertError } = await supabase
+      const { error: insertError } = await supabase
         .from("brackets")
-        .upsert(payload, { onConflict: "user_id,year" });
-      if(upsertError) throw upsertError;
+        .insert(payload);
+      if(insertError && insertError.code !== "23505") throw insertError;
 
       const { data, error } = await supabase
         .from("brackets")
@@ -4218,15 +4162,21 @@
     }
 
     async function loadTournament(){
-      const [bracketRaw, lockRaw, playersRaw, seedsRaw] = await Promise.all([
+      const [bracketRaw, playersRaw, seedsRaw, eventSettingsResult] = await Promise.all([
         fetchSheet("Bracket!A:T"),
-        fetchSheet("Bracket!I1"),
         fetchSheet("Form Responses!B:H"),
         fetchSheet("Seeds!C:E"),
+        supabase
+          .from("bracket_event_settings")
+          .select("year,event_key,display_name,edit_deadline_at,picks_public_at")
+          .eq("year", TOURNAMENT_YEAR)
+          .single(),
       ]);
+      if(eventSettingsResult.error) throw eventSettingsResult.error;
       state.actualMatches = buildActualMatchesFromSheet(bracketRaw);
       state.players = parsePlayers(playersRaw);
-      state.lockFlag = parseLock(lockRaw);
+      state.bracketEventSettings = eventSettingsResult.data;
+      state.lockFlag = Date.now() >= Date.parse(state.bracketEventSettings.edit_deadline_at) ? "yes" : "no";
       const seedsMaps = parseSeedsNameDiscordMap(seedsRaw);
       state.seedDiscordMap = seedsMaps.exact;
       state.seedDiscordMapLower = seedsMaps.lower;
@@ -4664,11 +4614,11 @@
     async function init(){
       bindEvents();
       initializeRadixControls();
-      startLightningCupCountdown();
       applyUrlStateToView();
       try{
         await syncSessionFromSupabase();
         await loadTournament();
+        startLightningCupCountdown();
         await refreshAuthDrivenUI("init", { syncSession: false });
         openChooseUsernameModalIfMissing();
         setMessage("");

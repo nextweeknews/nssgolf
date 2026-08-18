@@ -5,6 +5,12 @@ import test from "node:test";
 import worker, { expandTournamentIterations, selectedTournamentEditorConfig, validateAdminUpdates } from "./src/worker.mjs";
 
 const originalFetch = globalThis.fetch;
+const TEST_ADMIN_ACTOR = {
+  actor_user_id: "11111111-1111-4111-8111-111111111111",
+  actor_discord_user_id: "900000000000000001",
+  actor_username: "Admin",
+  is_admin: true,
+};
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -17,6 +23,7 @@ function makeEnv({ cachedChannelId = null, bindings = {} } = {}) {
       GOOGLE_API_KEY: "test-google-key",
       SUPABASE_URL: "https://project.supabase.co",
       SUPABASE_PUBLISHABLE_KEY: "test-publishable-key",
+      SUPABASE_SECRET_KEY: "test-secret-key",
       YOUTUBE_API_KEY: "test-youtube-key",
       UC_IDs: {
         get: async () => cachedChannelId,
@@ -186,6 +193,109 @@ test("requires a Supabase user token for tournament result writes", async () => 
   assert.equal(response.status, 401);
   assert.deepEqual(await response.json(), { error: "Authentication required." });
   assert.equal(upstreamCalled, false);
+});
+
+test("writes Lightning Cup match state only through the verified Worker path", async () => {
+  const { env } = makeEnv();
+  const savedAt = "2026-08-17T12:00:00.000Z";
+  const matchState = { version:1, sets:[{}, {}, {}], history:[], undoStack:[] };
+
+  globalThis.fetch = async (input, init = {}) => {
+    const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.pathname.endsWith("/get_my_discord_actor")) {
+      assert.equal(init.headers.Authorization, "Bearer user-token");
+      return Response.json([TEST_ADMIN_ACTOR]);
+    }
+    if (upstreamUrl.hostname === "sheets.googleapis.com") {
+      const range = decodeURIComponent(upstreamUrl.pathname.split("/values/").at(-1));
+      if (range === "Bracket!A:T") {
+        return Response.json({ values: [
+          ["Match ID"],
+          ["1", "R64", "1", "1", "Player One", "", "2", "Administrator"],
+        ] });
+      }
+      if (range === "Seeds!C:E") {
+        return Response.json({ values: [
+          ["Player One", "", "930000000000000001"],
+          ["Administrator", "", "930000000000000003"],
+        ] });
+      }
+    }
+    if (upstreamUrl.pathname.endsWith("/upsert_lightning_cup_match_state")) {
+      assert.equal(init.headers.apikey, "test-secret-key");
+      assert.equal(init.headers.Authorization, undefined);
+      assert.equal(init.headers["X-NSSGolf-Actor-User-Id"], TEST_ADMIN_ACTOR.actor_user_id);
+      assert.deepEqual(JSON.parse(init.body), {
+        p_actor_user_id: TEST_ADMIN_ACTOR.actor_user_id,
+        p_match_id: 1,
+        p_state: matchState,
+        p_competitor_discord_user_ids: ["930000000000000001", "930000000000000003"],
+      });
+      return Response.json([{ match_id:1, state:matchState, updated_at:savedAt }]);
+    }
+    throw new Error(`Unexpected upstream request: ${upstreamUrl}`);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/lightningcup/match-state", {
+      method:"POST",
+      headers:{ Authorization:"Bearer user-token", "Content-Type":"application/json" },
+      body:JSON.stringify({ matchId:1, state:matchState }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.deepEqual(await response.json(), { match_id:1, state:matchState, updated_at:savedAt });
+});
+
+test("rejects ambiguous Lightning Cup competitor names before the secret RPC", async () => {
+  const { env } = makeEnv();
+  const matchState = { version:1, sets:[{}, {}, {}], history:[], undoStack:[] };
+  let secretRpcCalled = false;
+
+  globalThis.fetch = async (input) => {
+    const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.pathname.endsWith("/get_my_discord_actor")) {
+      return Response.json([TEST_ADMIN_ACTOR]);
+    }
+    if (upstreamUrl.hostname === "sheets.googleapis.com") {
+      const range = decodeURIComponent(upstreamUrl.pathname.split("/values/").at(-1));
+      if (range === "Bracket!A:T") {
+        return Response.json({ values: [
+          ["Match ID"],
+          ["1", "R64", "1", "1", "Same Name", "", "2", "Administrator"],
+        ] });
+      }
+      if (range === "Seeds!C:E") {
+        return Response.json({ values: [
+          ["Same Name", "", "930000000000000001"],
+          ["same name", "", "930000000000000002"],
+          ["Administrator", "", "930000000000000003"],
+        ] });
+      }
+    }
+    if (upstreamUrl.pathname.endsWith("/upsert_lightning_cup_match_state")) {
+      secretRpcCalled = true;
+    }
+    throw new Error(`Unexpected upstream request: ${upstreamUrl}`);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/lightningcup/match-state", {
+      method:"POST",
+      headers:{ Authorization:"Bearer user-token", "Content-Type":"application/json" },
+      body:JSON.stringify({ matchId:1, state:matchState }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), {
+    error:"The Lightning Cup sheet has an ambiguous competitor name.",
+  });
+  assert.equal(secretRpcCalled, false);
 });
 
 test("discovers year-named editor tabs and selects the latest iteration", () => {
@@ -397,7 +507,7 @@ test("loads canonical admin event ranges without caching", async () => {
 
     if (upstreamUrl.hostname === "project.supabase.co") {
       assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/get_tournament_editor_read_context");
-      assert.equal(init.headers.Authorization, "Bearer test-publishable-key");
+      assert.equal(init.headers.Authorization, undefined);
       assert.equal(init.headers.apikey, "test-publishable-key");
       assert.deepEqual(JSON.parse(init.body), { p_event_key: "masters" });
       return Response.json([{
@@ -608,8 +718,11 @@ test("maps an archived event authorization failure without calling Google", asyn
 test("rejects writes to formula cells outside the RPC-provided editable score ranges", async () => {
   const { env } = makeEnv();
   let upstreamCalls = 0;
-  globalThis.fetch = async () => {
+  globalThis.fetch = async (input) => {
     upstreamCalls += 1;
+    if (new URL(String(input)).pathname.endsWith("/get_my_discord_actor")) {
+      return Response.json([TEST_ADMIN_ACTOR]);
+    }
     return Response.json([{
       event_key: "masters",
       sheet_id: "masters-sheet",
@@ -632,7 +745,7 @@ test("rejects writes to formula cells outside the RPC-provided editable score ra
 
   assert.equal(response.status, 400);
   assert.match((await response.json()).error, /outside this event's editable cells/);
-  assert.equal(upstreamCalls, 1);
+  assert.equal(upstreamCalls, 2);
 });
 
 test("writes validated cells to the canonical sheet with RAW input", async () => {
@@ -653,6 +766,9 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
 
     if (upstreamUrl.hostname === "project.supabase.co") {
       const rpc = upstreamUrl.pathname.split("/").at(-1);
+      if (rpc === "get_my_discord_actor") {
+        return Response.json([TEST_ADMIN_ACTOR]);
+      }
       if (rpc === "authorize_tournament_result_edit") {
         return Response.json([{
           event_key: "masters",
@@ -662,6 +778,9 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
         }]);
       }
       if (rpc === "create_tournament_result_action_log") {
+        assert.equal(init.headers.apikey, "test-secret-key");
+        assert.equal(init.headers.Authorization, undefined);
+        assert.equal(init.headers["X-NSSGolf-Actor-User-Id"], TEST_ADMIN_ACTOR.actor_user_id);
         assert.deepEqual(JSON.parse(init.body), {
           p_event_key: "masters",
           p_action_type: "edit",
@@ -744,7 +863,7 @@ test("writes validated cells to the canonical sheet with RAW input", async () =>
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("Cache-Control"), "no-store");
-  assert.equal(upstreamUrls.length, 7);
+  assert.equal(upstreamUrls.length, 8);
   assert.deepEqual(googleWriteBody, {
     valueInputOption: "RAW",
     data: [{ range: "'Bracket'!D4:E4", majorDimension: "ROWS", values: [["1", ""]] }],
@@ -772,6 +891,9 @@ test("does not write to Google when the required audit log cannot be created", a
 
   globalThis.fetch = async (input) => {
     const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.pathname.endsWith("/get_my_discord_actor")) {
+      return Response.json([TEST_ADMIN_ACTOR]);
+    }
     if (upstreamUrl.pathname.endsWith("/authorize_tournament_result_edit")) {
       return Response.json([{
         event_key: "masters",
@@ -827,6 +949,9 @@ test("undo logs a failed attempt instead of overwriting cells changed after the 
 
   globalThis.fetch = async (input, init = {}) => {
     const upstreamUrl = new URL(String(input));
+    if (upstreamUrl.pathname.endsWith("/get_my_discord_actor")) {
+      return Response.json([TEST_ADMIN_ACTOR]);
+    }
     if (upstreamUrl.pathname.endsWith("/get_tournament_result_action_for_undo")) {
       return Response.json([{
         action_id: actionId,
@@ -888,6 +1013,9 @@ test("undo creates an inverse audit entry before restoring prior values", async 
   globalThis.fetch = async (input, init = {}) => {
     const upstreamUrl = new URL(String(input));
     calls.push(upstreamUrl.pathname);
+    if (upstreamUrl.pathname.endsWith("/get_my_discord_actor")) {
+      return Response.json([TEST_ADMIN_ACTOR]);
+    }
     if (upstreamUrl.pathname.endsWith("/get_tournament_result_action_for_undo")) {
       return Response.json([{
         action_id: actionId,

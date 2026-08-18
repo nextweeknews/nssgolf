@@ -53,6 +53,7 @@ const supabase = createBrowserSupabaseClient();
 const state = {
   session: null,
   profile: null,
+  isDiscordAdmin: false,
   matchId: getMatchIdFromSearch(globalThis.location?.search || ""),
   actualMatches: [],
   context: null,
@@ -534,7 +535,9 @@ function getCurrentViewerPlayerNumber(){
 }
 
 function getCanEditMatch(){
-  return !!state.session && !!state.match && isUserParticipantInMatch(getAuthDiscordId(), state.match);
+  return !!state.session
+    && !!state.match
+    && (state.isDiscordAdmin || isUserParticipantInMatch(getAuthDiscordId(), state.match));
 }
 
 function getCanApplyActions(){
@@ -665,30 +668,6 @@ function formatSeedLabel(seed){
   return seed == null ? "TBD" : String(seed);
 }
 
-function getProviderProfileName(user){
-  const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
-  return normalizeName(
-    metadata.full_name ||
-    metadata.name ||
-    metadata.global_name ||
-    metadata.preferred_username ||
-    metadata.user_name ||
-    metadata.username
-  );
-}
-
-function getDiscordProviderIdFromIdentities(identities){
-  const list = Array.isArray(identities) ? identities : [];
-  const discordIdentity = list.find((identity) => normalizeName(identity?.provider).toLowerCase() === "discord");
-  if(!discordIdentity) return "";
-  return normalizeName(
-    discordIdentity.provider_id ||
-    discordIdentity.identity_data?.provider_id ||
-    discordIdentity.identity_data?.sub ||
-    discordIdentity.identity_data?.id
-  );
-}
-
 async function syncSessionFromSupabase(){
   const { data, error } = await supabase.auth.getSession();
   if(error){
@@ -700,57 +679,18 @@ async function syncSessionFromSupabase(){
 async function syncProfileFromAuthUser(){
   const sessionUserId = normalizeName(state.session?.user?.id);
   if(!sessionUserId) return;
-
-  let authUser = state.session?.user || null;
   try{
-    const { data, error } = await supabase.auth.getUser();
-    if(!error && data?.user?.id === sessionUserId){
-      authUser = data.user;
-    }
-  }catch{
-    // Keep match bootstrap resilient if auth enrichment is unavailable.
-  }
-
-  const identities = Array.isArray(authUser?.identities) ? authUser.identities : [];
-  const discordUserId = getDiscordProviderIdFromIdentities(identities);
-  const providerFullName = getProviderProfileName(authUser);
-
-  const { data: existingProfile, error: profileError } = await supabase
-    .from("profiles")
-    .select("user_id,username,discord_user_id,full_name")
-    .eq("user_id", sessionUserId)
-    .maybeSingle();
-  if(profileError){
-    return;
-  }
-
-  const payload = { user_id: sessionUserId };
-  let shouldUpsert = !existingProfile;
-
-  if(discordUserId && discordUserId !== normalizeName(existingProfile?.discord_user_id)){
-    payload.discord_user_id = discordUserId;
-    shouldUpsert = true;
-  }
-
-  if(providerFullName && providerFullName !== normalizeName(existingProfile?.full_name)){
-    payload.full_name = providerFullName;
-    shouldUpsert = true;
-  }
-
-  if(!normalizeName(existingProfile?.username) && providerFullName){
-    payload.username = providerFullName;
-    shouldUpsert = true;
-  }
-
-  if(!shouldUpsert){
-    return;
-  }
-
-  try{
-    await supabase.from("profiles").upsert(payload, { onConflict: "user_id" });
+    await supabase.rpc("sync_my_profile");
   }catch{
     // Keep page usable even if profile sync is temporarily unavailable.
   }
+}
+
+async function loadAdminStatus(){
+  state.isDiscordAdmin = false;
+  if(!state.session?.user?.id) return;
+  const { data, error } = await supabase.rpc("is_tournament_result_admin");
+  if(!error) state.isDiscordAdmin = data === true;
 }
 
 async function loadProfileFromCurrentSession(){
@@ -1302,12 +1242,14 @@ async function subscribeToMatchRealtime(){
       schema: "public",
       table: MATCH_STATE_TABLE,
       filter: changeFilter,
+      select: ["match_id", "state", "updated_at"],
     }, handlePostgresMatchStateChange)
     .on("postgres_changes", {
       event: "UPDATE",
       schema: "public",
       table: MATCH_STATE_TABLE,
       filter: changeFilter,
+      select: ["match_id", "state", "updated_at"],
     }, handlePostgresMatchStateChange)
     .on("presence", { event: "sync" }, () => {
       updateRealtimeViewerCount(channel);
@@ -1342,20 +1284,19 @@ async function persistMatchState(nextState){
   state.saveError = "";
   renderPage();
 
-  const row = {
-    match_id: Number(state.matchId),
-    state: sanitizedNextState,
-  };
-  const updaterId = normalizeName(state.session?.user?.id);
-  if(updaterId){
-    row.updated_by = updaterId;
-  }
-
-  const { data, error } = await supabase
-    .from(MATCH_STATE_TABLE)
-    .upsert(row, { onConflict: "match_id" })
-    .select("match_id,state,updated_at")
-    .single();
+  const response = await fetch(new URL("lightningcup/match-state", WORKER_BASE), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${state.session?.access_token || ""}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      matchId: Number(state.matchId),
+      state: sanitizedNextState,
+    }),
+  });
+  const data = await response.json().catch(() => null);
+  const error = response.ok ? null : new Error(data?.error || "Match state write failed.");
 
   state.isSaving = false;
 
@@ -1464,6 +1405,7 @@ async function init(){
     await syncSessionFromSupabase();
     await syncProfileFromAuthUser();
     await loadProfileFromCurrentSession();
+    await loadAdminStatus();
     await loadMatchContext();
     renderPage();
     await loadPersistedMatchState();

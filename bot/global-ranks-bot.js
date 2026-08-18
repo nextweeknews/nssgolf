@@ -38,7 +38,7 @@ const supabaseServiceRoleKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const missingSetupMessage =
-  "Run bot/discord-member-schema.sql, bot/player-settings-schema.sql, bot/global-rank-displays-schema.sql, and bot/event-signups-schema.sql in the Supabase SQL editor for this project.";
+  "Apply the repository Supabase migrations for this project, then rerun the bot.";
 
 const leaderboardMessageAuthorName = "nssgolf.com Global Ranks";
 const leaderboardMessageAvatarUrl =

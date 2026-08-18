@@ -1,3 +1,15 @@
+begin;
+
+-- Legacy bootstrap only. Once the canonical hardening migration exists, this
+-- file must not be able to restore its retired grants or policies.
+do $legacy_schema_guard$
+begin
+  if to_regclass('public.discord_guild_sync_state') is not null then
+    raise exception 'This legacy schema file is retired for migrated projects. Apply Supabase migrations instead.';
+  end if;
+end;
+$legacy_schema_guard$;
+
 -- Shotgun Pro League player aliases.
 --
 -- The Google Sheet uses stable league names that do not always match current
@@ -89,3 +101,5 @@ grant select on public.player_league_aliases to anon, authenticated;
 grant select, insert, update, delete on public.player_league_aliases to service_role;
 
 notify pgrst, 'reload schema';
+
+commit;

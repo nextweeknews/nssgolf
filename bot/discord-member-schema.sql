@@ -52,6 +52,11 @@ create table if not exists public.discord_member_roles (
     on delete cascade
 );
 
+create table if not exists public.discord_guild_sync_state (
+  guild_id text primary key check (guild_id ~ '^[0-9]+$'),
+  completed_at timestamptz not null
+);
+
 create index if not exists discord_guild_members_guild_display_name_idx
 on public.discord_guild_members (guild_id, display_name);
 
@@ -70,6 +75,8 @@ on public.discord_member_roles (guild_id, role_id);
 create or replace function public.set_discord_sync_updated_at()
 returns trigger
 language plpgsql
+security invoker
+set search_path = pg_catalog, public
 as $$
 begin
   new.updated_at = now();
@@ -92,6 +99,7 @@ execute function public.set_discord_sync_updated_at();
 alter table public.discord_guild_members enable row level security;
 alter table public.discord_roles enable row level security;
 alter table public.discord_member_roles enable row level security;
+alter table public.discord_guild_sync_state enable row level security;
 
 drop policy if exists "discord guild members are publicly readable" on public.discord_guild_members;
 create policy "discord guild members are publicly readable"
@@ -114,12 +122,37 @@ for select
 to anon, authenticated
 using (true);
 
-grant select on public.discord_guild_members to anon, authenticated;
-grant select on public.discord_roles to anon, authenticated;
-grant select on public.discord_member_roles to anon, authenticated;
+revoke all on public.discord_guild_members from public, anon, authenticated;
+revoke all on public.discord_roles from public, anon, authenticated;
+revoke all on public.discord_member_roles from public, anon, authenticated;
+revoke all on public.discord_guild_sync_state from public, anon, authenticated;
+
+grant select (
+  guild_id,
+  discord_user_id,
+  username,
+  global_name,
+  is_bot,
+  display_name,
+  nickname,
+  avatar_url,
+  server_avatar_url,
+  joined_at,
+  is_current_member,
+  updated_at
+) on public.discord_guild_members to anon, authenticated;
+grant select (guild_id, role_id, name, position)
+on public.discord_roles to anon, authenticated;
+grant select (guild_id, discord_user_id, role_id)
+on public.discord_member_roles to anon, authenticated;
 
 grant select, insert, update, delete on public.discord_guild_members to service_role;
 grant select, insert, update, delete on public.discord_roles to service_role;
 grant select, insert, update, delete on public.discord_member_roles to service_role;
+grant select, insert, update, delete on public.discord_guild_sync_state to service_role;
+
+revoke execute on function public.set_discord_sync_updated_at()
+from public, anon, authenticated;
+grant execute on function public.set_discord_sync_updated_at() to service_role;
 
 notify pgrst, 'reload schema';

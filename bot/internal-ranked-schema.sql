@@ -1,3 +1,15 @@
+begin;
+
+-- Legacy bootstrap only. Once the canonical hardening migration exists, this
+-- file must not be able to restore its retired grants or policies.
+do $legacy_schema_guard$
+begin
+  if to_regclass('public.discord_guild_sync_state') is not null then
+    raise exception 'This legacy schema file is retired for migrated projects. Apply Supabase migrations instead.';
+  end if;
+end;
+$legacy_schema_guard$;
+
 -- Internal Ranked League match history and Elo replay tables.
 --
 -- These tables are private internal data for writes. Service-role scripts write
@@ -420,3 +432,5 @@ grant select on public.internal_tournament_gpi_runs to anon, authenticated;
 grant select on public.internal_tournament_gpi_ratings to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+commit;

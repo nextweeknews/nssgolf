@@ -55,7 +55,7 @@
   <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { ADMIN_ROLE_ID, playerUrlPathForSlug } from "/settings-data.js";
+    import { playerUrlPathForSlug } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
     const statusEl = document.getElementById("adminStatus");
@@ -64,9 +64,6 @@
     const adminUrlPanel = document.getElementById("adminUrlPanel");
     const pendingUrlsWrap = document.getElementById("pendingUrlsWrap");
     const approvedUrlsWrap = document.getElementById("approvedUrlsWrap");
-    let currentUser = null;
-    let currentAdminUsername = "";
-
     function normalizeText(value){
       return String(value || "").trim();
     }
@@ -75,71 +72,19 @@
       return normalizeText(value).replace(/[^\d]/g, "");
     }
 
-    function getDiscordIdentity(user){
-      const identities = Array.isArray(user?.identities) ? user.identities : [];
-      return identities.find(identity => normalizeText(identity?.provider).toLowerCase() === "discord") || null;
-    }
-
-    function getDiscordIdFromUser(user){
-      const identity = getDiscordIdentity(user);
-      return normalizeDiscordId(
-        identity?.provider_id ||
-        identity?.identity_data?.provider_id ||
-        identity?.identity_data?.sub ||
-        identity?.identity_data?.id ||
-        user?.user_metadata?.provider_id ||
-        user?.user_metadata?.sub
-      );
-    }
-
     function setStatus(message, tone = ""){
       statusEl.textContent = message || "";
       statusEl.className = `settings-status ${tone}`.trim();
     }
 
-    function getMetadataName(user){
-      const metadata = user?.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
-      return normalizeText(
-        metadata.full_name ||
-        metadata.name ||
-        metadata.global_name ||
-        metadata.preferred_username ||
-        metadata.user_name ||
-        metadata.username
-      );
-    }
-
-    async function loadProfileForUser(user){
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("username,discord_user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    async function playerHasAdminRole(){
+      const { data, error } = await supabase.rpc("is_tournament_result_admin");
       if(error) throw error;
-      return data || null;
-    }
-
-    async function playerHasAdminRole(discordId){
-      const cleanDiscordId = normalizeDiscordId(discordId);
-      if(!cleanDiscordId) return false;
-
-      const { data, error } = await supabase
-        .from("discord_member_roles")
-        .select("role_id")
-        .eq("discord_user_id", cleanDiscordId)
-        .eq("role_id", ADMIN_ROLE_ID)
-        .maybeSingle();
-      if(error) throw error;
-      return !!data;
+      return data === true;
     }
 
     async function loadUrlClaims(){
-      const { data, error } = await supabase
-        .from("player_custom_urls")
-        .select("user_id,discord_user_id,slug,status,requested_at,approved_at,approved_by_username")
-        .in("status", ["pending", "approved"])
-        .order("status", { ascending: false })
-        .order("requested_at", { ascending: true });
+      const { data, error } = await supabase.rpc("list_player_custom_url_claims");
       if(error) throw error;
       return data || [];
     }
@@ -288,16 +233,10 @@
 
     async function approveUrlClaim(claim){
       setStatus("Approving URL...");
-      const { error } = await supabase
-        .from("player_custom_urls")
-        .update({
-          status: "approved",
-          approved_at: new Date().toISOString(),
-          approved_by_user_id: currentUser.id,
-          approved_by_username: currentAdminUsername,
-        })
-        .eq("user_id", claim.user_id)
-        .eq("slug", claim.slug);
+      const { error } = await supabase.rpc("approve_player_custom_url_claim", {
+        p_user_id: claim.user_id,
+        p_slug: claim.slug,
+      });
       if(error){
         setStatus(error.message || "Unable to approve URL.", "error");
         return;
@@ -308,11 +247,10 @@
 
     async function revokeUrlClaim(claim){
       setStatus("Revoking URL...");
-      const { error } = await supabase
-        .from("player_custom_urls")
-        .delete()
-        .eq("user_id", claim.user_id)
-        .eq("slug", claim.slug);
+      const { error } = await supabase.rpc("revoke_player_custom_url_claim", {
+        p_user_id: claim.user_id,
+        p_slug: claim.slug,
+      });
       if(error){
         setStatus(error.message || "Unable to revoke URL.", "error");
         return;
@@ -329,13 +267,7 @@
         return;
       }
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if(userError) throw userError;
-      currentUser = userData.user;
-      const profile = await loadProfileForUser(currentUser);
-      const discordId = normalizeDiscordId(profile?.discord_user_id) || getDiscordIdFromUser(userData.user);
-      const isAdmin = await playerHasAdminRole(discordId);
-      currentAdminUsername = normalizeText(profile?.username) || getMetadataName(currentUser) || discordId || "Admin";
+      const isAdmin = await playerHasAdminRole();
 
       if(!isAdmin){
         adminUrlPanel.hidden = true;

@@ -3,6 +3,7 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const MAX_ADMIN_UPDATES = 200;
 const MAX_ADMIN_CELLS = 2000;
 const MAX_ADMIN_BODY_BYTES = 1_000_000;
+const LIGHTNING_CUP_SHEET_ID = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
 
 let googleAccessTokenCache = null;
 
@@ -142,6 +143,16 @@ async function readAdminJson(request) {
   }
 }
 
+function requireJsonContentType(request) {
+  const contentType = String(request.headers.get("Content-Type") || "")
+    .split(";", 1)[0]
+    .trim()
+    .toLowerCase();
+  if (contentType !== "application/json") {
+    throw new AdminEditError("Content-Type must be application/json.", 415);
+  }
+}
+
 function base64Url(bytes) {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -248,13 +259,15 @@ async function callAdminRpcRows(env, authorization, functionName, body) {
     throw new AdminEditError("Supabase authorization is not configured.", 500);
   }
 
+  const headers = {
+    apikey: publishableKey,
+    "Content-Type": "application/json",
+  };
+  if (authorization) headers.Authorization = authorization;
+
   const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
     method: "POST",
-    headers: {
-      apikey: publishableKey,
-      Authorization: authorization || `Bearer ${publishableKey}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
   const data = await response.json().catch(() => null);
@@ -268,6 +281,92 @@ async function callAdminRpcRows(env, authorization, functionName, body) {
     throw new AdminEditError("Tournament administration returned an invalid response.", 502);
   }
   return data;
+}
+
+async function callWorkerRpc(env, actorUserId, functionName, body) {
+  const supabaseUrl = String(env.SUPABASE_URL || "").replace(/\/+$/, "");
+  const secretKey = String(env.SUPABASE_SECRET_KEY || "").trim();
+  const actorId = String(actorUserId || "").trim();
+  if (!supabaseUrl || !secretKey || !actorId) {
+    throw new AdminEditError("Worker-only Supabase authorization is not configured.", 500);
+  }
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+    method: "POST",
+    headers: {
+      apikey: secretKey,
+      "Content-Type": "application/json",
+      "X-NSSGolf-Actor-User-Id": actorId,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new AdminEditError(
+      typeof data?.message === "string" ? data.message : "Unable to process the protected Worker action.",
+      supabaseRpcStatus(data, response.status),
+    );
+  }
+  if (!Array.isArray(data) || !data[0]) {
+    throw new AdminEditError("Protected Worker action returned an invalid response.", 502);
+  }
+  return data[0];
+}
+
+async function getPublicGoogleRange(env, sheetId, range) {
+  if (!env.GOOGLE_API_KEY) {
+    throw new AdminEditError("Google Sheets access is not configured.", 500);
+  }
+  const googleUrl =
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}`
+    + `?key=${encodeURIComponent(env.GOOGLE_API_KEY)}`;
+  const response = await fetch(googleUrl);
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(data?.values)) {
+    throw new AdminEditError("Unable to verify the Lightning Cup competitors.", 502);
+  }
+  return data.values;
+}
+
+function normalizeDiscordId(value) {
+  const normalized = String(value || "").trim();
+  const mention = normalized.match(/^<@!?(\d+)>$/);
+  return mention ? mention[1] : (/^\d+$/.test(normalized) ? normalized : "");
+}
+
+async function getLightningCupCompetitorIds(env, matchId) {
+  const [bracketRows, seedRows] = await Promise.all([
+    getPublicGoogleRange(env, LIGHTNING_CUP_SHEET_ID, "Bracket!A:T"),
+    getPublicGoogleRange(env, LIGHTNING_CUP_SHEET_ID, "Seeds!C:E"),
+  ]);
+  const matchRows = bracketRows.slice(1).filter((row) => Number(row?.[0]) === matchId);
+  if (!matchRows.length) throw new AdminEditError("That Lightning Cup match does not exist.", 404);
+  if (matchRows.length !== 1) {
+    throw new AdminEditError("The Lightning Cup sheet has an ambiguous match ID.", 502);
+  }
+  const [matchRow] = matchRows;
+
+  const discordIdsByName = new Map();
+  for (const row of seedRows) {
+    const name = String(row?.[0] || "").trim().toLowerCase();
+    const discordId = normalizeDiscordId(row?.[2]);
+    if (!name || !discordId) continue;
+    const ids = discordIdsByName.get(name) || new Set();
+    ids.add(discordId);
+    discordIdsByName.set(name, ids);
+  }
+
+  const competitorIds = [];
+  for (const rawName of [matchRow?.[4], matchRow?.[7]]) {
+    const name = String(rawName || "").trim().toLowerCase();
+    if (!name) continue;
+    const ids = discordIdsByName.get(name) || new Set();
+    if (ids.size > 1) {
+      throw new AdminEditError("The Lightning Cup sheet has an ambiguous competitor name.", 502);
+    }
+    if (ids.size === 1) competitorIds.push([...ids][0]);
+  }
+  return [...new Set(competitorIds)];
 }
 
 function normalizeRangeValues(valueRange, range) {
@@ -348,10 +447,10 @@ async function writeGoogleUpdates(accessToken, sheetId, updates) {
   return data;
 }
 
-async function completeActionLog(env, authorization, actionId, succeeded, errorMessage = null) {
-  return callAdminRpc(
+async function completeActionLog(env, actorUserId, actionId, succeeded, errorMessage = null) {
+  return callWorkerRpc(
     env,
-    authorization,
+    actorUserId,
     "complete_tournament_result_action_log",
     {
       p_action_id: actionId,
@@ -585,6 +684,53 @@ export default {
     }
 
     // =========================
+    // Lightning Cup live match state
+    // POST /lightningcup/match-state { matchId, state }
+    // =========================
+    if (url.pathname === "/lightningcup/match-state") {
+      if (request.method !== "POST") {
+        return json({ error: "Method not allowed." }, 405, { Allow: "POST, OPTIONS" });
+      }
+
+      const authorization = request.headers.get("Authorization") || "";
+      if (!/^Bearer\s+\S+$/i.test(authorization)) {
+        return json({ error: "Authentication required." }, 401, { "Cache-Control": "no-store" });
+      }
+
+      try {
+        requireJsonContentType(request);
+        const body = await readAdminJson(request);
+        const matchId = Number(body?.matchId);
+        if (!Number.isInteger(matchId) || matchId < 1 || matchId > 63) {
+          throw new AdminEditError("Invalid Lightning Cup match ID.");
+        }
+        if (!body?.state || typeof body.state !== "object" || Array.isArray(body.state)) {
+          throw new AdminEditError("Invalid Lightning Cup match state.");
+        }
+
+        const actor = await callAdminRpc(env, authorization, "get_my_discord_actor", {});
+        const competitorIds = await getLightningCupCompetitorIds(env, matchId);
+        const saved = await callWorkerRpc(
+          env,
+          actor.actor_user_id,
+          "upsert_lightning_cup_match_state",
+          {
+            p_actor_user_id: actor.actor_user_id,
+            p_match_id: matchId,
+            p_state: body.state,
+            p_competitor_discord_user_ids: competitorIds,
+          },
+        );
+        return json(saved, 200, { "Cache-Control": "no-store" });
+      } catch (error) {
+        if (error instanceof AdminEditError) {
+          return json({ error: error.message }, error.status, { "Cache-Control": "no-store" });
+        }
+        return json({ error: "Lightning Cup match state request failed." }, 502, { "Cache-Control": "no-store" });
+      }
+    }
+
+    // =========================
     // Authenticated tournament editor
     // GET  /admin/tournament-results?eventKey=<event>
     // POST /admin/tournament-results { eventKey, updates: [{ range, values }] }
@@ -666,7 +812,11 @@ export default {
           }, 200, { "Cache-Control": "no-store" });
         }
 
+        requireJsonContentType(request);
         const body = await readAdminJson(request);
+
+        const actor = await callAdminRpc(env, authorization, "get_my_discord_actor", {});
+        if (!actor.is_admin) throw new AdminEditError("Admin access required.", 403);
 
         const eventKey = String(body?.eventKey || "").trim();
         if (!eventKey) throw new AdminEditError("Missing eventKey.");
@@ -695,9 +845,9 @@ export default {
         }
         const updates = validateAdminUpdates(body?.updates, expandedAuthorization.editable_ranges);
         accessToken ||= await getGoogleAccessToken(env);
-        const action = await callAdminRpc(
+        const action = await callWorkerRpc(
           env,
-          authorization,
+          actor.actor_user_id,
           "create_tournament_result_action_log",
           {
             p_event_key: eventKey,
@@ -720,9 +870,9 @@ export default {
             authorizationResult.sheet_id,
             updates.map((update) => update.range),
           );
-          await callAdminRpc(
+          await callWorkerRpc(
             env,
-            authorization,
+            actor.actor_user_id,
             "set_tournament_result_action_log_changes",
             {
               p_action_id: action.action_id,
@@ -733,7 +883,7 @@ export default {
         } catch (error) {
           await completeActionLog(
             env,
-            authorization,
+            actor.actor_user_id,
             action.action_id,
             false,
             error instanceof Error ? error.message : "Tournament result write failed.",
@@ -742,7 +892,7 @@ export default {
         }
 
         try {
-          await completeActionLog(env, authorization, action.action_id, true);
+          await completeActionLog(env, actor.actor_user_id, action.action_id, true);
         } catch {
           throw new AdminEditError(
             "Sheet values were updated, but the audit log could not be finalized. Do not retry this save.",
@@ -795,6 +945,7 @@ export default {
           return json({ logs }, 200, { "Cache-Control": "no-store" });
         }
 
+        requireJsonContentType(request);
         const body = await readAdminJson(request);
         const actionId = String(body?.actionId || "").trim();
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actionId)) {
@@ -815,6 +966,9 @@ export default {
           }, 200, { "Cache-Control": "no-store" });
         }
 
+        const actor = await callAdminRpc(env, authorization, "get_my_discord_actor", {});
+        if (!actor.is_admin) throw new AdminEditError("Admin access required.", 403);
+
         const target = await callAdminRpc(
           env,
           authorization,
@@ -826,9 +980,9 @@ export default {
         }
 
         const accessToken = await getGoogleAccessToken(env);
-        const undoAction = await callAdminRpc(
+        const undoAction = await callWorkerRpc(
           env,
-          authorization,
+          actor.actor_user_id,
           "create_tournament_result_action_log",
           {
             p_event_key: target.event_key,
@@ -857,7 +1011,7 @@ export default {
         } catch (error) {
           await completeActionLog(
             env,
-            authorization,
+            actor.actor_user_id,
             undoAction.action_id,
             false,
             error instanceof Error ? error.message : "Tournament result undo failed.",
@@ -866,7 +1020,7 @@ export default {
         }
 
         try {
-          await completeActionLog(env, authorization, undoAction.action_id, true);
+          await completeActionLog(env, actor.actor_user_id, undoAction.action_id, true);
         } catch {
           throw new AdminEditError(
             "Sheet values were restored, but the undo log could not be finalized. Do not retry this undo.",

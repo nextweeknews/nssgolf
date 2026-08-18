@@ -1,3 +1,15 @@
+begin;
+
+-- Legacy bootstrap only. Once the canonical hardening migration exists, this
+-- file must not be able to restore its retired grants or policies.
+do $legacy_schema_guard$
+begin
+  if to_regclass('public.discord_guild_sync_state') is not null then
+    raise exception 'This legacy schema file is retired for migrated projects. Apply Supabase migrations instead.';
+  end if;
+end;
+$legacy_schema_guard$;
+
 -- Championship leaderboard global settings.
 --
 -- Public visitors can read these settings so the leaderboard is consistent for
@@ -111,3 +123,5 @@ revoke insert, update, delete, truncate on public.championship_point_settings fr
 grant select, insert, update, delete on public.championship_point_settings to service_role;
 
 notify pgrst, 'reload schema';
+
+commit;
