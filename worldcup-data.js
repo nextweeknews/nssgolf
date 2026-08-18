@@ -2,6 +2,8 @@ export const WORLD_CUP_SHEET_ID = "1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk"
 export const WORLD_CUP_YEARS = [2025, 2024];
 export const WORLD_CUP_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
 
+const FETCH_NO_STORE = { cache:"no-store" };
+
 const TEAM_FLAG_CODES = {
   Australia: "au",
   Canada: "ca",
@@ -98,7 +100,7 @@ async function fetchWorldCupValuesGviz(year, sheetId){
   url.searchParams.set("tqx", "out:json");
   url.searchParams.set("sheet", worldCupSheetName(year));
   url.searchParams.set("range", "A1:X120");
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), FETCH_NO_STORE);
   if(!response.ok){
     const text = await response.text().catch(() => "");
     throw new Error(`Google Sheets request failed (${response.status}). ${text}`.trim());
@@ -115,6 +117,7 @@ export async function fetchWorldCupValues(year, options = {}){
 
   try{
     const response = await fetch(workerUrl, {
+      ...FETCH_NO_STORE,
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -131,7 +134,7 @@ export async function fetchWorldCupValues(year, options = {}){
     const url = new URL(workerUrl);
     url.searchParams.set("sheetId", sheetId);
     url.searchParams.set("range", range);
-    return await readWorkerResponse(await fetch(url.toString()));
+    return await readWorkerResponse(await fetch(url.toString(), FETCH_NO_STORE));
   }catch(error){
     lastError = error;
     if(error?.message && !/Failed to fetch|NetworkError|Load failed/i.test(error.message)){

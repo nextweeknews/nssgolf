@@ -758,6 +758,10 @@ html.admin-embedded .editor-page-head{ margin:0; }
 .action-log-empty{ margin:22px 0; color:var(--muted); text-align:center; }
 
 @media (max-width:760px){
+  html.admin-embedded .editor-main{
+    width:100%;
+    margin:0;
+  }
   .topbar-inner{ padding:12px; }
   .topbar-page-title{ font-size:11px; letter-spacing:.08em; }
   .editor-main{ width:calc(100% - 20px); margin:12px auto 36px; }
@@ -775,7 +779,7 @@ html.admin-embedded .editor-page-head{ margin:0; }
     max-width:none;
     flex:1 1 auto;
     overflow:hidden;
-    font-size:clamp(11px,3.45vw,14px);
+    font-size:clamp(9px,3vw,12px);
     line-height:1.08;
     text-overflow:ellipsis;
     white-space:nowrap;
@@ -798,8 +802,15 @@ html.admin-embedded .editor-page-head{ margin:0; }
     white-space:nowrap;
   }
   html.admin-embedded #editorPanel .editor-page-head{
+    position:sticky;
+    top:0;
+    z-index:15;
     margin:0;
     padding:8px 4px;
+  }
+  html.admin-embedded .editor-body{
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    scroll-padding-bottom:calc(16px + env(safe-area-inset-bottom));
   }
   .editor-action-button,
   .editor-player-filter-clear{
@@ -852,7 +863,8 @@ html.admin-embedded .editor-page-head{ margin:0; }
   .editor-select{
     appearance:none;
     min-width:0;
-    min-height:42px;
+    height:31px;
+    min-height:31px;
     border-radius:7px;
     padding:0 25px 0 8px;
     background-color:#101c32;
@@ -911,7 +923,7 @@ html.admin-embedded .editor-page-head{ margin:0; }
     height:30px;
     border-radius:5px;
     padding-inline:4px;
-    font-size:16px;
+    font-size:9px;
   }
   .editor-table.is-bracket-matchups .editor-context-cell{
     min-width:48px;
@@ -932,7 +944,7 @@ html.admin-embedded .editor-page-head{ margin:0; }
   .editor-table.is-championship-matchups .editor-score-input{
     width:38px;
     padding-inline:3px;
-    font-size:16px;
+    font-size:9px;
   }
   .editor-table.is-bracket-matchups .editor-formula-cell{
     width:38px;

@@ -36,9 +36,11 @@ jobs:
       - name: Check topbar asset versions
         run: npm run check:topbar-assets
 
-      - name: Test tournament editor and Worker
+      - name: Test admin and tournament pages
         run: |
           npm run test:tournament-editor
+          npm run test:admin-dashboard
+          npm run test:championship-page
           npm run test:worker
 
       - name: Build bundled assets

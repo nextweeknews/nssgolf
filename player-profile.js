@@ -37,7 +37,7 @@ import {
   worldCupMatchesForTeam,
   worldCupFlagForTeam,
   worldCupTeamLabel,
-} from "/worldcup-data.js?v=20260609-flags3";
+} from "/worldcup-data.js?v=20260818-no-store";
 
 const RECORD_GROUPS = [
   {

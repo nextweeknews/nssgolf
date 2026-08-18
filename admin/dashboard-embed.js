@@ -3,6 +3,9 @@
   if(params.get("embed") !== "1") return;
 
   document.documentElement.classList.add("admin-embedded");
+  if(globalThis.location.pathname === "/championship.html" && params.get("view") === "settings"){
+    document.documentElement.classList.add("admin-settings-embedded");
+  }
 
   const notifyParent = () => {
     if(globalThis.parent === globalThis) return;

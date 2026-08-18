@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import { RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage, tournamentPublicUrl } from "./dashboard-core.mjs";
 import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "./action-logs-core.mjs";
@@ -32,20 +33,31 @@ test("defaults the dashboard to its landing page", () => {
 });
 
 test("maps every standalone admin surface into the dashboard frame", () => {
-  assert.equal(parseAdminRoute("?section=event-signups&event=summer").frameUrl, "/event-signups.html?event=summer&embed=1&v=20260818-mobile-editor-fixes");
-  assert.equal(parseAdminRoute("?section=build-list").frameUrl, "/build.html?embed=1&v=20260818-mobile-editor-fixes");
-  assert.equal(parseAdminRoute("?section=championship-points").frameUrl, "/championship.html?view=settings&embed=1&v=20260818-mobile-editor-fixes");
-  assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1&v=20260818-mobile-editor-fixes");
+  assert.equal(parseAdminRoute("?section=event-signups&event=summer").frameUrl, "/event-signups.html?event=summer&embed=1&v=20260818-mobile-sticky-headers");
+  assert.equal(parseAdminRoute("?section=build-list").frameUrl, "/build.html?embed=1&v=20260818-mobile-sticky-headers");
+  assert.equal(parseAdminRoute("?section=championship-points").frameUrl, "/championship.html?view=settings&embed=1&v=20260818-mobile-sticky-headers");
+  assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1&v=20260818-mobile-sticky-headers");
   assert.equal(
     parseAdminRoute("?section=action-logs").frameUrl,
-    "/admin/action-logs.html?embed=1&v=20260818-mobile-editor-fixes",
+    "/admin/action-logs.html?embed=1&v=20260818-mobile-sticky-headers",
   );
+});
+
+test("loads embedded Championship Points without painting the public Championship view", async () => {
+  const [page, embedScript] = await Promise.all([
+    readFile(new URL("../championship.html", import.meta.url), "utf8"),
+    readFile(new URL("./dashboard-embed.js", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(embedScript, /pathname === "\/championship\.html" && params\.get\("view"\) === "settings"/);
+  assert.match(page, /html\.admin-settings-embedded \.card\{ display:none; \}/);
+  assert.match(page, /if\(isEmbeddedSettingsView\)\{[\s\S]*?loadChampionshipSettings\(\),[\s\S]*?refreshAdminState\(\),[\s\S]*?if\(state\.isAdmin\) return;/);
 });
 
 test("preserves result editor and signup subview state in the dashboard URL", () => {
   assert.equal(
     parseAdminRoute("?section=results-editor&eventKey=proleague&season=7&stage=3").frameUrl,
-    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260818-mobile-editor-fixes",
+    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260818-mobile-sticky-headers",
   );
   assert.equal(
     routeFromEmbeddedPage("/admin/tournament-results.html", "?eventKey=proleague&season=7&stage=3&embed=1"),

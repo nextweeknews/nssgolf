@@ -17,7 +17,7 @@ import {
   retryEditorRead,
   superLeagueDivisionClass,
   superLeagueViewKey,
-} from "/admin/tournament-results-core.mjs?v=20260818-mobile-editor-fixes";
+} from "/admin/tournament-results-core.mjs?v=20260818-mobile-sticky-headers";
 import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
@@ -909,7 +909,7 @@ function renderEditor(){
   accessPanel.hidden = true;
   editorPanel.hidden = false;
   editorPanel.dataset.eventKey = state.event.eventKey;
-  pageTitle.textContent = `${state.event.displayName} results`;
+  pageTitle.textContent = state.event.displayName;
   applyEditorTheme(state.activeGroupKey);
   renderPeriodControls();
   renderPlayerFilter();

@@ -1031,6 +1031,11 @@
     }
     .settings-status.is-ok{ color:var(--green); }
     .settings-status.is-error{ color:var(--red); }
+    .championship-settings-loading{ display:none; }
+    html.admin-settings-embedded .championship-settings-loading{ display:grid; }
+    html.admin-settings-embedded .card{ display:none; }
+    html.admin-settings-embedded.admin-settings-ready .championship-settings-loading{ display:none; }
+    html.admin-settings-embedded.admin-settings-ready .card{ display:block; }
     @media (max-width:900px){
       .settings-grid{ grid-template-columns:1fr 1fr; }
     }
@@ -1129,8 +1134,8 @@
     }
   </style>
   <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
-  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-scroll" />
-  <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
+  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260818-championship-settings" />
+  <script src="/admin/dashboard-embed.js?v=20260818-championship-settings"></script>
 </head>
 
 <body>
@@ -1164,6 +1169,9 @@
   </div>
 
   <main class="container">
+    <div class="admin-loading-region championship-settings-loading" role="status" aria-label="Loading Championship Points">
+      <svg class="admin-loading-spinner" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+    </div>
     <section class="card" aria-labelledby="championship-title">
       <div class="card-head">
         <div>
@@ -1275,9 +1283,11 @@
       getWorldCupMatchOutcome,
       normalizeWorldCupDiscordId,
       parseWorldCupSheet,
-    } from "/worldcup-data.js?v=20260609-flags3";
+    } from "/worldcup-data.js?v=20260818-no-store";
+    import { recoverTournamentVisibility } from "/championship-qualifier-state.mjs?v=20260818-hidden-recovery";
 
     const supabase = createBrowserSupabaseClient();
+    const isEmbeddedSettingsView = document.documentElement.classList.contains("admin-settings-embedded");
 
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SETTINGS_TABLE = "championship_point_settings";
@@ -4362,6 +4372,16 @@
         }
       });
 
+      const activeTournamentKeys = buildRows({ includeHidden:true })
+        .filter(row => row.total > 0)
+        .map(row => playerIdentityKey(row))
+        .filter(Boolean);
+      const visibility = recoverTournamentVisibility(state.hiddenPlayerKeys, activeTournamentKeys);
+      if(visibility.recovered){
+        console.warn("Every scored tournament player was hidden; restoring tournament qualifier visibility.");
+        state.hiddenPlayerKeys = visibility.hiddenPlayerKeys;
+      }
+
       await buildQualifierRows();
       ensureHiddenPlayersForAdminRestore();
       state.qualifiersLoading = false;
@@ -4477,12 +4497,22 @@
       renderSourceStatuses();
       state.qualifierView = requestedQualifierViewFromUrl();
       bindEvents();
-      await loadChampionshipSettings();
-      renderSettings();
-      applyViewUrlState({ updateUrl:false });
+      if(isEmbeddedSettingsView){
+        await Promise.all([
+          loadChampionshipSettings(),
+          refreshAdminState(),
+        ]);
+        renderSettings();
+        applyViewUrlState({ updateUrl:false });
+        if(state.isAdmin) return;
+      }else{
+        await loadChampionshipSettings();
+        renderSettings();
+        applyViewUrlState({ updateUrl:false });
+      }
       await Promise.all([
         loadChampionship(),
-        refreshAdminState(),
+        isEmbeddedSettingsView ? Promise.resolve() : refreshAdminState(),
       ]);
       applyViewUrlState({ updateUrl:true, historyMode:"replace" });
     }
@@ -4490,7 +4520,7 @@
     boot().catch((error) => {
       console.error(error);
       els.leaderboardTable.innerHTML = `<tbody><tr><td><div class="empty-state">Unable to load championship leaderboard.</div></td></tr></tbody>`;
-    });
+    }).finally(() => document.documentElement.classList.add("admin-settings-ready"));
   </script>
 </body>
 </html>
