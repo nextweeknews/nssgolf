@@ -93,6 +93,8 @@ test("maps Pro League seasons and stages to editor view keys", () => {
   assert.equal(proLeagueViewKey("2026-all-stars"), "2026-all-stars");
   assert.deepEqual(getProLeagueTeamStyle("Terrific Tigers"), { bg: "#fe6d01", fg: "#000000" });
   assert.equal(proLeagueTeamLogoSrc("Terrific Tigers"), "/proleague/logos/terrific-tigers.png");
+  assert.deepEqual(getProLeagueTeamStyle("Delirium"), { bg: "#86c7f5", fg: "#052741" });
+  assert.equal(proLeagueTeamLogoSrc("Delirium"), "/proleague/logos/delirium.png");
 });
 
 test("selects a player filter token before Backspace removes it", () => {

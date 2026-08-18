@@ -16,6 +16,7 @@ const TEAM_STYLES = {
   "TREEMEISTERS": { bg: "#2d6316", fg: "#ffffff" },
   "FLAG SMOKERS": { bg: "#03384B", fg: "#ffffff" },
   "REVERIE": { bg: "#d9d2e9", fg: "#00367a" },
+  "DELIRIUM": { bg: "#86c7f5", fg: "#052741" },
 };
 
 function slugify(value){

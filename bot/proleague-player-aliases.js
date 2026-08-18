@@ -44,6 +44,7 @@ const knownTeamNames = [
   "TREEMEISTERS",
   "FLAG SMOKERS",
   "REVERIE",
+  "DELIRIUM",
 ];
 
 const csvHeaders = [

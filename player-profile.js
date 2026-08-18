@@ -162,6 +162,7 @@ const PROLEAGUE_TEAM_STYLES = {
   "TREEMEISTERS": { bg: "#2d6316", fg: "#ffffff" },
   "FLAG SMOKERS": { bg: "#03384B", fg: "#ffffff" },
   "REVERIE": { bg: "#d9d2e9", fg: "#00367a" },
+  "DELIRIUM": { bg: "#86c7f5", fg: "#052741" },
 };
 const NOPTATIONAL_COURSES = [
   { key: "classic", name: "Classic", minimum: -12, columns: [1, 2] },
