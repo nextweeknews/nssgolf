@@ -77,7 +77,7 @@ const outputDir = path.join(__dirname, "output");
 const outputPath = path.join(outputDir, "members.json");
 const chunkSize = 500;
 const missingTableMessage =
-  "Run bot/discord-member-schema.sql in the Supabase SQL editor for the project used by NSSGOLF_SUPABASE_URL, then rerun this workflow.";
+  "Apply the repository Supabase migrations to the project used by NSSGOLF_SUPABASE_URL, then rerun this workflow.";
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
@@ -286,6 +286,13 @@ async function syncMembersToSupabase(guild, members, scannedAt) {
   }
 
   await insertInChunks("discord_member_roles", memberRoleRows);
+
+  const { error: completeSyncError } = await supabase
+    .from("discord_guild_sync_state")
+    .upsert({ guild_id: guild.id, completed_at: scannedAt }, { onConflict: "guild_id" });
+  if (completeSyncError) {
+    throwSupabaseError("guild sync completion failed", completeSyncError);
+  }
 
   return {
     memberCount: memberRows.length,
