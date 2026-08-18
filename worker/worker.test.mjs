@@ -469,6 +469,51 @@ test("undoes an audited visibility action without contacting Google", async () =
   });
 });
 
+test("undoes an audited season configuration action without contacting Google", async () => {
+  const { env } = makeEnv();
+  const actionId = "99999999-9999-4999-8999-999999999999";
+  const undoActionId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  let upstreamCalls = 0;
+
+  globalThis.fetch = async (input, init = {}) => {
+    upstreamCalls += 1;
+    const upstreamUrl = new URL(String(input));
+    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/undo_season_configuration_action");
+    assert.equal(init.headers.Authorization, "Bearer user-token");
+    assert.deepEqual(JSON.parse(init.body), { p_action_id:actionId });
+    return Response.json([{
+      action_id:undoActionId,
+      ranked_league_season:13,
+      shotgun_pro_league_season:7,
+      shotgun_pro_league_stage:3,
+      super_league_season:6,
+    }]);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs", {
+      method:"POST",
+      headers:{ Authorization:"Bearer user-token", "Content-Type":"application/json" },
+      body:JSON.stringify({ actionId, actionType:"configuration" }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(upstreamCalls, 1);
+  assert.deepEqual(await response.json(), {
+    actionId:undoActionId,
+    undoneActionId:actionId,
+    configuration:{
+      action_id:undoActionId,
+      ranked_league_season:13,
+      shotgun_pro_league_season:7,
+      shotgun_pro_league_stage:3,
+      super_league_season:6,
+    },
+  });
+});
+
 test("rejects an oversized tournament results body without relying on Content-Length", async () => {
   const { env } = makeEnv();
   let upstreamCalled = false;

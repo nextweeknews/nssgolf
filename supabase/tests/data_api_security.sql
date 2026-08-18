@@ -132,6 +132,9 @@ BEGIN
     OR has_table_privilege('anon', 'public.discord_guild_members', 'DELETE')
     OR has_table_privilege('authenticated', 'public.internal_tournament_matches', 'INSERT')
     OR has_table_privilege('authenticated', 'public.match_states', 'UPDATE')
+    OR has_table_privilege('anon', 'public.season_configuration', 'INSERT')
+    OR has_table_privilege('authenticated', 'public.season_configuration', 'UPDATE')
+    OR has_table_privilege('authenticated', 'public.season_configuration', 'DELETE')
   THEN
     RAISE EXCEPTION 'browser roles retain a process-table write grant';
   END IF;
@@ -155,12 +158,15 @@ BEGIN
     OR has_column_privilege('anon', 'public.player_league_aliases', 'source', 'SELECT')
     OR has_column_privilege('authenticated', 'public.events', 'created_by_discord_user_id', 'SELECT')
     OR has_column_privilege('authenticated', 'public.tournament_admin_events', 'updated_by_user_id', 'SELECT')
+    OR has_column_privilege('anon', 'public.season_configuration', 'updated_at', 'SELECT')
+    OR has_column_privilege('authenticated', 'public.season_configuration', 'updated_by_user_id', 'SELECT')
   THEN
     RAISE EXCEPTION 'browser roles can read an unused raw/internal column';
   END IF;
 
   IF has_table_privilege('authenticated', 'public.event_required_roles', 'SELECT')
     OR has_table_privilege('authenticated', 'public.event_blocked_roles', 'SELECT')
+    OR has_table_privilege('authenticated', 'private.season_configuration_action_logs', 'SELECT')
   THEN
     RAISE EXCEPTION 'browser roles can read service-only event eligibility configuration';
   END IF;
@@ -194,6 +200,14 @@ BEGIN
     'anon',
     'public.approve_player_custom_url_claim(uuid,text)',
     'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.update_season_configuration(integer,integer,integer,integer,jsonb)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.undo_season_configuration_action(uuid)',
+    'EXECUTE'
   ) OR has_function_privilege('anon', 'public.handle_new_user()', 'EXECUTE')
   THEN
     RAISE EXCEPTION 'a Worker-only or trigger function remains browser-callable';
@@ -211,8 +225,22 @@ BEGIN
     'authenticated',
     'public.revoke_player_custom_url_claim(uuid,text)',
     'EXECUTE'
+  ) OR NOT has_function_privilege(
+    'authenticated',
+    'public.update_season_configuration(integer,integer,integer,integer,jsonb)',
+    'EXECUTE'
+  ) OR NOT has_function_privilege(
+    'authenticated',
+    'public.undo_season_configuration_action(uuid)',
+    'EXECUTE'
   ) THEN
     RAISE EXCEPTION 'authenticated Discord admins cannot call a custom URL moderation RPC';
+  END IF;
+
+  IF NOT has_column_privilege('anon', 'public.season_configuration', 'ranked_league_season', 'SELECT')
+    OR NOT has_column_privilege('authenticated', 'public.season_configuration', 'shotgun_pro_league_stage', 'SELECT')
+  THEN
+    RAISE EXCEPTION 'public season configuration values are not readable';
   END IF;
 END;
 $$;

@@ -58,6 +58,7 @@ export const RESULT_EVENTS = Object.freeze([
 ]);
 
 export const ADMIN_SECTIONS = Object.freeze([
+  { key:"season-configuration", label:"Season Configuration", path:"/admin/season-configuration.html" },
   { key:"event-signups", label:"Event Signups", path:"/event-signups.html" },
   { key:"build-list", label:"Build list", path:"/build.html" },
   { key:"championship-points", label:"Championship Points", path:"/championship.html" },
@@ -143,7 +144,7 @@ export function parseAdminRoute(search = ""){
     const frameParams = new URLSearchParams({ eventKey });
     copyIfPresent(params, frameParams, ["view", "season", "stage", "year"]);
     frameParams.set("embed", "1");
-    frameParams.set("v", "20260818-mobile-sticky-headers");
+    frameParams.set("v", "20260818-season-configuration");
     return {
       section,
       eventKey,
@@ -161,7 +162,7 @@ export function parseAdminRoute(search = ""){
   if(section === "event-signups") copyIfPresent(params, frameParams, ["event"]);
   if(section === "championship-points") frameParams.set("view", "settings");
   frameParams.set("embed", "1");
-  frameParams.set("v", "20260818-mobile-sticky-headers");
+  frameParams.set("v", "20260818-season-configuration");
   return {
     section,
     eventKey:"",

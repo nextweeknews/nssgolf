@@ -186,6 +186,18 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1
+    FROM public.season_configuration
+    WHERE id = 'current'
+      AND ranked_league_season = 13
+      AND shotgun_pro_league_season = 7
+      AND shotgun_pro_league_stage = 3
+      AND super_league_season = 6
+  ) THEN
+    RAISE EXCEPTION 'public season configuration is unavailable';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
     FROM public.get_tournament_editor_read_context('worldcup')
     WHERE sheet_id = '1hmxKPrk4LH7U0kK60N6yghYB898GyTG0Erg3NtsGWXk'
       AND can_edit
@@ -251,6 +263,19 @@ BEGIN
     WHEN insufficient_privilege THEN NULL;
   END;
 
+  BEGIN
+    PERFORM public.update_season_configuration(
+      14,
+      8,
+      2,
+      7,
+      '{"rankedLeagueSeason":13,"shotgunProLeagueSeason":7,"shotgunProLeagueStage":3,"superLeagueSeason":6}'::jsonb
+    );
+    RAISE EXCEPTION 'non-admin unexpectedly changed season configuration';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+
 END;
 $$;
 
@@ -262,6 +287,9 @@ SELECT set_config('request.jwt.claim.session_id', 'cccccccc-cccc-4ccc-8ccc-ccccc
 DO $$
 DECLARE
   context_count integer;
+  configuration_action_id uuid;
+  configuration_undo_id uuid;
+  newer_configuration_action_id uuid;
 BEGIN
   SELECT count(*)
   INTO context_count
@@ -270,6 +298,147 @@ BEGIN
   IF context_count <> 8 THEN
     RAISE EXCEPTION 'authenticated admin context RPC returned % events', context_count;
   END IF;
+
+  BEGIN
+    PERFORM public.update_season_configuration(
+      6,
+      8,
+      2,
+      7,
+      '{"rankedLeagueSeason":13,"shotgunProLeagueSeason":7,"shotgunProLeagueStage":3,"superLeagueSeason":6}'::jsonb
+    );
+    RAISE EXCEPTION 'unsupported Ranked League season was accepted';
+  EXCEPTION
+    WHEN invalid_parameter_value THEN NULL;
+  END;
+
+  SELECT result.action_id
+  INTO configuration_action_id
+  FROM public.update_season_configuration(
+    14,
+    8,
+    2,
+    7,
+    '{"rankedLeagueSeason":13,"shotgunProLeagueSeason":7,"shotgunProLeagueStage":3,"superLeagueSeason":6}'::jsonb
+  ) AS result;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.season_configuration
+    WHERE id = 'current'
+      AND ranked_league_season = 14
+      AND shotgun_pro_league_season = 8
+      AND shotgun_pro_league_stage = 2
+      AND super_league_season = 7
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = configuration_action_id
+      AND action_type = 'configuration'
+      AND event_key = 'season-configuration'
+      AND event_display_name = 'Season Configuration'
+      AND jsonb_array_length(changes) = 4
+      AND changes->0->>'playerName' = 'Ranked League'
+      AND changes->2->'headers' = '["Stage"]'::jsonb
+      AND can_undo
+  ) THEN
+    RAISE EXCEPTION 'season configuration update was not applied and logged';
+  END IF;
+
+  BEGIN
+    PERFORM public.update_season_configuration(
+      15,
+      8,
+      2,
+      7,
+      '{"rankedLeagueSeason":13,"shotgunProLeagueSeason":7,"shotgunProLeagueStage":3,"superLeagueSeason":6}'::jsonb
+    );
+    RAISE EXCEPTION 'stale season configuration snapshot overwrote newer values';
+  EXCEPTION
+    WHEN object_not_in_prerequisite_state THEN NULL;
+  END;
+
+  SELECT result.action_id
+  INTO newer_configuration_action_id
+  FROM public.update_season_configuration(
+    15,
+    8,
+    2,
+    7,
+    '{"rankedLeagueSeason":14,"shotgunProLeagueSeason":8,"shotgunProLeagueStage":2,"superLeagueSeason":7}'::jsonb
+  ) AS result;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = configuration_action_id
+      AND can_undo
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = newer_configuration_action_id
+      AND can_undo
+  ) THEN
+    RAISE EXCEPTION 'only the newest applicable season configuration action should be undoable';
+  END IF;
+
+  PERFORM public.undo_season_configuration_action(newer_configuration_action_id);
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.season_configuration
+    WHERE id = 'current'
+      AND ranked_league_season = 14
+      AND shotgun_pro_league_season = 8
+      AND shotgun_pro_league_stage = 2
+      AND super_league_season = 7
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = configuration_action_id
+      AND can_undo
+  ) OR EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = newer_configuration_action_id
+      AND can_undo
+  ) THEN
+    RAISE EXCEPTION 'undo did not restore the preceding configuration action as undoable';
+  END IF;
+
+  SELECT result.action_id
+  INTO configuration_undo_id
+  FROM public.undo_season_configuration_action(configuration_action_id) AS result;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.season_configuration
+    WHERE id = 'current'
+      AND ranked_league_season = 13
+      AND shotgun_pro_league_season = 7
+      AND shotgun_pro_league_stage = 3
+      AND super_league_season = 6
+  ) OR EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = configuration_action_id
+      AND can_undo
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = configuration_action_id
+      AND undone_by_action_id = configuration_undo_id
+      AND undone_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'season configuration undo did not restore and close the original action';
+  END IF;
+
+  BEGIN
+    PERFORM public.undo_season_configuration_action(configuration_action_id);
+    RAISE EXCEPTION 'season configuration action was undone twice';
+  EXCEPTION
+    WHEN object_not_in_prerequisite_state THEN NULL;
+  END;
 
   PERFORM public.set_tournament_result_archived('masters', false);
 

@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "/admin/action-logs-core.mjs?v=20260817-compact-change-values";
-import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260818-mobile-sticky-headers";
+import { RESULT_EVENTS } from "/admin/dashboard-core.mjs?v=20260818-season-configuration";
 
 const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-action-logs";
 const supabase = createBrowserSupabaseClient();
@@ -20,6 +20,7 @@ const eventColors = new Map([
   ["championship-qualifiers", "#bef264"],
   ["gpi", "#7dd3fc"],
   ["global-ranks", "#c4b5fd"],
+  ["season-configuration", "#7dd3fc"],
 ]);
 
 function setStatus(element, message, tone = ""){
@@ -248,14 +249,19 @@ logsList.addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-undo-action-id]");
   if(!button || busy) return;
   const visibilityAction = button.dataset.undoActionType === "visibility";
+  const configurationAction = button.dataset.undoActionType === "configuration";
   const confirmation = visibilityAction
     ? "Undo this visibility change?"
-    : "Undo this score edit? The prior values will be written back to Google Sheets.";
+    : configurationAction
+      ? "Undo this season configuration change?"
+      : "Undo this score edit? The prior values will be written back to Google Sheets.";
   if(!globalThis.confirm(confirmation)) return;
 
   busy = true;
   logsList.querySelectorAll("button[data-undo-action-id]").forEach((item) => { item.disabled = true; });
-  setStatus(logsStatus, visibilityAction ? "Undoing visibility change…" : "Undoing score edit…");
+  setStatus(logsStatus, visibilityAction
+    ? "Undoing visibility change…"
+    : configurationAction ? "Undoing season configuration…" : "Undoing score edit…");
   try{
     const response = await fetch(WORKER_URL, {
       method: "POST",
@@ -268,7 +274,9 @@ logsList.addEventListener("click", async (event) => {
     const payload = await response.json().catch(() => null);
     if(!response.ok) throw new Error(payload?.error || "Unable to undo this admin action.");
     await loadLogs();
-    setStatus(logsStatus, visibilityAction ? "Visibility change undone and logged." : "Score edit undone and logged.", "success");
+    setStatus(logsStatus, visibilityAction
+      ? "Visibility change undone and logged."
+      : configurationAction ? "Season configuration undone and logged." : "Score edit undone and logged.", "success");
   }catch(error){
     setStatus(logsStatus, error?.message || "Unable to undo this admin action.", "error");
   }finally{

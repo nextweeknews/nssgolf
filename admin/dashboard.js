@@ -1,6 +1,6 @@
 import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js?v=20260817-singleton";
 import { getTournamentAdminFlag } from "/admin/tournament-results-core.mjs?v=20260817-all-years";
-import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260818-mobile-sticky-headers";
+import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage } from "/admin/dashboard-core.mjs?v=20260818-season-configuration";
 
 const supabase = createBrowserSupabaseClient();
 const loading = document.getElementById("adminLoading");
@@ -46,6 +46,7 @@ function icon(paths){
 }
 
 const sectionIcons = {
+  "season-configuration":icon('<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="3"/>'),
   "event-signups":icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'),
   "build-list":icon('<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'),
   "championship-points":icon('<circle cx="12" cy="8" r="6"/><path d="M15.5 13 17 22l-5-3-5 3 1.5-9"/>'),

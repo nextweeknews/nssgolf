@@ -1,0 +1,76 @@
+.season-configuration-body{ padding:18px 0 0; }
+.season-configuration-form{
+  width:min(760px,100%);
+  display:grid;
+  gap:12px;
+}
+.season-configuration-row{
+  display:grid;
+  grid-template-columns:minmax(180px,.8fr) minmax(260px,1.2fr);
+  align-items:center;
+  gap:18px;
+  min-height:76px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  padding:12px 14px;
+  background:rgba(2,6,23,.55);
+}
+.season-configuration-name{
+  color:#fff;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.045em;
+  text-transform:uppercase;
+}
+.season-configuration-fields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.season-configuration-field{ display:grid; gap:5px; }
+.season-configuration-field > span{
+  color:rgba(233,238,248,.58);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.season-configuration-input{
+  width:100%;
+  min-height:38px;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:8px;
+  background:#101c32;
+  color:#fff;
+  padding:0 10px;
+  font:inherit;
+  font-size:12px;
+  font-weight:850;
+}
+.season-configuration-input:focus{
+  outline:2px solid rgba(125,211,252,.62);
+  outline-offset:1px;
+}
+.season-configuration-input:disabled{ opacity:.58; cursor:not-allowed; }
+
+@media (max-width:760px){
+  .season-configuration-body{ padding-top:10px; }
+  .season-configuration-form{ gap:8px; }
+  .season-configuration-row{
+    grid-template-columns:minmax(96px,.7fr) minmax(0,1.3fr);
+    gap:9px;
+    min-height:62px;
+    border-radius:8px;
+    padding:8px;
+  }
+  .season-configuration-name{ font-size:9px; line-height:1.2; }
+  .season-configuration-fields{ gap:6px; }
+  .season-configuration-field{ gap:3px; }
+  .season-configuration-field > span{ font-size:7px; }
+  .season-configuration-input{
+    min-height:31px;
+    border-radius:7px;
+    padding-inline:7px;
+    font-size:10px;
+  }
+}

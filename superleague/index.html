@@ -2058,13 +2058,14 @@
   </div>
 
   <script type="module">
-    import { SUPER_LEAGUE_SEASON } from "/config.js";
+    import { SUPER_LEAGUE_SEASON } from "/config.js?v=20260818-season-configuration";
     import { mountSuperLeagueTabs } from "/superleague-tabs.bundle.js";
 
     const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
     const SHEET_ID = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
-    const SUPER_LEAGUE_SEASONS = ["Season 7", "Season 6", "Season 5"];
-    let activeSuperLeagueSeason = SUPER_LEAGUE_SEASONS.includes(SUPER_LEAGUE_SEASON) ? SUPER_LEAGUE_SEASON : "Season 6";
+    const SUPER_LEAGUE_SEASONS = [...new Set([SUPER_LEAGUE_SEASON, "Season 7", "Season 6", "Season 5"])]
+      .sort((left, right) => Number(right.match(/\d+/)?.[0]) - Number(left.match(/\d+/)?.[0]));
+    let activeSuperLeagueSeason = SUPER_LEAGUE_SEASON;
 
     const DIVISIONS = [
       { title: "Division 1", range: "B3:G10" },

@@ -4,7 +4,7 @@ The `Internal Ranked League` GitHub Actions workflow publishes a complete Golf P
 
 ## Weekly sequence
 
-1. Read `CURRENT_RANKED_LEAGUE_SEASON` from `config.js`.
+1. Read the current Ranked League season from `season_configuration` in Supabase.
 2. Read the newest stored match for the configured current season and create its TeamUp timestamp cursor.
 3. Fetch only newer matches from that current season and upsert them into `internal_ranked_matches`. Older seasons are static replay inputs and are never fetched by the scheduled run.
 4. Replay the complete stored ranked history into a new immutable PL/GPI run.

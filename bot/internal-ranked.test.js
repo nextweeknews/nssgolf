@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const { fetchPlanForCurrentSeason, fetchSeason } = require("./internal-ranked");
+const { currentRankedLeagueSeason, fetchPlanForCurrentSeason, fetchSeason } = require("./internal-ranked");
 
 function match(timestamp, winnerId = "100", loserId = "200") {
   return {
@@ -16,6 +16,30 @@ function match(timestamp, winnerId = "100", loserId = "200") {
 }
 
 (async () => {
+  const configurationQuery = {
+    from(table) {
+      assert.equal(table, "season_configuration");
+      return this;
+    },
+    select(columns) {
+      assert.equal(columns, "ranked_league_season");
+      return this;
+    },
+    eq(column, value) {
+      assert.deepEqual([column, value], ["id", "current"]);
+      return this;
+    },
+    async single() {
+      return { data:{ ranked_league_season:14 }, error:null };
+    },
+  };
+  assert.equal(await currentRankedLeagueSeason(configurationQuery), 14);
+  configurationQuery.single = async () => ({ data:{ ranked_league_season:6 }, error:null });
+  await assert.rejects(
+    currentRankedLeagueSeason(configurationQuery),
+    /Unable to read the current Ranked League season/,
+  );
+
   assert.deepEqual(fetchPlanForCurrentSeason(13, null, null), [{ season: 13 }]);
   assert.deepEqual(fetchPlanForCurrentSeason(13, { timestamp_ms: 123 }, null), [
     { season: 13, newerThanTimestampMs: 123 },

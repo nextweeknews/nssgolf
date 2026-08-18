@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage, tournamentPublicUrl } from "./dashboard-core.mjs";
+import { ADMIN_SECTIONS, RESULT_EVENTS, adminUrl, parseAdminRoute, routeFromEmbeddedPage, tournamentPublicUrl } from "./dashboard-core.mjs";
 import { actionLogCellCount, actionLogChangeRows, actionLogTimestamp, addUndoChangeContext } from "./action-logs-core.mjs";
+import { normalizeSeasonConfiguration, seasonConfigurationRpcParams } from "../season-configuration-core.mjs";
 
 test("matches the sidebar event order and colors", () => {
   assert.deepEqual(
@@ -33,14 +34,76 @@ test("defaults the dashboard to its landing page", () => {
 });
 
 test("maps every standalone admin surface into the dashboard frame", () => {
-  assert.equal(parseAdminRoute("?section=event-signups&event=summer").frameUrl, "/event-signups.html?event=summer&embed=1&v=20260818-mobile-sticky-headers");
-  assert.equal(parseAdminRoute("?section=build-list").frameUrl, "/build.html?embed=1&v=20260818-mobile-sticky-headers");
-  assert.equal(parseAdminRoute("?section=championship-points").frameUrl, "/championship.html?view=settings&embed=1&v=20260818-mobile-sticky-headers");
-  assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1&v=20260818-mobile-sticky-headers");
+  assert.deepEqual(ADMIN_SECTIONS.map(({ key }) => key), [
+    "season-configuration",
+    "event-signups",
+    "build-list",
+    "championship-points",
+    "custom-player-urls",
+    "action-logs",
+  ]);
+  assert.equal(parseAdminRoute("?section=season-configuration").frameUrl, "/admin/season-configuration.html?embed=1&v=20260818-season-configuration");
+  assert.equal(parseAdminRoute("?section=event-signups&event=summer").frameUrl, "/event-signups.html?event=summer&embed=1&v=20260818-season-configuration");
+  assert.equal(parseAdminRoute("?section=build-list").frameUrl, "/build.html?embed=1&v=20260818-season-configuration");
+  assert.equal(parseAdminRoute("?section=championship-points").frameUrl, "/championship.html?view=settings&embed=1&v=20260818-season-configuration");
+  assert.equal(parseAdminRoute("?section=custom-player-urls").frameUrl, "/admin-settings.html?embed=1&v=20260818-season-configuration");
   assert.equal(
     parseAdminRoute("?section=action-logs").frameUrl,
-    "/admin/action-logs.html?embed=1&v=20260818-mobile-sticky-headers",
+    "/admin/action-logs.html?embed=1&v=20260818-season-configuration",
   );
+});
+
+test("normalizes public season configuration rows for existing config consumers", () => {
+  const configuration = normalizeSeasonConfiguration({
+    ranked_league_season:14,
+    shotgun_pro_league_season:8,
+    shotgun_pro_league_stage:2,
+    super_league_season:7,
+  });
+  assert.deepEqual(configuration, {
+    rankedLeagueSeason:14,
+    shotgunProLeagueSeason:8,
+    shotgunProLeagueStage:2,
+    superLeagueSeason:7,
+  });
+  const expectedConfiguration = normalizeSeasonConfiguration();
+  assert.deepEqual(seasonConfigurationRpcParams(configuration, expectedConfiguration), {
+    p_ranked_league_season:14,
+    p_shotgun_pro_league_season:8,
+    p_shotgun_pro_league_stage:2,
+    p_super_league_season:7,
+    p_expected_configuration:expectedConfiguration,
+  });
+  assert.deepEqual(normalizeSeasonConfiguration({ rankedLeagueSeason:6, shotgunProLeagueStage:8 }), {
+    rankedLeagueSeason:13,
+    shotgunProLeagueSeason:7,
+    shotgunProLeagueStage:3,
+    superLeagueSeason:6,
+  });
+});
+
+test("uses the public configuration row while preserving config.js exports", async () => {
+  const source = await readFile(new URL("../config.js", import.meta.url), "utf8");
+  assert.match(source, /\/rest\/v1\/season_configuration/);
+  assert.match(source, /cache:"no-store"/);
+  assert.match(source, /NSSGOLF_SUPABASE_CONFIG/);
+  assert.match(source, /export const CURRENT_RANKED_LEAGUE_SEASON/);
+  assert.match(source, /export const SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON/);
+  assert.match(source, /export const SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE/);
+  assert.match(source, /export const SUPER_LEAGUE_SEASON/);
+});
+
+test("renders the season editor in the requested order and saves only through its RPC", async () => {
+  const [page, script] = await Promise.all([
+    readFile(new URL("./season-configuration.html", import.meta.url), "utf8"),
+    readFile(new URL("./season-configuration.js", import.meta.url), "utf8"),
+  ]);
+  assert.ok(page.indexOf("Ranked League") < page.indexOf("Shotgun Pro League"));
+  assert.ok(page.indexOf("Shotgun Pro League") < page.indexOf("Super League"));
+  assert.match(script, /\.rpc\(\s*"update_season_configuration"/);
+  assert.match(script, /if\(!embedded\)\{[\s\S]*?getSession\(\)/);
+  assert.match(script, /seasonConfigurationRpcParams\(configuration, initialConfiguration\)/);
+  assert.doesNotMatch(script, /\.from\("season_configuration"\)[\s\S]{0,200}?\.update\(/);
 });
 
 test("loads embedded Championship Points without painting the public Championship view", async () => {
@@ -72,7 +135,7 @@ test("anchors the entire mobile admin shell to visual-viewport keyboard shifts",
 test("preserves result editor and signup subview state in the dashboard URL", () => {
   assert.equal(
     parseAdminRoute("?section=results-editor&eventKey=proleague&season=7&stage=3").frameUrl,
-    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260818-mobile-sticky-headers",
+    "/admin/tournament-results.html?eventKey=proleague&season=7&stage=3&embed=1&v=20260818-season-configuration",
   );
   assert.equal(
     routeFromEmbeddedPage("/admin/tournament-results.html", "?eventKey=proleague&season=7&stage=3&embed=1"),

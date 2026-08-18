@@ -8,7 +8,7 @@ import {
   SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE,
   SUPER_LEAGUE_SEASON,
   TEAMUP_API_BASE_URL,
-} from "/config.js?v=20260717-ranked-season";
+} from "/config.js?v=20260818-season-configuration";
 import {
   ADMIN_ROLE_ID,
   countryFlagCodeFor,

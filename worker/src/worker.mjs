@@ -966,6 +966,20 @@ export default {
           }, 200, { "Cache-Control": "no-store" });
         }
 
+        if (body?.actionType === "configuration") {
+          const undoAction = await callAdminRpc(
+            env,
+            authorization,
+            "undo_season_configuration_action",
+            { p_action_id: actionId },
+          );
+          return json({
+            actionId: undoAction.action_id,
+            undoneActionId: actionId,
+            configuration: undoAction,
+          }, 200, { "Cache-Control": "no-store" });
+        }
+
         const actor = await callAdminRpc(env, authorization, "get_my_discord_actor", {});
         if (!actor.is_admin) throw new AdminEditError("Admin access required.", 403);
 

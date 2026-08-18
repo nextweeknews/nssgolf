@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#020b18" />
+  <link rel="icon" href="/logos/golf.png" />
+  <title>Season Configuration | NSS Golf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;650;750;850;900;950&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/site-topbar.css?v=1a744e6af25a" />
+  <link rel="stylesheet" href="/admin/tournament-results.css?v=20260818-mobile-sticky-headers" />
+  <link rel="stylesheet" href="/admin/season-configuration.css?v=20260818-season-configuration" />
+  <link rel="stylesheet" href="/admin/dashboard-embed.css?v=20260817-admin-spinner" />
+  <script src="/admin/dashboard-embed.js?v=20260817-admin-scroll"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="editor-brand">
+        <a class="editor-home-btn" href="/index.html" aria-label="NSS Golf home">
+          <img src="/logos/golf.png" alt="" />
+        </a>
+        <div class="topbar-page-title">Season Configuration</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="editor-main">
+    <section class="editor-card editor-access-panel is-loading" id="configurationAccessPanel" aria-live="polite">
+      <svg class="admin-loading-spinner" id="configurationAccessSpinner" viewBox="0 0 24 24" role="status" aria-label="Loading season configuration"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+      <p class="editor-status" id="configurationAccessStatus" hidden></p>
+      <button class="editor-button primary" id="configurationLoginBtn" type="button" hidden>Sign in with Discord</button>
+    </section>
+
+    <section class="editor-card" id="editorPanel" aria-labelledby="configurationTitle" hidden>
+      <div class="editor-page-head">
+        <h1 class="editor-title" id="configurationTitle">Season Configuration</h1>
+        <div class="editor-head-actions">
+          <span class="editor-dirty-count" id="configurationStatus" aria-live="polite">No unsaved changes</span>
+          <button class="editor-button editor-action-button" id="configurationResetBtn" type="button" aria-label="Reset changes" title="Reset changes" disabled>
+            <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            <span class="editor-button-label">Reset</span>
+          </button>
+          <button class="editor-button editor-action-button primary" id="configurationSaveBtn" type="submit" form="seasonConfigurationForm" aria-label="Save changes" title="Save changes" disabled>
+            <svg class="editor-button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            <span class="editor-button-label">Save changes</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="editor-body season-configuration-body">
+        <form class="season-configuration-form" id="seasonConfigurationForm">
+          <div class="season-configuration-row">
+            <div class="season-configuration-name">Ranked League</div>
+            <label class="season-configuration-field">
+              <span>Season</span>
+              <input class="season-configuration-input" id="rankedLeagueSeason" name="rankedLeagueSeason" type="text" inputmode="numeric" autocomplete="off" aria-label="Current Ranked League season" />
+            </label>
+          </div>
+
+          <div class="season-configuration-row">
+            <div class="season-configuration-name">Shotgun Pro League</div>
+            <div class="season-configuration-fields">
+              <label class="season-configuration-field">
+                <span>Season</span>
+                <input class="season-configuration-input" id="shotgunProLeagueSeason" name="shotgunProLeagueSeason" type="text" inputmode="numeric" autocomplete="off" aria-label="Current Shotgun Pro League season" />
+              </label>
+              <label class="season-configuration-field">
+                <span>Stage</span>
+                <input class="season-configuration-input" id="shotgunProLeagueStage" name="shotgunProLeagueStage" type="text" inputmode="numeric" autocomplete="off" aria-label="Current Shotgun Pro League stage" />
+              </label>
+            </div>
+          </div>
+
+          <div class="season-configuration-row">
+            <div class="season-configuration-name">Super League</div>
+            <label class="season-configuration-field">
+              <span>Season</span>
+              <input class="season-configuration-input" id="superLeagueSeason" name="superLeagueSeason" type="text" inputmode="numeric" autocomplete="off" aria-label="Current Super League season" />
+            </label>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
+  <script type="module" src="/admin/season-configuration.js?v=20260818-season-configuration"></script>
+</body>
+</html>

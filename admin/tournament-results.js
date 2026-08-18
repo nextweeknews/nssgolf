@@ -18,7 +18,7 @@ import {
   superLeagueDivisionClass,
   superLeagueViewKey,
 } from "/admin/tournament-results-core.mjs?v=20260818-mobile-sticky-headers";
-import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js";
+import { SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON, SHOTGUN_PRO_LEAGUE_DEFAULT_STAGE, SUPER_LEAGUE_SEASON } from "/config.js?v=20260818-season-configuration";
 import { getProLeagueTeamStyle, proLeagueTeamLogoSrc } from "/proleague/team-presentation.mjs?v=20260817-editor";
 
 const DEFAULT_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/admin/tournament-results";

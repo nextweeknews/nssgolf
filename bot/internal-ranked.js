@@ -38,7 +38,6 @@ const defaultSupabaseUrl = "https://kwaprkwemtxizorpnrzq.supabase.co";
 const defaultFirstSeason = 7;
 const defaultLimit = 50;
 const defaultDelayMs = 30000;
-const configPath = require("node:path").resolve(__dirname, "..", "config.js");
 
 function usage() {
   console.log(`
@@ -85,7 +84,7 @@ Commands:
 Options:
   --seasons <list>       Seasons to process. Examples: 7-12 or 7,8,9.
                          When omitted, fetch incrementally through the current
-                         Ranked League season in config.js.
+                         Ranked League season in Supabase season configuration.
   --limit <number>       TeamUp page size. Default: ${defaultLimit}
   --delay-ms <number>    Delay between TeamUp requests. Default: ${defaultDelayMs}
   --max-pages <number>   Testing only: stop after this many pages per season.
@@ -457,11 +456,17 @@ async function upsertSeasonMatches(supabase, seasonResult) {
   console.log(`Season ${seasonResult.season}: upserted ${rows.length} valid matches.`);
 }
 
-function currentRankedLeagueSeason() {
-  const configSource = require("node:fs").readFileSync(configPath, "utf8");
-  const match = configSource.match(/CURRENT_RANKED_LEAGUE_SEASON\s*=\s*["']Season_(\d+)["']/);
-  if (!match) throw new Error(`Unable to read CURRENT_RANKED_LEAGUE_SEASON from ${configPath}.`);
-  return Number(match[1]);
+async function currentRankedLeagueSeason(supabase = createSupabaseServiceClient()) {
+  const { data, error } = await supabase
+    .from("season_configuration")
+    .select("ranked_league_season")
+    .eq("id", "current")
+    .single();
+  const season = Number(data?.ranked_league_season);
+  if (error || !Number.isInteger(season) || season < defaultFirstSeason) {
+    throw new Error(`Unable to read the current Ranked League season: ${error?.message || "invalid configuration"}.`);
+  }
+  return season;
 }
 
 async function loadLatestStoredMatch(supabase, season) {
@@ -492,7 +497,7 @@ function fetchPlanForCurrentSeason(currentSeason, latestStoredMatch, requestedSe
 async function fetchAndUpsert(options) {
   const supabase = createSupabaseServiceClient();
   const waitForTurn = createRateLimiter(options.delayMs);
-  const currentSeason = currentRankedLeagueSeason();
+  const currentSeason = await currentRankedLeagueSeason(supabase);
   const requestedSeasons = options.seasons;
   const latestStoredMatch = requestedSeasons
     ? null
@@ -765,8 +770,8 @@ async function dateCombinedGpiSnapshots(dateValues) {
 }
 
 async function replayStoredMatches(options) {
-  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
+  options = { ...options, seasons: options.seasons || await defaultReplaySeasons(supabase) };
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
     throw new Error(
@@ -853,8 +858,8 @@ async function replayStoredMatches(options) {
 }
 
 async function replayStoredMatchesPlackettLuce(options) {
-  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
+  options = { ...options, seasons: options.seasons || await defaultReplaySeasons(supabase) };
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
     throw new Error(
@@ -981,8 +986,8 @@ async function replayStoredMatchesPlackettLuce(options) {
 }
 
 async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
-  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
+  options = { ...options, seasons: options.seasons || await defaultReplaySeasons(supabase) };
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
     throw new Error(
@@ -1159,8 +1164,8 @@ async function replayStoredMatchesOpponentAwareWeightedPairwise(options) {
 }
 
 async function replayStoredMatchesNormalizedPlacementElo(options) {
-  options = { ...options, seasons: options.seasons || defaultReplaySeasons() };
   const supabase = createSupabaseServiceClient();
+  options = { ...options, seasons: options.seasons || await defaultReplaySeasons(supabase) };
   const storedMatches = await loadStoredMatches(supabase, options.seasons);
   if (!storedMatches.length) {
     throw new Error(
@@ -1303,8 +1308,8 @@ async function replayStoredMatchesNormalizedPlacementElo(options) {
   return runId;
 }
 
-function defaultReplaySeasons() {
-  const currentSeason = currentRankedLeagueSeason();
+async function defaultReplaySeasons(supabase) {
+  const currentSeason = await currentRankedLeagueSeason(supabase);
   return Array.from({ length: currentSeason - defaultFirstSeason + 1 }, (_, index) => (
     defaultFirstSeason + index
   ));
