@@ -90,7 +90,7 @@ using (
 );
 
 grant select on public.gpi_hidden_players to anon, authenticated;
-grant insert, update, delete on public.gpi_hidden_players to authenticated;
+revoke insert, update, delete, truncate on public.gpi_hidden_players from anon, authenticated;
 grant select, insert, update, delete on public.gpi_hidden_players to service_role;
 
 notify pgrst, 'reload schema';

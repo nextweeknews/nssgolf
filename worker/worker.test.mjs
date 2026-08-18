@@ -288,12 +288,12 @@ test("loads a newly discovered tournament year through Google metadata", async (
   assert.ok(payload.event.editableRanges.includes("'World Cup 2026'!V2:V120"));
 });
 
-test("loads tournament action logs through the authenticated admin RPC", async () => {
+test("loads combined admin action logs through the authenticated admin RPC", async () => {
   const { env } = makeEnv();
   const actionId = "55555555-5555-4555-8555-555555555555";
   globalThis.fetch = async (input, init = {}) => {
     const upstreamUrl = new URL(String(input));
-    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/list_tournament_result_action_logs");
+    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/list_admin_action_logs");
     assert.equal(init.headers.Authorization, "Bearer user-token");
     assert.deepEqual(JSON.parse(init.body), { p_limit: 25 });
     return Response.json([{
@@ -325,6 +325,38 @@ test("loads tournament action logs through the authenticated admin RPC", async (
     changes: [{ range: "'Bracket'!C2", before: [[1]], after: [[2]] }],
     can_undo: true,
   }] });
+});
+
+test("undoes an audited visibility action without contacting Google", async () => {
+  const { env } = makeEnv();
+  const actionId = "77777777-7777-4777-8777-777777777777";
+  const undoActionId = "88888888-8888-4888-8888-888888888888";
+  let upstreamCalls = 0;
+
+  globalThis.fetch = async (input, init = {}) => {
+    upstreamCalls += 1;
+    const upstreamUrl = new URL(String(input));
+    assert.equal(upstreamUrl.pathname, "/rest/v1/rpc/undo_admin_visibility_action");
+    assert.deepEqual(JSON.parse(init.body), { p_action_id:actionId });
+    return Response.json([{ action_id:undoActionId, hidden:false }]);
+  };
+
+  const response = await worker.fetch(
+    new Request("https://worker.example/admin/tournament-action-logs", {
+      method:"POST",
+      headers:{ Authorization:"Bearer user-token", "Content-Type":"application/json" },
+      body:JSON.stringify({ actionId, actionType:"visibility" }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(upstreamCalls, 1);
+  assert.deepEqual(await response.json(), {
+    actionId:undoActionId,
+    undoneActionId:actionId,
+    hidden:false,
+  });
 });
 
 test("rejects an oversized tournament results body without relying on Content-Length", async () => {

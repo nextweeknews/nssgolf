@@ -768,7 +768,7 @@ export default {
     }
 
     // =========================
-    // Authenticated tournament action logs
+    // Authenticated admin action logs
     // GET  /admin/tournament-action-logs
     // POST /admin/tournament-action-logs { actionId }
     // =========================
@@ -789,7 +789,7 @@ export default {
           const logs = await callAdminRpcRows(
             env,
             authorization,
-            "list_tournament_result_action_logs",
+            "list_admin_action_logs",
             { p_limit: limit },
           );
           return json({ logs }, 200, { "Cache-Control": "no-store" });
@@ -798,7 +798,21 @@ export default {
         const body = await readAdminJson(request);
         const actionId = String(body?.actionId || "").trim();
         if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actionId)) {
-          throw new AdminEditError("Invalid tournament action ID.");
+          throw new AdminEditError("Invalid admin action ID.");
+        }
+
+        if (body?.actionType === "visibility") {
+          const undoAction = await callAdminRpc(
+            env,
+            authorization,
+            "undo_admin_visibility_action",
+            { p_action_id: actionId },
+          );
+          return json({
+            actionId: undoAction.action_id,
+            undoneActionId: actionId,
+            hidden: undoAction.hidden,
+          }, 200, { "Cache-Control": "no-store" });
         }
 
         const target = await callAdminRpc(

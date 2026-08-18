@@ -17,6 +17,28 @@ const publicPageLink = document.getElementById("adminPublicPageLink");
 const googleSheetLink = document.getElementById("adminGoogleSheetLink");
 const resultsParent = document.getElementById("resultsEditorToggle");
 const resultsChildren = document.getElementById("resultsEditorChildren");
+let viewportSettleTimer = 0;
+
+function applyAdminViewportAnchor(){
+  const viewport = globalThis.visualViewport;
+  const bodyRect = document.body.getBoundingClientRect();
+  const rootStyle = document.documentElement.style;
+  rootStyle.setProperty("--admin-visual-offset-left", `${Math.max(0, Number(viewport?.offsetLeft) || 0, -bodyRect.left)}px`);
+  rootStyle.setProperty("--admin-visual-offset-top", `${Math.max(0, Number(viewport?.offsetTop) || 0, -bodyRect.top)}px`);
+  rootStyle.setProperty("--admin-visual-width", `${Math.max(1, Number(viewport?.width) || globalThis.innerWidth)}px`);
+}
+
+function syncAdminViewportAnchor(){
+  applyAdminViewportAnchor();
+  globalThis.clearTimeout(viewportSettleTimer);
+  viewportSettleTimer = globalThis.setTimeout(applyAdminViewportAnchor, 400);
+}
+
+globalThis.visualViewport?.addEventListener("resize", syncAdminViewportAnchor, { passive:true });
+globalThis.visualViewport?.addEventListener("scroll", syncAdminViewportAnchor, { passive:true });
+globalThis.addEventListener("resize", syncAdminViewportAnchor, { passive:true });
+globalThis.addEventListener("scroll", syncAdminViewportAnchor, { passive:true });
+syncAdminViewportAnchor();
 
 function icon(paths){
   return `<svg class="admin-nav-icon" viewBox="0 0 24 24" aria-hidden="true">${paths}</svg>`;

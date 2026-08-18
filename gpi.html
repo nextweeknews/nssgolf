@@ -2053,6 +2053,7 @@
 
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { setAdminVisibility } from "/admin/admin-visibility.mjs?v=20260818-audited-hide";
     import { ADMIN_ROLE_ID } from "/settings-data.js";
 
     const supabase = createBrowserSupabaseClient();
@@ -4455,25 +4456,11 @@
       if(!currentAdminContext.isAdmin) throw new Error("Admin access required.");
       const cleanDiscordId = normalizeDiscordId(discordId);
       if(!cleanDiscordId) throw new Error("Missing player ID.");
-
-      if(shouldHide){
-        const { error } = await supabase
-          .from(GPI_HIDDEN_PLAYERS_TABLE)
-          .upsert({
-            discord_user_id: cleanDiscordId,
-            hidden_at: new Date().toISOString(),
-            hidden_by_user_id: currentAdminContext.userId || null,
-            hidden_by_username: currentAdminContext.username || null,
-          }, { onConflict:"discord_user_id" });
-        if(error) throw error;
-        return;
-      }
-
-      const { error } = await supabase
-        .from(GPI_HIDDEN_PLAYERS_TABLE)
-        .delete()
-        .eq("discord_user_id", cleanDiscordId);
-      if(error) throw error;
+      await setAdminVisibility(supabase, {
+        surfaceKey:"gpi",
+        targetKey:cleanDiscordId,
+        hidden:shouldHide,
+      });
     }
 
     async function loadCombinedPage(requestId){

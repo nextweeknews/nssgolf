@@ -54,6 +54,20 @@ test("loads embedded Championship Points without painting the public Championshi
   assert.match(page, /if\(isEmbeddedSettingsView\)\{[\s\S]*?loadChampionshipSettings\(\),[\s\S]*?refreshAdminState\(\),[\s\S]*?if\(state\.isAdmin\) return;/);
 });
 
+test("anchors the mobile admin header to visual-viewport keyboard shifts", async () => {
+  const [script, styles] = await Promise.all([
+    readFile(new URL("./dashboard.js", import.meta.url), "utf8"),
+    readFile(new URL("./dashboard.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(script, /visualViewport\?\.addEventListener\("resize", syncAdminViewportAnchor/);
+  assert.match(script, /--admin-visual-offset-left/);
+  assert.match(script, /--admin-visual-offset-top/);
+  assert.match(script, /--admin-visual-width/);
+  assert.match(script, /setTimeout\(applyAdminViewportAnchor, 400\)/);
+  assert.match(styles, /transform:translate\(var\(--admin-visual-offset-left,0px\),var\(--admin-visual-offset-top,0px\)\)/);
+});
+
 test("preserves result editor and signup subview state in the dashboard URL", () => {
   assert.equal(
     parseAdminRoute("?section=results-editor&eventKey=proleague&season=7&stage=3").frameUrl,

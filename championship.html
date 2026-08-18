@@ -370,6 +370,21 @@
     tbody tr.is-cutoff-row td{
       border-bottom:2px solid rgba(134,239,172,.62);
     }
+    tbody tr.is-hidden-player td{
+      background:rgba(148,163,184,.055);
+      color:rgba(148,163,184,.58);
+    }
+    tbody tr.is-hidden-player .player-link,
+    tbody tr.is-hidden-player .player-static,
+    tbody tr.is-hidden-player .event-score,
+    tbody tr.is-hidden-player .total-score{
+      color:rgba(148,163,184,.58);
+      opacity:.72;
+    }
+    tbody tr.is-hidden-player .player-avatar{
+      filter:grayscale(1);
+      opacity:.58;
+    }
     tbody tr.is-hunt-row td{
       background:rgba(250,204,21,.045);
     }
@@ -1031,7 +1046,7 @@
     }
     .settings-status.is-ok{ color:var(--green); }
     .settings-status.is-error{ color:var(--red); }
-    .championship-settings-loading{ display:none; }
+    .admin-loading-region.championship-settings-loading{ display:none; }
     html.admin-settings-embedded .championship-settings-loading{ display:grid; }
     html.admin-settings-embedded .card{ display:none; }
     html.admin-settings-embedded.admin-settings-ready .championship-settings-loading{ display:none; }
@@ -1284,7 +1299,8 @@
       normalizeWorldCupDiscordId,
       parseWorldCupSheet,
     } from "/worldcup-data.js?v=20260818-no-store";
-    import { recoverTournamentVisibility } from "/championship-qualifier-state.mjs?v=20260818-hidden-recovery";
+    import { setAdminVisibility } from "/admin/admin-visibility.mjs?v=20260818-audited-hide";
+    import { appendHiddenTournamentRows } from "/championship-qualifier-state.mjs?v=20260818-hidden-rows";
 
     const supabase = createBrowserSupabaseClient();
     const isEmbeddedSettingsView = document.documentElement.classList.contains("admin-settings-embedded");
@@ -2984,13 +3000,17 @@
     }
 
     function tournamentQualifiedRows(){
-      const rows = buildRows();
-      return rows.map((row) => ({
+      const visibleRows = buildRows().map((row) => ({
         ...row,
         qualified:row.rank <= TOURNAMENT_QUALIFIER_TARGET,
         source:"Tournaments",
         detail:`${row.total} pts`,
       }));
+      return appendHiddenTournamentRows(
+        visibleRows,
+        state.isAdmin ? buildRows({ includeHidden:true }) : [],
+        state.isAdmin,
+      );
     }
 
     async function loadProLeagueAliases(){
@@ -3562,6 +3582,7 @@
             const rowClass = [
               row.qualified ? "is-qualified" : "",
               index === lastQualifiedIndex ? "is-cutoff-row" : "",
+              row.hidden ? "is-hidden-player" : "",
             ].filter(Boolean).join(" ");
             return `
               <tr${rowClass ? ` class="${rowClass}"` : ""}>
@@ -4046,7 +4067,7 @@
         </thead>
         <tbody>
           ${rows.map(row => `
-            <tr>
+            <tr${row.hidden ? ' class="is-hidden-player"' : ""}>
               <td class="player-cell">${renderPlayerCell(row.player)}</td>
               <td class="total-cell"><span class="total-score">${row.total}</span></td>
               ${EVENT_DEFS.map(event => renderEventCell(row.player, event.key)).join("")}
@@ -4120,17 +4141,6 @@
         .filter(item => /^(id:\d+|name:.+)$/.test(item)))];
     }
 
-    function currentHiddenPlayerKeys(){
-      return [...state.hiddenPlayerKeys].sort((left, right) => left.localeCompare(right));
-    }
-
-    function readChampionshipSettingsPayload(settings = state.pointSettings){
-      return {
-        settings:mergePointSettings(settings),
-        hidden_player_keys:currentHiddenPlayerKeys(),
-      };
-    }
-
     async function loadChampionshipSettings(){
       try{
         const { data, error } = await supabase
@@ -4176,19 +4186,12 @@
 
     async function saveChampionshipSettings(settings = state.pointSettings){
       if(!state.isAdmin) throw new Error("Admin access required.");
-      const payload = readChampionshipSettingsPayload(settings);
-      const { error } = await supabase
-        .from(SETTINGS_TABLE)
-        .upsert({
-          id:SETTINGS_ID,
-          settings:payload.settings,
-          hidden_player_keys:payload.hidden_player_keys,
-          updated_by_user_id:state.session?.user?.id || null,
-          updated_at:new Date().toISOString(),
-        }, { onConflict:"id" });
+      const nextSettings = mergePointSettings(settings);
+      const { data, error } = await supabase.rpc("save_championship_point_values", {
+        p_settings:nextSettings,
+      });
       if(error) throw error;
-      state.pointSettings = payload.settings;
-      state.hiddenPlayerKeys = new Set(payload.hidden_player_keys);
+      state.pointSettings = mergePointSettings(data || nextSettings);
       state.settingsRemote = true;
       state.settingsSaveMode = "remote";
       return true;
@@ -4372,16 +4375,6 @@
         }
       });
 
-      const activeTournamentKeys = buildRows({ includeHidden:true })
-        .filter(row => row.total > 0)
-        .map(row => playerIdentityKey(row))
-        .filter(Boolean);
-      const visibility = recoverTournamentVisibility(state.hiddenPlayerKeys, activeTournamentKeys);
-      if(visibility.recovered){
-        console.warn("Every scored tournament player was hidden; restoring tournament qualifier visibility.");
-        state.hiddenPlayerKeys = visibility.hiddenPlayerKeys;
-      }
-
       await buildQualifierRows();
       ensureHiddenPlayersForAdminRestore();
       state.qualifiersLoading = false;
@@ -4425,12 +4418,16 @@
         const previousHidden = state.hiddenPlayerKeys.has(playerKey);
         input.disabled = true;
         try{
+          await setAdminVisibility(supabase, {
+            surfaceKey:"championship-qualifiers",
+            targetKey:playerKey,
+            hidden:input.checked,
+          });
           if(input.checked){
             state.hiddenPlayerKeys.add(playerKey);
           }else{
             state.hiddenPlayerKeys.delete(playerKey);
           }
-          await saveChampionshipSettings();
           state.qualifierRows = {
             tournaments:[],
             proLeague:[],

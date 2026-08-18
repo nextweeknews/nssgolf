@@ -107,7 +107,7 @@ with check (
 );
 
 grant select on public.championship_point_settings to anon, authenticated;
-grant insert, update on public.championship_point_settings to authenticated;
+revoke insert, update, delete, truncate on public.championship_point_settings from anon, authenticated;
 grant select, insert, update, delete on public.championship_point_settings to service_role;
 
 notify pgrst, 'reload schema';

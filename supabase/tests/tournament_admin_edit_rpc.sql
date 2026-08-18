@@ -92,18 +92,48 @@ BEGIN
     'anon',
     'public.list_tournament_result_action_logs(integer)',
     'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.set_admin_visibility(text,text,boolean)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.undo_admin_visibility_action(uuid)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.list_admin_action_logs(integer)',
+    'EXECUTE'
+  ) OR has_function_privilege(
+    'anon',
+    'public.save_championship_point_values(jsonb)',
+    'EXECUTE'
   ) THEN
     RAISE EXCEPTION 'anon unexpectedly has execute privilege on an admin mutation RPC';
   END IF;
 
   IF has_schema_privilege('authenticated', 'private', 'USAGE')
     OR has_table_privilege('authenticated', 'private.tournament_result_action_logs', 'SELECT')
+    OR has_table_privilege('authenticated', 'private.admin_visibility_action_logs', 'SELECT')
   THEN
     RAISE EXCEPTION 'authenticated users can unexpectedly access the private action log table';
   END IF;
 
   IF has_table_privilege('anon', 'public.tournament_admin_events', 'SELECT') THEN
     RAISE EXCEPTION 'anon unexpectedly has direct table access';
+  END IF;
+
+  IF has_table_privilege('authenticated', 'public.championship_point_settings', 'INSERT')
+    OR has_table_privilege('authenticated', 'public.championship_point_settings', 'UPDATE')
+    OR has_table_privilege('authenticated', 'public.championship_point_settings', 'DELETE')
+    OR has_table_privilege('authenticated', 'public.gpi_hidden_players', 'INSERT')
+    OR has_table_privilege('authenticated', 'public.gpi_hidden_players', 'UPDATE')
+    OR has_table_privilege('authenticated', 'public.gpi_hidden_players', 'DELETE')
+    OR has_table_privilege('authenticated', 'public.player_global_rank_moderation', 'INSERT')
+    OR has_table_privilege('authenticated', 'public.player_global_rank_moderation', 'UPDATE')
+    OR has_table_privilege('authenticated', 'public.player_global_rank_moderation', 'DELETE')
+  THEN
+    RAISE EXCEPTION 'authenticated users can bypass audited visibility RPCs';
   END IF;
 
   IF has_column_privilege(
@@ -174,6 +204,27 @@ BEGIN
   END;
 
   BEGIN
+    PERFORM public.set_admin_visibility('gpi', '900000000000000002', true);
+    RAISE EXCEPTION 'non-admin unexpectedly changed GPI visibility';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    PERFORM public.list_admin_action_logs(10);
+    RAISE EXCEPTION 'non-admin unexpectedly read combined admin action logs';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    PERFORM public.save_championship_point_values('{}'::jsonb);
+    RAISE EXCEPTION 'non-admin unexpectedly changed Championship point values';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
     PERFORM public.create_tournament_result_action_log(
       'masters',
       'edit',
@@ -213,6 +264,8 @@ DECLARE
   undo_action_id uuid;
   undo_changes jsonb;
   failed_action_id uuid;
+  visibility_action_id uuid;
+  visibility_undo_id uuid;
 BEGIN
   IF NOT public.is_tournament_result_admin() THEN
     RAISE EXCEPTION 'Discord administrator was not authorized';
@@ -595,6 +648,99 @@ BEGIN
       AND NOT can_undo
   ) THEN
     RAISE EXCEPTION 'failed tournament edit was not retained as a non-undoable audit record';
+  END IF;
+
+  SELECT action_id
+  INTO visibility_action_id
+  FROM public.set_admin_visibility('gpi', '900000000000000002', true);
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.gpi_hidden_players
+    WHERE discord_user_id = '900000000000000002'
+      AND hidden_by_user_id = '11111111-1111-1111-1111-111111111111'
+      AND hidden_by_username = 'Admin'
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = visibility_action_id
+      AND action_type = 'visibility'
+      AND event_key = 'gpi'
+      AND event_display_name = 'GPI'
+      AND actor_discord_user_id = '900000000000000001'
+      AND changes->0->>'playerName' = 'Player'
+      AND changes->0->'before' = '[["Visible"]]'::jsonb
+      AND changes->0->'after' = '[["Hidden"]]'::jsonb
+      AND can_undo
+  ) THEN
+    RAISE EXCEPTION 'GPI visibility change was not authenticated and logged';
+  END IF;
+
+  SELECT action_id
+  INTO visibility_undo_id
+  FROM public.undo_admin_visibility_action(visibility_action_id);
+
+  IF EXISTS (
+    SELECT 1 FROM public.gpi_hidden_players WHERE discord_user_id = '900000000000000002'
+  ) OR EXISTS (
+    SELECT 1 FROM public.list_admin_action_logs(20)
+    WHERE action_id = visibility_action_id AND can_undo
+  ) OR NOT EXISTS (
+    SELECT 1 FROM public.list_admin_action_logs(20)
+    WHERE action_id = visibility_action_id
+      AND undone_by_action_id = visibility_undo_id
+      AND undone_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'GPI visibility undo did not restore and close the original action';
+  END IF;
+
+  SELECT action_id
+  INTO visibility_action_id
+  FROM public.set_admin_visibility(
+    'global-ranks',
+    '900000000000000002:current_global_rank',
+    true
+  );
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.player_global_rank_moderation
+    WHERE discord_user_id = '900000000000000002'
+      AND rank_key = 'current_global_rank'
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = visibility_action_id
+      AND event_key = 'global-ranks'
+      AND changes->0->'headers' = '["Current Rank visibility"]'::jsonb
+  ) THEN
+    RAISE EXCEPTION 'global-rank visibility change was not applied and logged';
+  END IF;
+
+  SELECT action_id
+  INTO visibility_action_id
+  FROM public.set_admin_visibility(
+    'championship-qualifiers',
+    'id:900000000000000002',
+    true
+  );
+
+  PERFORM public.save_championship_point_values('{"worldOpen":{"winner":101}}'::jsonb);
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.championship_point_settings
+    WHERE id = 'current'
+      AND hidden_player_keys @> ARRAY['id:900000000000000002']
+      AND settings = '{"worldOpen":{"winner":101}}'::jsonb
+  ) OR NOT EXISTS (
+    SELECT 1
+    FROM public.list_admin_action_logs(20)
+    WHERE action_id = visibility_action_id
+      AND event_key = 'championship-qualifiers'
+      AND route_path = '/championship.html?view=leaderboard&qualifier=tournaments'
+  ) THEN
+    RAISE EXCEPTION 'Championship visibility or point-value isolation failed';
   END IF;
 
   BEGIN

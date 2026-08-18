@@ -2,30 +2,44 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
-import { recoverTournamentVisibility } from "../championship-qualifier-state.mjs";
+import { appendHiddenTournamentRows } from "../championship-qualifier-state.mjs";
 
-test("recovers when every scored tournament player was persisted as hidden", () => {
-  const result = recoverTournamentVisibility(
-    ["id:1", "id:2", "name:stale-player"],
-    ["id:1", "id:2"],
-  );
+test("appends scored hidden tournament players after visible rows for admins", () => {
+  const visible = [{ name:"Visible", total:10, hidden:false, rank:1, rankLabel:"1", qualified:true }];
+  const all = [
+    { name:"Hidden", total:20, hidden:true, rank:1, rankLabel:"1" },
+    ...visible,
+    { name:"Unscored hidden", total:0, hidden:true, rank:3, rankLabel:"3" },
+  ];
 
-  assert.equal(result.recovered, true);
-  assert.deepEqual([...result.hiddenPlayerKeys], ["name:stale-player"]);
+  assert.deepEqual(appendHiddenTournamentRows(visible, all, true), [
+    visible[0],
+    { name:"Hidden", total:20, hidden:true, rank:"", rankLabel:"", qualified:false },
+  ]);
 });
 
-test("preserves intentional hidden-player settings while any scored player remains visible", () => {
-  const result = recoverTournamentVisibility(["id:1"], ["id:1", "id:2"]);
-
-  assert.equal(result.recovered, false);
-  assert.deepEqual([...result.hiddenPlayerKeys], ["id:1"]);
+test("keeps hidden tournament rows out of the public list", () => {
+  const visible = [{ name:"Visible", total:10 }];
+  assert.equal(appendHiddenTournamentRows(visible, [{ name:"Hidden", total:20, hidden:true }], false), visible);
 });
 
-test("does not change hidden-player settings before tournament results load", () => {
-  const result = recoverTournamentVisibility(["id:1"], []);
+test("routes every player-hide control through the audited admin visibility RPC", async () => {
+  const sources = await Promise.all([
+    "../championship.html",
+    "../gpi.html",
+    "../records.html",
+    "../player-profile.js",
+  ].map(async path => readFile(new URL(path, import.meta.url), "utf8")));
 
-  assert.equal(result.recovered, false);
-  assert.deepEqual([...result.hiddenPlayerKeys], ["id:1"]);
+  for(const source of sources){
+    assert.match(source, /import \{ setAdminVisibility \}/);
+    assert.match(source, /await setAdminVisibility\(supabase,/);
+  }
+
+  assert.match(sources[0], /surfaceKey:"championship-qualifiers"/);
+  assert.match(sources[1], /surfaceKey:"gpi"/);
+  assert.match(sources[2], /surfaceKey:"global-ranks"/);
+  assert.match(sources[3], /surfaceKey:"global-ranks"/);
 });
 
 test("World Cup data requests bypass browser caches", async () => {

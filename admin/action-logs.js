@@ -15,7 +15,12 @@ const logsList = document.getElementById("actionLogList");
 
 let busy = false;
 let actorProfiles = new Map();
-const eventColors = new Map(RESULT_EVENTS.map((event) => [event.key, event.color]));
+const eventColors = new Map([
+  ...RESULT_EVENTS.map((event) => [event.key, event.color]),
+  ["championship-qualifiers", "#bef264"],
+  ["gpi", "#7dd3fc"],
+  ["global-ranks", "#c4b5fd"],
+]);
 
 function setStatus(element, message, tone = ""){
   element.textContent = message || "";
@@ -169,6 +174,7 @@ function actionCard(log){
     undo.title = "Undo";
     undo.setAttribute("aria-label", "Undo");
     undo.dataset.undoActionId = log.action_id;
+    undo.dataset.undoActionType = log.action_type;
     undo.disabled = busy;
     actions.appendChild(undo);
   }
@@ -216,7 +222,7 @@ async function loadLogs(){
     if(!logs.length){
       const empty = document.createElement("p");
       empty.className = "action-log-empty";
-      empty.textContent = "No tournament score edits have been logged yet.";
+      empty.textContent = "No admin actions have been logged yet.";
       logsList.appendChild(empty);
     }
     setStatus(logsStatus, "");
@@ -241,23 +247,30 @@ logsList.addEventListener("click", async (event) => {
   }
   const button = event.target.closest("button[data-undo-action-id]");
   if(!button || busy) return;
-  if(!globalThis.confirm("Undo this score edit? The prior values will be written back to Google Sheets.")) return;
+  const visibilityAction = button.dataset.undoActionType === "visibility";
+  const confirmation = visibilityAction
+    ? "Undo this visibility change?"
+    : "Undo this score edit? The prior values will be written back to Google Sheets.";
+  if(!globalThis.confirm(confirmation)) return;
 
   busy = true;
   logsList.querySelectorAll("button[data-undo-action-id]").forEach((item) => { item.disabled = true; });
-  setStatus(logsStatus, "Undoing score edit…");
+  setStatus(logsStatus, visibilityAction ? "Undoing visibility change…" : "Undoing score edit…");
   try{
     const response = await fetch(WORKER_URL, {
       method: "POST",
       headers: { ...(await requestHeaders()), "Content-Type": "application/json" },
-      body: JSON.stringify({ actionId: button.dataset.undoActionId }),
+      body: JSON.stringify({
+        actionId:button.dataset.undoActionId,
+        actionType:button.dataset.undoActionType,
+      }),
     });
     const payload = await response.json().catch(() => null);
-    if(!response.ok) throw new Error(payload?.error || "Unable to undo this score edit.");
+    if(!response.ok) throw new Error(payload?.error || "Unable to undo this admin action.");
     await loadLogs();
-    setStatus(logsStatus, "Score edit undone and logged.", "success");
+    setStatus(logsStatus, visibilityAction ? "Visibility change undone and logged." : "Score edit undone and logged.", "success");
   }catch(error){
-    setStatus(logsStatus, error?.message || "Unable to undo this score edit.", "error");
+    setStatus(logsStatus, error?.message || "Unable to undo this admin action.", "error");
   }finally{
     busy = false;
     logsList.querySelectorAll("button[data-undo-action-id]").forEach((item) => { item.disabled = false; });

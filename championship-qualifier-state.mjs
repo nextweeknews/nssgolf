@@ -1,10 +1,7 @@
-export function recoverTournamentVisibility(hiddenPlayerKeys = [], activeTournamentKeys = []){
-  const hidden = new Set(hiddenPlayerKeys);
-  const active = [...new Set(activeTournamentKeys)].filter(Boolean);
-  if(!active.length || active.some(key => !hidden.has(key))){
-    return { hiddenPlayerKeys:hidden, recovered:false };
-  }
-
-  active.forEach(key => hidden.delete(key));
-  return { hiddenPlayerKeys:hidden, recovered:true };
+export function appendHiddenTournamentRows(visibleRows = [], allRows = [], includeHidden = false){
+  if(!includeHidden) return visibleRows;
+  const hiddenRows = allRows
+    .filter(row => row?.hidden && Number(row?.total) > 0)
+    .map(row => ({ ...row, rank:"", rankLabel:"", qualified:false }));
+  return [...visibleRows, ...hiddenRows];
 }

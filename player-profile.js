@@ -1,4 +1,5 @@
 import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+import { setAdminVisibility } from "/admin/admin-visibility.mjs?v=20260818-audited-hide";
 import {
   CURRENT_RANKED_LEAGUE_SEASON,
   RANKED_LEAGUE_TEAMUP_CLIENT_ID,
@@ -3683,25 +3684,11 @@ async function toggleGlobalRankModerationForPlayer(discordId, rankKey, shouldHid
   const cleanDiscordId = normalizeDiscordPlayerId(discordId);
   if(!cleanDiscordId) return false;
 
-  if(shouldHide){
-    const { error } = await supabase
-      .from("player_global_rank_moderation")
-      .upsert({
-        discord_user_id: cleanDiscordId,
-        rank_key: rankKey,
-        hidden_at: new Date().toISOString(),
-        hidden_by_user_id: viewerContext.userId || null,
-        hidden_by_username: viewerContext.username || null,
-      }, { onConflict: "discord_user_id,rank_key" });
-    if(error) throw error;
-  }else{
-    const { error } = await supabase
-      .from("player_global_rank_moderation")
-      .delete()
-      .eq("discord_user_id", cleanDiscordId)
-      .eq("rank_key", rankKey);
-    if(error) throw error;
-  }
+  await setAdminVisibility(supabase, {
+    surfaceKey:"global-ranks",
+    targetKey:`${cleanDiscordId}:${rankKey}`,
+    hidden:shouldHide,
+  });
 
   return true;
 }

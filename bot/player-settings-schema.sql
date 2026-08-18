@@ -266,7 +266,7 @@ using (
 );
 
 grant select on public.player_global_rank_moderation to anon, authenticated;
-grant insert, update, delete on public.player_global_rank_moderation to authenticated;
+revoke insert, update, delete, truncate on public.player_global_rank_moderation from anon, authenticated;
 grant select, insert, update, delete on public.player_global_rank_moderation to service_role;
 
 do $$
