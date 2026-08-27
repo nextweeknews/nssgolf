@@ -43,6 +43,7 @@
     "test:masters-page": "node --test scripts/masters-page.test.mjs",
     "test:superleague-page": "node --test scripts/superleague-playoff-connector.test.mjs",
     "test:championship-page": "node --test scripts/championship-qualifier-state.test.mjs",
+    "test:player-settings-save": "node --test scripts/player-settings-save.test.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

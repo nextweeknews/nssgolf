@@ -41,6 +41,7 @@ jobs:
           npm run test:tournament-editor
           npm run test:admin-dashboard
           npm run test:championship-page
+          npm run test:player-settings-save
           npm run test:worker
 
       - name: Build bundled assets
