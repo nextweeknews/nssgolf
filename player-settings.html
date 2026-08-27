@@ -87,6 +87,7 @@
   <script type="module" src="/site-topbar.js?v=d2e1e33e4105"></script>
   <script type="module">
     import { buildAuthRedirectTo, createBrowserSupabaseClient } from "/auth/supabase-auth.js";
+    import { savePlayerSettings } from "/player-settings-save.mjs?v=20260827";
     import {
       buildCountryOptions,
       buildTimeZoneOptions,
@@ -389,16 +390,13 @@
         max_global_rank_cs: readOptional(maxRankCs),
       };
 
-      const { error } = await supabase
-        .from("player_settings")
-        .upsert(payload, { onConflict: "discord_user_id" });
+      const { error } = await savePlayerSettings(supabase, payload, currentDiscordId);
 
       if(error){
         saveBtn.disabled = false;
         setStatus(error.message || "Unable to save settings.", "error");
         return;
       }
-
       if(cleanCustomUrlSlug){
         const currentSlug = normalizePlayerUrlSlug(currentCustomUrl?.slug);
         const slugChanged = cleanCustomUrlSlug !== currentSlug;
