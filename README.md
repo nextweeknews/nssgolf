@@ -26,14 +26,13 @@ The ranked and tournament GPI refresh is automated every Monday at 00:00 UTC. Se
 This repository is linked to Supabase project `kwaprkwemtxizorpnrzq`. The local stack uses the dedicated `5452x` port block so it can run alongside other Supabase projects on this machine.
 
 ```sh
-supabase start
-supabase migration new descriptive_name
-supabase db reset --local
-supabase migration list --local
-npm run test:supabase-admin
+npm run dev:reset
+npm run dev
 ```
 
-Create and verify schema changes locally first. Before any approved hosted change, inspect `supabase db push --linked --dry-run`; do not run a non-dry-run push until the migration has been reviewed. Supabase CLI authentication remains in the native credential store, and secrets must not be committed to this repository.
+The site runs at `http://127.0.0.1:8080`. Use `http://127.0.0.1:8080/__local/login` to sign in as a synthetic admin or player; those accounts, their canonical Discord identities, and all seeded records exist only in the local stack. The local server injects the local Supabase endpoint without changing deployable browser configuration.
+
+Use `npm run dev:verify`, `npm run dev:check`, and `npm run dev:smoke` for the database and authorization gates, and `npm run dev:stop` to stop only the `nssgolf` stack while preserving its data volume. Create schema changes with `supabase migration new descriptive_name`, then verify them locally. Before any approved hosted change, inspect `supabase db push --linked --dry-run`; do not run a non-dry-run push until the PR has passed the workflow in `AGENTS.md`, independent review, and explicit release approval. Supabase CLI authentication remains in the native credential store, and secrets must not be committed to this repository.
 
 ## Team Up H2H Proxy
 

@@ -1,10 +1,13 @@
 name: Deploy GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      backend_verified:
+        description: "Required confirmation that changed backend components were deployed and verified"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,6 +21,7 @@ concurrency:
 jobs:
   build:
     name: Build static site
+    if: github.ref == 'refs/heads/main' && inputs.backend_verified == true
     runs-on: ubuntu-latest
 
     steps:
@@ -69,6 +73,8 @@ jobs:
             --exclude='.dockerignore' \
             --exclude='.env*' \
             --exclude='.gitignore' \
+            --exclude='AGENTS.md' \
+            --exclude='.local-development/' \
             --exclude='Dockerfile' \
             --exclude='fly.toml' \
             --exclude='package.json' \

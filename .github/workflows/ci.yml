@@ -1,0 +1,86 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    name: Application checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: git diff --exit-code
+
+  supabase:
+    name: Supabase migration checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect local Supabase environment changes
+        id: supabase
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- supabase scripts/local-development.mjs package.json package-lock.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require forward-only migrations
+        if: steps.supabase.outputs.changed == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed_existing="$(git diff --diff-filter=DMRT --name-only "$BASE_SHA" "$HEAD_SHA" -- supabase/migrations)"
+          if [ -n "$changed_existing" ]; then
+            echo "Applied migrations must not be modified or deleted:"
+            echo "$changed_existing"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.supabase.outputs.changed == 'true'
+        with:
+          node-version: 22
+
+      - uses: supabase/setup-cli@v1
+        if: steps.supabase.outputs.changed == 'true'
+        with:
+          version: 2.113.0
+
+      - name: Rebuild and verify isolated local Supabase
+        if: steps.supabase.outputs.changed == 'true'
+        run: npm run dev:reset
+
+      - name: Run database tests, lint, and advisors
+        if: steps.supabase.outputs.changed == 'true'
+        run: npm run dev:check
+
+      - name: Smoke-test local configuration and authorization
+        if: steps.supabase.outputs.changed == 'true'
+        run: npm run dev:smoke
+
+      - name: Stop only this local stack
+        if: always() && steps.supabase.outputs.changed == 'true'
+        run: npm run dev:stop
