@@ -2686,29 +2686,12 @@
 
     function getDivisionRankHighlight(divisionTitle, rankPosition){
       const normalized = String(divisionTitle ?? "").toLowerCase();
-      if(normalized.includes("1")){
-        if(rankPosition >= 1 && rankPosition <= 4) return "row-highlight-gold";
-        if(rankPosition === 7) return "row-highlight-orange";
-        if(rankPosition === 8) return "row-highlight-red";
-        return "";
-      }
+      const divisionIndex = normalized.includes("1") ? 1 : normalized.includes("2") ? 2 : normalized.includes("3") ? 3 : 0;
+      if(!divisionIndex) return "";
 
-      if(normalized.includes("2")){
-        if(rankPosition >= 1 && rankPosition <= 2) return "row-highlight-green";
-        if(rankPosition === 3) return "row-highlight-blue";
-        if(rankPosition === 7) return "row-highlight-orange";
-        if(rankPosition === 8) return "row-highlight-red";
-        return "";
-      }
-
-      if(normalized.includes("3")){
-        if(rankPosition >= 1 && rankPosition <= 2) return "row-highlight-green";
-        if(rankPosition === 3) return "row-highlight-blue";
-        if(rankPosition >= 7 && rankPosition <= 8) return "row-highlight-red";
-        return "";
-      }
-
-      return "";
+      const movementRows = getActiveSeasonNumber() >= 7 ? FORMAT_MOVEMENT_ROWS_S7 : FORMAT_MOVEMENT_ROWS_S6;
+      const formatClass = movementRows[rankPosition - 1]?.[divisionIndex]?.[1] || "";
+      return formatClass ? formatClass.replace("fill-", "row-highlight-") : "";
     }
 
     function applyRowHighlights(rows, divisionTitle){
