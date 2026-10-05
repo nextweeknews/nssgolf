@@ -33,6 +33,11 @@ const divisionValues = [
   ["Jonas", "0", "9", "2", "18", "-16"],
 ];
 
+test("limits Sharp memory use for the Fly bot", () => {
+  assert.equal(sharp.concurrency(), 1);
+  assert.equal(sharp.cache().memory.max, 0);
+});
+
 function completedScheduleRow(division, winner, loser) {
   const row = Array(20).fill("");
   row[1] = division;

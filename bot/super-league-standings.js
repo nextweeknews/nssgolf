@@ -6,6 +6,9 @@ process.env.FONTCONFIG_FILE ||= path.join(__dirname, "fontconfig.xml");
 
 const sharp = require("sharp");
 
+sharp.cache(false);
+sharp.concurrency(1);
+
 const INTER_FONT = path.join(__dirname, "fonts", "InterVariable.ttf");
 const SUPER_LEAGUE_LOGO = path.join(__dirname, "assets", "super-league-logo.png");
 const WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
