@@ -45,6 +45,7 @@
     "test:admin-dashboard": "node --test admin/dashboard-core.test.mjs",
     "test:worker": "node --test worker/worker.test.mjs",
     "test:global-ranks": "node bot/global-ranks-core.test.js",
+    "test:superleague-bot": "node --test bot/super-league-standings.test.js",
     "test:internal-ranked": "node bot/internal-ranked-core.test.js && node bot/internal-ranked.test.js && node bot/combined-gpi.test.js",
     "test:tournament-gpi": "node bot/tournament-gpi.test.js",
     "test:gpi-page-security": "node --test scripts/gpi-page-security-contract.test.mjs",
@@ -52,7 +53,7 @@
     "test:superleague-page": "node --test scripts/superleague-playoff-connector.test.mjs",
     "test:championship-page": "node --test scripts/championship-qualifier-state.test.mjs",
     "test:player-settings-save": "node --test scripts/player-settings-save.test.mjs",
-    "test": "npm run check:player-shell && npm run check:topbar-assets && npm run test:tournament-editor && npm run test:admin-dashboard && npm run test:worker && npm run test:global-ranks && npm run test:internal-ranked && npm run test:tournament-gpi && npm run test:gpi-page-security && npm run test:masters-page && npm run test:superleague-page && npm run test:championship-page"
+    "test": "npm run check:player-shell && npm run check:topbar-assets && npm run test:tournament-editor && npm run test:admin-dashboard && npm run test:worker && npm run test:global-ranks && npm run test:superleague-bot && npm run test:internal-ranked && npm run test:tournament-gpi && npm run test:gpi-page-security && npm run test:masters-page && npm run test:superleague-page && npm run test:championship-page"
   },
   "repository": {
     "type": "git",
@@ -79,7 +80,8 @@
     "esbuild": "^0.28.0",
     "flag-icons": "^7.5.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "sharp": "^0.35.2"
   },
   "devDependencies": {
     "wrangler": "^4.123.0"
