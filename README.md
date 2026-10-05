@@ -99,6 +99,7 @@ Admin slash commands:
 - `/display_global_ranks`
 - `/display_global_max_nocs`
 - `/display_global_max_cs`
+- `/display_super_league`
 - `/set_rank_nocs player rank`
 - `/set_rank_cs player rank`
 - `/set_max_nocs player rank`
@@ -114,6 +115,8 @@ Player message commands:
 Rank text accepts the stored infinity symbol, like `∞3`, and easier Discord input like `inf3`. Use `remove` with any rank-setting command to clear that field. `!maxnocs` and `!maxcs` use the player's current rank when no rank argument is supplied; they also accept an explicit rank as a convenience.
 
 `!ranknocs`, `!rankcs`, `/set_rank_nocs`, and `/set_rank_cs` update the player's current rank and bump the corresponding max rank when the new current rank is higher. Current rank updates are rejected if the resulting current rank would be above both max rank values.
+
+`/display_super_league` reads the configured current season and the same canonical standings ranges and tiebreak rules as the website, then posts a logo/header image, one leaderboard image for each division, and a standings legend image.
 
 ### Supabase setup
 

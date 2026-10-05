@@ -26,6 +26,12 @@ const {
   normalizeRankInput,
   orderRankValuesDescending,
 } = require("./global-ranks-core");
+const {
+  LEADERBOARD_FILENAMES,
+  buildLeaderboardImages,
+  buildMessagePayload: buildSuperLeagueMessagePayload,
+  loadSuperLeagueStandings,
+} = require("./super-league-standings");
 
 const token = process.env.DISCORD_BOT_TOKEN;
 const guildId = process.env.DISCORD_GUILD_ID;
@@ -418,7 +424,12 @@ function slashCommands() {
     signupManageCommand,
   ];
 
-  return [...displayCommands, ...setCommands, ...signupCommands].map((command) => command.toJSON());
+  const superLeagueCommand = new SlashCommandBuilder()
+    .setName("display_super_league")
+    .setDescription("Post the current Super League standings.")
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+
+  return [...displayCommands, ...setCommands, ...signupCommands, superLeagueCommand].map((command) => command.toJSON());
 }
 
 async function registerSlashCommands() {
@@ -2118,6 +2129,46 @@ async function handleDisplayInteraction(interaction, rankKey) {
   );
 }
 
+async function loadCurrentSuperLeagueSeason() {
+  const { data, error } = await supabase
+    .from("season_configuration")
+    .select("super_league_season")
+    .eq("id", "current")
+    .single();
+
+  if (error) {
+    throwSupabaseError("Super League season lookup failed", error);
+  }
+
+  const seasonNumber = Number(data?.super_league_season);
+  if (!Number.isInteger(seasonNumber) || seasonNumber < 1) {
+    throw new Error("Super League season configuration is invalid.");
+  }
+  return seasonNumber;
+}
+
+async function handleSuperLeagueDisplayInteraction(interaction) {
+  if (!memberIsRankAdmin(interaction.member)) {
+    await interaction.reply({
+      content: "Only server admins can use this command.",
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply();
+  const seasonNumber = await loadCurrentSuperLeagueSeason();
+  const divisions = await loadSuperLeagueStandings(seasonNumber);
+  const images = await buildLeaderboardImages(divisions, seasonNumber);
+  await interaction.editReply({
+    ...buildSuperLeagueMessagePayload(seasonNumber),
+    files: images.map((attachment, index) => ({
+      attachment,
+      name: LEADERBOARD_FILENAMES[index],
+    })),
+  });
+}
+
 async function handleSetInteraction(interaction, operation) {
   if (!memberIsRankAdmin(interaction.member)) {
     await interaction.reply({
@@ -2171,6 +2222,11 @@ async function handleInteraction(interaction) {
     );
     if (displayEntry) {
       await handleDisplayInteraction(interaction, displayEntry[0]);
+      return;
+    }
+
+    if (interaction.commandName === "display_super_league") {
+      await handleSuperLeagueDisplayInteraction(interaction);
       return;
     }
 
