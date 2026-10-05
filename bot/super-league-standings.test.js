@@ -11,6 +11,8 @@ const {
   buildHeadToHeadByDivision,
   buildLeaderboardImages,
   buildMessagePayload,
+  findSuperLeagueDisplayMessageInPages,
+  isSuperLeagueDisplayMessage,
   mapRows,
   rankDivisionRows,
   renderTextLayer,
@@ -108,6 +110,44 @@ test("renders bundled Inter without missing-glyph boxes or undersized Linux text
 
   assert.ok(narrowMetadata.height >= 40);
   assert.ok(wideMetadata.width > narrowMetadata.width * 2);
+});
+
+test("identifies only the persistent bot-authored Super League display", () => {
+  const message = {
+    author: { id: "bot-1" },
+    webhookId: null,
+    attachments: new Map(LEADERBOARD_FILENAMES.map((name, index) => [index, { name }])),
+  };
+
+  assert.equal(isSuperLeagueDisplayMessage(message, "bot-1"), true);
+  assert.equal(isSuperLeagueDisplayMessage({ ...message, webhookId: "interaction" }, "bot-1"), false);
+  assert.equal(isSuperLeagueDisplayMessage({ ...message, author: { id: "bot-2" } }, "bot-1"), false);
+  assert.equal(
+    isSuperLeagueDisplayMessage({ ...message, attachments: new Map([[0, { name: "division-1.png" }]]) }, "bot-1"),
+    false
+  );
+});
+
+test("finds a persistent Super League display beyond the newest 100 messages", async () => {
+  const newerMessages = new Map(
+    Array.from({ length: 100 }, (_, index) => [`new-${index}`, { id: `new-${index}` }])
+  );
+  const display = {
+    id: "display",
+    author: { id: "bot-1" },
+    webhookId: null,
+    attachments: new Map(LEADERBOARD_FILENAMES.map((name, index) => [index, { name }])),
+  };
+  const pages = [newerMessages, new Map([[display.id, display]])];
+  const beforeValues = [];
+
+  const result = await findSuperLeagueDisplayMessageInPages((before) => {
+    beforeValues.push(before);
+    return pages.shift();
+  }, "bot-1");
+
+  assert.equal(result, display);
+  assert.deepEqual(beforeValues, [undefined, "new-99"]);
 });
 
 test("renders five separate transparent Discord images and ordered components", async () => {
