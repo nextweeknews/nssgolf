@@ -19,8 +19,10 @@ const WEBSITE_BORDER = "#64748b";
 
 const OUTPUT_SCALE = 2;
 const CANVAS_WIDTH = 1200;
+const DIVISION_CANVAS_WIDTH = 1600;
 const TABLE_X = 48;
 const TABLE_WIDTH = 1104;
+const DIVISION_TABLE_WIDTH = 1504;
 const HEADER_Y = 84;
 const HEADER_HEIGHT = 52;
 const ROWS_Y = 150;
@@ -35,12 +37,12 @@ const LEADERBOARD_FILENAMES = [
   "super-league-legend.png",
 ];
 
-const COLUMNS = [
-  { key: "rank", label: "RANK", width: 110, size: 38, weight: 850 },
-  { key: "player", label: "PLAYER", width: 494, size: 38, weight: 850 },
-  { key: "matches", label: "W-L", width: 150, size: 36, weight: 800 },
-  { key: "games", label: "ROUNDS", width: 190, size: 36, weight: 800 },
-  { key: "diffText", label: "DIFF.", width: 160, size: 36, weight: 800 },
+const DIVISION_COLUMNS = [
+  { key: "rank", label: "RANK", width: 130, size: 38, weight: 850 },
+  { key: "player", label: "PLAYER", width: 754, size: 38, weight: 850 },
+  { key: "matches", label: "W-L", width: 190, size: 36, weight: 800 },
+  { key: "games", label: "ROUNDS", width: 230, size: 36, weight: 800 },
+  { key: "diffText", label: "DIFF.", width: 200, size: 36, weight: 800 },
 ];
 
 const DIVISION_COLORS = {
@@ -469,7 +471,6 @@ async function renderTextLayer({ text, x, y, size, weight, color, anchor, letter
 async function renderSvgImage(width, height, markup, textLayers) {
   const background = await sharp(Buffer.from(`
     <svg width="${width * OUTPUT_SCALE}" height="${height * OUTPUT_SCALE}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="${width}" height="${height}" fill="${WEBSITE_BACKGROUND}"/>
       ${markup}
     </svg>
   `)).png().toBuffer();
@@ -487,7 +488,7 @@ function rowMarkup(rows, textLayers) {
   return rows.map((row, rowIndex) => {
     const rowY = ROWS_Y + rowIndex * (ROW_HEIGHT + ROW_GAP);
     let columnX = TABLE_X;
-    for (const column of COLUMNS) {
+    for (const column of DIVISION_COLUMNS) {
       const value = String(row[column.key] ?? "").toUpperCase();
       const playerSize = column.key === "player" && value.length > 20 ? 32 : column.size;
       addText(
@@ -501,16 +502,17 @@ function rowMarkup(rows, textLayers) {
       );
       columnX += column.width;
     }
-    return `<rect x="${TABLE_X}" y="${rowY}" width="${TABLE_WIDTH}" height="${ROW_HEIGHT}" rx="${ROW_RADIUS}" fill="${ROW_COLORS[row.highlightClass] || ROW_COLORS[""]}"/>`;
+    return `<rect x="${TABLE_X}" y="${rowY}" width="${DIVISION_TABLE_WIDTH}" height="${ROW_HEIGHT}" rx="${ROW_RADIUS}" fill="${ROW_COLORS[row.highlightClass] || ROW_COLORS[""]}"/>`;
   }).join("");
 }
 
 async function renderDivisionImage(division, imageHeight) {
   const textLayers = [];
+  addText(textLayers, division.title.toUpperCase(), TABLE_X + 2, 34, 40, 900, WEBSITE_BACKGROUND, "left", 1);
   addText(textLayers, division.title.toUpperCase(), TABLE_X, 32, 40, 900, DIVISION_COLORS[division.title], "left", 1);
 
   let columnX = TABLE_X;
-  for (const column of COLUMNS) {
+  for (const column of DIVISION_COLUMNS) {
     addText(
       textLayers,
       column.label,
@@ -525,9 +527,9 @@ async function renderDivisionImage(division, imageHeight) {
     columnX += column.width;
   }
 
-  return renderSvgImage(CANVAS_WIDTH, imageHeight, `
-    <line x1="${TABLE_X}" y1="62" x2="${TABLE_X + TABLE_WIDTH}" y2="62" stroke="${WEBSITE_BORDER}" stroke-width="4"/>
-    <rect x="${TABLE_X}" y="${HEADER_Y}" width="${TABLE_WIDTH}" height="${HEADER_HEIGHT}" rx="${ROW_RADIUS}" fill="#252e41"/>
+  return renderSvgImage(DIVISION_CANVAS_WIDTH, imageHeight, `
+    <line x1="${TABLE_X}" y1="62" x2="${TABLE_X + DIVISION_TABLE_WIDTH}" y2="62" stroke="${WEBSITE_BORDER}" stroke-width="4"/>
+    <rect x="${TABLE_X}" y="${HEADER_Y}" width="${DIVISION_TABLE_WIDTH}" height="${HEADER_HEIGHT}" rx="${ROW_RADIUS}" fill="#252e41"/>
     ${rowMarkup(division.rows, textLayers)}
   `, textLayers);
 }
@@ -560,7 +562,7 @@ async function renderHeaderImage(seasonNumber) {
     anchor: "center",
     letterSpacing: 4,
   });
-  return sharp({ create: { width, height, channels: 4, background: WEBSITE_BACKGROUND } })
+  return sharp({ create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
     .composite([
       { input: logo, left: Math.round((width - info.width) / 2), top: 10 },
       text,
@@ -580,8 +582,8 @@ async function renderLegendImage() {
 
   const swatch = (x, y, color) =>
     `<rect x="${x}" y="${y}" width="24" height="24" rx="5" fill="${color}" stroke="#64748b" stroke-width="1"/>`;
-  return renderSvgImage(CANVAS_WIDTH, 328, `
-    <rect x="${TABLE_X}" y="18" width="${TABLE_WIDTH}" height="292" rx="18" fill="#172033" stroke="#334155" stroke-width="2"/>
+  return renderSvgImage(CANVAS_WIDTH, 352, `
+    <rect x="${TABLE_X}" y="18" width="${TABLE_WIDTH}" height="316" rx="18" fill="#172033" stroke="#334155" stroke-width="2"/>
     ${swatch(80, 83, ROW_COLORS["row-highlight-gold"])}
     ${swatch(80, 133, ROW_COLORS["row-highlight-green"])}
     ${swatch(80, 183, ROW_COLORS["row-highlight-blue"])}

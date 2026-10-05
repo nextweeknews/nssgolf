@@ -110,7 +110,7 @@ test("renders bundled Inter without missing-glyph boxes or undersized Linux text
   assert.ok(wideMetadata.width > narrowMetadata.width * 2);
 });
 
-test("renders five separate theme-independent Discord images and ordered components", async () => {
+test("renders five separate transparent Discord images and ordered components", async () => {
   const rows = applyRowHighlights(
     rankDivisionRows(mapRows(divisionValues), "Division 1", new Map(), 7),
     "Division 1",
@@ -125,9 +125,9 @@ test("renders five separate theme-independent Discord images and ordered compone
 
   assert.equal(divisionImages.length, 3);
   assert.deepEqual(divisionMetadata.map(({ format, width, height, hasAlpha }) => ({ format, width, height, hasAlpha })), [
-    { format: "png", width: 2400, height: 1940, hasAlpha: true },
-    { format: "png", width: 2400, height: 1940, hasAlpha: true },
-    { format: "png", width: 2400, height: 1940, hasAlpha: true },
+    { format: "png", width: 3200, height: 1940, hasAlpha: true },
+    { format: "png", width: 3200, height: 1940, hasAlpha: true },
+    { format: "png", width: 3200, height: 1940, hasAlpha: true },
   ]);
   for (const image of divisionImages) {
     const titleStats = await sharp(image)
@@ -141,6 +141,11 @@ test("renders five separate theme-independent Discord images and ordered compone
         .raw()
         .toBuffer();
       assert.equal(rowPixel[3], 255);
+      const rightRowPixel = await sharp(image)
+        .extract({ left: 3100, top: rowCenter, width: 1, height: 1 })
+        .raw()
+        .toBuffer();
+      assert.equal(rightRowPixel[3], 255);
       const rankTextStats = await sharp(image)
         .extract({ left: 160, top: rowCenter - 30, width: 100, height: 60 })
         .stats();
@@ -160,14 +165,20 @@ test("renders five separate theme-independent Discord images and ordered compone
   ]);
   assert.deepEqual(metadata.map(({ format, width, height, hasAlpha }) => ({ format, width, height, hasAlpha })), [
     { format: "png", width: 2400, height: 840, hasAlpha: true },
-    { format: "png", width: 2400, height: 1940, hasAlpha: true },
-    { format: "png", width: 2400, height: 1940, hasAlpha: true },
-    { format: "png", width: 2400, height: 1940, hasAlpha: true },
-    { format: "png", width: 2400, height: 656, hasAlpha: true },
+    { format: "png", width: 3200, height: 1940, hasAlpha: true },
+    { format: "png", width: 3200, height: 1940, hasAlpha: true },
+    { format: "png", width: 3200, height: 1940, hasAlpha: true },
+    { format: "png", width: 2400, height: 704, hasAlpha: true },
   ]);
   for (const image of images) {
     const stats = await sharp(image).stats();
-    assert.equal(stats.channels[3].min, 255);
+    assert.equal(stats.channels[3].min, 0);
+    assert.equal(stats.channels[3].max, 255);
+    const corner = await sharp(image)
+      .extract({ left: 0, top: 0, width: 1, height: 1 })
+      .raw()
+      .toBuffer();
+    assert.equal(corner[3], 0);
   }
 
   const payload = buildMessagePayload(7, new Date("2026-10-05T00:00:00Z"));
