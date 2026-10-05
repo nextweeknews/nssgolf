@@ -429,6 +429,21 @@ function isSuperLeagueDisplayMessage(message, botUserId) {
   return LEADERBOARD_FILENAMES.every((filename) => attachmentNames.has(filename));
 }
 
+async function findSuperLeagueDisplayMessageInPages(fetchPage, botUserId) {
+  let before;
+  while (true) {
+    const messages = Array.from((await fetchPage(before)).values());
+    const message = messages.find((candidate) => isSuperLeagueDisplayMessage(candidate, botUserId));
+    if (message || messages.length < 100) {
+      return message || null;
+    }
+    before = messages.at(-1)?.id;
+    if (!before) {
+      return null;
+    }
+  }
+}
+
 async function loadSuperLeagueStandings(seasonNumber, fetchImpl = fetch) {
   const layout = seasonLayout(seasonNumber);
   const values = await Promise.all([
@@ -656,6 +671,7 @@ module.exports = {
   buildHeadToHeadByDivision,
   buildLeaderboardImages,
   buildMessagePayload,
+  findSuperLeagueDisplayMessageInPages,
   getDivisionRankHighlight,
   isSuperLeagueDisplayMessage,
   loadSuperLeagueStandings,

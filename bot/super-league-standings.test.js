@@ -11,6 +11,7 @@ const {
   buildHeadToHeadByDivision,
   buildLeaderboardImages,
   buildMessagePayload,
+  findSuperLeagueDisplayMessageInPages,
   isSuperLeagueDisplayMessage,
   mapRows,
   rankDivisionRows,
@@ -125,6 +126,28 @@ test("identifies only the persistent bot-authored Super League display", () => {
     isSuperLeagueDisplayMessage({ ...message, attachments: new Map([[0, { name: "division-1.png" }]]) }, "bot-1"),
     false
   );
+});
+
+test("finds a persistent Super League display beyond the newest 100 messages", async () => {
+  const newerMessages = new Map(
+    Array.from({ length: 100 }, (_, index) => [`new-${index}`, { id: `new-${index}` }])
+  );
+  const display = {
+    id: "display",
+    author: { id: "bot-1" },
+    webhookId: null,
+    attachments: new Map(LEADERBOARD_FILENAMES.map((name, index) => [index, { name }])),
+  };
+  const pages = [newerMessages, new Map([[display.id, display]])];
+  const beforeValues = [];
+
+  const result = await findSuperLeagueDisplayMessageInPages((before) => {
+    beforeValues.push(before);
+    return pages.shift();
+  }, "bot-1");
+
+  assert.equal(result, display);
+  assert.deepEqual(beforeValues, [undefined, "new-99"]);
 });
 
 test("renders five separate transparent Discord images and ordered components", async () => {

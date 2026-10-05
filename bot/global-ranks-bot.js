@@ -30,6 +30,7 @@ const {
   LEADERBOARD_FILENAMES,
   buildLeaderboardImages,
   buildMessagePayload: buildSuperLeagueMessagePayload,
+  findSuperLeagueDisplayMessageInPages,
   isSuperLeagueDisplayMessage,
   loadSuperLeagueStandings,
 } = require("./super-league-standings");
@@ -47,6 +48,8 @@ const superLeagueStandingsChannelId = normalizeDiscordId(
   process.env.NSSGOLF_SUPER_LEAGUE_CHANNEL_ID || "1556768965894873169"
 );
 const superLeagueRefreshIntervalMs = 5 * 60 * 1000;
+let superLeagueDisplayMessageId = null;
+let superLeagueDisplayOperation = Promise.resolve();
 
 const missingSetupMessage =
   "Apply the repository Supabase migrations for this project, then rerun the bot.";
@@ -2170,8 +2173,26 @@ async function findSuperLeagueDisplayMessage(channel) {
     throw new Error("Super League standings channel is not a readable text channel.");
   }
 
-  const messages = await channel.messages.fetch({ limit: 100 });
-  return messages.find((message) => isSuperLeagueDisplayMessage(message, client.user.id)) || null;
+  if (superLeagueDisplayMessageId) {
+    const cachedMessage = await channel.messages.fetch(superLeagueDisplayMessageId).catch(() => null);
+    if (isSuperLeagueDisplayMessage(cachedMessage, client.user.id)) {
+      return cachedMessage;
+    }
+    superLeagueDisplayMessageId = null;
+  }
+
+  const message = await findSuperLeagueDisplayMessageInPages(
+    (before) => channel.messages.fetch({ limit: 100, ...(before ? { before } : {}) }),
+    client.user.id
+  );
+  superLeagueDisplayMessageId = message?.id || null;
+  return message;
+}
+
+function queueSuperLeagueDisplayOperation(operation) {
+  const result = superLeagueDisplayOperation.then(operation, operation);
+  superLeagueDisplayOperation = result.catch(() => {});
+  return result;
 }
 
 async function createOrUpdateSuperLeagueDisplay(channel) {
@@ -2187,6 +2208,7 @@ async function createOrUpdateSuperLeagueDisplay(channel) {
   }
 
   const message = await channel.send(payload);
+  superLeagueDisplayMessageId = message.id;
   return { action: "created", messageId: message.id };
 }
 
@@ -2202,17 +2224,18 @@ async function refreshSuperLeagueDisplay() {
   console.log(`Refreshed Super League standings message ${message.id}.`);
 }
 
-let superLeagueRefreshPromise = null;
+let superLeagueRefreshPending = false;
 
 function scheduleSuperLeagueRefresh() {
-  if (superLeagueRefreshPromise) {
+  if (superLeagueRefreshPending) {
     return;
   }
 
-  superLeagueRefreshPromise = refreshSuperLeagueDisplay()
+  superLeagueRefreshPending = true;
+  void queueSuperLeagueDisplayOperation(refreshSuperLeagueDisplay)
     .catch((error) => console.warn("Unable to refresh the Super League display.", error))
     .finally(() => {
-      superLeagueRefreshPromise = null;
+      superLeagueRefreshPending = false;
     });
 }
 
@@ -2239,7 +2262,9 @@ async function handleSuperLeagueDisplayInteraction(interaction) {
   }
 
   await interaction.deferReply({ ephemeral: true });
-  const result = await createOrUpdateSuperLeagueDisplay(interaction.channel);
+  const result = await queueSuperLeagueDisplayOperation(() =>
+    createOrUpdateSuperLeagueDisplay(interaction.channel)
+  );
   await interaction.editReply(`Super League display ${result.action} and will refresh every five minutes.`);
 }
 
