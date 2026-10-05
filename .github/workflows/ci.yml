@@ -40,10 +40,14 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- supabase scripts/local-development.mjs package.json package-lock.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
+          base_dev_scripts="$(git show "$BASE_SHA:package.json" | jq -cS '.scripts // {} | with_entries(select(.key == "dev" or (.key | startswith("dev:"))))')"
+          head_dev_scripts="$(git show "$HEAD_SHA:package.json" | jq -cS '.scripts // {} | with_entries(select(.key == "dev" or (.key | startswith("dev:"))))')"
+
+          if ! git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- supabase scripts/local-development.mjs \
+            || [ "$base_dev_scripts" != "$head_dev_scripts" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Require forward-only migrations
