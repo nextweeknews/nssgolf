@@ -11,6 +11,7 @@ const {
   buildHeadToHeadByDivision,
   buildLeaderboardImages,
   buildMessagePayload,
+  isSuperLeagueDisplayMessage,
   mapRows,
   rankDivisionRows,
   renderTextLayer,
@@ -108,6 +109,22 @@ test("renders bundled Inter without missing-glyph boxes or undersized Linux text
 
   assert.ok(narrowMetadata.height >= 40);
   assert.ok(wideMetadata.width > narrowMetadata.width * 2);
+});
+
+test("identifies only the persistent bot-authored Super League display", () => {
+  const message = {
+    author: { id: "bot-1" },
+    webhookId: null,
+    attachments: new Map(LEADERBOARD_FILENAMES.map((name, index) => [index, { name }])),
+  };
+
+  assert.equal(isSuperLeagueDisplayMessage(message, "bot-1"), true);
+  assert.equal(isSuperLeagueDisplayMessage({ ...message, webhookId: "interaction" }, "bot-1"), false);
+  assert.equal(isSuperLeagueDisplayMessage({ ...message, author: { id: "bot-2" } }, "bot-1"), false);
+  assert.equal(
+    isSuperLeagueDisplayMessage({ ...message, attachments: new Map([[0, { name: "division-1.png" }]]) }, "bot-1"),
+    false
+  );
 });
 
 test("renders five separate transparent Discord images and ordered components", async () => {

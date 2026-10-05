@@ -418,6 +418,17 @@ function topTenRows(rows) {
   return rows.filter((row) => Number(String(row.rank).replace(/^T/, "")) <= 10);
 }
 
+function isSuperLeagueDisplayMessage(message, botUserId) {
+  if (!message || message.webhookId || message.author?.id !== botUserId) {
+    return false;
+  }
+
+  const attachmentNames = new Set(
+    Array.from(message.attachments?.values?.() || [], (attachment) => attachment.name)
+  );
+  return LEADERBOARD_FILENAMES.every((filename) => attachmentNames.has(filename));
+}
+
 async function loadSuperLeagueStandings(seasonNumber, fetchImpl = fetch) {
   const layout = seasonLayout(seasonNumber);
   const values = await Promise.all([
@@ -646,6 +657,7 @@ module.exports = {
   buildLeaderboardImages,
   buildMessagePayload,
   getDivisionRankHighlight,
+  isSuperLeagueDisplayMessage,
   loadSuperLeagueStandings,
   mapRows,
   rankDivisionRows,

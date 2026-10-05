@@ -30,6 +30,7 @@ const {
   LEADERBOARD_FILENAMES,
   buildLeaderboardImages,
   buildMessagePayload: buildSuperLeagueMessagePayload,
+  isSuperLeagueDisplayMessage,
   loadSuperLeagueStandings,
 } = require("./super-league-standings");
 
@@ -42,6 +43,10 @@ const supabaseUrl = process.env.NSSGOLF_SUPABASE_URL || process.env.SUPABASE_URL
 const supabaseServiceRoleKey =
   process.env.NSSGOLF_SUPABASE_SERVICE_ROLE_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY;
+const superLeagueStandingsChannelId = normalizeDiscordId(
+  process.env.NSSGOLF_SUPER_LEAGUE_CHANNEL_ID || "1556768965894873169"
+);
+const superLeagueRefreshIntervalMs = 5 * 60 * 1000;
 
 const missingSetupMessage =
   "Apply the repository Supabase migrations for this project, then rerun the bot.";
@@ -426,7 +431,7 @@ function slashCommands() {
 
   const superLeagueCommand = new SlashCommandBuilder()
     .setName("display_super_league")
-    .setDescription("Post the current Super League standings.")
+    .setDescription("Create or refresh the auto-updating Super League standings.")
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
   return [...displayCommands, ...setCommands, ...signupCommands, superLeagueCommand].map((command) => command.toJSON());
@@ -2147,6 +2152,75 @@ async function loadCurrentSuperLeagueSeason() {
   return seasonNumber;
 }
 
+async function buildSuperLeagueDisplayMessage() {
+  const seasonNumber = await loadCurrentSuperLeagueSeason();
+  const divisions = await loadSuperLeagueStandings(seasonNumber);
+  const images = await buildLeaderboardImages(divisions, seasonNumber);
+  return {
+    ...buildSuperLeagueMessagePayload(seasonNumber),
+    files: images.map((attachment, index) => ({
+      attachment,
+      name: LEADERBOARD_FILENAMES[index],
+    })),
+  };
+}
+
+async function findSuperLeagueDisplayMessage(channel) {
+  if (!channel || typeof channel.messages?.fetch !== "function") {
+    throw new Error("Super League standings channel is not a readable text channel.");
+  }
+
+  const messages = await channel.messages.fetch({ limit: 100 });
+  return messages.find((message) => isSuperLeagueDisplayMessage(message, client.user.id)) || null;
+}
+
+async function createOrUpdateSuperLeagueDisplay(channel) {
+  if (!channel || typeof channel.send !== "function") {
+    throw new Error("Super League standings channel is not a writable text channel.");
+  }
+
+  const existingMessage = await findSuperLeagueDisplayMessage(channel);
+  const payload = await buildSuperLeagueDisplayMessage();
+  if (existingMessage) {
+    await existingMessage.edit({ ...payload, attachments: [] });
+    return { action: "updated", messageId: existingMessage.id };
+  }
+
+  const message = await channel.send(payload);
+  return { action: "created", messageId: message.id };
+}
+
+async function refreshSuperLeagueDisplay() {
+  const channel = await client.channels.fetch(superLeagueStandingsChannelId);
+  const message = await findSuperLeagueDisplayMessage(channel);
+  if (!message) {
+    console.warn("Super League auto-refresh skipped because no persistent display message exists.");
+    return;
+  }
+
+  await message.edit({ ...(await buildSuperLeagueDisplayMessage()), attachments: [] });
+  console.log(`Refreshed Super League standings message ${message.id}.`);
+}
+
+let superLeagueRefreshPromise = null;
+
+function scheduleSuperLeagueRefresh() {
+  if (superLeagueRefreshPromise) {
+    return;
+  }
+
+  superLeagueRefreshPromise = refreshSuperLeagueDisplay()
+    .catch((error) => console.warn("Unable to refresh the Super League display.", error))
+    .finally(() => {
+      superLeagueRefreshPromise = null;
+    });
+}
+
+function startSuperLeagueRefresh() {
+  scheduleSuperLeagueRefresh();
+  setInterval(scheduleSuperLeagueRefresh, superLeagueRefreshIntervalMs);
+}
+
 async function handleSuperLeagueDisplayInteraction(interaction) {
   if (!memberIsRankAdmin(interaction.member)) {
     await interaction.reply({
@@ -2156,17 +2230,17 @@ async function handleSuperLeagueDisplayInteraction(interaction) {
     return;
   }
 
-  await interaction.deferReply();
-  const seasonNumber = await loadCurrentSuperLeagueSeason();
-  const divisions = await loadSuperLeagueStandings(seasonNumber);
-  const images = await buildLeaderboardImages(divisions, seasonNumber);
-  await interaction.editReply({
-    ...buildSuperLeagueMessagePayload(seasonNumber),
-    files: images.map((attachment, index) => ({
-      attachment,
-      name: LEADERBOARD_FILENAMES[index],
-    })),
-  });
+  if (interaction.channelId !== superLeagueStandingsChannelId) {
+    await interaction.reply({
+      content: `Use this command in <#${superLeagueStandingsChannelId}>.`,
+      ephemeral: true,
+    });
+    return;
+  }
+
+  await interaction.deferReply({ ephemeral: true });
+  const result = await createOrUpdateSuperLeagueDisplay(interaction.channel);
+  await interaction.editReply(`Super League display ${result.action} and will refresh every five minutes.`);
 }
 
 async function handleSetInteraction(interaction, operation) {
@@ -2323,6 +2397,7 @@ client.once("ready", async () => {
     await registerSlashCommands();
     subscribeGlobalRankModerationChanges();
     subscribeSignupChanges();
+    startSuperLeagueRefresh();
     console.log(`Logged in as ${client.user.tag}. Global rank commands registered.`);
   } catch (error) {
     console.error("Unable to register global rank slash commands.", error);
