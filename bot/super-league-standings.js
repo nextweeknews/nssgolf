@@ -426,6 +426,11 @@ function isSuperLeagueDisplayMessage(message, botUserId) {
     return false;
   }
 
+  const flags = Number(message.flags?.bitfield ?? message.flags ?? 0);
+  if ((flags & COMPONENTS_V2_FLAG) !== 0) {
+    return true;
+  }
+
   const attachmentNames = new Set(
     Array.from(message.attachments?.values?.() || [], (attachment) => attachment.name)
   );

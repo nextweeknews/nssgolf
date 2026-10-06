@@ -131,6 +131,14 @@ test("identifies only the persistent bot-authored Super League display", () => {
     isSuperLeagueDisplayMessage({ ...message, attachments: new Map([[0, { name: "division-1.png" }]]) }, "bot-1"),
     false
   );
+  assert.equal(
+    isSuperLeagueDisplayMessage({
+      ...message,
+      attachments: new Map(),
+      flags: { bitfield: 1n << 15n },
+    }, "bot-1"),
+    true
+  );
 });
 
 test("finds a persistent Super League display beyond the newest 100 messages", async () => {
