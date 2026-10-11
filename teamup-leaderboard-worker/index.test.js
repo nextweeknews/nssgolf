@@ -85,3 +85,18 @@ test("zero matches require no TeamUp call; repeated cursors fail visibly", async
   const looping = setup(2, [{matches:[game(200,2)],cursor:"repeat"},{matches:[game(100,1)],cursor:"repeat"}]);
   assert.equal((await looping.request()).status, 502);
 });
+
+test("history preserves tied finishes and backfills legacy cached records", async () => {
+  const tiedGame = game(200,2);
+  tiedGame.results[0].players.push({player_id:"other",new_elo:1100});
+  const worker = setup(2,[{matches:[tiedGame,game(100,1)]}]);
+  worker.cache.set(`player_history:season-14:${id}`,JSON.stringify({matches_count:2,matches:[game(200,2),game(100,1)]}));
+  const data = await (await worker.request()).json();
+  assert.equal(data.history_version,2);
+  assert.equal(data.matches[0].results[0].tied,true);
+  assert.equal(data.matches[1].results[0].tied,false);
+  assert.equal(data.matches[0].results[0].players.length,1);
+  assert.equal(worker.calls.length,1);
+  await worker.request();
+  assert.equal(worker.calls.length,1);
+});
