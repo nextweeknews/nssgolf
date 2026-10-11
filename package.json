@@ -53,7 +53,8 @@
     "test:superleague-page": "node --test scripts/superleague-playoff-connector.test.mjs",
     "test:championship-page": "node --test scripts/championship-qualifier-state.test.mjs",
     "test:player-settings-save": "node --test scripts/player-settings-save.test.mjs",
-    "test": "npm run check:player-shell && npm run check:topbar-assets && npm run test:tournament-editor && npm run test:admin-dashboard && npm run test:worker && npm run test:global-ranks && npm run test:superleague-bot && npm run test:internal-ranked && npm run test:tournament-gpi && npm run test:gpi-page-security && npm run test:masters-page && npm run test:superleague-page && npm run test:championship-page"
+    "test": "npm run check:player-shell && npm run check:topbar-assets && npm run test:tournament-editor && npm run test:admin-dashboard && npm run test:worker && npm run test:global-ranks && npm run test:superleague-bot && npm run test:internal-ranked && npm run test:tournament-gpi && npm run test:gpi-page-security && npm run test:masters-page && npm run test:superleague-page && npm run test:championship-page && npm run test:teamup-leaderboard-worker",
+    "test:teamup-leaderboard-worker": "node --test teamup-leaderboard-worker/index.test.js"
   },
   "repository": {
     "type": "git",
