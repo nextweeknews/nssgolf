@@ -218,12 +218,12 @@ async function handleRequest(request, event) {
       const key = `player_history:${DEFAULT_LEADERBOARD}:${body.player_id}`;
       const rawCached = await TEAMUP_CACHE.get(key);
       const cached = rawCached ? JSON.parse(rawCached) : null;
-      if (cached?.matches_count === matchesCount && Array.isArray(cached.matches)) {
+      if (cached?.history_version === 2 && cached.matches_count === matchesCount && Array.isArray(cached.matches)) {
         return playerHistoryResponse(cached);
       }
 
       // On an undo, rebuild from upstream so the removed game disappears.
-      const previous = cached?.matches_count < matchesCount && Array.isArray(cached.matches)
+      const previous = cached?.history_version === 2 && cached.matches_count < matchesCount && Array.isArray(cached.matches)
         ? cached.matches : [];
       const boundary = previous.length ? previous[0].timestamp : null;
       const newMatches = [];
@@ -250,7 +250,9 @@ async function handleRequest(request, event) {
           if (!player || !Number.isFinite(player.new_elo)) {
             throw new Error("TeamUp did not return player-specific rating history");
           }
-          newMatches.push({ timestamp: match.timestamp, results: [{ place: result.place, players: [player] }] });
+          const tied = (match.results || []).filter(team => team.place === result.place)
+            .reduce((count, team) => count + (team.players || []).length, 0) > 1;
+          newMatches.push({ timestamp: match.timestamp, results: [{ place: result.place, tied, players: [player] }] });
         }
         complete = reachedBoundary || !data.cursor;
         if (!complete) {
@@ -268,7 +270,7 @@ async function handleRequest(request, event) {
       if (matchesCount > 0 && matches[0]?.results?.[0]?.players?.[0]?.matches !== matchesCount) {
         return errorResponse("Waiting for history and leaderboard to agree", 409);
       }
-      const data = { player_id: body.player_id, leaderboard: DEFAULT_LEADERBOARD, matches_count: matchesCount, matches };
+      const data = { history_version: 2, player_id: body.player_id, leaderboard: DEFAULT_LEADERBOARD, matches_count: matchesCount, matches };
       await TEAMUP_CACHE.put(key, JSON.stringify(data));
       return playerHistoryResponse(data);
     } catch (err) {
