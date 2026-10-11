@@ -1,0 +1,21 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "rapid-haze-012c",
+  "main": "index.js",
+  "workers_dev": true,
+  "preview_urls": false,
+  "compatibility_date": "2025-12-03",
+  "kv_namespaces": [
+    {
+      "binding": "TEAMUP_CACHE",
+      "id": "78632961643f4e6c9d8be9aa969a3938"
+    }
+  ],
+  "vars": {
+    "TEAMUP_CLIENT_ID": "DISCORD|1069003073311211601",
+    "TEAMUP_GUILD_ID": "DISCORD|1069003073311211601"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
