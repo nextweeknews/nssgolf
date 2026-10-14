@@ -104,7 +104,7 @@
 
 
     .container{
-      --home-divider-offset: 0px;
+      --home-divider-offset: 48px;
       width: min(var(--page-width), 100%);
       margin:0 auto;
       padding: 0 18px 48px;
@@ -335,14 +335,13 @@
       display:flex;
       justify-content:center;
       width: calc(100% + 36px);
-      margin: -48px -18px 0;
+      margin: 0 -18px;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      transition: margin-top 240ms ease, opacity 180ms ease, visibility 0s linear 240ms;
+      transition: opacity 180ms ease;
     }
     .home-discord-invite.is-visible{
-      margin-top: 0;
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
@@ -361,10 +360,12 @@
     }
 
     .home-main-column{
+      grid-column: 1;
       padding-top: 14px;
     }
 
     .home-rail{
+      grid-column: 2;
       margin-top: 14px;
     }
 
@@ -431,6 +432,7 @@
     }
 
     .home-gpi-date{
+      min-height: 30px;
       margin:0;
       padding:9px 10px 8px;
       border-bottom:1px solid rgba(148,163,184,0.12);
@@ -491,17 +493,27 @@
     }
 
     .home-gpi-list{
+      min-height: 900px; /* Reserve the 25 live ranking rows. */
       margin: 0;
       padding: 0;
       list-style: none;
     }
+
+    .home-gpi-placeholder .home-gpi-name:empty,
+    .home-gpi-placeholder .home-gpi-rating{
+      width: 100%;
+      height: 9px;
+      border-radius: 4px;
+      background: rgba(148,163,184,0.12);
+    }
+    .home-gpi-placeholder .home-gpi-name:empty{ width: 65%; }
 
     .home-gpi-row{
       display:grid;
       grid-template-columns: 46px minmax(0, 1fr) 56px;
       align-items:center;
       gap: 6px;
-      min-height: 36px;
+      height: 36px;
       padding: 5px 8px;
       border-bottom: 1px solid rgba(148,163,184,0.12);
       color: inherit;
@@ -1216,7 +1228,7 @@
 	      .discord-button .btn-icon{ width: 14px; height: 14px; }
 	      .home-discord-invite{
 	        width: 100%;
-	        margin: -44px 0 0;
+	        margin: 0;
 	      }
 	      .home-discord-invite .discord-button{
 	        min-height: 44px;
@@ -1251,7 +1263,12 @@
 	      .home-rail[hidden]{
 	        display:none !important;
 	      }
+	      .container:not([data-home-tab="records"]) .home-rail,
+	      .container[data-home-tab="records"] .home-main-column{
+	        display: none;
+	      }
 	      .home-rail{
+	        grid-column: 1;
 	        width: 100%;
 	        margin-left: 0;
 	        margin-right: 0;
@@ -1463,17 +1480,17 @@
   </div>
 
 	  <div class="container">
-	    <div class="home-discord-invite" aria-hidden="true" inert>
+	    <div class="home-discord-invite is-visible" aria-hidden="false">
 	      <a class="btn discord-button" href="https://discord.gg/VfTX9BwuTH" target="_blank" rel="noopener noreferrer" aria-label="Join our Discord">
 	        <img class="btn-icon" src="/logos/discord.svg" alt="" aria-hidden="true" />
 	        Join the Discord
 	      </a>
 	    </div>
-	    <div class="home-primary-tabs" id="homePrimaryTabs"></div>
+	    <div class="home-primary-tabs" id="homePrimaryTabs"><div class="home-league-tabs-root"><div class="home-league-tabs-list" role="tablist" aria-label="Homepage sections"><button type="button" class="home-league-tabs-trigger" role="tab" id="home-tab-leagues" data-value="leagues" data-state="active" aria-selected="true" aria-controls="homeLeaguesPanel" tabindex="0"><span class="home-league-tabs-trigger-label">Leagues &amp; Events</span></button><button type="button" class="home-league-tabs-trigger" role="tab" id="home-tab-records" data-value="records" data-state="inactive" aria-selected="false" aria-controls="homeRecordsPanel" tabindex="-1"><span class="home-league-tabs-trigger-label">Records &amp; Data</span></button></div></div></div>
 
-	    <main class="home-main-column card leagues-card" id="homeLeaguesPanel">
+	    <main class="home-main-column card leagues-card" id="homeLeaguesPanel" aria-labelledby="home-tab-leagues">
 	      <h1 class="headline league-headline">Leagues &amp; Events</h1>
-	      <div class="league-tabs" id="leagueTabs"></div>
+	      <div class="league-tabs" id="leagueTabs"><div class="home-league-tabs-root"><div class="home-league-tabs-list" role="tablist" aria-label="Event years"><button type="button" class="home-league-tabs-trigger" role="tab" id="year-tab-2024" data-value="2024" data-state="inactive" aria-selected="false" aria-controls="calendar-section" tabindex="-1"><span class="home-league-tabs-trigger-label">2024</span></button><button type="button" class="home-league-tabs-trigger" role="tab" id="year-tab-2025" data-value="2025" data-state="inactive" aria-selected="false" aria-controls="calendar-section" tabindex="-1"><span class="home-league-tabs-trigger-label">2025</span></button><button type="button" class="home-league-tabs-trigger" role="tab" id="year-tab-2026" data-value="2026" data-state="active" aria-selected="true" aria-controls="calendar-section" tabindex="0"><span class="home-league-tabs-trigger-label">2026</span></button></div></div></div>
 
       <div class="league-section calendar-section" id="calendar-section" role="tabpanel" aria-labelledby="year-tab-2026">
         <h2 class="home-section-title">Always On</h2>
@@ -1481,7 +1498,7 @@
           <div class="calendar-row">
             <span class="event-span neon-red">
               <span class="event-meta" id="rankedLeagueSeasonLabel">Season</span>
-              <a class="event-action" id="rankedLeagueButton" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
+              <a class="event-action" id="rankedLeagueButton" href="https://teamupgg.com/leaderboard/DISCORD%7C1069003073311211601" target="_blank" rel="noopener noreferrer" aria-label="Open Ranked League Leaderboard">
                 <span class="event-title-text">Ranked League</span>
               </a>
             </span>
@@ -1498,11 +1515,118 @@
         </div>
         <div class="calendar-separator" aria-hidden="true"></div>
         <h2 class="home-section-title events-section-title">Events</h2>
-        <div class="calendar-view" id="calendarView" aria-live="polite"></div>
+        <div class="calendar-view" id="calendarView" aria-live="polite">
+
+        <div class="calendar-row" id="calendar-event-2026-0-world-open" data-year="2026" data-month="0" data-event-class="neon-green" data-event-status="" data-winner-loader="">
+          <span class="event-span neon-green is-finished">
+            <span class="event-meta">JAN</span>
+        <span class="event-winner-slot">
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <a class="event-winner-name event-winner-link" href="/player.html?id=1201659929421959222" aria-label="View Duke07 profile">Duke07</a>
+          </span>
+        </span>
+            <a class="event-action" href="/worldopen" aria-label="Go to World Open">
+              <span class="event-title-text">World Open</span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-3-super-league-s6" data-year="2026" data-month="3" data-event-class="neon-purple" data-event-status="" data-winner-loader="">
+          <span class="event-span neon-purple is-finished">
+            <span class="event-meta">APR</span>
+        <span class="event-winner-slot">
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <a class="event-winner-name event-winner-link" href="/player.html?id=1201659929421959222" aria-label="View Duke07 profile">Duke07</a>
+          </span>
+        </span>
+            <a class="event-action" href="/superleague/index.html" aria-label="Go to Super League S6">
+              <span class="event-title-text">Super League S6</span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-4-lightning-cup" data-year="2026" data-month="4" data-event-class="neon-yellow" data-event-status="" data-winner-loader="">
+          <span class="event-span neon-yellow is-finished">
+            <span class="event-meta">MAY</span>
+        <span class="event-winner-slot">
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <a class="event-winner-name event-winner-link" href="/player.html?id=1183051773884248104" aria-label="View Hunter profile">Hunter</a>
+          </span>
+        </span>
+            <a class="event-action" href="/lightningcup/index.html" aria-label="Go to Lightning Cup">
+              <span class="event-title-text">Lightning Cup</span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-5-the-noptational" data-year="2026" data-month="5" data-event-class="indigo" data-event-status="" data-winner-loader="">
+          <span class="event-span indigo is-finished">
+            <span class="event-meta">JUN</span>
+        <span class="event-winner-slot">
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <a class="event-winner-name event-winner-link" href="/player.html?id=1201659929421959222" aria-label="View Duke07 profile">Duke07</a>
+          </span>
+        </span>
+            <a class="event-action" href="/noptational.html" aria-label="Go to The Noptational">
+              <span class="event-title-text">The Noptational</span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-6-world-championship" data-year="2026" data-month="6" data-event-class="light-green" data-event-status="" data-winner-loader="">
+          <span class="event-span light-green is-finished">
+            <span class="event-meta">JUL</span>
+        <span class="event-winner-slot">
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <a class="event-winner-name event-winner-link" href="/player.html?id=1183051773884248104" aria-label="View Hunter profile">Hunter</a>
+          </span>
+        </span>
+            <a class="event-action" href="/championship.html" aria-label="Go to World Championship">
+              <span class="event-title-text">World Championship</span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-7-world-golf-masters" data-year="2026" data-month="7" data-event-class="gold" data-event-status="" data-winner-loader="">
+          <span class="event-span gold is-finished">
+            <span class="event-meta">AUG</span>
+        <span class="event-winner-slot">
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <a class="event-winner-name event-winner-link" href="/player.html?id=1201659929421959222" aria-label="View Duke07 profile">Duke07</a>
+          </span>
+        </span>
+            <a class="event-action" href="/masters.html" aria-label="Go to World Golf Masters">
+              <span class="event-title-text">World Golf Masters</span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-8-super-league-s7" data-year="2026" data-month="8" data-event-class="neon-purple" data-event-status="live" data-winner-loader="">
+          <span class="event-span neon-purple is-live">
+            <span class="event-meta">SEP</span>
+            <a class="event-action" href="/superleague/index.html?season=7&amp;page=season" aria-label="Go to Super League S7">
+              <span class="event-title-text">Super League S7</span>
+              <span class="event-live-dot" aria-hidden="true"></span>
+            </a>
+          </span>
+        </div>
+        <div class="calendar-row" id="calendar-event-2026-10-world-cup" data-year="2026" data-month="10" data-event-class="royal-blue" data-event-status="" data-winner-loader="">
+          <span class="event-span royal-blue is-upcoming">
+            <span class="event-meta">NOV</span>
+            <a class="event-action" href="/worldcup.html" aria-label="Go to World Cup">
+              <span class="event-title-text">World Cup</span>
+        <svg class="lucide lucide-clock event-state-icon is-upcoming" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+            </a>
+          </span>
+        </div>
+        </div>
       </div>
 
 	    </main>
-	    <aside class="home-rail card archive-card" id="homeRecordsPanel" aria-label="Records and data">
+	    <aside class="home-rail card archive-card" id="homeRecordsPanel" aria-labelledby="home-tab-records" aria-label="Records and data">
 	      <section class="rail-block">
 	        <h2 class="rail-heading">Records &amp; Data</h2>
 	        <div class="rail-search">
@@ -1535,7 +1659,7 @@
 	          <tbody>
 	            <tr id="recordsSummaryRow">
 	              <td data-record-summary="9-hole">-</td>
-	              <td data-record-summary="18-hole">-</td>
+	              <td data-record-summary="18-hole">-32</td>
 	              <td data-record-summary="Global">-</td>
 	            </tr>
 	          </tbody>
@@ -1547,21 +1671,124 @@
 	        </a>
 	        <p class="home-gpi-date" id="homeGpiDate">Latest rankings · Loading...</p>
 	        <ol class="home-gpi-list" id="homeGpiList" aria-label="Top 25 Golf Power Index players">
-	          <li class="rail-empty">Loading GPI...</li>
+	          <li class="home-gpi-placeholder"><span class="home-gpi-row"><span class="home-gpi-rank">1</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name">Loading GPI...</span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">2</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">3</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">4</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">5</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">6</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">7</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">8</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">9</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">10</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">11</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">12</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">13</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">14</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">15</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">16</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">17</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">18</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">19</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">20</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">21</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">22</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">23</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">24</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
+          <li class="home-gpi-placeholder" aria-hidden="true"><span class="home-gpi-row"><span class="home-gpi-rank">25</span><span class="home-gpi-player"><span class="home-gpi-avatar"></span><span class="home-gpi-name"></span></span><span class="home-gpi-rating"></span></span></li>
 	        </ol>
 	        <a class="home-gpi-view-all" href="/gpi.html" aria-label="View all Golf Power Index rankings">VIEW ALL</a>
 	      </section>
 	    </aside>
 	  </div>
 
+  <template id="calendar-year-2024">
+        <div class="calendar-row" id="calendar-event-2024-10-world-cup" data-year="2024" data-month="10" data-event-class="royal-blue" data-event-status="" data-winner-loader="worldCup2024">
+          <span class="event-span royal-blue is-finished">
+            <span class="event-meta">NOV</span>
+        <span class="event-winner-slot">
+          <img class="event-winner-portrait" src="/assets/flag-icons/4x3/tw.svg" alt="" width="140" height="140" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <span class="event-winner-name">Taiwan</span>
+          </span>
+        </span>
+            <a class="event-action" href="/worldcup.html?year=2024" aria-label="Go to World Cup">
+              <span class="event-title-text">World Cup</span>
+            </a>
+          </span>
+        </div>
+      </template>
+  <template id="calendar-year-2025">
+        <div class="calendar-row" id="calendar-event-2025-10-world-cup" data-year="2025" data-month="10" data-event-class="royal-blue" data-event-status="" data-winner-loader="worldCup2025">
+          <span class="event-span royal-blue is-finished">
+            <span class="event-meta">NOV</span>
+        <span class="event-winner-slot">
+          <img class="event-winner-portrait" src="/assets/flag-icons/4x3/us.svg" alt="" width="140" height="140" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />
+          <span class="event-winner">
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
+            <span class="event-winner-name">USA A</span>
+          </span>
+        </span>
+            <a class="event-action" href="/worldcup.html?year=2025" aria-label="Go to World Cup">
+              <span class="event-title-text">World Cup</span>
+            </a>
+          </span>
+        </div>
+      </template>
+  <script>
+    // Set the mobile panel before external modules load; CSS supplies the initial state.
+    (() => {
+      const container = document.querySelector(".container");
+      const calendar = document.getElementById("calendarView");
+      const currentYearTemplate = document.createElement("template");
+      currentYearTemplate.id = "calendar-year-2026";
+      currentYearTemplate.content.append(...calendar.cloneNode(true).childNodes);
+      document.body.append(currentYearTemplate);
+      function activateTab(list, button){
+        list.querySelectorAll('[role="tab"]').forEach(tab => {
+          const active = tab === button;
+          tab.setAttribute("aria-selected", String(active));
+          tab.dataset.state = active ? "active" : "inactive";
+          tab.tabIndex = active ? 0 : -1;
+        });
+        if(list.closest("#homePrimaryTabs")){
+          container.dataset.homeTab = button.dataset.value;
+        }else{
+          calendar.replaceChildren(document.getElementById('calendar-year-' + button.dataset.value).content.cloneNode(true));
+          document.getElementById("calendar-section").setAttribute("aria-labelledby", button.id);
+          document.getElementById("leagueTabs").dispatchEvent(new CustomEvent("calendar-year-change", {detail:button.dataset.value}));
+        }
+      }
+      document.querySelectorAll('[role="tablist"]').forEach(list => {
+        list.addEventListener("click", event => {
+          const button = event.target.closest('[role="tab"]');
+          if(button && button.getAttribute("aria-selected") !== "true") activateTab(list, button);
+        });
+        list.addEventListener("keydown", event => {
+          const tabs = Array.from(list.querySelectorAll('[role="tab"]'));
+          const index = tabs.indexOf(document.activeElement);
+          if(index < 0) return;
+          let next;
+          if(event.key === "ArrowRight") next = (index + 1) % tabs.length;
+          if(event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+          if(event.key === "Home") next = 0;
+          if(event.key === "End") next = tabs.length - 1;
+          if(next === undefined) return;
+          event.preventDefault();
+          activateTab(list, tabs[next]);
+          tabs[next].focus();
+        });
+      });
+      matchMedia("(max-width: 760px)").addEventListener("change", () => {
+        const list = document.querySelector('#homePrimaryTabs [role="tablist"]');
+        activateTab(list, document.getElementById("home-tab-leagues"));
+      });
+    })();
+  </script>
+
   <script type="module">
     import { createBrowserSupabaseClient } from "/auth/supabase-auth.js";
-    import { mountHomeLeagueTabs } from "/home-tabs.bundle.js";
-    import {
-      CURRENT_RANKED_LEAGUE_SEASON,
-      RANKED_LEAGUE_TEAMUP_URL,
-      SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON,
-    } from "/config.js?v=20260818-season-configuration";
     import {
       fetchWorldCupValues,
       parseWorldCupSheet,
@@ -1570,10 +1797,6 @@
     } from "/worldcup-data.js?v=20260818-no-store";
 
     const supabase = createBrowserSupabaseClient();
-    const homePrimaryTabsEl = document.getElementById("homePrimaryTabs");
-    const homeLeaguesPanel = document.getElementById("homeLeaguesPanel");
-    const homeRecordsPanel = document.getElementById("homeRecordsPanel");
-    const leagueTabsEl = document.getElementById("leagueTabs");
     const calendarSection = document.getElementById("calendar-section");
     const calendarView = document.getElementById("calendarView");
     const rankedLeagueButton = document.getElementById("rankedLeagueButton");
@@ -1586,7 +1809,6 @@
     const homeGpiDate = document.getElementById("homeGpiDate");
     const recordsSummaryCells = Array.from(document.querySelectorAll("[data-record-summary]"));
     const homeDiscordInviteEl = document.querySelector(".home-discord-invite");
-    const mobileHomeTabsQuery = window.matchMedia("(max-width: 760px)");
     const PLAYER_SEARCH_LIMIT = 8;
     const MEMBER_PAGE_SIZE = 1000;
     const HOME_GPI_LIMIT = 25;
@@ -1603,48 +1825,37 @@
     const TOURNAMENT_GPI_DISTRIBUTION_SHRINKAGE_WEIGHTED_MATCHES = 20;
     const TOURNAMENT_NEGATIVE_EVIDENCE_FULL_UPSET_LOSSES = 2;
     const TOURNAMENT_NEGATIVE_EVIDENCE_MIN_UPSET_LOSS = 1;
-    const SHEET_WORKER_URL = "https://small-mud-2771.nextweekmedia.workers.dev/";
-    const FETCH_NO_STORE = { cache:"no-store" };
     const CURRENT_DATE = new Date();
     const CURRENT_YEAR = CURRENT_DATE.getFullYear();
     const CURRENT_MONTH_INDEX = CURRENT_DATE.getMonth();
-    const YEAR_TABS = [2024, 2025, CURRENT_YEAR].filter((year, index, years) => years.indexOf(year) === index);
     const MONTH_LABELS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-    const CALENDAR_TABS = YEAR_TABS.map((year) => ({
-      id: `year-tab-${year}`,
-      value: String(year),
-      controls: "calendar-section",
-      label: String(year),
-    }));
-    const HOME_PRIMARY_TABS = [
-      { id:"home-tab-leagues", value:"leagues", controls:"homeLeaguesPanel", label:"Leagues & Events" },
-      { id:"home-tab-records", value:"records", controls:"homeRecordsPanel", label:"Records & Data" },
-    ];
-    const CALENDAR_EVENTS = [
-      { year:2024, month:10, title:"World Cup", href:"/worldcup.html?year=2024", className:"royal-blue", winnerLoader:"worldCup2024", fallbackWinner:{ name:"Taiwan", displayName:"Taiwan", avatarUrl:"/assets/flag-icons/4x3/tw.svg" } },
-      { year:2025, month:10, title:"World Cup", href:"/worldcup.html?year=2025", className:"royal-blue", winnerLoader:"worldCup2025", fallbackWinner:{ name:"USA A", displayName:"USA A", avatarUrl:"/assets/flag-icons/4x3/us.svg" } },
-      { year:CURRENT_YEAR, month:0, title:"World Open", href:"/worldopen", className:"neon-green", winnerLoader:"worldOpen2026", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222" } },
-      { year:CURRENT_YEAR, month:3, title:"Super League S6", href:"/superleague/index.html", className:"neon-purple", winnerLoader:"superLeagueS6", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222" } },
-      { year:CURRENT_YEAR, month:4, title:"Lightning Cup", href:"/lightningcup/index.html", className:"neon-yellow", winnerLoader:"lightningCup2026", fallbackWinner:{ name:"Hunter", discordId:"1183051773884248104" } },
-      { year:CURRENT_YEAR, month:5, title:"The Noptational", href:"/noptational.html", className:"indigo", winnerLoader:"noptational2026", fallbackWinner:{ name:"Duke07", discordId:"1201659929421959222", username:"duke07golf" } },
-      { year:CURRENT_YEAR, month:6, title:"World Championship", href:"/championship.html", className:"light-green", winnerLoader:"worldChampionship2026" },
-      { year:CURRENT_YEAR, month:7, title:"World Golf Masters", href:"/masters.html", className:"gold" },
-      { year:CURRENT_YEAR, month:8, title:"Super League S7", href:"/superleague/index.html?season=7&page=season", className:"neon-purple", status:"live" },
-      { year:CURRENT_YEAR, month:10, title:"World Cup", href:"/worldcup.html", className:"royal-blue" },
-    ];
+    // The rendered event rows are the source of truth for this year's fixed calendar.
+    const CALENDAR_EVENTS = Array.from(document.querySelectorAll("#calendar-year-2024, #calendar-year-2025, #calendar-year-2026"))
+      .flatMap(template => Array.from(template.content.querySelectorAll(".calendar-row")))
+      .map(row => {
+        const action = row.querySelector(".event-action");
+        const name = row.querySelector(".event-winner-name");
+        return {
+          year:Number(row.dataset.year), month:Number(row.dataset.month),
+          title:row.querySelector(".event-title-text").textContent.trim(),
+          href:action.getAttribute("href"), className:row.dataset.eventClass,
+          status:row.dataset.eventStatus, winnerLoader:row.dataset.winnerLoader,
+          fallbackWinner:name ? {
+            name:name.textContent.trim(),
+            discordId:name instanceof HTMLAnchorElement ? new URL(name.getAttribute("href"), location.origin).searchParams.get("id") : "",
+            avatarUrl:row.querySelector(".event-winner-portrait")?.getAttribute("src") || "",
+          } : null,
+        };
+      });
     const WINNER_LOADERS = {
       worldCup2024:() => loadWorldCupWinner(2024),
       worldCup2025:() => loadWorldCupWinner(2025),
-      worldOpen2026:loadWorldOpenWinner,
-      superLeagueS6:() => loadSuperLeagueWinner("Season 6"),
-      lightningCup2026:loadLightningCupWinner,
-      noptational2026:loadNoptationalWinner,
-      worldChampionship2026:loadWorldChampionshipWinner,
     };
     const RECORD_GROUPS = [
       {
         title: "18-hole",
         roleIds: [
+          "1558684885600698388", // Record Holder (18 Holes -32)
           "1466897504334516257",
           "1279498515776540796",
           "1279498415444856864",
@@ -1690,19 +1901,15 @@
     const discordMemberCache = new Map();
     const preloadedAvatarUrls = new Set();
     const storedWinnerProfiles = loadStoredWinnerProfiles();
-    let activeCalendarYear = String(CURRENT_YEAR);
+    let activeCalendarYear = document.querySelector('#leagueTabs [aria-selected="true"]').dataset.value;
     let memberSearchRows = [];
     let memberSearchPromise = null;
 
-    if(rankedLeagueButton){
-      rankedLeagueButton.href = RANKED_LEAGUE_TEAMUP_URL;
-    }
-    if(rankedLeagueSeasonLabel){
-      rankedLeagueSeasonLabel.textContent = seasonLabelFromConfig(CURRENT_RANKED_LEAGUE_SEASON);
-    }
-    if(shotgunProLeagueSeasonLabel){
-      shotgunProLeagueSeasonLabel.textContent = seasonLabelFromConfig(SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON);
-    }
+    void import("/config.js?v=20260818-season-configuration").then(config => {
+      if(rankedLeagueButton) rankedLeagueButton.href = config.RANKED_LEAGUE_TEAMUP_URL;
+      if(rankedLeagueSeasonLabel) rankedLeagueSeasonLabel.textContent = seasonLabelFromConfig(config.CURRENT_RANKED_LEAGUE_SEASON);
+      if(shotgunProLeagueSeasonLabel) shotgunProLeagueSeasonLabel.textContent = seasonLabelFromConfig(config.SHOTGUN_PRO_LEAGUE_DEFAULT_SEASON);
+    }).catch(() => {});
 
     function normalizeSearchText(value){
       return String(value || "").trim();
@@ -1805,6 +2012,7 @@
       const key = eventWinnerCacheKey(event);
       const entry = key ? storedWinnerProfiles[key] : null;
       if(!entry?.winner?.name) return null;
+      if(event.fallbackWinner?.name && normalizeNameKey(entry.winner.name) !== normalizeNameKey(event.fallbackWinner.name)) return null;
       if(Date.now() - Number(entry.cachedAt || 0) > WINNER_PROFILE_CACHE_TTL_MS) return null;
       return {
         ...(event.fallbackWinner || {}),
@@ -1915,119 +2123,9 @@
       )) || null;
     }
 
-    function sheetNameEscape(value){
-      return String(value || "").replace(/'/g, "''");
-    }
-
-    function sheetRange(sheetName, range){
-      return `'${sheetNameEscape(sheetName)}'!${range}`;
-    }
-
-    function normalizeSheetValues(payload){
-      if(Array.isArray(payload)) return payload;
-      if(payload?.error) throw new Error(payload.error.message || "Google Sheets request failed.");
-      if(Array.isArray(payload?.values)) return payload.values;
-      if(Array.isArray(payload?.data?.values)) return payload.data.values;
-      if(Array.isArray(payload?.result?.values)) return payload.result.values;
-      return [];
-    }
-
-    async function fetchSheetRange(sheetId, range){
-      const payload = { sheetId, range };
-
-      try{
-        const response = await fetch(SHEET_WORKER_URL, {
-          ...FETCH_NO_STORE,
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body:JSON.stringify(payload),
-        });
-        if(response.ok) return normalizeSheetValues(await response.json());
-      }catch{
-      }
-
-      try{
-        const url = new URL(SHEET_WORKER_URL);
-        url.searchParams.set("sheetId", sheetId);
-        url.searchParams.set("range", range);
-        const response = await fetch(url.toString(), FETCH_NO_STORE);
-        if(response.ok) return normalizeSheetValues(await response.json());
-      }catch{
-      }
-
-      return fetchSheetRangeGviz(sheetId, range);
-    }
-
-    function parseSheetRange(range){
-      const text = normalizeSearchText(range);
-      const match = text.match(/^'([^']+)'!(.+)$/) || text.match(/^([^!]+)!(.+)$/);
-      if(match) return { sheetName:match[1], a1:match[2] };
-      return { sheetName:"", a1:text };
-    }
-
-    function parseGvizResponse(text){
-      const match = String(text || "").match(/google\.visualization\.Query\.setResponse\((.*)\);?\s*$/s);
-      if(!match) throw new Error("Unable to parse Google Sheets response.");
-      const payload = JSON.parse(match[1]);
-      const rows = payload?.table?.rows ?? [];
-      return rows.map(row => (row.c ?? []).map(cell => cell?.v ?? ""));
-    }
-
-    async function fetchSheetRangeGviz(sheetId, range){
-      const { sheetName, a1 } = parseSheetRange(range);
-      const url = new URL(`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq`);
-      url.searchParams.set("tqx", "out:json");
-      if(sheetName) url.searchParams.set("sheet", sheetName);
-      if(a1) url.searchParams.set("range", a1);
-      const response = await fetch(url.toString(), FETCH_NO_STORE);
-      if(!response.ok){
-        const text = await response.text().catch(() => "");
-        throw new Error(`Google Sheets request failed (${response.status}). ${text}`.trim());
-      }
-      return parseGvizResponse(await response.text());
-    }
-
-    async function fetchSheetRanges(sheetId, ranges){
-      const payload = { sheetId, ranges };
-      try{
-        const response = await fetch(SHEET_WORKER_URL, {
-          ...FETCH_NO_STORE,
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body:JSON.stringify(payload),
-        });
-        if(response.ok){
-          const payload = await response.json();
-          const valueRanges = Array.isArray(payload?.valueRanges) ? payload.valueRanges : [];
-          if(valueRanges.length){
-            return valueRanges.map(valueRange => normalizeSheetValues(valueRange));
-          }
-        }
-      }catch{
-      }
-
-      return Promise.all(ranges.map(range => fetchSheetRange(sheetId, range)));
-    }
-
-    async function fetchSheetRangeDirect(sheetId, range){
-      const url = new URL(SHEET_WORKER_URL);
-      url.searchParams.set("sheetId", sheetId);
-      url.searchParams.set("range", range);
-      const response = await fetch(url.toString(), FETCH_NO_STORE);
-      if(!response.ok) throw new Error(`Sheet request failed (${response.status})`);
-      return normalizeSheetValues(await response.json());
-    }
-
     function trophyIconSvg(){
       return `
-        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path>
-          <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path>
-          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-          <path d="M4 22h16"></path>
-          <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path>
-          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-        </svg>
+        <svg class="lucide lucide-trophy event-winner-trophy" viewBox="0 0 24 24" aria-hidden="true" focusable="false" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M10 14.66v1.626a2 2 0 0 1-.976 1.696A5 5 0 0 0 7 21.978"></path> <path d="M14 14.66v1.626a2 2 0 0 0 .976 1.696A5 5 0 0 1 17 21.978"></path> <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path> <path d="M4 22h16"></path> <path d="M6 9a6 6 0 0 0 12 0V3a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1z"></path> <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path> </svg>
       `;
     }
 
@@ -2123,54 +2221,11 @@
         .sort((left, right) => left.month - right.month || left.title.localeCompare(right.title));
 
       calendarView.innerHTML = events.length
-        ? events.map(calendarRowMarkup).join("")
+        ? events.map(event => calendarRowMarkup(event, cachedWinnerForEvent(event))).join("")
         : `<p class="league-placeholder">No tournaments listed for ${escapeHtml(yearValue)}.</p>`;
 
       applyCachedEventWinners(events);
       void hydrateEventWinners(events, activeCalendarYear);
-    }
-
-    function setHomePrimaryTab(value){
-      const activeValue = value === "records" ? "records" : "leagues";
-      const isMobile = mobileHomeTabsQuery.matches;
-      if(homeLeaguesPanel){
-        homeLeaguesPanel.hidden = isMobile && activeValue !== "leagues";
-        homeLeaguesPanel.setAttribute("aria-labelledby", "home-tab-leagues");
-      }
-      if(homeRecordsPanel){
-        homeRecordsPanel.hidden = isMobile && activeValue !== "records";
-        homeRecordsPanel.setAttribute("aria-labelledby", "home-tab-records");
-      }
-    }
-
-    function syncHomePrimaryTabsForViewport(){
-      if(!mobileHomeTabsQuery.matches){
-        if(homeLeaguesPanel) homeLeaguesPanel.hidden = false;
-        if(homeRecordsPanel) homeRecordsPanel.hidden = false;
-        return;
-      }
-      setHomePrimaryTab("leagues");
-    }
-
-    function initHomePrimaryTabs(){
-      syncHomePrimaryTabsForViewport();
-      mobileHomeTabsQuery.addEventListener?.("change", syncHomePrimaryTabsForViewport);
-      if(!homePrimaryTabsEl) return;
-      mountHomeLeagueTabs(homePrimaryTabsEl, {
-        tabs: HOME_PRIMARY_TABS,
-        initialTab: "leagues",
-        onTabChange: setHomePrimaryTab,
-      });
-    }
-
-    function initLeagueTabs(){
-      renderCalendarYear(activeCalendarYear);
-      if(!leagueTabsEl) return;
-      mountHomeLeagueTabs(leagueTabsEl, {
-        tabs: CALENDAR_TABS,
-        initialTab: activeCalendarYear,
-        onTabChange: renderCalendarYear,
-      });
     }
 
     function updateEventRow(event, winner){
@@ -2190,7 +2245,7 @@
     }
 
     async function resolveEventWinner(event){
-      if(!event.winnerLoader || !WINNER_LOADERS[event.winnerLoader]) return;
+      if(!event.winnerLoader || !WINNER_LOADERS[event.winnerLoader]) return event.fallbackWinner;
       if(!winnerCache.has(event.winnerLoader)){
         winnerCache.set(event.winnerLoader, Promise.resolve(WINNER_LOADERS[event.winnerLoader]()).catch(() => null));
       }
@@ -2201,7 +2256,7 @@
     }
 
     async function hydrateEventWinners(events, yearValue){
-      const winnerEvents = (events || []).filter(event => event.winnerLoader && WINNER_LOADERS[event.winnerLoader]);
+      const winnerEvents = (events || []).filter(event => event.fallbackWinner || WINNER_LOADERS[event.winnerLoader]);
       if(!winnerEvents.length) return;
 
       try{
@@ -2289,130 +2344,6 @@
       };
     }
 
-    async function loadWorldOpenWinner(){
-      const sheetId = "1WcRVGmEpQkRDTwe8aDfQgxuDoapvLxAdSjnqg4PHgXM";
-      const [championRows, discordRows] = await Promise.all([
-        fetchSheetRange(sheetId, sheetRange("2026 Results", "AX2:AX2")),
-        fetchSheetRange(sheetId, sheetRange("Discord IDs", "A:B")).catch(() => []),
-      ]);
-      const name = normalizeSearchText(championRows?.[0]?.[0]);
-      if(!name) return null;
-      const discordId = (discordRows || []).find(row => normalizeNameKey(row?.[0]) === normalizeNameKey(name))?.[1] || "";
-      return { name, discordId };
-    }
-
-    async function loadLightningCupWinner(){
-      const sheetId = "1nqZpVdf8bRlNAS-a16HeW5Lp9za5bKT18GofnXI7FXQ";
-      const [bracketRows, seedsRows] = await Promise.all([
-        fetchSheetRange(sheetId, "'Bracket'!A:T"),
-        fetchSheetRange(sheetId, "'Seeds'!C:E").catch(() => []),
-      ]);
-      const finalRow = (bracketRows || []).slice(1).find(row => /^final$/i.test(normalizeSearchText(row?.[1])));
-      const name = normalizeSearchText(finalRow?.[9]);
-      if(!name) return null;
-      const seedRow = (seedsRows || []).find(row => normalizeNameKey(row?.[0]) === normalizeNameKey(name));
-      return { name, discordId:normalizeDiscordId(seedRow?.[2]) };
-    }
-
-    function parseNoptationalScore(value){
-      const raw = normalizeSearchText(value);
-      if(!raw) return null;
-      if(/^e$/i.test(raw)) return 0;
-      const cleaned = raw.replace(/[^\d.+-]/g, "");
-      if(!cleaned || cleaned === "+" || cleaned === "-") return null;
-      const number = Number(cleaned);
-      return Number.isFinite(number) ? number : null;
-    }
-
-    function noptationalDisplayParts(rawName){
-      const lines = String(rawName || "").split(/\n+/).map(normalizeSearchText).filter(Boolean);
-      if(lines.length > 1){
-        return {
-          display:normalizeSearchText(lines[0]),
-          username:normalizeSearchText(lines[1]),
-        };
-      }
-      const text = normalizeSearchText(lines[0] || rawName);
-      const match = text.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-      return {
-        display:normalizeSearchText(match ? match[1] : text),
-        username:normalizeSearchText(match ? match[2] : ""),
-      };
-    }
-
-    async function loadNoptationalWinner(){
-      const sheetId = "1T7kmgUtimrOW3LaTw2hYLMFvO600SjmUDLTecL6gY00";
-      const courses = [
-        { minimum:-12, columns:[1, 2] },
-        { minimum:-10, columns:[3, 4] },
-        { minimum:-3, columns:[5, 6, 7] },
-        { minimum:-22, columns:[8, 9] },
-      ];
-      const rows = await fetchSheetRange(sheetId, sheetRange("Round Scores (2026)", "A1:J250"));
-      const players = (rows || []).slice(1).map((row) => {
-        const { display, username } = noptationalDisplayParts(row?.[0]);
-        if(!display) return null;
-        let total = 0;
-        let countedCount = 0;
-        let cut = false;
-        courses.forEach((course) => {
-          const scores = course.columns.map(column => parseNoptationalScore(row?.[column])).filter(score => score !== null);
-          total += scores.reduce((sum, score) => sum + score, 0);
-          countedCount += scores.length;
-          if(scores.length && Math.min(...scores) > course.minimum) cut = true;
-        });
-        return { display, username, total, countedCount, cut };
-      }).filter(player => player && player.countedCount > 0 && !player.cut)
-        .sort((left, right) => left.total - right.total || right.countedCount - left.countedCount || left.display.localeCompare(right.display));
-      const winner = players[0];
-      if(!winner) return null;
-      return { name:winner.display, username:winner.username };
-    }
-
-    function parseSuperLeaguePlayoffRows(values){
-      return (values || []).map((row = []) => ({
-        p1:{ name:normalizeSearchText(row[3]), result:normalizeSearchText(row[10]).toUpperCase() },
-        p2:{ name:normalizeSearchText(row[12]), result:normalizeSearchText(row[19]).toUpperCase() },
-      }));
-    }
-
-    async function loadSuperLeagueWinner(sheetName){
-      const sheetId = "1BbT8t6erCVdx-Bdshv_hax9r9JSRzU1WygjWxW3vPkY";
-      const [playoffRows, discordRows] = await Promise.all([
-        fetchSheetRange(sheetId, sheetRange(sheetName, "I87:AB92")),
-        fetchSheetRange(sheetId, sheetRange("Discord IDs", "A:B")).catch(() => []),
-      ]);
-      const championship = parseSuperLeaguePlayoffRows(playoffRows)[2];
-      const name = championship?.p1?.result === "W" ? championship.p1.name
-        : championship?.p2?.result === "W" ? championship.p2.name
-        : "";
-      if(!name) return null;
-      const discordId = (discordRows || []).find(row => normalizeNameKey(row?.[1]) === normalizeNameKey(name))?.[0] || "";
-      return { name, discordId };
-    }
-
-    function parseChampionshipBracketWinner(row){
-      const topName = normalizeSearchText(row?.[3]);
-      const topScore = Number(row?.[4]);
-      const bottomName = normalizeSearchText(row?.[15]);
-      const bottomScore = Number(row?.[16]);
-      if(!topName || !bottomName || !Number.isFinite(topScore) || !Number.isFinite(bottomScore) || topScore === bottomScore) return "";
-      return topScore > bottomScore ? topName : bottomName;
-    }
-
-    async function loadWorldChampionshipWinner(){
-      const sheetId = "10nVyu3uM_PbK6fDgmomtjlHakNJ1oIM66MRXXHX3k_Q";
-      const [fieldRows, bracketRows] = await Promise.all([
-        fetchSheetRange(sheetId, "'Field'!B:C").catch(() => []),
-        fetchSheetRange(sheetId, "'Bracket'!A:Z"),
-      ]);
-      const finalRow = (bracketRows || []).find(row => /^final$/i.test(normalizeSearchText(row?.[1])));
-      const name = parseChampionshipBracketWinner(finalRow);
-      if(!name) return null;
-      const discordId = (fieldRows || []).find(row => normalizeNameKey(row?.[0]) === normalizeNameKey(name))?.[1] || "";
-      return { name, discordId };
-    }
-
     function setRecordSummaryValue(title, value){
       const cell = recordsSummaryCells.find(item => item.dataset.recordSummary === title);
       if(!cell) return;
@@ -2436,10 +2367,11 @@
         const rolesById = new Map((data || []).map(role => [String(role.role_id), role]));
         RECORD_GROUPS.forEach((group) => {
           const role = group.roleIds.map(roleId => rolesById.get(roleId)).find(Boolean);
-          setRecordSummaryValue(group.title, recordScoreFromRoleName(role?.name));
+          if(group.title === "18-hole" && role?.role_id !== "1558684885600698388") return;
+          if(role) setRecordSummaryValue(group.title, recordScoreFromRoleName(role.name));
         });
       }catch{
-        RECORD_GROUPS.forEach(group => setRecordSummaryValue(group.title, "-"));
+        // Keep the confirmed 18-hole record if the live role lookup is unavailable.
       }
     }
 
@@ -2888,8 +2820,13 @@
       void loadHomeGpiSummary();
     }
 
-    initHomePrimaryTabs();
-    initLeagueTabs();
+    document.getElementById("leagueTabs").addEventListener("calendar-year-change", event => renderCalendarYear(event.detail));
+    if(activeCalendarYear === "2026"){
+      applyCachedEventWinners(CALENDAR_EVENTS.filter(event => event.year === 2026));
+      void hydrateEventWinners(CALENDAR_EVENTS.filter(event => event.year === 2026), activeCalendarYear);
+    }else{
+      renderCalendarYear(activeCalendarYear);
+    }
     initHomeRailData();
 
     function getDiscordIdentity(user){
