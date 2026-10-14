@@ -3,6 +3,8 @@
 const assert = require("node:assert/strict");
 const {
   dedupeMatches,
+  normalizeMatchForStorage,
+  rankedLeaderboardForSeason,
   matchRecencyWeightForIndex,
   recencyWeightForMatch,
   normalizedOutcomeScore,
@@ -44,6 +46,23 @@ function match(timestamp, results, versus = "1v1v1") {
       })),
     })),
   };
+}
+
+{
+  const fixture = match(1_000_000, [
+    { place: 1, players: ["100"] },
+    { place: 2, players: ["200"] },
+  ], "1v1");
+  for (const [season, leaderboard] of [[7, "Season_7"], [13, "Season_13"], [14, "season-14"], [15, "season-15"]]) {
+    assert.equal(rankedLeaderboardForSeason(season), leaderboard);
+    const stored = normalizeMatchForStorage(season, fixture);
+    assert.equal(stored.season, season);
+    assert.equal(stored.leaderboard, leaderboard);
+  }
+  assert.equal(rankedLeaderboardForSeason("14"), "season-14");
+  for (const season of [0, -1, 14.5, "season-14"]) {
+    assert.throws(() => rankedLeaderboardForSeason(season), /Invalid Ranked League season/);
+  }
 }
 
 {

@@ -31,6 +31,14 @@ function asInteger(value) {
   return Number.isInteger(number) ? number : null;
 }
 
+function rankedLeaderboardForSeason(season) {
+  const number = asInteger(season);
+  if (number == null || number < 1) {
+    throw new Error(`Invalid Ranked League season: ${season}`);
+  }
+  return number >= 14 ? `season-${number}` : `Season_${number}`;
+}
+
 function normalizeDiscordId(value) {
   const cleanValue = String(value || "").trim();
   return /^[0-9]+$/.test(cleanValue) ? cleanValue : "";
@@ -114,7 +122,7 @@ function normalizeMatchForStorage(season, match) {
   return {
     match_hash: matchHash(cleanSeason, match),
     season: cleanSeason,
-    leaderboard: `Season_${cleanSeason}`,
+    leaderboard: rankedLeaderboardForSeason(cleanSeason),
     timestamp_ms: timestampMs,
     played_at: playedAtFromTimestamp(timestampMs),
     versus: String(match?.versus || "").trim(),
@@ -1672,6 +1680,7 @@ module.exports = {
   expectedScore,
   matchHash,
   normalizeMatchForStorage,
+  rankedLeaderboardForSeason,
   normalizedOutcomeScore,
   expectedFieldScore,
   participantWeightForMatchSize,
