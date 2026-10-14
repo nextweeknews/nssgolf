@@ -24,6 +24,7 @@ const {
   NPS_ELO_CALCULATION_VERSION,
   OAWP_GPI_CALCULATION_VERSION,
   dedupeMatches,
+  rankedLeaderboardForSeason,
   replayPlackettLuceGpi,
   replayOpponentAwareWeightedPairwiseGpi,
   replayNormalizedPlacementElo,
@@ -257,7 +258,7 @@ function teamUpUrlForSeason(season, { cursor = "", limit = defaultLimit } = {}) 
   const baseUrl = String(process.env.TEAMUP_API_BASE_URL || defaultTeamUpApiBaseUrl).replace(/\/+$/, "");
   const clientId = teamUpClientId();
   const url = new URL(
-    `${baseUrl}/client/${encodeURIComponent(clientId)}/matches/Season_${season}`
+    `${baseUrl}/client/${encodeURIComponent(clientId)}/matches/${rankedLeaderboardForSeason(season)}`
   );
   url.searchParams.set("limit", String(limit));
   if (cursor) url.searchParams.set("cursor", cursor);
@@ -279,7 +280,7 @@ function syntheticCursorForSeason(season, match) {
 
   return Buffer.from(
     JSON.stringify({
-      pk: `${teamUpClientId()}|Season_${season}`,
+      pk: `${teamUpClientId()}|${rankedLeaderboardForSeason(season)}`,
       ts: timestamp,
     })
   ).toString("base64");
@@ -297,6 +298,7 @@ async function fetchJson(url) {
 }
 
 async function fetchSeason(season, options, waitForTurn, { newerThanTimestampMs = null } = {}) {
+  const leaderboard = rankedLeaderboardForSeason(season);
   let cursor = "";
   const isIncremental = newerThanTimestampMs != null;
   let totalMatches = null;
@@ -338,9 +340,9 @@ async function fetchSeason(season, options, waitForTurn, { newerThanTimestampMs 
       totalMatches = payloadTotal;
     }
 
-    if (payload.leaderboard && payload.leaderboard !== `Season_${season}`) {
+    if (payload.leaderboard && payload.leaderboard !== leaderboard) {
       throw new Error(
-        `Season ${season}: expected leaderboard Season_${season}, got ${payload.leaderboard}.`
+        `Season ${season}: expected leaderboard ${leaderboard}, got ${payload.leaderboard}.`
       );
     }
 
